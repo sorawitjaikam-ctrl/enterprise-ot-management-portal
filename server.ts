@@ -253,18 +253,72 @@ const initD1Database = async () => {
 // 0. Authentication Route
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  if (username === "admin" && password === "admin123") {
-    res.json({ 
-      success: true, 
-      user: { 
-        name: "คุณสิทธิศักดิ์ พ.", 
-        role: "ผู้ดูแลระบบ",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" 
-      } 
-    });
+
+  const accounts: { [key: string]: any } = {
+    "admin": {
+      username: "admin",
+      name: "คุณสิทธิศักดิ์ พ.",
+      role: "ผู้ดูแลระบบ",
+      deptId: "all",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+    },
+    "mfg_mgr": {
+      username: "mfg_mgr",
+      name: "คุณสมชาย พ.",
+      role: "หัวหน้าฝ่ายผลิต (Manufacturing)",
+      deptId: "mfg",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDvnZYNBjBkeCOTamuBRImZeOreen3v6-c3XRgPZStiBJsooAt2tZfWOe-JglYng3d76RoGxGaD3OZu9O5cWJcNPS8GtIGgWb9y-W_vl5-54d6BPr6AZoFtC3zcTDO8x_zSR1HqqCTOLB1Fk_CsHu1G_gg04kKnbZKFzqtoUg5w4U2LKAYkfmakE59OAlawYLhFBOG4RqdcpJoTpxwf-Qk7EiCDxOLHY2rhXvnmjCXhU--ouDzu8lv-Gw"
+    },
+    "qa_mgr": {
+      username: "qa_mgr",
+      name: "คุณสุนิสา ร.",
+      role: "หัวหน้าฝ่ายตรวจสอบคุณภาพ (QA)",
+      deptId: "qa",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfa-Va6432wLuwuCbKZ3EOPg3eCXfvvHiwL1woy-BIKcHNVkOMnohhkoRbfOOUysRlxiwrPFrYuxshKtxmlLDoLElzIsIMt0rR3mdVQ5MgFojB5oD1XzQ735Xd2CHBzlFzBugvnQvlEAGUaRlenDPkjpDM8ajsTup1vyucCI_EOMT0zwOV1AhwqCaEKEftdDiOtiFXptD6dIbVPk_M6B8KacXTbCsv7PgxJmN_hfoPuPNBTEPc-Uufyg"
+    },
+    "log_mgr": {
+      username: "log_mgr",
+      name: "คุณวิชัย ก.",
+      role: "หัวหน้าฝ่ายคลังสินค้า (Logistics)",
+      deptId: "log",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBS7GW61eXgnSKpdsavi1aRZYl9uX0Csq70SKyc-Sn5qBGOo_TwiOxitFxbE-a19DM10o-N5XZptW0rpX7YAekGh7z36XXv0ZWmCWTW_e-JKB9UxzwbqUfR8xsuefLlsZFsT2Vf8oU7IwGavhQqplT0Z3xmK5ydtzxK8__a_dahXdu0BDufiwJwAHxKa0npqAy4M-hw7wl2e88aOOWQNjcuXWNZY9b_HLZQ1goE7EX5-GodqradS90O2A"
+    },
+    "it_mgr": {
+      username: "it_mgr",
+      name: "คุณศศิธร ส.",
+      role: "หัวหน้าฝ่ายไอที (IT)",
+      deptId: "it",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+    },
+    "sales_mgr": {
+      username: "sales_mgr",
+      name: "คุณจตุพล พ.",
+      role: "หัวหน้าฝ่ายขาย (Sales)",
+      deptId: "sales",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+    }
+  };
+
+  const account = accounts[username];
+  if (account && password === username + "123") {
+    res.json({ success: true, user: account });
   } else {
-    res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
+    res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (รหัสผ่านเริ่มต้นคือ ชื่อผู้ใช้ตามด้วย 123 เช่น admin123 หรือ mfg_mgr123)" });
   }
+});
+
+app.post("/api/update-profile", (req, res) => {
+  const { username, name, avatar, role, deptId } = req.body;
+  res.json({ 
+    success: true, 
+    user: { 
+      username: username || "admin",
+      name: name || "คุณสิทธิศักดิ์ พ.", 
+      role: role || "ผู้ดูแลระบบ",
+      deptId: deptId || "all",
+      avatar: avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" 
+    } 
+  });
 });
 
 // 1. Get current portal state

@@ -17,9 +17,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   onOpenNewRequest: () => void;
   onLogout: () => void;
+  currentUser: any;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onLogout }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onLogout, currentUser }: SidebarProps) {
   const menuItems = [
     { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
     { id: "reports", label: "รายงานข้อมูลรายแผนก", icon: BarChart3 },
@@ -99,19 +100,27 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onL
         </div>
 
         {/* User profile footer */}
-        <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-xl border border-slate-100">
-          <div className="w-9 h-9 rounded-full overflow-hidden shadow-inner border border-slate-200">
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`w-full flex items-center gap-3 p-2 rounded-xl border transition-all text-left hover:bg-slate-100 ${
+            activeTab === "profile" 
+              ? "bg-blue-50 border-blue-200 text-blue-600 font-semibold" 
+              : "bg-slate-50 border-slate-100 text-slate-600"
+          }`}
+          title="จัดการโปรไฟล์ส่วนตัว"
+        >
+          <div className="w-9 h-9 rounded-full overflow-hidden shadow-inner border border-slate-200 flex-shrink-0">
             <img 
               alt="Profile" 
               className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+              src={currentUser ? currentUser.avatar : "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"}
             />
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-xs font-semibold text-slate-900 truncate">คุณสิทธิศักดิ์ พ.</p>
-            <p className="text-[10px] text-slate-500 truncate font-medium">ผู้ดูแลระบบ</p>
+            <p className="text-xs font-semibold text-slate-900 truncate">{currentUser ? currentUser.name : "คุณสิทธิศักดิ์ พ."}</p>
+            <p className="text-[10px] text-slate-500 truncate font-medium">{currentUser ? currentUser.role : "ผู้ดูแลระบบ"}</p>
           </div>
-        </div>
+        </button>
       </div>
     </aside>
   );

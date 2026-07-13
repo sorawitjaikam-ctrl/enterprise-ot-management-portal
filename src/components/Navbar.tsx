@@ -1,18 +1,40 @@
 import React from "react";
-import { Search, Bell, HelpCircle, Globe, ChevronDown } from "lucide-react";
+import { Menu, Search, Bell, HelpCircle, Globe, ChevronDown } from "lucide-react";
 
 interface NavbarProps {
   title: string;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   pendingRequestsCount: number;
+  isSidebarHidden: boolean;
+  setIsSidebarHidden: (val: boolean) => void;
+  currentUser: any;
+  onOpenProfile: () => void;
 }
 
-export default function Navbar({ title, searchQuery, setSearchQuery, pendingRequestsCount }: NavbarProps) {
+export default function Navbar({ 
+  title, 
+  searchQuery, 
+  setSearchQuery, 
+  pendingRequestsCount,
+  isSidebarHidden,
+  setIsSidebarHidden,
+  currentUser,
+  onOpenProfile
+}: NavbarProps) {
   return (
-    <header className="fixed top-0 right-0 left-[260px] h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 z-30 shadow-sm">
+    <header className={`fixed top-0 right-0 h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 z-30 shadow-sm transition-all duration-300 ${
+      isSidebarHidden ? "left-0" : "left-[260px]"
+    }`}>
       {/* Title & Search */}
-      <div className="flex items-center gap-8 w-1/2">
+      <div className="flex items-center gap-4 w-1/2">
+        <button
+          onClick={() => setIsSidebarHidden(!isSidebarHidden)}
+          className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+          title={isSidebarHidden ? "แสดงเมนูแถบข้าง" : "ซ่อนเมนูแถบข้าง"}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         <h2 className="font-bold text-slate-800 text-lg whitespace-nowrap">{title}</h2>
         
         {/* Search bar */}
@@ -64,19 +86,23 @@ export default function Navbar({ title, searchQuery, setSearchQuery, pendingRequ
         <div className="h-6 w-px bg-slate-200"></div>
 
         {/* Profile Info */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-xs font-bold text-slate-800 leading-tight">Admin User</p>
-            <p className="text-[10px] text-slate-500 leading-none mt-0.5">HR Manager</p>
+        <button 
+          onClick={onOpenProfile}
+          className="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-xl transition-colors text-left"
+          title="ดูโปรไฟล์ของคุณ"
+        >
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-bold text-slate-800 leading-tight">{currentUser.name}</p>
+            <p className="text-[10px] text-slate-500 leading-none mt-0.5">{currentUser.role}</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shadow-inner">
+          <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shadow-inner flex-shrink-0">
             <img 
               alt="Manager Avatar" 
               className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3NaHkpKmjJictnvG5VCyJxsYfnOXr_Yh0idsg9PW2O2WZKnctTzQ87xupVf2DJRB-isGbwkT4i0FkK3aXRuBln5ERLNHSBVEQ3caIMZ-Rt3XvyfVoLFJ57aTivDjpV3pO4beLCJawr1-vZdAbZ_quDgGeA4LPYuSq2ErGLPoPUuIABkOPRSFJMJtmrdPcY5Pt0-JPFyTekZzljrBC2UrxVxzFcKUocJKCRI9SnDAvAwNn_2TtXNa9rQ"
+              src={currentUser.avatar}
             />
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

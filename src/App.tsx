@@ -95,15 +95,81 @@ export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
 };
 
 export default function App() {
-  // Login System States
+  // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("adminLoggedIn") === "true"
   );
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    const saved = localStorage.getItem("currentUser");
+    return saved ? JSON.parse(saved) : { 
+      username: "admin",
+      name: "คุณสิทธิศักดิ์ พ.", 
+      role: "ผู้ดูแลระบบ", 
+      deptId: "all",
+      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" 
+    };
+  });
   const [loginUsername, setLoginUsername] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
+
+  // Layout States
+  const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(false);
+
+  // New Employee Input States
+  const [newEmpId, setNewEmpId] = useState<string>("");
+
+  // Profile Edit States
+  const [profileName, setProfileName] = useState<string>(currentUser?.name || "");
+  const [profileAvatar, setProfileAvatar] = useState<string>(currentUser?.avatar || "");
+  const [profilePassword, setProfilePassword] = useState<string>("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState<string>("");
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string>("");
+  const [profileErrorMsg, setProfileErrorMsg] = useState<string>("");
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfileName(currentUser.name);
+      setProfileAvatar(currentUser.avatar);
+    }
+  }, [currentUser]);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileErrorMsg("");
+    setProfileSuccessMsg("");
+    if (profilePassword && profilePassword !== profileConfirmPassword) {
+      setProfileErrorMsg("รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน");
+      return;
+    }
+    try {
+      const res = await fetch("/api/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: currentUser?.username,
+          name: profileName,
+          avatar: profileAvatar,
+          role: currentUser?.role,
+          deptId: currentUser?.deptId
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+        setCurrentUser(data.user);
+        setProfilePassword("");
+        setProfileConfirmPassword("");
+        setProfileSuccessMsg("อัปเดตข้อมูลโปรไฟล์ส่วนตัวสำเร็จ!");
+      } else {
+        setProfileErrorMsg("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
+    } catch (err) {
+      setProfileErrorMsg("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,8 +182,11 @@ export default function App() {
         body: JSON.stringify({ username: loginUsername, password: loginPassword })
       });
       if (res.ok) {
+        const data = await res.json();
         localStorage.setItem("adminLoggedIn", "true");
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
         setIsLoggedIn(true);
+        setCurrentUser(data.user);
         setLoginUsername("");
         setLoginPassword("");
       } else {
@@ -134,7 +203,9 @@ export default function App() {
   const handleLogout = () => {
     if (window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
       localStorage.removeItem("adminLoggedIn");
+      localStorage.removeItem("currentUser");
       setIsLoggedIn(false);
+      setCurrentUser(null);
     }
   };
 
@@ -206,6 +277,25 @@ export default function App() {
     fetchPortalState();
   }, []);
 
+  useEffect(() => {
+    if (currentUser && currentUser.deptId !== "all") {
+      const deptMap: { [key: string]: string } = {
+        "mfg": "ฝ่ายผลิต (Manufacturing)",
+        "qa": "ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)",
+        "log": "ฝ่ายคลังสินค้า (Logistics)",
+        "it": "ไอที (IT)",
+        "sales": "ฝ่ายขาย (Sales)",
+        "hr": "ฝ่ายบุคคล (HR)"
+      };
+      const filterVal = deptMap[currentUser.deptId];
+      if (filterVal) {
+        setSelectedDeptFilter(filterVal);
+      }
+    } else {
+      setSelectedDeptFilter("ทุกแผนก");
+    }
+  }, [currentUser]);
+
   if (loading || !state) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
@@ -214,6 +304,9 @@ export default function App() {
       </div>
     );
   }
+
+  const activeDeptId = currentUser?.deptId || "all";
+  const filteredDeptsForStats = state.departments.filter(d => activeDeptId === "all" || d.id === activeDeptId);
 
   // Filter logic based on search and dropdowns
   const filteredEmployees = state.employees.filter((emp) => {
@@ -287,6 +380,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: newEmpId || undefined,
           name: newEmpName,
           deptId: newEmpDept,
           role: newEmpRole,
@@ -297,6 +391,7 @@ export default function App() {
       if (res.ok) {
         setShowAddEmployeeModal(false);
         // Reset form
+        setNewEmpId("");
         setNewEmpName("");
         setNewEmpRole("Technician");
         setNewEmpTargetOt(48);
@@ -617,19 +712,26 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar navigation component */}
       {!isFullScreen && (
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          onOpenNewRequest={() => setShowNewRequestModal(true)} 
-          onLogout={handleLogout}
-        />
+        <div className={`fixed left-0 top-0 h-full w-[260px] z-40 transition-transform duration-300 ${
+          isSidebarHidden ? "-translate-x-full" : "translate-x-0"
+        }`}>
+          <Sidebar 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab} 
+            onOpenNewRequest={() => setShowNewRequestModal(true)} 
+            onLogout={handleLogout}
+            currentUser={currentUser}
+          />
+        </div>
       )}
 
       {/* Main container area */}
-      <div className={`flex-1 flex flex-col min-h-screen ${isFullScreen ? "ml-0" : "ml-[260px]"}`}>
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+        isSidebarHidden || isFullScreen ? "ml-0" : "ml-[260px]"
+      }`}>
         {!isFullScreen && (
           <Navbar 
             title={
@@ -638,11 +740,16 @@ export default function App() {
               activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
               activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
               activeTab === "requests" ? "ระบบรับคำขอทำโอที (OT Requests Tracker)" :
+              activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
               "การตั้งค่าระบบและกฎเกณฑ์"
             }
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             pendingRequestsCount={pendingRequestsCount}
+            isSidebarHidden={isSidebarHidden}
+            setIsSidebarHidden={setIsSidebarHidden}
+            currentUser={currentUser}
+            onOpenProfile={() => setActiveTab("profile")}
           />
         )}
 
@@ -674,7 +781,8 @@ export default function App() {
                   <select 
                     value={selectedDeptFilter}
                     onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold"
+                    disabled={activeDeptId !== "all"}
+                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
                   >
                     <option>ทุกแผนก</option>
                     <option>ไอที (IT)</option>
@@ -721,7 +829,7 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ชั่วโมง OT รวมเดือนนี้</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {state.departments.reduce((acc, curr) => acc + curr.otHours, 0).toLocaleString()}
+                        {filteredDeptsForStats.reduce((acc, curr) => acc + curr.otHours, 0).toLocaleString()}
                       </h3>
                       <span className="text-xs font-bold text-slate-500">ชม.</span>
                     </div>
@@ -741,7 +849,7 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        ฿{(state.departments.reduce((acc, curr) => acc + curr.budgetUsed, 0) / 1000).toFixed(1)}K
+                        ฿{(filteredDeptsForStats.reduce((acc, curr) => acc + curr.budgetUsed, 0) / 1000).toFixed(1)}K
                       </h3>
                       <span className="text-xs font-bold text-slate-500">THB</span>
                     </div>
@@ -761,7 +869,7 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">จำนวนพนักงานที่ได้รับ OT</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {state.departments.reduce((acc, curr) => acc + curr.employeesCount, 0)}
+                        {filteredDeptsForStats.reduce((acc, curr) => acc + curr.employeesCount, 0)}
                       </h3>
                       <span className="text-xs font-bold text-slate-500">คน</span>
                     </div>
@@ -986,7 +1094,8 @@ export default function App() {
                         const val = e.target.value;
                         setSelectedDeptFilter(val === "ทุกแผนกทำงาน" ? "ทุกแผนก" : val);
                       }}
-                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold"
+                      disabled={activeDeptId !== "all"}
+                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
                     >
                       <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
                       <option value="ไอที (IT)">ไอที (IT)</option>
@@ -1677,7 +1786,9 @@ export default function App() {
 
                     {/* Employee scheduler rows */}
                     <div className="divide-y divide-slate-100">
-                      {(isEditingShifts ? tempEmployees : state.employees).map((emp) => {
+                      {(isEditingShifts ? tempEmployees : state.employees)
+                        .filter(emp => activeDeptId === "all" || emp.deptId === activeDeptId)
+                        .map((emp) => {
                         return (
                           <div 
                             key={emp.id} 
@@ -1907,72 +2018,83 @@ export default function App() {
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {state.requests.map((req) => {
-                    return (
-                      <div key={req.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        
-                        {/* Request Core Info */}
-                        <div className="flex items-start gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
-                            req.urgency === "Critical" ? "bg-red-100 text-red-700" :
-                            req.urgency === "High" ? "bg-amber-100 text-amber-700" :
-                            "bg-blue-100 text-blue-700"
-                          }`}>
-                            {req.urgency.substring(0, 3)}
+                  {(() => {
+                    const deptNameMap: { [key: string]: string } = {
+                      "mfg": "Manufacturing",
+                      "qa": "Quality Assurance",
+                      "log": "Logistics",
+                      "it": "IT",
+                      "sales": "Sales",
+                      "hr": "HR"
+                    };
+                    const managerDeptName = deptNameMap[activeDeptId] || "";
+                    return state.requests
+                      .filter(req => activeDeptId === "all" || req.dept === managerDeptName)
+                      .map((req) => (
+                        <div key={req.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          
+                          {/* Request Core Info */}
+                          <div className="flex items-start gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
+                              req.urgency === "Critical" ? "bg-red-100 text-red-700" :
+                              req.urgency === "High" ? "bg-amber-100 text-amber-700" :
+                              "bg-blue-100 text-blue-700"
+                            }`}>
+                              {req.urgency.substring(0, 3)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h5 className="text-sm font-bold text-slate-800">{req.name}</h5>
+                                <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.id}</span>
+                                <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.employeeId}</span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                แผนกสังกัด: <strong className="text-slate-700">{req.dept}</strong> | วันที่ขอปฏิบัติงาน: <strong className="text-slate-700">{req.date}</strong> | เวลา: <strong className="text-slate-700">{req.hours} ชม.</strong>
+                              </p>
+                              <p className="text-xs text-slate-600 mt-2 bg-slate-100 p-2.5 rounded-xl border border-slate-200/50 max-w-xl">
+                                💡 <strong>เหตุผลความจำเป็น:</strong> {req.reason}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h5 className="text-sm font-bold text-slate-800">{req.name}</h5>
-                              <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.id}</span>
-                              <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.employeeId}</span>
-                            </div>
-                            <p className="text-xs text-slate-500 mt-1">
-                              แผนกสังกัด: <strong className="text-slate-700">{req.dept}</strong> | วันที่ขอปฏิบัติงาน: <strong className="text-slate-700">{req.date}</strong> | เวลา: <strong className="text-slate-700">{req.hours} ชม.</strong>
-                            </p>
-                            <p className="text-xs text-slate-600 mt-2 bg-slate-100 p-2.5 rounded-xl border border-slate-200/50 max-w-xl">
-                              💡 <strong>เหตุผลความจำเป็น:</strong> {req.reason}
-                            </p>
+
+                          {/* Status / Control buttons */}
+                          <div className="flex items-center gap-4">
+                            {req.status === "Pending" ? (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleUpdateRequestStatus(req.id, "Rejected")}
+                                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-bold transition-all"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  <span>ปฏิเสธ</span>
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateRequestStatus(req.id, "Approved")}
+                                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>อนุมัติคำขอ</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border ${
+                                  req.status === "Approved" 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                                    : "bg-slate-100 text-slate-500 border-slate-200"
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${
+                                    req.status === "Approved" ? "bg-emerald-500" : "bg-slate-400"
+                                  }`}></span>
+                                  {req.status === "Approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว"}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        </div>
 
-                        {/* Status / Control buttons */}
-                        <div className="flex items-center gap-4">
-                          {req.status === "Pending" ? (
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => handleUpdateRequestStatus(req.id, "Rejected")}
-                                className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-bold transition-all"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                <span>ปฏิเสธ</span>
-                              </button>
-                              <button 
-                                onClick={() => handleUpdateRequestStatus(req.id, "Approved")}
-                                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-sm"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                <span>อนุมัติคำขอ</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border ${
-                                req.status === "Approved" 
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                  : "bg-slate-100 text-slate-500 border-slate-200"
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  req.status === "Approved" ? "bg-emerald-500" : "bg-slate-400"
-                                }`}></span>
-                                {req.status === "Approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว"}
-                              </span>
-                            </div>
-                          )}
                         </div>
-
-                      </div>
-                    );
-                  })}
+                      ));
+                  })()}
                 </div>
               </div>
 
@@ -2088,6 +2210,133 @@ export default function App() {
                   >
                     ล้างข้อมูลพนักงานและใบคำขอทั้งหมด
                   </button>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* ======================================= */}
+          {/* VIEW: PERSONAL PROFILE SETTINGS */}
+          {/* ======================================= */}
+          {activeTab === "profile" && (
+            <div className="space-y-6">
+              {/* Header card */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-800">จัดการข้อมูลโปรไฟล์ส่วนตัว</h3>
+                  <p className="text-xs text-slate-500 mt-1">อัปเดตชื่อแสดงผล ลิงก์รูปภาพโปรไฟล์ และเปลี่ยนรหัสผ่านเพื่อความปลอดภัย</p>
+                </div>
+              </div>
+
+              {/* Form Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Left card: Current Profile Preview */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-24 h-24 rounded-full overflow-hidden shadow-md border-4 border-slate-100 flex-shrink-0">
+                    <img 
+                      alt="Avatar Preview" 
+                      className="w-full h-full object-cover"
+                      src={profileAvatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-extrabold text-slate-800">{currentUser?.name}</h4>
+                    <p className="text-xs text-blue-600 font-bold mt-1">{currentUser?.role}</p>
+                    <p className="text-[10px] text-slate-400 font-mono mt-1">ชื่อผู้ใช้: {currentUser?.username}</p>
+                  </div>
+                  <div className="w-full pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                    <span>สังกัดฝ่ายงาน:</span>
+                    <span className="font-bold text-slate-700">
+                      {currentUser?.deptId === "all" ? "ผู้ดูแลระบบทุกแผนก" : 
+                       currentUser?.deptId === "mfg" ? "ฝ่ายผลิต (Manufacturing)" :
+                       currentUser?.deptId === "qa" ? "ตรวจสอบคุณภาพ (QA)" :
+                       currentUser?.deptId === "log" ? "คลังสินค้า (Logistics)" :
+                       currentUser?.deptId === "it" ? "ไอที (IT)" :
+                       "ฝ่ายขาย (Sales)"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right card: Form editor */}
+                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล ที่แสดง</label>
+                        <input 
+                          type="text"
+                          required
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
+                        <input 
+                          type="text"
+                          required
+                          value={profileAvatar}
+                          onChange={(e) => setProfileAvatar(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่านใหม่ (ถ้าต้องการเปลี่ยน)</label>
+                        <input 
+                          type="password"
+                          placeholder="กรอกรหัสผ่านใหม่"
+                          value={profilePassword}
+                          onChange={(e) => setProfilePassword(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1.5">ยืนยันรหัสผ่านใหม่</label>
+                        <input 
+                          type="password"
+                          placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                          value={profileConfirmPassword}
+                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                        />
+                      </div>
+                    </div>
+
+                    {profileErrorMsg && (
+                      <div className="p-3.5 bg-red-50/50 border border-red-200 text-red-700 rounded-2xl text-xs font-bold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        <span>{profileErrorMsg}</span>
+                      </div>
+                    )}
+
+                    {profileSuccessMsg && (
+                      <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-bold flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <span>{profileSuccessMsg}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-4 border-t border-slate-100">
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/10"
+                      >
+                        บันทึกข้อมูลส่วนตัว
+                      </button>
+                    </div>
+                  </form>
                 </div>
 
               </div>
@@ -2233,6 +2482,17 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAddEmployee} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสพนักงาน (เว้นว่างไว้จะทำการสุ่มรหัสให้อัตโนมัติ)</label>
+                <input 
+                  type="text"
+                  value={newEmpId}
+                  onChange={(e) => setNewEmpId(e.target.value)}
+                  placeholder="เช่น T-1048"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อพนักงาน</label>
                 <input 
