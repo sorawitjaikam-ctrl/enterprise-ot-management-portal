@@ -184,6 +184,17 @@ export default function App() {
   const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
   const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
 
+  // OT Trend editing
+  const [showOtTrendModal, setShowOtTrendModal] = useState<boolean>(false);
+  const [otTrendRows, setOtTrendRows] = useState<{ month: string; lastYear: number; currentYear: number }[]>([
+    { month: "ม.ค.", lastYear: 0, currentYear: 0 },
+    { month: "ก.พ.", lastYear: 0, currentYear: 0 },
+    { month: "มี.ค.", lastYear: 0, currentYear: 0 },
+    { month: "เม.ย.", lastYear: 0, currentYear: 0 },
+    { month: "พ.ค.", lastYear: 0, currentYear: 0 },
+    { month: "มิ.ย.", lastYear: 0, currentYear: 0 },
+  ]);
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch("/api/accounts");
@@ -193,6 +204,51 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
+    }
+  };
+
+  const fetchOtTrend = async () => {
+    try {
+      const res = await fetch("/api/ot-trend");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setOtTrendRows(data.map((r: any) => ({
+            month: r.month,
+            lastYear: Number(r.lastYear) || 0,
+            currentYear: Number(r.currentYear) || 0
+          })));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch OT trend:", err);
+    }
+  };
+
+  const handleSaveOtTrend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/update-ot-trend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: otTrendRows })
+      });
+      if (res.ok) {
+        setShowOtTrendModal(false);
+        // Refresh main state so dashboard chart updates
+        const stateRes = await fetch("/api/portal-state");
+        if (stateRes.ok) {
+          const newState = await stateRes.json();
+          setState(newState);
+        }
+        alert("บันทึกข้อมูลแนวโน้ม OT รายเดือนเรียบร้อยแล้ว!");
+      } else {
+        const err = await res.json();
+        alert("เกิดข้อผิดพลาด: " + err.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -394,6 +450,7 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       fetchAccounts();
+      fetchOtTrend();
     }
   }, [currentUser]);
 
@@ -2488,6 +2545,23 @@ export default function App() {
                   </div>
                 )}
 
+                {/* OT Trend Management Card */}
+                <div className="col-span-1 md:col-span-2 bg-blue-50/50 border border-blue-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-800">📈 จัดการข้อมูลแนวโน้ม OT รายเดือน (Monthly OT Trend)</h4>
+                    <p className="text-xs text-blue-600">แก้ไขข้อมูลชั่วโมง OT ย้อนหลัง 6 เดือน สำหรับแสดงในกราฟแดชบอร์ด ทั้งปีปัจจุบันและปีที่แล้ว</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      fetchOtTrend();
+                      setShowOtTrendModal(true);
+                    }}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md shadow-blue-500/10 cursor-pointer"
+                  >
+                    ✏️ กรอก / แก้ไขข้อมูลแนวโน้ม OT รายเดือน
+                  </button>
+                </div>
+
                 {/* Database Management / Clear data card */}
                 <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
                   <div>
@@ -3189,6 +3263,115 @@ export default function App() {
                   className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
                 >
                   ยืนยันรีเซ็ตรหัส
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: OT TREND MONTHLY DATA */}
+      {/* ======================================= */}
+      {showOtTrendModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">📈 แก้ไขข้อมูลแนวโน้ม OT รายเดือน</h3>
+                <p className="text-xs text-slate-500 mt-0.5">กรอกชั่วโมง OT รวมในแต่ละเดือน — ข้อมูลจะแสดงในกราฟแดชบอร์ด</p>
+              </div>
+              <button
+                onClick={() => setShowOtTrendModal(false)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOtTrend} className="p-6 space-y-4">
+              {/* Table header */}
+              <div className="grid grid-cols-3 gap-3 text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
+                <span>เดือน</span>
+                <span>ปีที่แล้ว (ชม.)</span>
+                <span>ปีนี้ (ชม.)</span>
+              </div>
+
+              {/* Rows */}
+              {otTrendRows.map((row, i) => (
+                <div key={i} className="grid grid-cols-3 gap-3 items-center">
+                  <input
+                    type="text"
+                    value={row.month}
+                    onChange={(e) => {
+                      const updated = [...otTrendRows];
+                      updated[i] = { ...updated[i], month: e.target.value };
+                      setOtTrendRows(updated);
+                    }}
+                    placeholder="ชื่อเดือน เช่น ม.ค."
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.lastYear === 0 ? "" : row.lastYear}
+                    onChange={(e) => {
+                      const updated = [...otTrendRows];
+                      updated[i] = { ...updated[i], lastYear: Number(e.target.value) || 0 };
+                      setOtTrendRows(updated);
+                    }}
+                    placeholder="0"
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      value={row.currentYear === 0 ? "" : row.currentYear}
+                      onChange={(e) => {
+                        const updated = [...otTrendRows];
+                        updated[i] = { ...updated[i], currentYear: Number(e.target.value) || 0 };
+                        setOtTrendRows(updated);
+                      }}
+                      placeholder="0"
+                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                    />
+                    {otTrendRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setOtTrendRows(otTrendRows.filter((_, idx) => idx !== i))}
+                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="ลบแถวนี้"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Add row button */}
+              <button
+                type="button"
+                onClick={() => setOtTrendRows([...otTrendRows, { month: "", lastYear: 0, currentYear: 0 }])}
+                className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-xs font-bold text-blue-500 hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+              >
+                + เพิ่มเดือน
+              </button>
+
+              <div className="pt-4 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOtTrendModal(false)}
+                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
+                >
+                  💾 บันทึกข้อมูล
                 </button>
               </div>
             </form>

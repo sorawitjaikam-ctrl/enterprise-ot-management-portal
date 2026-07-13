@@ -461,6 +461,54 @@ app.post("/api/edit-account", async (req, res) => {
   }
 });
 
+// OT Trend Data management
+app.get("/api/ot-trend", async (req, res) => {
+  try {
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT * FROM ot_trend_data ORDER BY rowid ASC");
+      res.json(rows);
+    } else {
+      const td = appState.otTrendData;
+      const rows = td.months.map((m: string, i: number) => ({
+        month: m,
+        lastYear: td.lastYear[i],
+        currentYear: td.currentYear[i]
+      }));
+      res.json(rows);
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/update-ot-trend", async (req, res) => {
+  const { rows } = req.body; // Array of { month, lastYear, currentYear }
+  if (!Array.isArray(rows)) {
+    return res.status(400).json({ error: "rows must be an array" });
+  }
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM ot_trend_data");
+      for (const row of rows) {
+        await queryD1(
+          "INSERT INTO ot_trend_data (month, lastYear, currentYear) VALUES (?, ?, ?)",
+          [row.month, Number(row.lastYear) || 0, Number(row.currentYear) || 0]
+        );
+      }
+    } else {
+      appState.otTrendData = {
+        months: rows.map((r: any) => r.month),
+        lastYear: rows.map((r: any) => Number(r.lastYear) || 0),
+        currentYear: rows.map((r: any) => Number(r.currentYear) || 0)
+      };
+      saveLocalDb();
+    }
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. Get current portal state
 app.get("/api/portal-state", async (req, res) => {
   try {
