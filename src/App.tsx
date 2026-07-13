@@ -152,8 +152,7 @@ export default function App() {
           username: currentUser?.username,
           name: profileName,
           avatar: profileAvatar,
-          role: currentUser?.role,
-          deptId: currentUser?.deptId
+          password: profilePassword || undefined
         })
       });
       if (res.ok) {
@@ -168,6 +167,64 @@ export default function App() {
       }
     } catch (err) {
       setProfileErrorMsg("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+    }
+  };
+
+  // User accounts management states
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState<boolean>(false);
+  const [resetTargetUsername, setResetTargetUsername] = useState<string>("");
+  const [newResetPassword, setNewResetPassword] = useState<string>("");
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch("/api/accounts");
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch accounts:", err);
+    }
+  };
+
+  const handleUpdateAccountPermission = async (targetUsername: string, role: string, deptId: string) => {
+    try {
+      const res = await fetch("/api/update-account-permission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUsername, role, deptId })
+      });
+      if (res.ok) {
+        await fetchAccounts();
+        alert("อัปเดตสิทธิ์การเข้าถึงและความรับผิดชอบของบัญชีสำเร็จ!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการปรับเปลี่ยนสิทธิ์");
+    }
+  };
+
+  const handleResetAccountPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newResetPassword) {
+      alert("กรุณากรอกรหัสผ่านใหม่");
+      return;
+    }
+    try {
+      const res = await fetch("/api/reset-account-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUsername: resetTargetUsername, newPassword: newResetPassword })
+      });
+      if (res.ok) {
+        setNewResetPassword("");
+        setShowResetPasswordModal(false);
+        alert(`รีเซ็ตรหัสผ่านของบัญชี "${resetTargetUsername}" เรียบร้อยแล้ว!`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน");
     }
   };
 
@@ -276,6 +333,12 @@ export default function App() {
   useEffect(() => {
     fetchPortalState();
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchAccounts();
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (currentUser && currentUser.deptId !== "all") {
@@ -2202,6 +2265,93 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* User & Permissions Management (Visible only to Admin) */}
+                {currentUser?.deptId === "all" && (
+                  <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Users & Permissions)</h4>
+                      <p className="text-xs text-slate-500">ปรับเปลี่ยนสิทธิ์ความรับผิดชอบของหัวหน้างาน หรือรีเซ็ตรหัสผ่านของพนักงานอื่น</p>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
+                      <table className="w-full text-left text-xs text-slate-600">
+                        <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                          <tr>
+                            <th className="p-4">ผู้ใช้งาน (Username)</th>
+                            <th className="p-4">บทบาทสิทธิ์ (Role)</th>
+                            <th className="p-4">แผนกที่รับผิดชอบ</th>
+                            <th className="p-4 text-center">จัดการการทำงาน</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {accounts.map((acc) => (
+                            <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="p-4 flex items-center gap-3">
+                                <img 
+                                  src={acc.avatar} 
+                                  className="w-8 h-8 rounded-full object-cover border border-slate-100" 
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
+                                  }}
+                                />
+                                <div>
+                                  <div className="font-bold text-slate-800">{acc.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <select 
+                                  value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
+                                  onChange={(e) => {
+                                    const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `หัวหน้าฝ่ายงาน`;
+                                    const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "mfg" : acc.deptId;
+                                    handleUpdateAccountPermission(acc.username, nextRole, nextDept);
+                                  }}
+                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
+                                >
+                                  <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                                  <option value="supervisor">หัวหน้าแผนก (Supervisor)</option>
+                                </select>
+                              </td>
+                              <td className="p-4">
+                                <select
+                                  disabled={acc.role === "ผู้ดูแลระบบ"}
+                                  value={acc.deptId}
+                                  onChange={(e) => {
+                                    handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
+                                  }}
+                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
+                                >
+                                  <option value="all">ทุกแผนก (All)</option>
+                                  <option value="mfg">ฝ่ายผลิต (Mfg)</option>
+                                  <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
+                                  <option value="log">คลังสินค้า (Log)</option>
+                                  <option value="it">ไอที (IT)</option>
+                                  <option value="sales">ฝ่ายขาย (Sales)</option>
+                                </select>
+                              </td>
+                              <td className="p-4 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResetTargetUsername(acc.username);
+                                    setNewResetPassword("");
+                                    setShowResetPasswordModal(true);
+                                  }}
+                                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all"
+                                >
+                                  🔑 รีเซ็ตรหัสผ่าน
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* Database Management / Clear data card */}
                 <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
                   <div>
@@ -2745,6 +2895,58 @@ export default function App() {
                 เสร็จสิ้น / ปิดหน้าต่าง
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: RESET PASSWORD FOR OTHER USERS */}
+      {/* ======================================= */}
+      {showResetPasswordModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">🔑 รีเซ็ตรหัสผ่านบัญชีผู้ใช้</h3>
+                <p className="text-xs text-slate-500">บัญชีเป้าหมาย: <strong className="font-mono text-blue-600">{resetTargetUsername}</strong></p>
+              </div>
+              <button 
+                onClick={() => setShowResetPasswordModal(false)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleResetAccountPassword} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่านใหม่สำหรับผู้ใช้</label>
+                <input 
+                  type="text"
+                  value={newResetPassword}
+                  onChange={(e) => setNewResetPassword(e.target.value)}
+                  placeholder="เช่น รหัสผ่านใหม่ 8 ตัวขึ้นไป"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetPasswordModal(false)}
+                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
+                >
+                  ยืนยันรีเซ็ตรหัส
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

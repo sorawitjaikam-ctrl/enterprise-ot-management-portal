@@ -79,6 +79,16 @@ let appState = {
   }
 };
 
+// Fallback in-memory user accounts
+let appAccounts = [
+  { username: "admin", password: "admin123", name: "คุณสิทธิศักดิ์ พ.", role: "ผู้ดูแลระบบ", deptId: "all", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" },
+  { username: "mfg_mgr", password: "mfg_mgr123", name: "คุณสมชาย พ.", role: "หัวหน้าฝ่ายผลิต", deptId: "mfg", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDvnZYNBjBkeCOTamuBRImZeOreen3v6-c3XRgPZStiBJsooAt2tZfWOe-JglYng3d76RoGxGaD3OZu9O5cWJcNPS8GtIGgWb9y-W_vl5-54d6BPr6AZoFtC3zcTDO8x_zSR1HqqCTOLB1Fk_CsHu1G_gg04kKnbZKFzqtoUg5w4U2LKAYkfmakE59OAlawYLhFBOG4RqdcpJoTpxwf-Qk7EiCDxOLHY2rhXvnmjCXhU--ouDzu8lv-Gw" },
+  { username: "qa_mgr", password: "qa_mgr123", name: "คุณสุนิสา ร.", role: "หัวหน้าฝ่ายตรวจสอบคุณภาพ", deptId: "qa", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfa-Va6432wLuwuCbKZ3EOPg3eCXfvvHiwL1woy-BIKcHNVkOMnohhkoRbfOOUysRlxiwrPFrYuxshKtxmlLDoLElzIsIMt0rR3mdVQ5MgFojB5oD1XzQ735Xd2CHBzlFzBugvnQvlEAGUaRlenDPkjpDM8ajsTup1vyucCI_EOMT0zwOV1AhwqCaEKEftdDiOtiFXptD6dIbVPk_M6B8KacXTbCsv7PgxJmN_hfoPuPNBTEPc-Uufyg" },
+  { username: "log_mgr", password: "log_mgr123", name: "คุณวิชัย ก.", role: "หัวหน้าฝ่ายคลังสินค้า", deptId: "log", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBS7GW61eXgnSKpdsavi1aRZYl9uX0Csq70SKyc-Sn5qBGOo_TwiOxitFxbE-a19DM10o-N5XZptW0rpX7YAekGh7z36XXv0ZWmCWTW_e-JKB9UxzwbqUfR8xsuefLlsZFsT2Vf8oU7IwGavhQqplT0Z3xmK5ydtzxK8__a_dahXdu0BDufiwJwAHxKa0npqAy4M-hw7wl2e88aOOWQNjcuXWNZY9b_HLZQ1goE7EX5-GodqradS90O2A" },
+  { username: "it_mgr", password: "it_mgr123", name: "คุณศศิธร ส.", role: "หัวหน้าฝ่ายไอที", deptId: "it", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" },
+  { username: "sales_mgr", password: "sales_mgr123", name: "คุณจตุพล พ.", role: "หัวหน้าฝ่ายขาย", deptId: "sales", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" }
+];
+
 // Cloudflare D1 Helper functions
 const isD1Enabled = () => {
   return !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_DATABASE_ID);
@@ -198,10 +208,30 @@ const initD1Database = async () => {
       )
     `);
 
+    // Create accounts table
+    await queryD1(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        username TEXT PRIMARY KEY,
+        password TEXT,
+        name TEXT,
+        role TEXT,
+        deptId TEXT,
+        avatar TEXT
+      )
+    `);
+
     // Check if departments has records, if not, seed them
     const depts = await queryD1("SELECT id FROM departments LIMIT 1");
     if (depts.length === 0) {
       console.log("Seeding initial D1 database data...");
+
+      // Seed accounts
+      for (const acc of appAccounts) {
+        await queryD1(`
+          INSERT INTO accounts (username, password, name, role, deptId, avatar)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar]);
+      }
 
       // Seed departments
       for (const d of appState.departments) {
@@ -251,74 +281,112 @@ const initD1Database = async () => {
 };
 
 // 0. Authentication Route
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
 
-  const accounts: { [key: string]: any } = {
-    "admin": {
-      username: "admin",
-      name: "คุณสิทธิศักดิ์ พ.",
-      role: "ผู้ดูแลระบบ",
-      deptId: "all",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
-    },
-    "mfg_mgr": {
-      username: "mfg_mgr",
-      name: "คุณสมชาย พ.",
-      role: "หัวหน้าฝ่ายผลิต (Manufacturing)",
-      deptId: "mfg",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDvnZYNBjBkeCOTamuBRImZeOreen3v6-c3XRgPZStiBJsooAt2tZfWOe-JglYng3d76RoGxGaD3OZu9O5cWJcNPS8GtIGgWb9y-W_vl5-54d6BPr6AZoFtC3zcTDO8x_zSR1HqqCTOLB1Fk_CsHu1G_gg04kKnbZKFzqtoUg5w4U2LKAYkfmakE59OAlawYLhFBOG4RqdcpJoTpxwf-Qk7EiCDxOLHY2rhXvnmjCXhU--ouDzu8lv-Gw"
-    },
-    "qa_mgr": {
-      username: "qa_mgr",
-      name: "คุณสุนิสา ร.",
-      role: "หัวหน้าฝ่ายตรวจสอบคุณภาพ (QA)",
-      deptId: "qa",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAfa-Va6432wLuwuCbKZ3EOPg3eCXfvvHiwL1woy-BIKcHNVkOMnohhkoRbfOOUysRlxiwrPFrYuxshKtxmlLDoLElzIsIMt0rR3mdVQ5MgFojB5oD1XzQ735Xd2CHBzlFzBugvnQvlEAGUaRlenDPkjpDM8ajsTup1vyucCI_EOMT0zwOV1AhwqCaEKEftdDiOtiFXptD6dIbVPk_M6B8KacXTbCsv7PgxJmN_hfoPuPNBTEPc-Uufyg"
-    },
-    "log_mgr": {
-      username: "log_mgr",
-      name: "คุณวิชัย ก.",
-      role: "หัวหน้าฝ่ายคลังสินค้า (Logistics)",
-      deptId: "log",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBS7GW61eXgnSKpdsavi1aRZYl9uX0Csq70SKyc-Sn5qBGOo_TwiOxitFxbE-a19DM10o-N5XZptW0rpX7YAekGh7z36XXv0ZWmCWTW_e-JKB9UxzwbqUfR8xsuefLlsZFsT2Vf8oU7IwGavhQqplT0Z3xmK5ydtzxK8__a_dahXdu0BDufiwJwAHxKa0npqAy4M-hw7wl2e88aOOWQNjcuXWNZY9b_HLZQ1goE7EX5-GodqradS90O2A"
-    },
-    "it_mgr": {
-      username: "it_mgr",
-      name: "คุณศศิธร ส.",
-      role: "หัวหน้าฝ่ายไอที (IT)",
-      deptId: "it",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
-    },
-    "sales_mgr": {
-      username: "sales_mgr",
-      name: "คุณจตุพล พ.",
-      role: "หัวหน้าฝ่ายขาย (Sales)",
-      deptId: "sales",
-      avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+  try {
+    let account;
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT * FROM accounts WHERE username = ?", [username]);
+      if (rows && rows.length > 0) {
+        account = rows[0];
+      }
+    } else {
+      account = appAccounts.find(a => a.username === username);
     }
-  };
 
-  const account = accounts[username];
-  if (account && password === username + "123") {
-    res.json({ success: true, user: account });
-  } else {
-    res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (รหัสผ่านเริ่มต้นคือ ชื่อผู้ใช้ตามด้วย 123 เช่น admin123 หรือ mfg_mgr123)" });
+    if (account && password === account.password) {
+      res.json({ success: true, user: account });
+    } else {
+      res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/update-profile", (req, res) => {
-  const { username, name, avatar, role, deptId } = req.body;
-  res.json({ 
-    success: true, 
-    user: { 
-      username: username || "admin",
-      name: name || "คุณสิทธิศักดิ์ พ.", 
-      role: role || "ผู้ดูแลระบบ",
-      deptId: deptId || "all",
-      avatar: avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" 
-    } 
-  });
+app.post("/api/update-profile", async (req, res) => {
+  const { username, name, avatar, password } = req.body;
+  try {
+    let account;
+    if (isD1Enabled()) {
+      if (password) {
+        await queryD1("UPDATE accounts SET name = ?, avatar = ?, password = ? WHERE username = ?", [name, avatar, password, username]);
+      } else {
+        await queryD1("UPDATE accounts SET name = ?, avatar = ? WHERE username = ?", [name, avatar, username]);
+      }
+      const rows = await queryD1("SELECT * FROM accounts WHERE username = ?", [username]);
+      account = rows[0];
+    } else {
+      const idx = appAccounts.findIndex(a => a.username === username);
+      if (idx !== -1) {
+        appAccounts[idx].name = name;
+        appAccounts[idx].avatar = avatar;
+        if (password) {
+          appAccounts[idx].password = password;
+        }
+        account = appAccounts[idx];
+      }
+    }
+
+    if (account) {
+      res.json({ success: true, user: account });
+    } else {
+      res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User Management Routes
+app.get("/api/accounts", async (req, res) => {
+  try {
+    let accountsList;
+    if (isD1Enabled()) {
+      accountsList = await queryD1("SELECT username, name, role, deptId, avatar FROM accounts");
+    } else {
+      accountsList = appAccounts.map(({ password, ...rest }) => rest);
+    }
+    res.json(accountsList);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/update-account-permission", async (req, res) => {
+  const { targetUsername, role, deptId } = req.body;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("UPDATE accounts SET role = ?, deptId = ? WHERE username = ?", [role, deptId, targetUsername]);
+    } else {
+      const idx = appAccounts.findIndex(a => a.username === targetUsername);
+      if (idx !== -1) {
+        appAccounts[idx].role = role;
+        appAccounts[idx].deptId = deptId;
+      }
+    }
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/reset-account-password", async (req, res) => {
+  const { targetUsername, newPassword } = req.body;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("UPDATE accounts SET password = ? WHERE username = ?", [newPassword, targetUsername]);
+    } else {
+      const idx = appAccounts.findIndex(a => a.username === targetUsername);
+      if (idx !== -1) {
+        appAccounts[idx].password = newPassword;
+      }
+    }
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 1. Get current portal state
