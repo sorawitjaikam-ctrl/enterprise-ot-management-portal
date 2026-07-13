@@ -636,6 +636,62 @@ export default function App() {
     };
   };
 
+  const getDynamicEmployeeOt = (empId: string, monthFilter: string) => {
+    let yearMonth = "";
+    if (monthFilter === "ตุลาคม 2023") yearMonth = "2023-10";
+    else if (monthFilter === "พฤศจิกายน 2023") yearMonth = "2023-11";
+    else if (monthFilter === "ธันวาคม 2023") yearMonth = "2023-12";
+
+    if (yearMonth) {
+      return state.requests
+        .filter(req => req.employeeId === empId && req.status === "Approved" && req.date.startsWith(yearMonth))
+        .reduce((sum, req) => sum + req.hours, 0);
+    }
+    const emp = state.employees.find(e => e.id === empId);
+    return emp ? emp.actualOt : 0;
+  };
+
+  const getDynamicDeptOt = (deptId: string, monthFilter: string) => {
+    let yearMonth = "";
+    if (monthFilter === "ตุลาคม 2023") yearMonth = "2023-10";
+    else if (monthFilter === "พฤศจิกายน 2023") yearMonth = "2023-11";
+    else if (monthFilter === "ธันวาคม 2023") yearMonth = "2023-12";
+
+    if (yearMonth) {
+      const deptNameMap: { [key: string]: string } = {
+        "mfg": "Manufacturing",
+        "qa": "Quality Assurance",
+        "log": "Logistics",
+        "it": "IT",
+        "sales": "Sales",
+        "hr": "HR"
+      };
+      const deptName = deptNameMap[deptId];
+      return state.requests
+        .filter(req => req.dept === deptName && req.status === "Approved" && req.date.startsWith(yearMonth))
+        .reduce((sum, req) => sum + req.hours, 0);
+    }
+    const dept = state.departments.find(d => d.id === deptId);
+    return dept ? dept.otHours : 0;
+  };
+
+  const getDeptManagerInfo = (deptId: string) => {
+    const mgr = accounts.find(acc => acc.deptId === deptId && acc.role !== "ผู้ดูแลระบบ");
+    if (mgr) {
+      return {
+        name: mgr.name,
+        role: mgr.role,
+        avatar: mgr.avatar
+      };
+    }
+    const dept = state.departments.find(d => d.id === deptId);
+    return {
+      name: dept ? dept.manager : "ไม่มีข้อมูลหัวหน้าแผนก",
+      role: dept ? dept.managerRole : "Supervisor",
+      avatar: dept ? dept.managerImg : "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+    };
+  };
+
   // Sort departments dynamically
   // Filter departments for report view
   const reportDepartments = state.departments.filter(dept => {
@@ -1236,9 +1292,10 @@ export default function App() {
                     <div className="absolute inset-x-10 bottom-6 top-0 flex items-end justify-between gap-2">
                       {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
                         filteredEmployeesForReport.map((emp) => {
+                          const actualOt = getDynamicEmployeeOt(emp.id, selectedMonthFilter);
                           const maxOt = 100;
-                          const otHeight = Math.min(100, Math.round((emp.actualOt / maxOt) * 100));
-                          const isOverLimit = emp.actualOt > emp.targetOt;
+                          const otHeight = Math.min(100, Math.round((actualOt / maxOt) * 100));
+                          const isOverLimit = actualOt > emp.targetOt;
                           return (
                             <div key={emp.id} className="flex-1 flex flex-col items-center group relative h-full">
                               <div 
@@ -1246,7 +1303,7 @@ export default function App() {
                                 className={`w-8 absolute bottom-0 rounded-t transition-all hover:scale-105 shadow-sm cursor-pointer ${
                                   isOverLimit ? "bg-red-500 hover:bg-red-600" : "bg-blue-600 hover:bg-blue-700"
                                 }`}
-                                title={`${emp.name}: ${emp.actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
+                                title={`${emp.name}: ${actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
                               ></div>
                               <span className="absolute -bottom-6 text-[9px] font-bold text-slate-500 text-center truncate max-w-[70px]" title={emp.name}>
                                 {emp.name.split(" ")[0]}
@@ -1256,8 +1313,9 @@ export default function App() {
                         })
                       ) : (
                         reportDepartments.slice(0, 5).map((dept) => {
+                          const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
                           const maxOt = 500;
-                          const otHeight = Math.round((dept.otHours / maxOt) * 100);
+                          const otHeight = Math.round((otHours / maxOt) * 100);
                           return (
                             <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
                               <div 
@@ -1305,27 +1363,31 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {reportDepartments.map((dept) => (
-                      <div key={dept.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
-                        <div className="flex items-center gap-3">
-                          <img 
-                            className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                            src={dept.managerImg} 
-                            alt={dept.manager}
-                          />
-                          <div>
-                            <p className="text-xs font-bold text-slate-800">{dept.manager}</p>
-                            <p className="text-[9px] text-slate-500 uppercase tracking-wider">{dept.managerRole}</p>
+                    {reportDepartments.map((dept) => {
+                      const managerInfo = getDeptManagerInfo(dept.id);
+                      const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+                      return (
+                        <div key={dept.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                              src={managerInfo.avatar} 
+                              alt={managerInfo.name}
+                            />
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">{managerInfo.name}</p>
+                              <p className="text-[9px] text-slate-500 uppercase tracking-wider">{managerInfo.role}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-extrabold text-blue-600">{otHours} ชม.</p>
+                            <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-red-500' : 'text-emerald-600'}`}>
+                              {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
+                            </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-extrabold text-blue-600">{dept.otHours} ชม.</p>
-                          <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <button 

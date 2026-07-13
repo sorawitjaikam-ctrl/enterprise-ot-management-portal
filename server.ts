@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 
@@ -88,6 +89,36 @@ let appAccounts = [
   { username: "it_mgr", password: "it_mgr123", name: "คุณศศิธร ส.", role: "หัวหน้าฝ่ายไอที", deptId: "it", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" },
   { username: "sales_mgr", password: "sales_mgr123", name: "คุณจตุพล พ.", role: "หัวหน้าฝ่ายขาย", deptId: "sales", avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" }
 ];
+
+const DB_FILE = path.join(process.cwd(), "db.json");
+
+// Save state to local db.json
+const saveLocalDb = () => {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ appState, appAccounts }, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save local DB:", err);
+  }
+};
+
+// Load state from local db.json
+const loadLocalDb = () => {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+      if (data.appState) appState = data.appState;
+      if (data.appAccounts) appAccounts = data.appAccounts;
+      console.log("Loaded persistent local state from db.json");
+    } else {
+      saveLocalDb(); // Create initial file
+    }
+  } catch (err) {
+    console.error("Failed to load local DB, using in-memory state:", err);
+  }
+};
+
+// Load persistent DB immediately
+loadLocalDb();
 
 // Cloudflare D1 Helper functions
 const isD1Enabled = () => {
@@ -326,6 +357,7 @@ app.post("/api/update-profile", async (req, res) => {
           appAccounts[idx].password = password;
         }
         account = appAccounts[idx];
+        saveLocalDb();
       }
     }
 
@@ -364,6 +396,7 @@ app.post("/api/update-account-permission", async (req, res) => {
       if (idx !== -1) {
         appAccounts[idx].role = role;
         appAccounts[idx].deptId = deptId;
+        saveLocalDb();
       }
     }
     res.json({ success: true });
@@ -381,6 +414,7 @@ app.post("/api/reset-account-password", async (req, res) => {
       const idx = appAccounts.findIndex(a => a.username === targetUsername);
       if (idx !== -1) {
         appAccounts[idx].password = newPassword;
+        saveLocalDb();
       }
     }
     res.json({ success: true });
@@ -458,6 +492,7 @@ app.post("/api/save-shifts", async (req, res) => {
           }
           return emp;
         });
+        saveLocalDb();
         res.json({ success: true, message: "บันทึกตารางกะสำเร็จ", employees: appState.employees });
       }
     } else {
@@ -509,6 +544,7 @@ app.post("/api/add-employee", async (req, res) => {
       if (dept) {
         dept.employeesCount += 1;
       }
+      saveLocalDb();
     }
 
     res.json({ success: true, employee: newEmp });
@@ -541,6 +577,7 @@ app.post("/api/clear-mock-data", async (req, res) => {
         d.budgetUtilization = 0;
         d.status = 'On Track';
       });
+      saveLocalDb();
     }
     res.json({ success: true, message: "ล้างข้อมูลตัวอย่างเสร็จสิ้น" });
   } catch (error: any) {
@@ -604,6 +641,7 @@ app.post("/api/add-request", async (req, res) => {
       `, [newReqId, employeeId, emp.name, deptName, reqDate, reqHours, reqReason, "Pending", reqUrgency]);
     } else {
       appState.requests.unshift(newReq);
+      saveLocalDb();
     }
 
     res.json({ success: true, request: newReq });
@@ -678,6 +716,7 @@ app.post("/api/update-request", async (req, res) => {
             }
           }
         }
+        saveLocalDb();
       }
       res.json({ success: true, requests: appState.requests });
     }
@@ -740,6 +779,7 @@ app.post("/api/edit-employee", async (req, res) => {
         const newDept = appState.departments.find(d => d.id === deptId);
         if (newDept) newDept.employeesCount += 1;
       }
+      saveLocalDb();
     }
 
     res.json({ success: true });
