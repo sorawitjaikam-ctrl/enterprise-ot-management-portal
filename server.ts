@@ -476,6 +476,30 @@ app.get("/api/portal-state", async (req, res) => {
         shifts: JSON.parse(e.shifts)
       }));
 
+      // Dynamically compute department stats from actual employee & request data
+      const enrichedDepartments = departments.map((dept: any) => {
+        const deptEmployees = employees.filter((e: any) => e.deptId === dept.id);
+        const employeesCount = deptEmployees.length;
+
+        // Sum actualOt from employees in this dept
+        const otHours = deptEmployees.reduce((sum: number, e: any) => sum + (e.actualOt || 0), 0);
+
+        // Budget = otHours * 300 baht/hr
+        const budgetUsed = Math.round(otHours * 300);
+        const budgetMax = 150000;
+        const budgetUtilization = budgetMax > 0 ? Math.min(100, Math.round((budgetUsed / budgetMax) * 100)) : 0;
+        const status = budgetUtilization > 95 ? "Warning" : "On Track";
+
+        return {
+          ...dept,
+          employeesCount,
+          otHours: Math.round(otHours * 10) / 10,
+          budgetUsed,
+          budgetUtilization,
+          status
+        };
+      });
+
       const shiftConfig = shiftConfigRaw[0] || {
         pattern: "4-on-2-off",
         currentMonth: "พฤศจิกายน 2023",
@@ -489,14 +513,25 @@ app.get("/api/portal-state", async (req, res) => {
       };
 
       res.json({
-        departments,
+        departments: enrichedDepartments,
         employees,
         requests,
         shiftConfig,
         otTrendData
       });
     } else {
-      res.json(appState);
+      // Offline mode: compute dynamically from appState too
+      const enriched = appState.departments.map(dept => {
+        const deptEmployees = appState.employees.filter(e => e.deptId === dept.id);
+        const employeesCount = deptEmployees.length;
+        const otHours = Math.round(deptEmployees.reduce((sum, e) => sum + (e.actualOt || 0), 0) * 10) / 10;
+        const budgetUsed = Math.round(otHours * 300);
+        const budgetMax = 150000;
+        const budgetUtilization = budgetMax > 0 ? Math.min(100, Math.round((budgetUsed / budgetMax) * 100)) : 0;
+        const status = budgetUtilization > 95 ? "Warning" : "On Track";
+        return { ...dept, employeesCount, otHours, budgetUsed, budgetUtilization, status };
+      });
+      res.json({ ...appState, departments: enriched });
     }
   } catch (error: any) {
     console.error("Error fetching D1 portal state:", error);
