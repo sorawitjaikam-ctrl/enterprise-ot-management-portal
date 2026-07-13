@@ -423,6 +423,44 @@ app.post("/api/reset-account-password", async (req, res) => {
   }
 });
 
+app.post("/api/edit-account", async (req, res) => {
+  const { originalUsername, username, name, role, deptId, avatar } = req.body;
+  try {
+    if (isD1Enabled()) {
+      if (originalUsername !== username) {
+        const existing = await queryD1("SELECT username FROM accounts WHERE username = ?", [username]);
+        if (existing && existing.length > 0) {
+          return res.status(400).json({ error: "ชื่อผู้ใช้นี้มีผู้ใช้งานอื่นอยู่แล้ว" });
+        }
+      }
+      await queryD1(`
+        UPDATE accounts 
+        SET username = ?, name = ?, role = ?, deptId = ?, avatar = ? 
+        WHERE username = ?
+      `, [username, name, role, deptId, avatar, originalUsername]);
+    } else {
+      if (originalUsername !== username) {
+        const existing = appAccounts.some(a => a.username === username);
+        if (existing) {
+          return res.status(400).json({ error: "ชื่อผู้ใช้นี้มีผู้ใช้งานอื่นอยู่แล้ว" });
+        }
+      }
+      const idx = appAccounts.findIndex(a => a.username === originalUsername);
+      if (idx !== -1) {
+        appAccounts[idx].username = username;
+        appAccounts[idx].name = name;
+        appAccounts[idx].role = role;
+        appAccounts[idx].deptId = deptId;
+        appAccounts[idx].avatar = avatar;
+        saveLocalDb();
+      }
+    }
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. Get current portal state
 app.get("/api/portal-state", async (req, res) => {
   try {

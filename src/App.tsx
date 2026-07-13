@@ -176,6 +176,14 @@ export default function App() {
   const [resetTargetUsername, setResetTargetUsername] = useState<string>("");
   const [newResetPassword, setNewResetPassword] = useState<string>("");
 
+  const [showEditAccountModal, setShowEditAccountModal] = useState<boolean>(false);
+  const [editAccountOriginalUsername, setEditAccountOriginalUsername] = useState<string>("");
+  const [editAccountUsername, setEditAccountUsername] = useState<string>("");
+  const [editAccountName, setEditAccountName] = useState<string>("");
+  const [editAccountRole, setEditAccountRole] = useState<string>("");
+  const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
+  const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch("/api/accounts");
@@ -224,7 +232,56 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      alert("เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน");
+    }
+  };
+
+  const handleEditAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editAccountUsername) {
+      alert("กรุณากรอกชื่อผู้ใช้งาน (Username)");
+      return;
+    }
+    if (!editAccountName) {
+      alert("กรุณากรอกชื่อ-นามสกุล");
+      return;
+    }
+    try {
+      const res = await fetch("/api/edit-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originalUsername: editAccountOriginalUsername,
+          username: editAccountUsername,
+          name: editAccountName,
+          role: editAccountRole,
+          deptId: editAccountDeptId,
+          avatar: editAccountAvatar
+        })
+      });
+      if (res.ok) {
+        setShowEditAccountModal(false);
+        await fetchAccounts();
+        alert("อัปเดตข้อมูลบัญชีผู้ใช้สำเร็จ!");
+        
+        // If updating the currently logged-in user, sync their session as well
+        if (currentUser?.username === editAccountOriginalUsername) {
+          const updatedUser = {
+            username: editAccountUsername,
+            name: editAccountName,
+            role: editAccountRole,
+            deptId: editAccountDeptId,
+            avatar: editAccountAvatar
+          };
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+          setCurrentUser(updatedUser);
+        }
+      } else {
+        const errData = await res.json();
+        alert(`เกิดข้อผิดพลาด: ${errData.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -2394,17 +2451,34 @@ export default function App() {
                                 </select>
                               </td>
                               <td className="p-4 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setResetTargetUsername(acc.username);
-                                    setNewResetPassword("");
-                                    setShowResetPasswordModal(true);
-                                  }}
-                                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all"
-                                >
-                                  🔑 รีเซ็ตรหัสผ่าน
-                                </button>
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditAccountOriginalUsername(acc.username);
+                                      setEditAccountUsername(acc.username);
+                                      setEditAccountName(acc.name);
+                                      setEditAccountRole(acc.role);
+                                      setEditAccountDeptId(acc.deptId);
+                                      setEditAccountAvatar(acc.avatar || "");
+                                      setShowEditAccountModal(true);
+                                    }}
+                                    className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
+                                  >
+                                    ✏️ แก้ไขข้อมูล
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setResetTargetUsername(acc.username);
+                                      setNewResetPassword("");
+                                      setShowResetPasswordModal(true);
+                                    }}
+                                    className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
+                                  >
+                                    🔑 รีเซ็ตรหัสผ่าน
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -2961,6 +3035,115 @@ export default function App() {
         </div>
       )}
 
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: EDIT ACCOUNT DETAILS */}
+      {/* ======================================= */}
+      {showEditAccountModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">✏️ แก้ไขข้อมูลบัญชีผู้ใช้</h3>
+                <p className="text-xs text-slate-500">แก้ไขข้อมูล Username, ชื่อแสดงผล, บทบาท หรือแผนกของพนักงาน</p>
+              </div>
+              <button 
+                onClick={() => setShowEditAccountModal(false)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditAccountSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username) <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  value={editAccountUsername}
+                  onChange={(e) => setEditAccountUsername(e.target.value)}
+                  placeholder="เช่น mfg_mgr, somchai"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  value={editAccountName}
+                  onChange={(e) => setEditAccountName(e.target.value)}
+                  placeholder="ป้อนชื่อและนามสกุลจริง"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
+                <input 
+                  type="text"
+                  value={editAccountAvatar}
+                  onChange={(e) => setEditAccountAvatar(e.target.value)}
+                  placeholder="วาง URL ลิงก์รูปภาพโปรไฟล์ของคุณ"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">บทบาท (Role)</label>
+                  <select 
+                    value={editAccountRole}
+                    onChange={(e) => setEditAccountRole(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                    <option value="หัวหน้าฝ่ายผลิต">หัวหน้าฝ่ายผลิต</option>
+                    <option value="หัวหน้าฝ่ายตรวจสอบคุณภาพ">หัวหน้าฝ่ายตรวจสอบคุณภาพ</option>
+                    <option value="หัวหน้าฝ่ายคลังสินค้า">หัวหน้าฝ่ายคลังสินค้า</option>
+                    <option value="หัวหน้าฝ่ายไอที">หัวหน้าฝ่ายไอที</option>
+                    <option value="หัวหน้าฝ่ายขาย">หัวหน้าฝ่ายขาย</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกที่รับผิดชอบ</label>
+                  <select 
+                    value={editAccountDeptId}
+                    onChange={(e) => setEditAccountDeptId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="all">ทุกแผนก (All)</option>
+                    <option value="mfg">ฝ่ายผลิต (Mfg)</option>
+                    <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
+                    <option value="log">คลังสินค้า (Log)</option>
+                    <option value="it">ไอที (IT)</option>
+                    <option value="sales">ฝ่ายขาย (Sales)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditAccountModal(false)}
+                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 cursor-pointer"
+                >
+                  บันทึกการแก้ไข
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
       {/* ======================================= */}
       {/* OVERLAY / MODAL: RESET PASSWORD FOR OTHER USERS */}
       {/* ======================================= */}
