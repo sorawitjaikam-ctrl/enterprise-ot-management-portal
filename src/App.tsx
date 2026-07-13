@@ -308,6 +308,10 @@ export default function App() {
   const activeDeptId = currentUser?.deptId || "all";
   const filteredDeptsForStats = state.departments.filter(d => activeDeptId === "all" || d.id === activeDeptId);
 
+  // Dynamically extract unique roles and groups for auto-suggestions
+  const uniqueRoles = Array.from(new Set(state.employees.map(emp => emp.role))).filter(Boolean);
+  const uniqueGroups = Array.from(new Set(state.employees.map(emp => emp.groupName))).filter(Boolean);
+
   // Filter logic based on search and dropdowns
   const filteredEmployees = state.employees.filter((emp) => {
     const matchesSearch = 
@@ -2482,6 +2486,7 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAddEmployee} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* 1. รหัสพนักงาน */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสพนักงาน (เว้นว่างไว้จะทำการสุ่มรหัสให้อัตโนมัติ)</label>
                 <input 
@@ -2489,28 +2494,49 @@ export default function App() {
                   value={newEmpId}
                   onChange={(e) => setNewEmpId(e.target.value)}
                   placeholder="เช่น T-1048"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
+              {/* 2. ชื่อ - นามสกุล */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อพนักงาน</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล</label>
                 <input 
                   type="text"
                   value={newEmpName}
                   onChange={(e) => setNewEmpName(e.target.value)}
                   placeholder="เช่น สมศักดิ์ มั่นใจ"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   required
                 />
               </div>
 
+              {/* 3. ตำแหน่ง */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกสังกัดหลัก</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ตำแหน่ง (พิมพ์ระบุเองหรือเลือกจากรายการ)</label>
+                <input 
+                  type="text"
+                  list="roles-suggestions"
+                  value={newEmpRole}
+                  onChange={(e) => setNewEmpRole(e.target.value)}
+                  placeholder="เช่น Technician"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+                <datalist id="roles-suggestions">
+                  {uniqueRoles.map((role, idx) => (
+                    <option key={idx} value={role} />
+                  ))}
+                </datalist>
+              </div>
+
+              {/* 4. แผนก */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนก</label>
                 <select 
                   value={newEmpDept}
                   onChange={(e) => setNewEmpDept(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="mfg">ฝ่ายผลิต (Manufacturing)</option>
                   <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
@@ -2520,39 +2546,23 @@ export default function App() {
                 </select>
               </div>
 
+              {/* 5. ฝ่าย */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ตำแหน่งงานปฏิบัติการ (Role)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ฝ่าย (พิมพ์ระบุเองหรือเลือกจากรายการ)</label>
                 <input 
                   type="text"
-                  value={newEmpRole}
-                  onChange={(e) => setNewEmpRole(e.target.value)}
-                  placeholder="เช่น Lead Operator / Senior Tech"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อทีมย่อยสำหรับการจัดตารางกะ</label>
-                <input 
-                  type="text"
+                  list="groups-suggestions"
                   value={newEmpGroupName}
                   onChange={(e) => setNewEmpGroupName(e.target.value)}
-                  placeholder="เช่น ทีม ก. (ช่างเทคนิคอาวุโส) หรือ ทีม ข. (โอเปอเรเตอร์)"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                  placeholder="เช่น ทีม ก. (ช่างเทคนิคอาวุโส)"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">โควตาความปลอดภัยสะสมสูงสุดต่อเดือน (ชั่วโมง)</label>
-                <input 
-                  type="number"
-                  value={newEmpTargetOt}
-                  onChange={(e) => setNewEmpTargetOt(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
+                <datalist id="groups-suggestions">
+                  {uniqueGroups.map((group, idx) => (
+                    <option key={idx} value={group} />
+                  ))}
+                </datalist>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex gap-2">
