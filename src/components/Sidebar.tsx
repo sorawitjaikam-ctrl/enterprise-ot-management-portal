@@ -5,28 +5,26 @@ import {
   Users, 
   Calendar, 
   Settings, 
-  Plus, 
   HelpCircle, 
   LogOut, 
   Factory,
-  FileText
+  ClipboardList
 } from "lucide-react";
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onOpenNewRequest: () => void;
   onLogout: () => void;
   currentUser: any;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onLogout, currentUser }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser }: SidebarProps) {
   const menuItems = [
-    { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
-    { id: "reports", label: "รายงานข้อมูลรายแผนก", icon: BarChart3 },
-    { id: "employees", label: "รายชื่อพนักงาน", icon: Users },
-    { id: "shifts", label: "จัดการตารางกะ (Shifts)", icon: Calendar },
-    { id: "requests", label: "คำขอทำโอที (OT Requests)", icon: FileText },
+    { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
+    { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
+    { id: "employees",  label: "รายชื่อพนักงาน",           icon: Users },
+    { id: "shifts",     label: "จัดการตารางกะ (Shifts)",   icon: Calendar },
+    { id: "ot-records", label: "ประวัติ OT จากกะทำงาน",   icon: ClipboardList },
   ];
 
   return (
@@ -66,15 +64,6 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onL
 
       {/* Bottom Actions */}
       <div className="mt-auto pt-6 border-t border-slate-100 space-y-4">
-        {/* New Request Button */}
-        <button
-          onClick={onOpenNewRequest}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-600/10"
-        >
-          <Plus className="w-4 h-4" />
-          <span>ส่งคำขอทำโอที</span>
-        </button>
-
         <div className="space-y-1">
           <button
             onClick={() => setActiveTab("settings")}
@@ -109,16 +98,16 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onL
           }`}
           title="จัดการโปรไฟล์ส่วนตัว"
         >
-          <div className="w-9 h-9 rounded-full overflow-hidden shadow-inner border border-slate-200 flex-shrink-0">
-            <img 
-              alt="Profile" 
-              className="w-full h-full object-cover"
-              src={currentUser ? currentUser.avatar : "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"}
-            />
+          <div className="w-9 h-9 rounded-full overflow-hidden shadow-inner border border-slate-200 flex-shrink-0 bg-slate-200 flex items-center justify-center">
+            {currentUser?.avatar ? (
+              <img alt="Profile" className="w-full h-full object-cover" src={currentUser.avatar} />
+            ) : (
+              <span className="text-xs font-bold text-slate-500">{(currentUser?.name || "U")[0]}</span>
+            )}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-xs font-semibold text-slate-900 truncate">{currentUser ? currentUser.name : "คุณสิทธิศักดิ์ พ."}</p>
-            <p className="text-[10px] text-slate-500 truncate font-medium">{currentUser ? currentUser.role : "ผู้ดูแลระบบ"}</p>
+            <p className="text-xs font-semibold text-slate-900 truncate">{currentUser?.name || "ผู้ใช้งาน"}</p>
+            <p className="text-[10px] text-slate-500 truncate font-medium">{currentUser?.role || "-"}</p>
           </div>
         </button>
       </div>

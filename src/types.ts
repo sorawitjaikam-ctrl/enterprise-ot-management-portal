@@ -28,18 +28,6 @@ export interface Employee {
   shifts: string[]; // List of 10 items e.g., ["M", "M", "O", "O", "A", "A", "A", "A", "O", "O"] or "⚠"
 }
 
-export interface OtRequest {
-  id: string;
-  employeeId: string;
-  name: string;
-  dept: string;
-  date: string;
-  hours: number;
-  reason: string;
-  status: "Pending" | "Approved" | "Rejected";
-  urgency: "Medium" | "High" | "Critical";
-}
-
 export interface ShiftConfig {
   pattern: string;
   currentMonth: string;
@@ -55,7 +43,6 @@ export interface OtTrendData {
 export interface AppState {
   departments: Department[];
   employees: Employee[];
-  requests: OtRequest[];
   shiftConfig: ShiftConfig;
   otTrendData: OtTrendData;
 }

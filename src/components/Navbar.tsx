@@ -5,7 +5,6 @@ interface NavbarProps {
   title: string;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  pendingRequestsCount: number;
   isSidebarHidden: boolean;
   setIsSidebarHidden: (val: boolean) => void;
   currentUser: any;
@@ -16,7 +15,6 @@ export default function Navbar({
   title, 
   searchQuery, 
   setSearchQuery, 
-  pendingRequestsCount,
   isSidebarHidden,
   setIsSidebarHidden,
   currentUser,
@@ -76,11 +74,6 @@ export default function Navbar({
           title="การแจ้งเตือน"
         >
           <Bell className="w-5 h-5" />
-          {pendingRequestsCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 border-2 border-white rounded-full text-[9px] text-white flex items-center justify-center font-bold">
-              {pendingRequestsCount}
-            </span>
-          )}
         </button>
 
         <div className="h-6 w-px bg-slate-200"></div>

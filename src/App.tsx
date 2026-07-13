@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
-import { AppState, Employee, OtRequest, Department } from "./types";
+import { AppState, Employee, Department } from "./types";
 
 export const SHIFT_OPTIONS = [
   { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#dce6f1]", border: "border-[#b4c6e7]", text: "text-black" },
@@ -79,7 +79,7 @@ export const getShiftStyle = (shift: string) => {
 
 export const getShiftOtHours = (shift: string) => {
   if (shift === "M12" || shift === "A12" || shift === "N12") return 4;
-  if (shift === "M16" || shift === "N16") return 8;
+  if (shift === "M16" || shift === "N16" || shift === "OND") return 8;
   return 0;
 };
 
@@ -93,6 +93,161 @@ export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
   }
   return result;
 };
+
+const SHIFT_OT_HOURS: Record<string, number> = {
+  M12: 4, A12: 4, N12: 4,
+  M16: 8, N16: 8, OND: 8
+};
+
+const DEPT_LABELS: Record<string, string> = {
+  inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
+  inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
+};
+
+type OtRecord = {
+  id: string; year: number; month: number; date: string;
+  employeeId: string; employeeName: string;
+  deptId: string; shiftCode: string; otHours: number; note: string;
+};
+
+const MONTH_TH = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppState }) {
+  const fullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"].includes(currentUser?.role);
+  const now = new Date();
+  const [filterYear, setFilterYear] = React.useState(now.getFullYear());
+  const [filterMonth, setFilterMonth] = React.useState(now.getMonth() + 1);
+  const [filterDept, setFilterDept] = React.useState(fullAccess ? "all" : (currentUser?.deptId || "all"));
+  const [records, setRecords] = React.useState<OtRecord[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        year: String(filterYear),
+        month: String(filterMonth),
+        deptId: filterDept
+      });
+      const res = await fetch(`/api/ot-records?${params}`);
+      if (res.ok) setRecords(await res.json());
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  React.useEffect(() => { fetchRecords(); }, [filterYear, filterMonth, filterDept]);
+
+  const totalOt = records.reduce((s, r) => s + r.otHours, 0);
+
+  const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
+
+  return (
+    <div className="space-y-6 font-sans">
+      {/* Header */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+            <span className="text-white text-lg">📋</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-800">ประวัติ OT จากกะทำงาน</h3>
+            <p className="text-xs text-slate-500 mt-0.5">ระบบบันทึก OT อัตโนมัติจากรหัสกะ — M12/A12/N12=4ชม., M16/N16/OND=8ชม.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3">
+        <select
+          value={filterYear}
+          onChange={e => setFilterYear(Number(e.target.value))}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+        >
+          {years.map(y => <option key={y} value={y}>ปี {y}</option>)}
+        </select>
+
+        <select
+          value={filterMonth}
+          onChange={e => setFilterMonth(Number(e.target.value))}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+        >
+          {MONTH_TH.slice(1).map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+        </select>
+
+        {fullAccess && (
+          <select
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+          >
+            <option value="all">ทุกแผนก</option>
+            {Object.entries(DEPT_LABELS).map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+        )}
+
+        <div className="ml-auto bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs font-bold text-blue-700">
+          OT รวม: <span className="text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-4 py-3 text-left font-bold text-slate-600">วันที่</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">รหัสพนักงาน</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">ชื่อพนักงาน</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">แผนก</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">รหัสกะ</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+              ) : records.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-4xl">📋</span>
+                      <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
+                      <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" เพื่อให้ข้อมูลปรากฏที่นี่</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : records.map(r => (
+                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 py-3 text-slate-700 font-mono">{r.date}</td>
+                  <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
+                  <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block px-2 py-0.5 rounded-lg border font-extrabold text-xs ${getShiftStyle(r.shiftCode)}`}>
+                      {r.shiftCode}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-extrabold text-blue-700">{r.otHours}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {records.length > 0 && (
+          <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+            <span className="text-xs text-slate-500">{records.length} รายการ</span>
+            <span className="text-xs font-bold text-blue-700">OT รวม {totalOt.toFixed(1)} ชั่วโมง</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   // Login & Session States
@@ -184,17 +339,6 @@ export default function App() {
   const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
   const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
 
-  // OT Trend editing
-  const [showOtTrendModal, setShowOtTrendModal] = useState<boolean>(false);
-  const [otTrendRows, setOtTrendRows] = useState<{ month: string; lastYear: number; currentYear: number }[]>([
-    { month: "ม.ค.", lastYear: 0, currentYear: 0 },
-    { month: "ก.พ.", lastYear: 0, currentYear: 0 },
-    { month: "มี.ค.", lastYear: 0, currentYear: 0 },
-    { month: "เม.ย.", lastYear: 0, currentYear: 0 },
-    { month: "พ.ค.", lastYear: 0, currentYear: 0 },
-    { month: "มิ.ย.", lastYear: 0, currentYear: 0 },
-  ]);
-
   const fetchAccounts = async () => {
     try {
       const res = await fetch("/api/accounts");
@@ -204,51 +348,6 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
-    }
-  };
-
-  const fetchOtTrend = async () => {
-    try {
-      const res = await fetch("/api/ot-trend");
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setOtTrendRows(data.map((r: any) => ({
-            month: r.month,
-            lastYear: Number(r.lastYear) || 0,
-            currentYear: Number(r.currentYear) || 0
-          })));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch OT trend:", err);
-    }
-  };
-
-  const handleSaveOtTrend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/api/update-ot-trend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: otTrendRows })
-      });
-      if (res.ok) {
-        setShowOtTrendModal(false);
-        // Refresh main state so dashboard chart updates
-        const stateRes = await fetch("/api/portal-state");
-        if (stateRes.ok) {
-          const newState = await stateRes.json();
-          setState(newState);
-        }
-        alert("บันทึกข้อมูลแนวโน้ม OT รายเดือนเรียบร้อยแล้ว!");
-      } else {
-        const err = await res.json();
-        alert("เกิดข้อผิดพลาด: " + err.error);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -388,33 +487,25 @@ export default function App() {
   const [daysLimit, setDaysLimit] = useState<number>(7);
   
   // Modals / Overlays
-  const [showNewRequestModal, setShowNewRequestModal] = useState<boolean>(false);
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState<boolean>(false);
   const [showAiAuditModal, setShowAiAuditModal] = useState<boolean>(false);
   const [aiReportText, setAiReportText] = useState<string>("");
   const [generatingAiReport, setGeneratingAiReport] = useState<boolean>(false);
 
-  // New Request Form State
-  const [newReqEmpId, setNewReqEmpId] = useState<string>("");
-  const [newReqHours, setNewReqHours] = useState<number>(4);
-  const [newReqDate, setNewReqDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [newReqReason, setNewReqReason] = useState<string>("");
-  const [newReqUrgency, setNewReqUrgency] = useState<"Medium" | "High" | "Critical">("Medium");
-
   // New Employee Form State
   const [newEmpName, setNewEmpName] = useState<string>("");
-  const [newEmpDept, setNewEmpDept] = useState<string>("mfg");
-  const [newEmpRole, setNewEmpRole] = useState<string>("Technician");
-  const [newEmpGroupName, setNewEmpGroupName] = useState<string>("ทีม ก. (ช่างเทคนิคอาวุโส)");
+  const [newEmpDept, setNewEmpDept] = useState<string>("inter2");
+  const [newEmpRole, setNewEmpRole] = useState<string>("Operator");
+  const [newEmpGroupName, setNewEmpGroupName] = useState<string>("ทีม ก.");
   const [newEmpTargetOt, setNewEmpTargetOt] = useState<number>(48);
 
   // Edit Employee Form State
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState<boolean>(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editEmpName, setEditEmpName] = useState<string>("");
-  const [editEmpDept, setEditEmpDept] = useState<string>("mfg");
-  const [editEmpRole, setEditEmpRole] = useState<string>("Technician");
-  const [editEmpGroupName, setEditEmpGroupName] = useState<string>("ทีม ก. (ช่างเทคนิคอาวุโส)");
+  const [editEmpDept, setEditEmpDept] = useState<string>("inter2");
+  const [editEmpRole, setEditEmpRole] = useState<string>("Operator");
+  const [editEmpGroupName, setEditEmpGroupName] = useState<string>("ทีม ก.");
   const [editEmpTargetOt, setEditEmpTargetOt] = useState<number>(48);
 
   // Active shift management edit state
@@ -450,19 +541,18 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       fetchAccounts();
-      fetchOtTrend();
     }
   }, [currentUser]);
 
   useEffect(() => {
     if (currentUser && currentUser.deptId !== "all") {
       const deptMap: { [key: string]: string } = {
-        "mfg": "ฝ่ายผลิต (Manufacturing)",
-        "qa": "ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)",
-        "log": "ฝ่ายคลังสินค้า (Logistics)",
-        "it": "ไอที (IT)",
-        "sales": "ฝ่ายขาย (Sales)",
-        "hr": "ฝ่ายบุคคล (HR)"
+        "inter2": "INTER 2",
+        "inter3": "INTER 3",
+        "inter5": "INTER 5",
+        "inter7": "INTER 7",
+        "heavy": "Heavy Machine",
+        "ecc": "ECC"
       };
       const filterVal = deptMap[currentUser.deptId];
       if (filterVal) {
@@ -499,55 +589,16 @@ export default function App() {
     if (selectedDeptFilter === "ทุกแผนก") return matchesSearch;
     
     const deptMap: { [key: string]: string } = {
-      "ไอที (IT)": "it",
-      "ฝ่ายผลิต (Manufacturing)": "mfg",
-      "ฝ่ายขาย (Sales)": "sales",
-      "ฝ่ายบุคคล (HR)": "hr",
-      "ฝ่ายคลังสินค้า (Logistics)": "log"
+      "INTER 2": "inter2",
+      "INTER 3": "inter3",
+      "INTER 5": "inter5",
+      "INTER 7": "inter7",
+      "Heavy Machine": "heavy",
+      "ECC": "ecc"
     };
     const filterDeptId = deptMap[selectedDeptFilter];
     return matchesSearch && emp.deptId === filterDeptId;
   });
-
-  const pendingRequestsCount = state.requests.filter(r => r.status === "Pending").length;
-
-  // Handle submitting new OT request
-  const handleSubmitRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReqEmpId) {
-      alert("กรุณาเลือกพนักงาน");
-      return;
-    }
-    try {
-      const res = await fetch("/api/add-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId: newReqEmpId,
-          date: newReqDate,
-          hours: newReqHours,
-          reason: newReqReason,
-          urgency: newReqUrgency
-        })
-      });
-      if (res.ok) {
-        setShowNewRequestModal(false);
-        // Reset request form
-        setNewReqEmpId("");
-        setNewReqHours(4);
-        setNewReqReason("");
-        // Reload state
-        await fetchPortalState();
-        alert("ส่งคำขอทำโอทีสำเร็จแล้ว!");
-      } else {
-        const errorData = await res.json();
-        alert(`ข้อผิดพลาด: ${errorData.error}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("เกิดข้อผิดพลาดในการส่งคำขอ");
-    }
-  };
 
   // Handle adding new employee
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -574,7 +625,7 @@ export default function App() {
         // Reset form
         setNewEmpId("");
         setNewEmpName("");
-        setNewEmpRole("Technician");
+        setNewEmpRole("Operator");
         setNewEmpTargetOt(48);
         // Reload state
         await fetchPortalState();
@@ -587,13 +638,13 @@ export default function App() {
 
   // Handle clearing mock data
   const handleClearMockData = async () => {
-    if (!window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและใบคำขอตัวอย่างทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้")) {
+    if (!window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและ OT records ทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้")) {
       return;
     }
     try {
       const res = await fetch("/api/clear-mock-data", { method: "POST" });
       if (res.ok) {
-        alert("ล้างข้อมูลพนักงาน สถิติแผนก และใบคำขอตัวอย่างสำเร็จเรียบร้อยแล้ว!");
+        alert("ล้างข้อมูลพนักงาน และ OT records สำเร็จเรียบร้อยแล้ว!");
         await fetchPortalState();
       } else {
         alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
@@ -646,22 +697,6 @@ export default function App() {
     setShowEditEmployeeModal(true);
   };
 
-  // Handle approving or rejecting requests
-  const handleUpdateRequestStatus = async (requestId: string, status: "Approved" | "Rejected") => {
-    try {
-      const res = await fetch("/api/update-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId, status })
-      });
-      if (res.ok) {
-        await fetchPortalState();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Handle shift changes in UI by showing custom picker
   const handleShiftCellClick = (employeeId: string, dayIndex: number) => {
     if (!isEditingShifts) return;
@@ -690,10 +725,15 @@ export default function App() {
   // Save the temporary edited shifts back to server
   const handleSaveShifts = async () => {
     try {
+      const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
       const res = await fetch("/api/save-shifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employees: tempEmployees })
+        body: JSON.stringify({
+          employees: tempEmployees,
+          year: y ? Number(y) : undefined,
+          month: m ? Number(m) : undefined
+        })
       });
       if (res.ok) {
         setIsEditingShifts(false);
@@ -751,40 +791,11 @@ export default function App() {
   };
 
   const getDynamicEmployeeOt = (empId: string, monthFilter: string) => {
-    let yearMonth = "";
-    if (monthFilter === "ตุลาคม 2023") yearMonth = "2023-10";
-    else if (monthFilter === "พฤศจิกายน 2023") yearMonth = "2023-11";
-    else if (monthFilter === "ธันวาคม 2023") yearMonth = "2023-12";
-
-    if (yearMonth) {
-      return state.requests
-        .filter(req => req.employeeId === empId && req.status === "Approved" && req.date.startsWith(yearMonth))
-        .reduce((sum, req) => sum + req.hours, 0);
-    }
     const emp = state.employees.find(e => e.id === empId);
     return emp ? emp.actualOt : 0;
   };
 
   const getDynamicDeptOt = (deptId: string, monthFilter: string) => {
-    let yearMonth = "";
-    if (monthFilter === "ตุลาคม 2023") yearMonth = "2023-10";
-    else if (monthFilter === "พฤศจิกายน 2023") yearMonth = "2023-11";
-    else if (monthFilter === "ธันวาคม 2023") yearMonth = "2023-12";
-
-    if (yearMonth) {
-      const deptNameMap: { [key: string]: string } = {
-        "mfg": "Manufacturing",
-        "qa": "Quality Assurance",
-        "log": "Logistics",
-        "it": "IT",
-        "sales": "Sales",
-        "hr": "HR"
-      };
-      const deptName = deptNameMap[deptId];
-      return state.requests
-        .filter(req => req.dept === deptName && req.status === "Approved" && req.date.startsWith(yearMonth))
-        .reduce((sum, req) => sum + req.hours, 0);
-    }
     const dept = state.departments.find(d => d.id === deptId);
     return dept ? dept.otHours : 0;
   };
@@ -812,13 +823,12 @@ export default function App() {
     if (selectedDeptFilter === "ทุกแผนก" || selectedDeptFilter === "ทุกแผนกทำงาน") return true;
     
     const deptMap: { [key: string]: string } = {
-      "ไอที (IT)": "it",
-      "ฝ่ายผลิต (Manufacturing)": "mfg",
-      "ฝ่ายขาย (Sales)": "sales",
-      "ฝ่ายบุคคล (HR)": "hr",
-      "ฝ่ายคลังสินค้า (Logistics)": "log",
-      "ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)": "qa",
-      "ตรวจสอบคุณภาพ (QA)": "qa"
+      "INTER 2": "inter2",
+      "INTER 3": "inter3",
+      "INTER 5": "inter5",
+      "INTER 7": "inter7",
+      "Heavy Machine": "heavy",
+      "ECC": "ecc"
     };
     const filterDeptId = deptMap[selectedDeptFilter];
     return dept.id === filterDeptId;
@@ -829,13 +839,12 @@ export default function App() {
     if (selectedDeptFilter === "ทุกแผนก" || selectedDeptFilter === "ทุกแผนกทำงาน") return false;
     
     const deptMap: { [key: string]: string } = {
-      "ไอที (IT)": "it",
-      "ฝ่ายผลิต (Manufacturing)": "mfg",
-      "ฝ่ายขาย (Sales)": "sales",
-      "ฝ่ายบุคคล (HR)": "hr",
-      "ฝ่ายคลังสินค้า (Logistics)": "log",
-      "ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)": "qa",
-      "ตรวจสอบคุณภาพ (QA)": "qa"
+      "INTER 2": "inter2",
+      "INTER 3": "inter3",
+      "INTER 5": "inter5",
+      "INTER 7": "inter7",
+      "Heavy Machine": "heavy",
+      "ECC": "ecc"
     };
     const filterDeptId = deptMap[selectedDeptFilter];
     return emp.deptId === filterDeptId;
@@ -958,7 +967,6 @@ export default function App() {
           <Sidebar 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
-            onOpenNewRequest={() => setShowNewRequestModal(true)} 
             onLogout={handleLogout}
             currentUser={currentUser}
           />
@@ -976,13 +984,12 @@ export default function App() {
               activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
               activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
               activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
-              activeTab === "requests" ? "ระบบรับคำขอทำโอที (OT Requests Tracker)" :
+              activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
               activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
               "การตั้งค่าระบบและกฎเกณฑ์"
             }
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            pendingRequestsCount={pendingRequestsCount}
             isSidebarHidden={isSidebarHidden}
             setIsSidebarHidden={setIsSidebarHidden}
             currentUser={currentUser}
@@ -1022,11 +1029,12 @@ export default function App() {
                     className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
                   >
                     <option>ทุกแผนก</option>
-                    <option>ไอที (IT)</option>
-                    <option>ฝ่ายผลิต (Manufacturing)</option>
-                    <option>ฝ่ายขาย (Sales)</option>
-                    <option>ฝ่ายบุคคล (HR)</option>
-                    <option>ฝ่ายคลังสินค้า (Logistics)</option>
+                    <option>INTER 2</option>
+                    <option>INTER 3</option>
+                    <option>INTER 5</option>
+                    <option>INTER 7</option>
+                    <option>Heavy Machine</option>
+                    <option>ECC</option>
                   </select>
                 </div>
 
@@ -1039,13 +1047,6 @@ export default function App() {
                   >
                     <Download className="w-4 h-4 text-slate-500" />
                     <span>ส่งออกรายงานรวม</span>
-                  </button>
-                  <button 
-                    onClick={() => setShowNewRequestModal(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/10"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>สร้างคำขอใหม่</span>
                   </button>
                 </div>
               </div>
@@ -1113,7 +1114,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 4. Warning / Urgent Items */}
+                {/* 4. Total Budget Utilization */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-50 to-transparent rounded-bl-full"></div>
                   <div className="flex justify-between items-start mb-4 relative z-10">
@@ -1121,14 +1122,16 @@ export default function App() {
                       <ShieldAlert className="w-6 h-6" />
                     </div>
                     <span className="text-amber-800 text-[10px] font-bold bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1">
-                      ⚠️ เร่งด่วน
+                      ขีดจำกัดความปลอดภัย
                     </span>
                   </div>
                   <div className="relative z-10">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">รายการคำขอรอดำเนินการ</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">สัดส่วนการใช้งบสะสม</p>
                     <div className="flex items-baseline gap-1">
-                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">{pendingRequestsCount}</h3>
-                      <span className="text-xs font-bold text-slate-500">คำขอ</span>
+                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                        {Math.round(filteredDeptsForStats.reduce((acc, curr) => acc + curr.budgetUtilization, 0) / (filteredDeptsForStats.length || 1))}%
+                      </h3>
+                      <span className="text-xs font-bold text-slate-500">เฉลี่ย</span>
                     </div>
                   </div>
                 </div>
@@ -2235,113 +2238,13 @@ export default function App() {
           )}
 
           {/* ======================================= */}
-          {/* VIEW: OT REQUESTS */}
+          {/* VIEW: OT RECORDS FROM SHIFTS */}
           {/* ======================================= */}
-          {activeTab === "requests" && (
-            <div className="space-y-6">
-              {/* Header card */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">ระบบติดตามและตรวจสอบคำขอทำโอที (Requests Approval)</h3>
-                  <p className="text-xs text-slate-500 mt-1">อนุมัติ ปฏิเสธ หรือทบทวนความคุ้มค่าการทำงานล่วงเวลา</p>
-                </div>
-                <button 
-                  onClick={() => setShowNewRequestModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>สร้างใบคำขอใหม่</span>
-                </button>
-              </div>
-
-              {/* Active requests tracker list */}
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-100">
-                  <h4 className="text-sm font-bold text-slate-800">รายการรับคำขอล่าสุด</h4>
-                </div>
-
-                <div className="divide-y divide-slate-100">
-                  {(() => {
-                    const deptNameMap: { [key: string]: string } = {
-                      "mfg": "Manufacturing",
-                      "qa": "Quality Assurance",
-                      "log": "Logistics",
-                      "it": "IT",
-                      "sales": "Sales",
-                      "hr": "HR"
-                    };
-                    const managerDeptName = deptNameMap[activeDeptId] || "";
-                    return state.requests
-                      .filter(req => activeDeptId === "all" || req.dept === managerDeptName)
-                      .map((req) => (
-                        <div key={req.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6">
-                          
-                          {/* Request Core Info */}
-                          <div className="flex items-start gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${
-                              req.urgency === "Critical" ? "bg-red-100 text-red-700" :
-                              req.urgency === "High" ? "bg-amber-100 text-amber-700" :
-                              "bg-blue-100 text-blue-700"
-                            }`}>
-                              {req.urgency.substring(0, 3)}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h5 className="text-sm font-bold text-slate-800">{req.name}</h5>
-                                <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.id}</span>
-                                <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">{req.employeeId}</span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">
-                                แผนกสังกัด: <strong className="text-slate-700">{req.dept}</strong> | วันที่ขอปฏิบัติงาน: <strong className="text-slate-700">{req.date}</strong> | เวลา: <strong className="text-slate-700">{req.hours} ชม.</strong>
-                              </p>
-                              <p className="text-xs text-slate-600 mt-2 bg-slate-100 p-2.5 rounded-xl border border-slate-200/50 max-w-xl">
-                                💡 <strong>เหตุผลความจำเป็น:</strong> {req.reason}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Status / Control buttons */}
-                          <div className="flex items-center gap-4">
-                            {req.status === "Pending" ? (
-                              <div className="flex items-center gap-2">
-                                <button 
-                                  onClick={() => handleUpdateRequestStatus(req.id, "Rejected")}
-                                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-bold transition-all"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                  <span>ปฏิเสธ</span>
-                                </button>
-                                <button 
-                                  onClick={() => handleUpdateRequestStatus(req.id, "Approved")}
-                                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-sm"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>อนุมัติคำขอ</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border ${
-                                  req.status === "Approved" 
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                    : "bg-slate-100 text-slate-500 border-slate-200"
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${
-                                    req.status === "Approved" ? "bg-emerald-500" : "bg-slate-400"
-                                  }`}></span>
-                                  {req.status === "Approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                        </div>
-                      ));
-                  })()}
-                </div>
-              </div>
-
-            </div>
+          {activeTab === "ot-records" && (
+            <OtRecordsView 
+              currentUser={currentUser} 
+              state={state}
+            />
           )}
 
           {/* ======================================= */}
@@ -2480,8 +2383,8 @@ export default function App() {
                                 <select 
                                   value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
                                   onChange={(e) => {
-                                    const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `หัวหน้าฝ่ายงาน`;
-                                    const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "mfg" : acc.deptId;
+                                    const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `Section Manager`;
+                                    const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "inter2" : acc.deptId;
                                     handleUpdateAccountPermission(acc.username, nextRole, nextDept);
                                   }}
                                   className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
@@ -2500,11 +2403,12 @@ export default function App() {
                                   className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
                                 >
                                   <option value="all">ทุกแผนก (All)</option>
-                                  <option value="mfg">ฝ่ายผลิต (Mfg)</option>
-                                  <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
-                                  <option value="log">คลังสินค้า (Log)</option>
-                                  <option value="it">ไอที (IT)</option>
-                                  <option value="sales">ฝ่ายขาย (Sales)</option>
+                                  <option value="inter2">INTER 2</option>
+                                  <option value="inter3">INTER 3</option>
+                                  <option value="inter5">INTER 5</option>
+                                  <option value="inter7">INTER 7</option>
+                                  <option value="heavy">Heavy Machine</option>
+                                  <option value="ecc">ECC</option>
                                 </select>
                               </td>
                               <td className="p-4 text-center">
@@ -2545,28 +2449,11 @@ export default function App() {
                   </div>
                 )}
 
-                {/* OT Trend Management Card */}
-                <div className="col-span-1 md:col-span-2 bg-blue-50/50 border border-blue-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-blue-800">📈 จัดการข้อมูลแนวโน้ม OT รายเดือน (Monthly OT Trend)</h4>
-                    <p className="text-xs text-blue-600">แก้ไขข้อมูลชั่วโมง OT ย้อนหลัง 6 เดือน สำหรับแสดงในกราฟแดชบอร์ด ทั้งปีปัจจุบันและปีที่แล้ว</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      fetchOtTrend();
-                      setShowOtTrendModal(true);
-                    }}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md shadow-blue-500/10 cursor-pointer"
-                  >
-                    ✏️ กรอก / แก้ไขข้อมูลแนวโน้ม OT รายเดือน
-                  </button>
-                </div>
-
                 {/* Database Management / Clear data card */}
                 <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
                   <div>
-                    <h4 className="text-sm font-bold text-red-800">การจัดการข้อมูลพนักงานและใบคำขอ (Database Administration)</h4>
-                    <p className="text-xs text-red-600">ล้างข้อมูลจำลองเพื่อเตรียมตัวเริ่มใช้งานระบบกับรายชื่อและกะของบุคลากรจริงในบริษัทของคุณ</p>
+                    <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
+                    <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
                   </div>
                   <button 
                     onClick={handleClearMockData}
@@ -2620,11 +2507,13 @@ export default function App() {
                     <span>สังกัดฝ่ายงาน:</span>
                     <span className="font-bold text-slate-700">
                       {currentUser?.deptId === "all" ? "ผู้ดูแลระบบทุกแผนก" : 
-                       currentUser?.deptId === "mfg" ? "ฝ่ายผลิต (Manufacturing)" :
-                       currentUser?.deptId === "qa" ? "ตรวจสอบคุณภาพ (QA)" :
-                       currentUser?.deptId === "log" ? "คลังสินค้า (Logistics)" :
-                       currentUser?.deptId === "it" ? "ไอที (IT)" :
-                       "ฝ่ายขาย (Sales)"}
+                       currentUser?.deptId === "inter2" ? "INTER 2" :
+                       currentUser?.deptId === "inter3" ? "INTER 3" :
+                       currentUser?.deptId === "inter5" ? "INTER 5" :
+                       currentUser?.deptId === "inter7" ? "INTER 7" :
+                       currentUser?.deptId === "heavy" ? "Heavy Machine" :
+                       currentUser?.deptId === "ecc" ? "ECC" :
+                       currentUser?.deptId}
                     </span>
                   </div>
                 </div>
@@ -2710,121 +2599,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* ======================================= */}
-      {/* OVERLAY / MODAL: SUBMIT NEW OT REQUEST */}
-      {/* ======================================= */}
-      {showNewRequestModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">ส่งคำขออนุญาตปฏิบัติงานล่วงเวลา (OT)</h3>
-                <p className="text-xs text-slate-500">กรอกแบบฟอร์มเพื่อเสนอขอให้หัวหน้างานพิจารณาตรวจสอบสิทธิ์พนักงาน</p>
-              </div>
-              <button 
-                onClick={() => setShowNewRequestModal(false)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleSubmitRequest} className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">เลือกพนักงานผู้ปฏิบัติงาน</label>
-                <select 
-                  value={newReqEmpId}
-                  onChange={(e) => setNewReqEmpId(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  required
-                >
-                  <option value="">-- กรุณาเลือกบุคลากร --</option>
-                  {state.employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({emp.id}) - {emp.role}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">วันที่ปฏิบัติงาน</label>
-                  <input 
-                    type="date"
-                    value={newReqDate}
-                    onChange={(e) => setNewReqDate(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">จำนวนชั่วโมงปฏิบัติงานจริง</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    max="12"
-                    value={newReqHours}
-                    onChange={(e) => setNewReqHours(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ระดับความเร่งด่วน</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {["Medium", "High", "Critical"].map((lvl) => (
-                    <button
-                      type="button"
-                      key={lvl}
-                      onClick={() => setNewReqUrgency(lvl as any)}
-                      className={`py-2 text-xs font-bold rounded-xl border text-center transition-all ${
-                        newReqUrgency === lvl 
-                          ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {lvl === "Medium" ? "ปานกลาง" : lvl === "High" ? "ด่วนพิเศษ" : "วิกฤตความปลอดภัย"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">เหตุผลความจำเป็นและความสอดคล้องทางการผลิต</label>
-                <textarea 
-                  rows={3}
-                  value={newReqReason}
-                  onChange={(e) => setNewReqReason(e.target.value)}
-                  placeholder="ตัวอย่าง: มีความจำเป็นเนื่องจากซ่อมบำรุงเครื่องจักรไลน์ผลิต A ชำรุดกะทันหัน..."
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                ></textarea>
-              </div>
-
-              {/* Action buttons */}
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNewRequestModal(false)}
-                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/10 flex items-center justify-center gap-1.5"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>เสนอคำขออนุมัติ</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: ADD NEW EMPLOYEE */}
@@ -2898,11 +2673,12 @@ export default function App() {
                   onChange={(e) => setNewEmpDept(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="mfg">ฝ่ายผลิต (Manufacturing)</option>
-                  <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
-                  <option value="log">คลังสินค้า (Logistics)</option>
-                  <option value="it">ไอทีสนับสนุน (IT Support)</option>
-                  <option value="sales">ฝ่ายขาย (Sales)</option>
+                  <option value="inter2">INTER 2</option>
+                  <option value="inter3">INTER 3</option>
+                  <option value="inter5">INTER 5</option>
+                  <option value="inter7">INTER 7</option>
+                  <option value="heavy">Heavy Machine</option>
+                  <option value="ecc">ECC</option>
                 </select>
               </div>
 
@@ -2987,12 +2763,12 @@ export default function App() {
                   onChange={(e) => setEditEmpDept(e.target.value)}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
                 >
-                  <option value="mfg">ฝ่ายผลิต (Manufacturing)</option>
-                  <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
-                  <option value="log">คลังสินค้า (Logistics)</option>
-                  <option value="it">ไอทีสนับสนุน (IT Support)</option>
-                  <option value="sales">ฝ่ายขาย (Sales)</option>
-                  <option value="hr">ฝ่ายบุคคล (HR)</option>
+                  <option value="inter2">INTER 2</option>
+                  <option value="inter3">INTER 3</option>
+                  <option value="inter5">INTER 5</option>
+                  <option value="inter7">INTER 7</option>
+                  <option value="heavy">Heavy Machine</option>
+                  <option value="ecc">ECC</option>
                 </select>
               </div>
 
@@ -3173,11 +2949,11 @@ export default function App() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบสูงสุด (Admin)</option>
-                    <option value="หัวหน้าฝ่ายผลิต">หัวหน้าฝ่ายผลิต</option>
-                    <option value="หัวหน้าฝ่ายตรวจสอบคุณภาพ">หัวหน้าฝ่ายตรวจสอบคุณภาพ</option>
-                    <option value="หัวหน้าฝ่ายคลังสินค้า">หัวหน้าฝ่ายคลังสินค้า</option>
-                    <option value="หัวหน้าฝ่ายไอที">หัวหน้าฝ่ายไอที</option>
-                    <option value="หัวหน้าฝ่ายขาย">หัวหน้าฝ่ายขาย</option>
+                    <option value="HR">HR</option>
+                    <option value="HR Section Manager">HR Section Manager</option>
+                    <option value="Operation Dir">Operation Dir</option>
+                    <option value="Operation Depart">Operation Depart</option>
+                    <option value="Section Manager">Section Manager</option>
                   </select>
                 </div>
 
@@ -3189,11 +2965,12 @@ export default function App() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="all">ทุกแผนก (All)</option>
-                    <option value="mfg">ฝ่ายผลิต (Mfg)</option>
-                    <option value="qa">ตรวจสอบคุณภาพ (QA)</option>
-                    <option value="log">คลังสินค้า (Log)</option>
-                    <option value="it">ไอที (IT)</option>
-                    <option value="sales">ฝ่ายขาย (Sales)</option>
+                    <option value="inter2">INTER 2</option>
+                    <option value="inter3">INTER 3</option>
+                    <option value="inter5">INTER 5</option>
+                    <option value="inter7">INTER 7</option>
+                    <option value="heavy">Heavy Machine</option>
+                    <option value="ecc">ECC</option>
                   </select>
                 </div>
               </div>
@@ -3270,114 +3047,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ======================================= */}
-      {/* OVERLAY / MODAL: OT TREND MONTHLY DATA */}
-      {/* ======================================= */}
-      {showOtTrendModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
-            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">📈 แก้ไขข้อมูลแนวโน้ม OT รายเดือน</h3>
-                <p className="text-xs text-slate-500 mt-0.5">กรอกชั่วโมง OT รวมในแต่ละเดือน — ข้อมูลจะแสดงในกราฟแดชบอร์ด</p>
-              </div>
-              <button
-                onClick={() => setShowOtTrendModal(false)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
-              >
-                ✕
-              </button>
-            </div>
 
-            <form onSubmit={handleSaveOtTrend} className="p-6 space-y-4">
-              {/* Table header */}
-              <div className="grid grid-cols-3 gap-3 text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
-                <span>เดือน</span>
-                <span>ปีที่แล้ว (ชม.)</span>
-                <span>ปีนี้ (ชม.)</span>
-              </div>
-
-              {/* Rows */}
-              {otTrendRows.map((row, i) => (
-                <div key={i} className="grid grid-cols-3 gap-3 items-center">
-                  <input
-                    type="text"
-                    value={row.month}
-                    onChange={(e) => {
-                      const updated = [...otTrendRows];
-                      updated[i] = { ...updated[i], month: e.target.value };
-                      setOtTrendRows(updated);
-                    }}
-                    placeholder="ชื่อเดือน เช่น ม.ค."
-                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={row.lastYear === 0 ? "" : row.lastYear}
-                    onChange={(e) => {
-                      const updated = [...otTrendRows];
-                      updated[i] = { ...updated[i], lastYear: Number(e.target.value) || 0 };
-                      setOtTrendRows(updated);
-                    }}
-                    placeholder="0"
-                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-                  />
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      value={row.currentYear === 0 ? "" : row.currentYear}
-                      onChange={(e) => {
-                        const updated = [...otTrendRows];
-                        updated[i] = { ...updated[i], currentYear: Number(e.target.value) || 0 };
-                        setOtTrendRows(updated);
-                      }}
-                      placeholder="0"
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-                    />
-                    {otTrendRows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setOtTrendRows(otTrendRows.filter((_, idx) => idx !== i))}
-                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="ลบแถวนี้"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* Add row button */}
-              <button
-                type="button"
-                onClick={() => setOtTrendRows([...otTrendRows, { month: "", lastYear: 0, currentYear: 0 }])}
-                className="w-full py-2 border-2 border-dashed border-blue-200 rounded-xl text-xs font-bold text-blue-500 hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
-              >
-                + เพิ่มเดือน
-              </button>
-
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowOtTrendModal(false)}
-                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
-                >
-                  💾 บันทึกข้อมูล
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );
