@@ -513,26 +513,6 @@ export default function App() {
         {/* Dynamic page container */}
         <main className={`flex-1 overflow-y-auto ${isFullScreen ? "p-4" : "mt-16 p-8"}`}>
           
-          {/* Top warning message block if any compliance violations exist */}
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 text-amber-800 rounded-lg">
-                <AlertTriangle className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-amber-900">ตรวจพบข้อกังวลความปลอดภัยและกฎหมายแรงงาน 3 รายการ</h4>
-                <p className="text-xs text-amber-700">มีกำลังพลต่ำกว่าเกณฑ์ในวันหยุดสุดสัปดาห์ และพนักงานทำโอทีสะสมเกินเป้าหมายความปลอดภัย (48 ชม./เดือน)</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleTriggerAiAudit}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity shadow-md shadow-blue-500/10"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>ขอรายงาน AI Audit & แนะนำกะ</span>
-            </button>
-          </div>
-
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
           {/* ======================================= */}
