@@ -1,0 +1,61 @@
+export interface Department {
+  id: string;
+  name: string;
+  nameTh: string;
+  manager: string;
+  managerRole: string;
+  managerImg: string;
+  employeesCount: number;
+  otHours: number;
+  budgetUsed: number;
+  budgetUsedChange: number;
+  budgetUsedChangePct: number;
+  budgetUtilization: number;
+  status: "On Track" | "Warning";
+  icon: string;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  deptId: string;
+  role: string;
+  targetOt: number;
+  actualOt: number;
+  otPct: number;
+  status: "On Track" | "Warning";
+  groupName: string;
+  shifts: string[]; // List of 10 items e.g., ["M", "M", "O", "O", "A", "A", "A", "A", "O", "O"] or "⚠"
+}
+
+export interface OtRequest {
+  id: string;
+  employeeId: string;
+  name: string;
+  dept: string;
+  date: string;
+  hours: number;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+  urgency: "Medium" | "High" | "Critical";
+}
+
+export interface ShiftConfig {
+  pattern: string;
+  currentMonth: string;
+  currentDept: string;
+}
+
+export interface OtTrendData {
+  months: string[];
+  lastYear: number[];
+  currentYear: number[];
+}
+
+export interface AppState {
+  departments: Department[];
+  employees: Employee[];
+  requests: OtRequest[];
+  shiftConfig: ShiftConfig;
+  otTrendData: OtTrendData;
+}

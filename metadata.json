@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise OT Management Portal",
+  "description": "An advanced Operational Technology (OT) and Shift Management Portal featuring shift calendars, department analytics, KPI tracking, and Gemini-powered smart compliance summaries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
