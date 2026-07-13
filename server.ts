@@ -250,6 +250,23 @@ const initD1Database = async () => {
   }
 };
 
+// 0. Authentication Route
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === "admin" && password === "admin123") {
+    res.json({ 
+      success: true, 
+      user: { 
+        name: "คุณสิทธิศักดิ์ พ.", 
+        role: "ผู้ดูแลระบบ",
+        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ" 
+      } 
+    });
+  } else {
+    res.status(401).json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" });
+  }
+});
+
 // 1. Get current portal state
 app.get("/api/portal-state", async (req, res) => {
   try {

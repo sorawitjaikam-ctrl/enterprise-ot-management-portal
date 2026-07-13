@@ -21,7 +21,11 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   Maximize,
-  Minimize
+  Minimize,
+  Lock,
+  Eye,
+  EyeOff,
+  User
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
@@ -91,6 +95,49 @@ export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
 };
 
 export default function App() {
+  // Login System States
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
+    localStorage.getItem("adminLoggedIn") === "true"
+  );
+  const [loginUsername, setLoginUsername] = useState<string>("");
+  const [loginPassword, setLoginPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>("");
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      if (res.ok) {
+        localStorage.setItem("adminLoggedIn", "true");
+        setIsLoggedIn(true);
+        setLoginUsername("");
+        setLoginPassword("");
+      } else {
+        const data = await res.json();
+        setLoginError(data.error || "ล็อกอินไม่สำเร็จ");
+      }
+    } catch (err) {
+      setLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
+      localStorage.removeItem("adminLoggedIn");
+      setIsLoggedIn(false);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [state, setState] = useState<AppState | null>(null);
@@ -481,6 +528,94 @@ export default function App() {
     return { th, n: dayNum, weekend };
   });
 
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+        {/* Animated background blobs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
+        
+        {/* Card wrapper */}
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl relative z-10 text-white">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/20 mb-4">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight">Enterprise OT Portal</h1>
+            <p className="text-xs text-slate-300 mt-2 font-medium">เข้าสู่ระบบเพื่อจัดการเวลาการทำงานล่วงเวลา (OT)</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">ชื่อผู้ใช้ (Username)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <User className="w-4 h-4" />
+                </div>
+                <input 
+                  type="text"
+                  required
+                  placeholder="admin"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 text-white transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">รหัสผ่าน (Password)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 text-white transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3.5 bg-red-500/10 border border-red-500/20 text-red-300 rounded-2xl text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl text-sm transition-all shadow-lg shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+              {loginLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span>ลงชื่อเข้าใช้งาน</span>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center text-[10px] text-slate-500 font-medium">
+            <p>บัญชีผู้ใช้เริ่มต้นคือ: <strong>admin</strong> | รหัสผ่าน: <strong>admin123</strong></p>
+            <p className="mt-1">ระบบรักษาความปลอดภัยระดับองค์กร (Enterprise Grade Security)</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar navigation component */}
@@ -489,6 +624,7 @@ export default function App() {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           onOpenNewRequest={() => setShowNewRequestModal(true)} 
+          onLogout={handleLogout}
         />
       )}
 

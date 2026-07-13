@@ -16,9 +16,10 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenNewRequest: () => void;
+  onLogout: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest, onLogout }: SidebarProps) {
   const menuItems = [
     { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
     { id: "reports", label: "รายงานข้อมูลรายแผนก", icon: BarChart3 },
@@ -89,7 +90,7 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenNewRequest }: S
             <span>ความช่วยเหลือ</span>
           </a>
           <button
-            onClick={() => alert("ระบบกำลังทำการออกจากระบบ...")}
+            onClick={onLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut className="w-4 h-4 text-red-400" />
