@@ -262,6 +262,25 @@ export default function App() {
     }
   };
 
+  // Handle clearing mock data
+  const handleClearMockData = async () => {
+    if (!window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและใบคำขอตัวอย่างทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/clear-mock-data", { method: "POST" });
+      if (res.ok) {
+        alert("ล้างข้อมูลพนักงาน สถิติแผนก และใบคำขอตัวอย่างสำเร็จเรียบร้อยแล้ว!");
+        await fetchPortalState();
+      } else {
+        alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
   // Handle editing existing employee
   const handleEditEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1938,6 +1957,20 @@ export default function App() {
                     className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
                   >
                     ยืนยันตัวตนและการอัปเกรด
+                  </button>
+                </div>
+
+                {/* Database Management / Clear data card */}
+                <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-red-800">การจัดการข้อมูลพนักงานและใบคำขอ (Database Administration)</h4>
+                    <p className="text-xs text-red-600">ล้างข้อมูลจำลองเพื่อเตรียมตัวเริ่มใช้งานระบบกับรายชื่อและกะของบุคลากรจริงในบริษัทของคุณ</p>
+                  </div>
+                  <button 
+                    onClick={handleClearMockData}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md shadow-red-500/10"
+                  >
+                    ล้างข้อมูลพนักงานและใบคำขอทั้งหมด
                   </button>
                 </div>
 

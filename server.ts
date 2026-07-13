@@ -378,6 +378,38 @@ app.post("/api/add-employee", async (req, res) => {
   }
 });
 
+// 3.5 Clear Mock Data
+app.post("/api/clear-mock-data", async (req, res) => {
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM employees");
+      await queryD1("DELETE FROM requests");
+      await queryD1(`
+        UPDATE departments 
+        SET employeesCount = 0, 
+            otHours = 0, 
+            budgetUsed = 0, 
+            budgetUtilization = 0,
+            status = 'On Track'
+      `);
+    } else {
+      appState.employees = [];
+      appState.requests = [];
+      appState.departments.forEach(d => {
+        d.employeesCount = 0;
+        d.otHours = 0;
+        d.budgetUsed = 0;
+        d.budgetUtilization = 0;
+        d.status = 'On Track';
+      });
+    }
+    res.json({ success: true, message: "ล้างข้อมูลตัวอย่างเสร็จสิ้น" });
+  } catch (error: any) {
+    console.error("Clear database error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 4. Submit New Request
 app.post("/api/add-request", async (req, res) => {
   try {
