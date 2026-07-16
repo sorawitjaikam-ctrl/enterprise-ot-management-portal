@@ -678,7 +678,11 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch("/api/clear-mock-data", { method: "POST" });
+      const res = await fetch("/api/clear-mock-data", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: currentUser?.role })
+      });
       if (res.ok) {
         alert("ล้างข้อมูลพนักงาน และ OT records สำเร็จเรียบร้อยแล้ว!");
         await fetchPortalState();
@@ -2598,18 +2602,20 @@ export default function App() {
                 )}
 
                 {/* Database Management / Clear data card */}
-                <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
-                    <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
+                {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
+                  <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
+                      <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
+                    </div>
+                    <button 
+                      onClick={handleClearMockData}
+                      className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md shadow-red-500/10"
+                    >
+                      ล้างข้อมูลพนักงานและใบคำขอทั้งหมด
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleClearMockData}
-                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md shadow-red-500/10"
-                  >
-                    ล้างข้อมูลพนักงานและใบคำขอทั้งหมด
-                  </button>
-                </div>
+                )}
 
               </div>
             </div>

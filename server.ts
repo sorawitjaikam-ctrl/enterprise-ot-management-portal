@@ -372,7 +372,11 @@ app.post("/api/edit-account", async (req, res) => {
 
 // --- Delete account ---
 app.post("/api/delete-account", async (req, res) => {
-  const { targetUsername } = req.body;
+  const { targetUsername, role } = req.body;
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  if (!isHrOrAdmin) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบบัญชีผู้ใช้" });
+  }
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM accounts WHERE username = ?", [targetUsername]);
@@ -676,8 +680,12 @@ app.post("/api/edit-employee", async (req, res) => {
 });
 
 app.post("/api/delete-employee", async (req, res) => {
-  const { id } = req.body;
+  const { id, role } = req.body;
   if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  if (!isHrOrAdmin) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบพนักงาน" });
+  }
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees WHERE id = ?", [id]);
@@ -712,6 +720,11 @@ app.post("/api/update-dept-manager", async (req, res) => {
 // Clear all employee & OT data and reset/seed departments and accounts
 // ============================================================
 app.post("/api/clear-mock-data", async (req, res) => {
+  const { role } = req.body;
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  if (!isHrOrAdmin) {
+    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการล้างข้อมูลฐานข้อมูล" });
+  }
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees");

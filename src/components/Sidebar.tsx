@@ -19,12 +19,18 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser }: SidebarProps) {
+  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"].includes(currentUser?.role || "");
+
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
-    { id: "employees",  label: "รายชื่อพนักงาน",           icon: Users },
+    ...(isHrOrFullAccess ? [
+      { id: "employees",  label: "รายชื่อพนักงาน",           icon: Users },
+    ] : []),
     { id: "shifts",     label: "จัดการตารางกะ (Shifts)",   icon: Calendar },
-    { id: "ot-records", label: "ประวัติ OT จากกะทำงาน",   icon: ClipboardList },
+    ...(isHrOrFullAccess ? [
+      { id: "ot-records", label: "ประวัติ OT จากกะทำงาน",   icon: ClipboardList },
+    ] : []),
   ];
 
   return (
@@ -65,13 +71,15 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
       {/* Bottom Actions */}
       <div className="mt-auto pt-6 border-t border-slate-100 space-y-4">
         <div className="space-y-1">
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors ${activeTab === 'settings' ? 'bg-blue-50 text-blue-600 font-semibold' : ''}`}
-          >
-            <Settings className="w-4 h-4 text-slate-400" />
-            <span>การตั้งค่าระบบ</span>
-          </button>
+          {isHrOrFullAccess && (
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors ${activeTab === 'settings' ? 'bg-blue-50 text-blue-600 font-semibold' : ''}`}
+            >
+              <Settings className="w-4 h-4 text-slate-400" />
+              <span>การตั้งค่าระบบ</span>
+            </button>
+          )}
           <a
             href="#support"
             className="flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
