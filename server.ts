@@ -179,6 +179,14 @@ const initD1Database = async () => {
       groupName TEXT, shifts TEXT DEFAULT '[]'
     )`);
 
+    // Check if ot_daily_records is outdated (missing month column)
+    try {
+      await queryD1("SELECT month FROM ot_daily_records LIMIT 1");
+    } catch (e) {
+      console.log("Table ot_daily_records does not have 'month' column. Recreating...");
+      await queryD1("DROP TABLE IF EXISTS ot_daily_records");
+    }
+
     // OT Daily Records (new — computed from shifts)
     await queryD1(`CREATE TABLE IF NOT EXISTS ot_daily_records (
       id TEXT PRIMARY KEY,
