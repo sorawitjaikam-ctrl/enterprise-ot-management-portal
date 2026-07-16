@@ -758,6 +758,34 @@ export default function App() {
     }
   };
 
+  const handleDeleteEmployee = async (employeeId: string) => {
+    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบพนักงานรายนี้ออกจากระบบ? ข้อมูลประวัติ OT ของพนักงานรายนี้จะถูกลบออกทั้งหมดด้วย")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/delete-employee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: employeeId,
+          role: currentUser?.role
+        })
+      });
+      if (res.ok) {
+        setShowEditEmployeeModal(false);
+        setEditingEmployee(null);
+        await fetchPortalState();
+        alert("ลบข้อมูลพนักงานสำเร็จเรียบร้อยแล้ว!");
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
   const startEditEmployee = (emp: Employee) => {
     setEditingEmployee(emp);
     setEditEmpName(emp.name);
@@ -1953,16 +1981,30 @@ export default function App() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <button
-                                type="button"
-                                onClick={() => startEditEmployee(emp)}
-                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
-                                title="แก้ไขข้อมูลพนักงาน"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                                </svg>
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditEmployee(emp)}
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                                  title="แก้ไขข้อมูลพนักงาน"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                  </svg>
+                                </button>
+                                {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteEmployee(emp.id)}
+                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                                    title="ลบพนักงานออกจากระบบ"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -3006,20 +3048,30 @@ export default function App() {
                 />
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
+              <div className="pt-4 border-t border-slate-100 flex gap-2 items-center">
+                {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEmployee(editingEmployee.id)}
+                    className="px-3.5 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 hover:text-red-700 transition-colors mr-auto"
+                    title="ลบพนักงานออกจากระบบ"
+                  >
+                    ลบพนักงาน
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     setShowEditEmployeeModal(false);
                     setEditingEmployee(null);
                   }}
-                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
+                  className="w-24 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
                 >
                   บันทึกการแก้ไข
                 </button>
