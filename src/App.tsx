@@ -274,8 +274,15 @@ export default function App() {
     localStorage.getItem("adminLoggedIn") === "true"
   );
   const [currentUser, setCurrentUser] = useState<any>(() => {
-    const saved = localStorage.getItem("currentUser");
-    return saved ? JSON.parse(saved) : { 
+    try {
+      const saved = localStorage.getItem("currentUser");
+      if (saved && saved !== "undefined") {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to parse currentUser from localStorage", e);
+    }
+    return { 
       username: "admin",
       name: "คุณสิทธิศักดิ์ พ.", 
       role: "ผู้ดูแลระบบ", 
