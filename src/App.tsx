@@ -970,11 +970,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+      {/* Left-edge hover trigger strip */}
+      {!isFullScreen && isSidebarHidden && (
+        <div 
+          onMouseEnter={() => setIsSidebarHidden(false)}
+          className="fixed left-0 top-0 h-full w-3.5 z-50 bg-transparent cursor-pointer"
+        />
+      )}
+
       {/* Sidebar navigation component */}
       {!isFullScreen && (
-        <div className={`fixed left-0 top-0 h-full w-[260px] z-40 transition-transform duration-300 ${
-          isSidebarHidden ? "-translate-x-full" : "translate-x-0"
-        }`}>
+        <div 
+          onMouseEnter={() => setIsSidebarHidden(false)}
+          onMouseLeave={() => setIsSidebarHidden(true)}
+          className={`fixed left-0 top-0 h-full w-[260px] z-40 transition-transform duration-300 ${
+            isSidebarHidden ? "-translate-x-full" : "translate-x-0"
+          }`}
+        >
           <Sidebar 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
