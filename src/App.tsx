@@ -370,6 +370,21 @@ export default function App() {
     }
   };
 
+  const updatePlannerMonth = async (newMonthStr: string) => {
+    try {
+      const res = await fetch("/api/update-shift-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentMonth: newMonthStr })
+      });
+      if (res.ok) {
+        await fetchPortalState();
+      }
+    } catch (err) {
+      console.error("Failed to update planner month:", err);
+    }
+  };
+
   const handleUpdateAccountPermission = async (targetUsername: string, role: string, deptId: string) => {
     try {
       const res = await fetch("/api/update-account-permission", {
@@ -503,7 +518,8 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("ทุกแผนก");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("เดือนปัจจุบัน");
-  const [daysLimit, setDaysLimit] = useState<number>(7);
+  const [daysLimit, setDaysLimit] = useState<number>(30);
+  const [selectedWeek, setSelectedWeek] = useState<string>("all");
   const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
   
   // Modals / Overlays
@@ -888,10 +904,28 @@ export default function App() {
   const yr = Number(yStr) || new Date().getFullYear();
   const mn = Number(mStr) || (new Date().getMonth() + 1);
   const totalDays = getDaysInMonth(yr, mn);
-  const actualLimit = daysLimit === 30 ? totalDays : daysLimit;
 
-  const currentDays = Array.from({ length: actualLimit }, (_, i) => {
-    const dayNum = i + 1;
+  let startDay = 1;
+  let endDay = totalDays;
+  if (selectedWeek === "1") {
+    startDay = 1;
+    endDay = Math.min(7, totalDays);
+  } else if (selectedWeek === "2") {
+    startDay = 8;
+    endDay = Math.min(14, totalDays);
+  } else if (selectedWeek === "3") {
+    startDay = 15;
+    endDay = Math.min(21, totalDays);
+  } else if (selectedWeek === "4") {
+    startDay = 22;
+    endDay = Math.min(28, totalDays);
+  } else if (selectedWeek === "5") {
+    startDay = 29;
+    endDay = totalDays;
+  }
+
+  const currentDays = Array.from({ length: endDay - startDay + 1 }, (_, i) => {
+    const dayNum = startDay + i;
     const dateObj = new Date(yr, mn - 1, dayNum);
     const dayOfWeek = dateObj.getDay();
     const th = dayNames[dayOfWeek];
@@ -1899,69 +1933,76 @@ export default function App() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-lg font-extrabold text-slate-800">ตารางการจัดกะทำงานและแผนงาน (Shift Planner)</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-500">แผนกผลิต A - เดือนที่วางแผน:</span>
-                    <input 
-                      type="month"
-                      value={state.shiftConfig.currentMonth || ""}
-                      onChange={async (e) => {
-                        const newMonth = e.target.value;
-                        if (!newMonth) return;
-                        try {
-                          const res = await fetch("/api/update-shift-config", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ currentMonth: newMonth })
-                          });
-                          if (res.ok) {
-                            await fetchPortalState();
-                          }
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-                    />
-                  </div>
+                  <p className="text-xs text-slate-500 mt-1">แผนกผลิต A</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* Calendar view toggles */}
-                  <div className="flex bg-slate-100 border border-slate-200 rounded-xl p-1 text-xs select-none">
-                    <button 
-                      type="button"
-                      onClick={() => setDaysLimit(7)}
-                      className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 ${
-                        daysLimit === 7 
-                          ? "font-bold bg-white shadow-sm text-slate-700 font-extrabold" 
-                          : "font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-                      }`}
-                    >
-                      1 สัปดาห์
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setDaysLimit(14)}
-                      className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 ${
-                        daysLimit === 14 
-                          ? "font-bold bg-white shadow-sm text-slate-700 font-extrabold" 
-                          : "font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-                      }`}
-                    >
-                      2 สัปดาห์
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setDaysLimit(30)}
-                      className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 ${
-                        daysLimit === 30 
-                          ? "font-bold bg-white shadow-sm text-slate-700 font-extrabold" 
-                          : "font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-                      }`}
-                    >
-                      1 เดือน
-                    </button>
-                  </div>
+                  {/* Select Year */}
+                  <select
+                    value={(state?.shiftConfig?.currentMonth || "2026-07").split("-")[0]}
+                    onChange={(e) => {
+                      const newYear = e.target.value;
+                      const currentMonthVal = (state?.shiftConfig?.currentMonth || "2026-07").split("-")[1];
+                      updatePlannerMonth(`${newYear}-${currentMonthVal}`);
+                    }}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  >
+                    {[2023, 2024, 2025, 2026, 2027, 2028].map(y => (
+                      <option key={y} value={String(y)}>ปี {y}</option>
+                    ))}
+                  </select>
+
+                  {/* Select Month */}
+                  <select
+                    value={(state?.shiftConfig?.currentMonth || "2026-07").split("-")[1]}
+                    onChange={(e) => {
+                      const newMonth = e.target.value;
+                      const currentYearVal = (state?.shiftConfig?.currentMonth || "2026-07").split("-")[0];
+                      updatePlannerMonth(`${currentYearVal}-${newMonth}`);
+                    }}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  >
+                    {[
+                      { val: "01", label: "มกราคม" },
+                      { val: "02", label: "กุมภาพันธ์" },
+                      { val: "03", label: "มีนาคม" },
+                      { val: "04", label: "เมษายน" },
+                      { val: "05", label: "พฤษภาคม" },
+                      { val: "06", label: "มิถุนายน" },
+                      { val: "07", label: "กรกฎาคม" },
+                      { val: "08", label: "สิงหาคม" },
+                      { val: "09", label: "กันยายน" },
+                      { val: "10", label: "ตุลาคม" },
+                      { val: "11", label: "พฤศจิกายน" },
+                      { val: "12", label: "ธันวาคม" }
+                    ].map(m => (
+                      <option key={m.val} value={m.val}>{m.label}</option>
+                    ))}
+                  </select>
+
+                  {/* Select Period (Week / Full Month) */}
+                  <select
+                    value={selectedWeek}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedWeek(val);
+                      if (val === "all") {
+                        setDaysLimit(30);
+                      } else {
+                        setDaysLimit(7);
+                      }
+                    }}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">เต็มเดือน (ทั้งเดือน)</option>
+                    <option value="1">สัปดาห์ที่ 1 (วันที่ 1 - 7)</option>
+                    <option value="2">สัปดาห์ที่ 2 (วันที่ 8 - 14)</option>
+                    <option value="3">สัปดาห์ที่ 3 (วันที่ 15 - 21)</option>
+                    <option value="4">สัปดาห์ที่ 4 (วันที่ 22 - 28)</option>
+                    {totalDays > 28 && (
+                      <option value="5">สัปดาห์ที่ 5 (วันที่ 29 - {totalDays})</option>
+                    )}
+                  </select>
 
                   <div className="flex items-center gap-2">
                     <button 
@@ -2124,7 +2165,9 @@ export default function App() {
 
                             {/* Shift Cells */}
                             <div className="flex flex-1">
-                              {getEmployeeShiftsForView(emp.shifts, daysLimit).map((shift, dayIdx) => {
+                              {currentDays.map((day) => {
+                                const dayIdx = day.n - 1;
+                                const shift = emp.shifts[dayIdx] || "O";
                                 const styleClass = getShiftStyle(shift);
                                 const isActiveCell = activeEditingCell && activeEditingCell.employeeId === emp.id && activeEditingCell.dayIndex === dayIdx;
 
@@ -2230,9 +2273,11 @@ export default function App() {
                             {/* OT Column Cell */}
                             <div className={`flex-shrink-0 flex items-center justify-center border-l border-slate-200 bg-blue-50/20 font-mono text-xs font-bold ${daysLimit === 30 ? "w-20" : "w-24"}`}>
                               {(() => {
-                                const periodShifts = getEmployeeShiftsForView(emp.shifts, daysLimit);
-                                const periodOtHours = periodShifts.reduce((acc, shift) => acc + getShiftOtHours(shift), 0);
-                                const periodTargetOt = daysLimit === 7 ? emp.targetOt / 4 : daysLimit === 14 ? emp.targetOt / 2 : emp.targetOt;
+                                const periodOtHours = currentDays.reduce((acc, day) => {
+                                  const shift = emp.shifts[day.n - 1] || "O";
+                                  return acc + getShiftOtHours(shift);
+                                }, 0);
+                                const periodTargetOt = selectedWeek === "all" ? emp.targetOt : emp.targetOt / 4;
                                 const otPercentage = Math.round((periodOtHours / periodTargetOt) * 100) || 0;
                                 const isOver = otPercentage > 100;
                                 
