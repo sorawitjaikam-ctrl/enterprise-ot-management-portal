@@ -36,7 +36,15 @@ const SHIFT_OT_MAP: Record<string, number> = {
   "D":   0, "O":   0
 };
 
-const getShiftOt = (shiftCode: string): number => SHIFT_OT_MAP[shiftCode] ?? 0;
+const getShiftOt = (shiftCode: string): number => {
+  if (shiftCode === "OND") return 8;
+  const match = shiftCode.match(/\d+$/);
+  if (match) {
+    const hours = Number(match[0]);
+    return Math.max(0, hours - 8);
+  }
+  return SHIFT_OT_MAP[shiftCode] ?? 0;
+};
 
 // ============================================================
 // Real departments

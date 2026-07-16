@@ -70,6 +70,21 @@ export const getShiftStyle = (shift: string) => {
     case "O":
       return "bg-white text-slate-400 border-slate-200 font-medium";
     default:
+      if (shift.startsWith("M")) {
+        const ot = getShiftOtHours(shift);
+        if (ot > 4) return "bg-[#1f4e79] text-white border-[#1f4e79] font-extrabold";
+        if (ot > 0) return "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5] font-extrabold";
+        return "bg-[#dce6f1] text-black border-[#b4c6e7] font-extrabold";
+      }
+      if (shift.startsWith("A")) {
+        return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
+      }
+      if (shift.startsWith("N")) {
+        const ot = getShiftOtHours(shift);
+        if (ot > 4) return "bg-[#ff0000] text-white border-[#ff0000] font-extrabold";
+        if (ot > 0) return "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad] font-extrabold";
+        return "bg-[#fce4d6] text-black border-[#f8cbad] font-extrabold";
+      }
       if (shift === "A") return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
       if (shift === "N") return "bg-[#fce4d6] text-black border-[#f8cbad] font-extrabold";
       if (shift === "⚠") return "bg-red-50 text-red-700 border-[#ff0000] font-extrabold animate-pulse";
@@ -78,8 +93,12 @@ export const getShiftStyle = (shift: string) => {
 };
 
 export const getShiftOtHours = (shift: string) => {
-  if (shift === "M12" || shift === "A12" || shift === "N12") return 4;
-  if (shift === "M16" || shift === "N16" || shift === "OND") return 8;
+  if (shift === "OND") return 8;
+  const match = shift.match(/\d+$/);
+  if (match) {
+    const hours = Number(match[0]);
+    return Math.max(0, hours - 8);
+  }
   return 0;
 };
 
@@ -485,7 +504,7 @@ export default function App() {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("ทุกแผนก");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("เดือนปัจจุบัน");
   const [daysLimit, setDaysLimit] = useState<number>(7);
-  const [showShiftLegend, setShowShiftLegend] = useState<boolean>(true);
+  const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
   
   // Modals / Overlays
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState<boolean>(false);
@@ -2158,6 +2177,39 @@ export default function App() {
                                             </button>
                                           ))}
                                         </div>
+
+                                        {/* Custom Shift Manual Input */}
+                                        <div className="mt-2 pt-2 border-t border-slate-100 flex gap-1.5 items-center">
+                                          <input
+                                            type="text"
+                                            maxLength={5}
+                                            placeholder="กะกำหนดเอง (เช่น M7, N9)"
+                                            id={`custom-shift-input-${emp.id}-${dayIdx}`}
+                                            className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                const val = (e.target as HTMLInputElement).value.trim().toUpperCase();
+                                                if (val) {
+                                                  handleSelectShiftValue(emp.id, dayIdx, val);
+                                                }
+                                              }
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const input = document.getElementById(`custom-shift-input-${emp.id}-${dayIdx}`) as HTMLInputElement;
+                                              const val = input?.value.trim().toUpperCase();
+                                              if (val) {
+                                                handleSelectShiftValue(emp.id, dayIdx, val);
+                                              }
+                                            }}
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                                          >
+                                            ตกลง
+                                          </button>
+                                        </div>
+
                                         <button 
                                           type="button"
                                           onClick={(e) => {
