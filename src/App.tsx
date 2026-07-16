@@ -485,6 +485,7 @@ export default function App() {
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("ทุกแผนก");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("เดือนปัจจุบัน");
   const [daysLimit, setDaysLimit] = useState<number>(7);
+  const [showShiftLegend, setShowShiftLegend] = useState<boolean>(true);
   
   // Modals / Overlays
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState<boolean>(false);
@@ -862,10 +863,20 @@ export default function App() {
   });
 
   const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-  const currentDays = Array.from({ length: daysLimit }, (_, i) => {
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
+  const yearMonth = state?.shiftConfig?.currentMonth || new Date().toISOString().substring(0, 7);
+  const [yStr, mStr] = yearMonth.split("-");
+  const yr = Number(yStr) || new Date().getFullYear();
+  const mn = Number(mStr) || (new Date().getMonth() + 1);
+  const totalDays = getDaysInMonth(yr, mn);
+  const actualLimit = daysLimit === 30 ? totalDays : daysLimit;
+
+  const currentDays = Array.from({ length: actualLimit }, (_, i) => {
     const dayNum = i + 1;
-    const th = dayNames[(dayNum - 1) % 7];
-    const weekend = (dayNum - 1) % 7 === 0 || (dayNum - 1) % 7 === 6;
+    const dateObj = new Date(yr, mn - 1, dayNum);
+    const dayOfWeek = dateObj.getDay();
+    const th = dayNames[dayOfWeek];
+    const weekend = dayOfWeek === 0 || dayOfWeek === 6;
     return { th, n: dayNum, weekend };
   });
 
@@ -1857,7 +1868,30 @@ export default function App() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-lg font-extrabold text-slate-800">ตารางการจัดกะทำงานและแผนงาน (Shift Planner)</h3>
-                  <p className="text-xs text-slate-500 mt-1">แผนกผลิต A - {state.shiftConfig.currentMonth}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-500">แผนกผลิต A - เดือนที่วางแผน:</span>
+                    <input 
+                      type="month"
+                      value={state.shiftConfig.currentMonth || ""}
+                      onChange={async (e) => {
+                        const newMonth = e.target.value;
+                        if (!newMonth) return;
+                        try {
+                          const res = await fetch("/api/update-shift-config", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ currentMonth: newMonth })
+                          });
+                          if (res.ok) {
+                            await fetchPortalState();
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -1899,9 +1933,12 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-1 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
-                      <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-                      <span className="hidden sm:inline">ตัวกรองกะ</span>
+                    <button 
+                      onClick={() => setShowShiftLegend(!showShiftLegend)}
+                      className="flex items-center gap-1 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <span className="text-slate-500">💡</span>
+                      <span className="hidden sm:inline">{showShiftLegend ? "ซ่อนรหัสกะ" : "แสดงรหัสกะ"}</span>
                     </button>
                     <button 
                       onClick={() => setIsFullScreen(!isFullScreen)}
@@ -1945,46 +1982,48 @@ export default function App() {
               </div>
 
               {/* Shift Legend / Keys explanation matching image exactly */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
-                    <span>สัญลักษณ์รหัสกะและตารางการจัดสีเวร (Shift Master Legend)</span>
-                  </h4>
-                  <div className="text-blue-600 flex items-center gap-1.5 text-xs font-bold">
-                    <span className="w-2 h-2 bg-blue-600 rounded-full animate-ping"></span>
-                    <span>รูปแบบหลักขององค์กร: 4-on-2-off</span>
+              {showShiftLegend && (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
+                      <span>สัญลักษณ์รหัสกะและตารางการจัดสีเวร (Shift Master Legend)</span>
+                    </h4>
+                    <div className="text-blue-600 flex items-center gap-1.5 text-xs font-bold">
+                      <span className="w-2 h-2 bg-blue-600 rounded-full animate-ping"></span>
+                      <span>รูปแบบหลักขององค์กร: 4-on-2-off</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex gap-2.5 min-w-[900px] select-none">
-                    {[
-                      { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#dce6f1] text-black border-[#b4c6e7]" },
-                      { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
-                      { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#fce4d6] text-black border-[#f8cbad]" },
-                      { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5]" },
-                      { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
-                      { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad]" },
-                      { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#1f4e79] text-white border-[#1f4e79]" },
-                      { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#ff0000] text-white border-[#ff0000]" },
-                      { top: "ทอดสมอ", sub: "standby", code: "D", style: "bg-[#aeaaaa] text-slate-800 border-[#7f7f7f]" },
-                      { top: "ON", sub: "DUTY", code: "OND", style: "bg-[#00ffff] text-black border-[#00ffff]" },
-                      { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-slate-400 border-slate-200" }
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex-1 flex flex-col items-center">
-                        <div className="text-center text-[11px] font-bold text-slate-700 h-9 flex flex-col justify-end pb-1.5 leading-tight">
-                          <div>{item.top}</div>
-                          <div className="text-[10px] text-slate-500 font-medium">{item.sub}</div>
+                  <div className="overflow-x-auto pb-2">
+                    <div className="flex gap-2.5 min-w-[900px] select-none">
+                      {[
+                        { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#dce6f1] text-black border-[#b4c6e7]" },
+                        { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
+                        { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#fce4d6] text-black border-[#f8cbad]" },
+                        { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5]" },
+                        { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
+                        { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad]" },
+                        { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#1f4e79] text-white border-[#1f4e79]" },
+                        { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#ff0000] text-white border-[#ff0000]" },
+                        { top: "ทอดสมอ", sub: "standby", code: "D", style: "bg-[#aeaaaa] text-slate-800 border-[#7f7f7f]" },
+                        { top: "ON", sub: "DUTY", code: "OND", style: "bg-[#00ffff] text-black border-[#00ffff]" },
+                        { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-slate-400 border-slate-200" }
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center">
+                          <div className="text-center text-[11px] font-bold text-slate-700 h-9 flex flex-col justify-end pb-1.5 leading-tight">
+                            <div>{item.top}</div>
+                            <div className="text-[10px] text-slate-500 font-medium">{item.sub}</div>
+                          </div>
+                          <div className={`w-full py-2.5 text-center font-extrabold text-xs border rounded-lg shadow-sm ${item.style}`}>
+                            {item.code}
+                          </div>
                         </div>
-                        <div className={`w-full py-2.5 text-center font-extrabold text-xs border rounded-lg shadow-sm ${item.style}`}>
-                          {item.code}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Master Calendar Grid Canvas */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">

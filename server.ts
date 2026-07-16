@@ -466,6 +466,37 @@ app.get("/api/portal-state", async (req, res) => {
 });
 
 // ============================================================
+// Update Shift Config
+// ============================================================
+app.post("/api/update-shift-config", async (req, res) => {
+  const { currentMonth, pattern, currentDept } = req.body;
+  try {
+    if (isD1Enabled()) {
+      const config = await queryD1("SELECT * FROM shift_config LIMIT 1");
+      if (config.length > 0) {
+        let sql = "UPDATE shift_config SET ";
+        const updates: string[] = [];
+        const params: any[] = [];
+        if (currentMonth !== undefined) { updates.push("currentMonth = ?"); params.push(currentMonth); }
+        if (pattern !== undefined) { updates.push("pattern = ?"); params.push(pattern); }
+        if (currentDept !== undefined) { updates.push("currentDept = ?"); params.push(currentDept); }
+        sql += updates.join(", ");
+        await queryD1(sql, params);
+      } else {
+        await queryD1("INSERT INTO shift_config (pattern, currentMonth, currentDept) VALUES (?, ?, ?)",
+          [pattern || "4-on-2-off", currentMonth || new Date().toISOString().substring(0, 7), currentDept || "inter2"]);
+      }
+    } else {
+      if (currentMonth !== undefined) appState.shiftConfig.currentMonth = currentMonth;
+      if (pattern !== undefined) appState.shiftConfig.pattern = pattern;
+      if (currentDept !== undefined) appState.shiftConfig.currentDept = currentDept;
+      saveLocalDb();
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================
 // Save Shifts → auto-write OT daily records
 // ============================================================
 app.post("/api/save-shifts", async (req, res) => {
