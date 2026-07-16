@@ -362,16 +362,16 @@ app.post("/api/update-account-permission", async (req, res) => {
 
 // --- Edit account (username + name + deptId + role) ---
 app.post("/api/edit-account", async (req, res) => {
-  const { originalUsername, username, name, role, deptId } = req.body;
+  const { originalUsername, username, name, role, deptId, avatar } = req.body;
   if (!originalUsername) return res.status(400).json({ error: "ต้องระบุ originalUsername" });
   try {
     if (isD1Enabled()) {
       if (originalUsername !== username) {
-        await queryD1("UPDATE accounts SET username = ?, name = ?, role = ?, deptId = ? WHERE username = ?",
-          [username, name, role, deptId, originalUsername]);
+        await queryD1("UPDATE accounts SET username = ?, name = ?, role = ?, deptId = ?, avatar = ? WHERE username = ?",
+          [username, name, role, deptId, avatar, originalUsername]);
       } else {
-        await queryD1("UPDATE accounts SET name = ?, role = ?, deptId = ? WHERE username = ?",
-          [name, role, deptId, originalUsername]);
+        await queryD1("UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ? WHERE username = ?",
+          [name, role, deptId, avatar, originalUsername]);
       }
     } else {
       const idx = appAccounts.findIndex(a => a.username === originalUsername);
@@ -380,6 +380,7 @@ app.post("/api/edit-account", async (req, res) => {
         appAccounts[idx].name = name;
         appAccounts[idx].role = role;
         appAccounts[idx].deptId = deptId;
+        appAccounts[idx].avatar = avatar;
       }
       saveLocalDb();
     }
