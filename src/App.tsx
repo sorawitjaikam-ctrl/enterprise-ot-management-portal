@@ -1468,12 +1468,9 @@ export default function App() {
                       className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
                     >
                       <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
-                      <option value="ไอที (IT)">ไอที (IT)</option>
-                      <option value="ฝ่ายผลิต (Manufacturing)">ฝ่ายผลิต (Manufacturing)</option>
-                      <option value="ฝ่ายขาย (Sales)">ฝ่ายขาย (Sales)</option>
-                      <option value="ฝ่ายบุคคล (HR)">ฝ่ายบุคคล (HR)</option>
-                      <option value="ฝ่ายคลังสินค้า (Logistics)">ฝ่ายคลังสินค้า (Logistics)</option>
-                      <option value="ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)">ฝ่ายตรวจสอบคุณภาพ (Quality Assurance)</option>
+                      {state.departments.map(d => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
                     </select>
                   </div>
                   <button 
