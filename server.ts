@@ -294,16 +294,25 @@ app.post("/api/update-profile", async (req, res) => {
       } else {
         await queryD1("UPDATE accounts SET name = ?, avatar = ? WHERE username = ?", [name, avatar, username]);
       }
+      const rows = await queryD1("SELECT username, name, role, deptId, avatar FROM accounts WHERE username = ?", [username]);
+      if (rows.length > 0) {
+        res.json({ success: true, user: rows[0] });
+      } else {
+        res.status(404).json({ error: "ไม่พบข้อมูลบัญชีผู้ใช้" });
+      }
     } else {
       const idx = appAccounts.findIndex(a => a.username === username);
       if (idx !== -1) {
         appAccounts[idx].name = name;
         appAccounts[idx].avatar = avatar;
         if (password) appAccounts[idx].password = password;
+        saveLocalDb();
+        const { password: _, ...userWithoutPassword } = appAccounts[idx];
+        res.json({ success: true, user: userWithoutPassword });
+      } else {
+        res.status(404).json({ error: "ไม่พบบัญชีผู้ใช้งาน" });
       }
-      saveLocalDb();
     }
-    res.json({ success: true });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
