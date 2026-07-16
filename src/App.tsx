@@ -901,6 +901,31 @@ export default function App() {
     }
   });
 
+  const getWeeksInMonth = (year: number, month: number) => {
+    const numDays = new Date(year, month, 0).getDate();
+    const weeks: { weekNum: number; startDay: number; endDay: number }[] = [];
+    
+    const getWeekNumber = (date: Date) => {
+      const start = new Date(date.getFullYear(), 0, 1);
+      const diff = date.getTime() - start.getTime() + (start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000;
+      const oneDay = 1000 * 60 * 60 * 24;
+      const day = Math.floor(diff / oneDay) + 1;
+      return Math.ceil(day / 7);
+    };
+
+    for (let day = 1; day <= numDays; day++) {
+      const date = new Date(year, month - 1, day);
+      const wNum = getWeekNumber(date);
+      let existing = weeks.find(w => w.weekNum === wNum);
+      if (existing) {
+        existing.endDay = day;
+      } else {
+        weeks.push({ weekNum: wNum, startDay: day, endDay: day });
+      }
+    }
+    return weeks;
+  };
+
   const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
   const getDaysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const yearMonth = state?.shiftConfig?.currentMonth || new Date().toISOString().substring(0, 7);
@@ -909,23 +934,17 @@ export default function App() {
   const mn = Number(mStr) || (new Date().getMonth() + 1);
   const totalDays = getDaysInMonth(yr, mn);
 
+  const weeksList = getWeeksInMonth(yr, mn);
+
   let startDay = 1;
   let endDay = totalDays;
-  if (selectedWeek === "1") {
-    startDay = 1;
-    endDay = Math.min(7, totalDays);
-  } else if (selectedWeek === "2") {
-    startDay = 8;
-    endDay = Math.min(14, totalDays);
-  } else if (selectedWeek === "3") {
-    startDay = 15;
-    endDay = Math.min(21, totalDays);
-  } else if (selectedWeek === "4") {
-    startDay = 22;
-    endDay = Math.min(28, totalDays);
-  } else if (selectedWeek === "5") {
-    startDay = 29;
-    endDay = totalDays;
+  if (selectedWeek !== "all") {
+    const wNum = Number(selectedWeek);
+    const activeWeekObj = weeksList.find(w => w.weekNum === wNum);
+    if (activeWeekObj) {
+      startDay = activeWeekObj.startDay;
+      endDay = activeWeekObj.endDay;
+    }
   }
 
   const currentDays = Array.from({ length: endDay - startDay + 1 }, (_, i) => {
@@ -1999,13 +2018,11 @@ export default function App() {
                     className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
                   >
                     <option value="all">เต็มเดือน (ทั้งเดือน)</option>
-                    <option value="1">สัปดาห์ที่ 1 (วันที่ 1 - 7)</option>
-                    <option value="2">สัปดาห์ที่ 2 (วันที่ 8 - 14)</option>
-                    <option value="3">สัปดาห์ที่ 3 (วันที่ 15 - 21)</option>
-                    <option value="4">สัปดาห์ที่ 4 (วันที่ 22 - 28)</option>
-                    {totalDays > 28 && (
-                      <option value="5">สัปดาห์ที่ 5 (วันที่ 29 - {totalDays})</option>
-                    )}
+                    {weeksList.map((w) => (
+                      <option key={w.weekNum} value={String(w.weekNum)}>
+                        สัปดาห์ที่ {w.weekNum} (วันที่ {w.startDay} - {w.endDay})
+                      </option>
+                    ))}
                   </select>
 
                   <div className="flex items-center gap-2">
@@ -2113,7 +2130,7 @@ export default function App() {
                       </div>
                       
                       {/* Generative Days loop */}
-                      <div className="flex flex-1">
+                      <div className="flex">
                         {currentDays.map((day, dIdx) => (
                           <div 
                             key={dIdx} 
@@ -2168,7 +2185,7 @@ export default function App() {
                             </div>
 
                             {/* Shift Cells */}
-                            <div className="flex flex-1">
+                            <div className="flex">
                               {currentDays.map((day) => {
                                 const dayIdx = day.n - 1;
                                 const shift = emp.shifts[dayIdx] || "O";
