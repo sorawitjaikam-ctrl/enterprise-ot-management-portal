@@ -516,6 +516,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [state, setState] = useState<AppState | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [stateError, setStateError] = useState<string | null>(null);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("ทุกแผนก");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("เดือนปัจจุบัน");
   const [daysLimit, setDaysLimit] = useState<number>(30);
@@ -557,14 +558,19 @@ export default function App() {
   const fetchPortalState = async () => {
     try {
       setLoading(true);
+      setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
         const data: AppState = await res.json();
         setState(data);
         setTempEmployees(data.employees);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setStateError(errData.error || "เกิดข้อผิดพลาดในการโหลดข้อมูลจากเซิร์ฟเวอร์");
       }
     } catch (err) {
       console.error("Error fetching state:", err);
+      setStateError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์หลังบ้านได้ กรุณาตรวจสอบว่าเซิร์ฟเวอร์กำลังรันอยู่");
     } finally {
       setLoading(false);
     }
@@ -598,6 +604,24 @@ export default function App() {
       setSelectedDeptFilter("ทุกแผนก");
     }
   }, [currentUser]);
+
+  if (stateError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center max-w-sm">
+          <p className="text-red-500 text-3xl mb-2">⚠️</p>
+          <h4 className="text-sm font-bold text-slate-800 font-sans">ไม่สามารถโหลดโปรทัลได้</h4>
+          <p className="text-xs text-slate-500 mt-1 mb-4 font-sans">{stateError}</p>
+          <button 
+            onClick={fetchPortalState}
+            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer font-sans"
+          >
+            ลองใหม่อีกครั้ง
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !state) {
     return (
