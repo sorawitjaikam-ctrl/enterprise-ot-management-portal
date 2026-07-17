@@ -621,6 +621,29 @@ export default function App() {
   const [reportSortBy, setReportSortBy] = useState<string>("OT Hours (High to Low)");
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("ทุกตำแหน่ง");
 
+  // ==========================================
+  // KPI Role filter helper
+  // ==========================================
+  const matchesRoleFilter = (empRole: string) => {
+    if (selectedRoleFilter === "ทุกตำแหน่ง") return true;
+    if (selectedRoleFilter === "กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)") {
+      const targetRoles = [
+        "ผู้ควบคุมงานขนถ่ายสินค้า",
+        "พนักงานขับเครน",
+        "ปากเรือ",
+        "ผู้ควบคุมงานจักรกลหนัก",
+        "ช่างขับจักรกลหนัก",
+        "O&M - Specialist",
+        "O&M - Generator",
+        "O&M - Mechanical",
+        "O&M - Electrical",
+        "ECC"
+      ];
+      return targetRoles.includes(empRole);
+    }
+    return empRole === selectedRoleFilter;
+  };
+
 
   // Fetch initial portal state
   const fetchPortalState = async () => {
@@ -1324,28 +1347,7 @@ export default function App() {
     return { th, n: dayNum, weekend };
   });
 
-  // ==========================================
-  // KPI Role filter helper
-  // ==========================================
-  const matchesRoleFilter = (empRole: string) => {
-    if (selectedRoleFilter === "ทุกตำแหน่ง") return true;
-    if (selectedRoleFilter === "กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)") {
-      const targetRoles = [
-        "ผู้ควบคุมงานขนถ่ายสินค้า",
-        "พนักงานขับเครน",
-        "ปากเรือ",
-        "ผู้ควบคุมงานจักรกลหนัก",
-        "ช่างขับจักรกลหนัก",
-        "O&M - Specialist",
-        "O&M - Generator",
-        "O&M - Mechanical",
-        "O&M - Electrical",
-        "ECC"
-      ];
-      return targetRoles.includes(empRole);
-    }
-    return empRole === selectedRoleFilter;
-  };
+
 
   // Filter employees dynamically for dashboard
   const dashboardEmployees = state.employees.filter(emp => {
