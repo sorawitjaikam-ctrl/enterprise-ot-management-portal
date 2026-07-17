@@ -79,17 +79,17 @@ let appState = {
 
 // Fallback in-memory accounts
 let appAccounts: any[] = [
-  { username: "admin",      password: "admin123",       name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all", avatar: "" },
-  { username: "hr",         password: "hr1234",         name: "HR Manager",             role: "HR",                 deptId: "all", avatar: "" },
-  { username: "hr_sec",     password: "hrsec1234",      name: "HR Section Manager",     role: "HR Section Manager", deptId: "all", avatar: "" },
-  { username: "op_dir",     password: "opdir1234",      name: "Operation Director",     role: "Operation Dir",      deptId: "all", avatar: "" },
-  { username: "op_dept",    password: "opdept1234",     name: "Operation Department",   role: "Operation Depart",   deptId: "all", avatar: "" },
-  { username: "inter2_mgr", password: "i2mgr1234",      name: "Section Manager INTER2", role: "Section Manager",    deptId: "inter2", avatar: "" },
-  { username: "inter3_mgr", password: "i3mgr1234",      name: "Section Manager INTER3", role: "Section Manager",    deptId: "inter3", avatar: "" },
-  { username: "inter5_mgr", password: "i5mgr1234",      name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "" },
-  { username: "inter7_mgr", password: "i7mgr1234",      name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "" },
-  { username: "heavy_mgr",  password: "hvmgr1234",      name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "" },
-  { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "" },
+  { username: "admin",      password: "admin123",       name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all", avatar: "", canBackup: 1 },
+  { username: "hr",         password: "hr1234",         name: "HR Manager",             role: "HR",                 deptId: "all", avatar: "", canBackup: 1 },
+  { username: "hr_sec",     password: "hrsec1234",      name: "HR Section Manager",     role: "HR Section Manager", deptId: "all", avatar: "", canBackup: 1 },
+  { username: "op_dir",     password: "opdir1234",      name: "Operation Director",     role: "Operation Dir",      deptId: "all", avatar: "", canBackup: 0 },
+  { username: "op_dept",    password: "opdept1234",     name: "Operation Department",   role: "Operation Depart",   deptId: "all", avatar: "", canBackup: 0 },
+  { username: "inter2_mgr", password: "i2mgr1234",      name: "Section Manager INTER2", role: "Section Manager",    deptId: "inter2", avatar: "", canBackup: 0 },
+  { username: "inter3_mgr", password: "i3mgr1234",      name: "Section Manager INTER3", role: "Section Manager",    deptId: "inter3", avatar: "", canBackup: 0 },
+  { username: "inter5_mgr", password: "i5mgr1234",      name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "", canBackup: 0 },
+  { username: "inter7_mgr", password: "i7mgr1234",      name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "", canBackup: 0 },
+  { username: "heavy_mgr",  password: "hvmgr1234",      name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "", canBackup: 0 },
+  { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "", canBackup: 0 },
 ];
 
 // ============================================================
@@ -209,8 +209,20 @@ const initD1Database = async () => {
     // Accounts
     await queryD1(`CREATE TABLE IF NOT EXISTS accounts (
       username TEXT PRIMARY KEY, password TEXT, name TEXT,
-      role TEXT, deptId TEXT, avatar TEXT
+      role TEXT, deptId TEXT, avatar TEXT, canBackup INTEGER DEFAULT 0
     )`);
+
+    // Check if canBackup column exists in accounts table
+    try {
+      await queryD1("SELECT canBackup FROM accounts LIMIT 1");
+    } catch (e) {
+      console.log("Adding canBackup column to accounts table...");
+      try {
+        await queryD1("ALTER TABLE accounts ADD COLUMN canBackup INTEGER DEFAULT 0");
+      } catch (err) {
+        console.error("Failed to alter accounts table:", err);
+      }
+    }
 
     // Seed departments if empty
     const depts = await queryD1("SELECT id FROM departments LIMIT 1");
@@ -227,8 +239,8 @@ const initD1Database = async () => {
       const existingAccounts = await queryD1("SELECT username FROM accounts LIMIT 1");
       if (existingAccounts.length === 0) {
         for (const acc of appAccounts) {
-          await queryD1(`INSERT INTO accounts (username, password, name, role, deptId, avatar) VALUES (?, ?, ?, ?, ?, ?)`,
-            [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar]);
+          await queryD1(`INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar, acc.canBackup ? 1 : 0]);
         }
       }
 
@@ -320,7 +332,7 @@ app.post("/api/update-profile", async (req, res) => {
 app.get("/api/accounts", async (req, res) => {
   try {
     if (isD1Enabled()) {
-      const rows = await queryD1("SELECT username, name, role, deptId, avatar FROM accounts");
+      const rows = await queryD1("SELECT username, name, role, deptId, avatar, canBackup FROM accounts");
       res.json(rows);
     } else {
       res.json(appAccounts.map(({ password: _, ...rest }) => rest));
@@ -330,15 +342,15 @@ app.get("/api/accounts", async (req, res) => {
 
 // --- Add account ---
 app.post("/api/add-account", async (req, res) => {
-  const { username, password, name, role, deptId, avatar } = req.body;
+  const { username, password, name, role, deptId, avatar, canBackup } = req.body;
   if (!username || !password) return res.status(400).json({ error: "กรุณากรอก username และ password" });
   try {
     if (isD1Enabled()) {
-      await queryD1("INSERT INTO accounts (username, password, name, role, deptId, avatar) VALUES (?, ?, ?, ?, ?, ?)",
-        [username, password, name || username, role || "Section Manager", deptId || "all", avatar || ""]);
+      await queryD1("INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [username, password, name || username, role || "Section Manager", deptId || "all", avatar || "", canBackup ? 1 : 0]);
     } else {
       if (appAccounts.find(a => a.username === username)) return res.status(409).json({ error: "Username นี้มีอยู่แล้ว" });
-      appAccounts.push({ username, password, name: name || username, role: role || "Section Manager", deptId: deptId || "all", avatar: avatar || "" });
+      appAccounts.push({ username, password, name: name || username, role: role || "Section Manager", deptId: deptId || "all", avatar: avatar || "", canBackup: canBackup ? 1 : 0 });
       saveLocalDb();
     }
     res.json({ success: true });
@@ -362,16 +374,16 @@ app.post("/api/update-account-permission", async (req, res) => {
 
 // --- Edit account (username + name + deptId + role) ---
 app.post("/api/edit-account", async (req, res) => {
-  const { originalUsername, username, name, role, deptId, avatar } = req.body;
+  const { originalUsername, username, name, role, deptId, avatar, canBackup } = req.body;
   if (!originalUsername) return res.status(400).json({ error: "ต้องระบุ originalUsername" });
   try {
     if (isD1Enabled()) {
       if (originalUsername !== username) {
-        await queryD1("UPDATE accounts SET username = ?, name = ?, role = ?, deptId = ?, avatar = ? WHERE username = ?",
-          [username, name, role, deptId, avatar, originalUsername]);
+        await queryD1("UPDATE accounts SET username = ?, name = ?, role = ?, deptId = ?, avatar = ?, canBackup = ? WHERE username = ?",
+          [username, name, role, deptId, avatar, canBackup ? 1 : 0, originalUsername]);
       } else {
-        await queryD1("UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ? WHERE username = ?",
-          [name, role, deptId, avatar, originalUsername]);
+        await queryD1("UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ?, canBackup = ? WHERE username = ?",
+          [name, role, deptId, avatar, canBackup ? 1 : 0, originalUsername]);
       }
     } else {
       const idx = appAccounts.findIndex(a => a.username === originalUsername);
@@ -381,6 +393,7 @@ app.post("/api/edit-account", async (req, res) => {
         appAccounts[idx].role = role;
         appAccounts[idx].deptId = deptId;
         appAccounts[idx].avatar = avatar;
+        appAccounts[idx].canBackup = canBackup ? 1 : 0;
       }
       saveLocalDb();
     }
@@ -713,6 +726,97 @@ app.post("/api/delete-employee", async (req, res) => {
       saveLocalDb();
     }
     res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// --- Export employees ---
+app.post("/api/export-employees", async (req, res) => {
+  const { username } = req.body;
+  try {
+    let isAllowed = false;
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT role, canBackup FROM accounts WHERE username = ? LIMIT 1", [username]);
+      if (rows.length > 0) {
+        const user = rows[0];
+        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
+      }
+    } else {
+      const user = appAccounts.find(a => a.username === username);
+      if (user) {
+        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
+      }
+    }
+
+    if (!isAllowed) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการส่งออกข้อมูลพนักงาน" });
+
+    let employees: any[] = [];
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT * FROM employees");
+      employees = rows.map((e: any) => ({
+        ...e,
+        shifts: JSON.parse(e.shifts || "[]")
+      }));
+    } else {
+      employees = appState.employees;
+    }
+    res.json({ success: true, employees });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// --- Import employees ---
+app.post("/api/import-employees", async (req, res) => {
+  const { username, employees } = req.body;
+  if (!Array.isArray(employees)) return res.status(400).json({ error: "รูปแบบข้อมูลพนักงานไม่ถูกต้อง" });
+  try {
+    let isAllowed = false;
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT role, canBackup FROM accounts WHERE username = ? LIMIT 1", [username]);
+      if (rows.length > 0) {
+        const user = rows[0];
+        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
+      }
+    } else {
+      const user = appAccounts.find(a => a.username === username);
+      if (user) {
+        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
+      }
+    }
+
+    if (!isAllowed) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการนำเข้าข้อมูลพนักงาน" });
+
+    if (isD1Enabled()) {
+      // Clear existing employees and daily records first to ensure a clean import/restore
+      await queryD1("DELETE FROM employees");
+      await queryD1("DELETE FROM ot_daily_records");
+
+      for (const emp of employees) {
+        const shiftsStr = typeof emp.shifts === "string" ? emp.shifts : JSON.stringify(emp.shifts || []);
+        await queryD1(
+          `INSERT INTO employees (id, name, deptId, role, targetOt, actualOt, otPct, status, groupName, shifts)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            emp.id,
+            emp.name,
+            emp.deptId,
+            emp.role,
+            emp.targetOt ?? 48,
+            emp.actualOt ?? 0,
+            emp.otPct ?? 0,
+            emp.status ?? "On Track",
+            emp.groupName ?? "",
+            shiftsStr
+          ]
+        );
+      }
+    } else {
+      appState.employees = employees.map(emp => ({
+        ...emp,
+        shifts: Array.isArray(emp.shifts) ? emp.shifts : JSON.parse(emp.shifts || "[]")
+      }));
+      saveLocalDb();
+    }
+
+    res.json({ success: true, message: "นำเข้าฐานข้อมูลพนักงานเสร็จสิ้น" });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 

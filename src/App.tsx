@@ -11,6 +11,7 @@ import {
   Sparkles, 
   Send, 
   Download, 
+  Upload,
   Filter, 
   Plus, 
   Info, 
@@ -364,6 +365,7 @@ export default function App() {
   const [editAccountRole, setEditAccountRole] = useState<string>("");
   const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
   const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
+  const [editAccountCanBackup, setEditAccountCanBackup] = useState<boolean>(false);
 
   const fetchAccounts = async () => {
     try {
@@ -451,7 +453,8 @@ export default function App() {
           name: editAccountName,
           role: editAccountRole,
           deptId: editAccountDeptId,
-          avatar: editAccountAvatar
+          avatar: editAccountAvatar,
+          canBackup: editAccountCanBackup
         })
       });
       if (res.ok) {
@@ -466,7 +469,8 @@ export default function App() {
             name: editAccountName,
             role: editAccountRole,
             deptId: editAccountDeptId,
-            avatar: editAccountAvatar
+            avatar: editAccountAvatar,
+            canBackup: editAccountCanBackup ? 1 : 0
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUser(updatedUser);
@@ -724,6 +728,70 @@ export default function App() {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
+  };
+
+  const handleExportEmployees = async () => {
+    try {
+      const res = await fetch("/api/export-employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: currentUser?.username })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data.employees, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `employees_backup_${new Date().toISOString().substring(0, 10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "เกิดข้อผิดพลาดในการส่งออกข้อมูล");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
+  const handleImportEmployees = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const employees = JSON.parse(event.target?.result as string);
+        if (!Array.isArray(employees)) {
+          alert("ข้อมูลไฟล์สำรองไม่ถูกต้อง (ต้องเป็นรายการอาร์เรย์พนักงาน)");
+          return;
+        }
+        if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${employees.length} คน? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
+          return;
+        }
+        const res = await fetch("/api/import-employees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: currentUser?.username,
+            employees
+          })
+        });
+        if (res.ok) {
+          alert("นำเข้าฐานข้อมูลพนักงานสำเร็จเรียบร้อยแล้ว!");
+          await fetchPortalState();
+        } else {
+          const errData = await res.json();
+          alert(errData.error || "เกิดข้อผิดพลาดในการนำเข้าข้อมูล");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("รูปแบบไฟล์ JSON ไม่ถูกต้อง");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   // Handle editing existing employee
@@ -1901,13 +1969,44 @@ export default function App() {
                   <h3 className="text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
                   <p className="text-xs text-slate-500 mt-1">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
                 </div>
-                <button 
-                  onClick={() => setShowAddEmployeeModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>เพิ่มพนักงานใหม่</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
+                    <>
+                      {/* Export Button */}
+                      <button 
+                        onClick={handleExportEmployees}
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="สำรองข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ JSON"
+                      >
+                        <Download className="w-3.5 h-3.5 text-blue-600" />
+                        <span>ส่งออกข้อมูล (Export)</span>
+                      </button>
+
+                      {/* Import Button */}
+                      <label 
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="นำเข้าไฟล์สำรองเพื่อกู้คืนฐานข้อมูลพนักงาน"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>นำเข้าข้อมูล (Import)</span>
+                        <input 
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportEmployees}
+                          className="hidden"
+                        />
+                      </label>
+                    </>
+                  )}
+                  
+                  <button 
+                    onClick={() => setShowAddEmployeeModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>เพิ่มพนักงานใหม่</span>
+                  </button>
+                </div>
               </div>
 
               {/* Employee roster list */}
@@ -2661,6 +2760,7 @@ export default function App() {
                                       setEditAccountRole(acc.role);
                                       setEditAccountDeptId(acc.deptId);
                                       setEditAccountAvatar(acc.avatar || "");
+                                      setEditAccountCanBackup(acc.canBackup === 1);
                                       setShowEditAccountModal(true);
                                     }}
                                     className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
@@ -3224,6 +3324,19 @@ export default function App() {
                     <option value="ecc">ECC</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 py-1">
+                <input 
+                  type="checkbox"
+                  id="editAccountCanBackup"
+                  checked={editAccountCanBackup}
+                  onChange={(e) => setEditAccountCanBackup(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4"
+                />
+                <label htmlFor="editAccountCanBackup" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                  อนุญาตสิทธิ์การสำรอง/นำเข้าข้อมูลพนักงาน (Backup/Import/Export)
+                </label>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex gap-2">
