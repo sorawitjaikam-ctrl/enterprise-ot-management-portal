@@ -1108,6 +1108,72 @@ export default function App() {
     return { th, n: dayNum, weekend };
   });
 
+  // ==========================================
+  // Radar KPI coordinates calculations
+  // ==========================================
+  const getRadarPoints = (v1: number, v2: number, v3: number, v4: number, v5: number) => {
+    const p1 = `50,${50 - 40 * v1}`;
+    const p2 = `${50 + 38 * v2},${50 - 12 * v2}`;
+    const p3 = `${50 + 24 * v3},${50 + 32 * v3}`;
+    const p4 = `${50 - 24 * v4},${50 + 32 * v4}`;
+    const p5 = `${50 - 38 * v5},${50 - 12 * v5}`;
+    return `${p1} ${p2} ${p3} ${p4} ${p5}`;
+  };
+
+  const empLen = state.employees.length;
+  const scheduledCount = empLen > 0 ? state.employees.filter(e => e.shifts && e.shifts.some(s => s !== "O")).length : 0;
+  const coveragePct = empLen > 0 ? (scheduledCount / empLen) : 0.6;
+  
+  const warningCount = empLen > 0 ? state.employees.filter(e => e.status === "Warning").length : 0;
+  const productivityPct = empLen > 0 ? (1 - warningCount / empLen) : 0.8;
+  
+  const avgBudgetUtilization = state.departments.length > 0 ? (state.departments.reduce((s, d) => s + d.budgetUtilization, 0) / state.departments.length) : 0;
+  const costEfficiencyPct = state.departments.length > 0 ? Math.max(0.2, 1 - (avgBudgetUtilization / 150)) : 0.7;
+  
+  const fatiguePct = empLen > 0 ? (state.employees.filter(e => e.actualOt > 36).length / empLen) : 0;
+  const safetyPct = empLen > 0 ? (1 - fatiguePct) : 0.9;
+  
+  const attendanceCount = empLen > 0 ? state.employees.filter(e => e.shifts && e.shifts.some(s => s === "D" || s.startsWith("M") || s.startsWith("A") || s.startsWith("N"))).length : 0;
+  const attendancePct = empLen > 0 ? (attendanceCount / empLen) : 0.85;
+
+  const companyPoints = getRadarPoints(coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct);
+  const safetyBaselinePoints = getRadarPoints(0.5, 0.6, 0.55, 0.5, 0.6);
+
+  // ==========================================
+  // Heatmap Aggregation calculations
+  // ==========================================
+  const heatmapGrid = Array.from({ length: 3 }, () => Array(7).fill(0));
+
+  state.employees.forEach(emp => {
+    if (activeDeptId !== "all" && emp.deptId !== activeDeptId) return;
+    
+    const shifts = emp.shifts || [];
+    shifts.forEach((shift, dayIdx) => {
+      const dateObj = new Date(yr, mn - 1, dayIdx + 1);
+      const dayOfWeek = dateObj.getDay();
+      const hDayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Mon, ..., 6=Sun
+      
+      if (shift === "M12" || shift === "N12") {
+        heatmapGrid[0][hDayIdx] += 4;
+      } else if (shift === "M16" || shift === "N16" || shift === "OND") {
+        heatmapGrid[1][hDayIdx] += 8;
+      } else if (shift === "A12") {
+        heatmapGrid[2][hDayIdx] += 4;
+      }
+    });
+  });
+
+  const maxHeatValue = Math.max(...heatmapGrid.flat(), 1);
+
+  const getHeatColorClass = (val: number) => {
+    if (val === 0) return "bg-slate-100 text-slate-300";
+    const ratio = val / maxHeatValue;
+    if (ratio < 0.25) return "bg-blue-50 text-blue-600 font-bold border border-blue-100/50";
+    if (ratio < 0.5) return "bg-blue-100 text-blue-800 font-bold border border-blue-200/50";
+    if (ratio < 0.75) return "bg-blue-500 text-white font-bold";
+    return "bg-blue-800 text-white font-bold";
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
@@ -1422,20 +1488,24 @@ export default function App() {
                     </div>
 
                     {state.otTrendData.months.map((month, idx) => {
-                      const curVal = state.otTrendData.currentYear[idx];
-                      const lastVal = state.otTrendData.lastYear[idx];
+                      const curVal = state.otTrendData.currentYear[idx] || 0;
+                      const lastVal = state.otTrendData.lastYear[idx] || 0;
+                      
+                      const maxTrendValue = Math.max(...state.otTrendData.currentYear, ...state.otTrendData.lastYear, 10);
+                      const curHeight = Math.round((curVal / maxTrendValue) * 100);
+                      const lastHeight = Math.round((lastVal / maxTrendValue) * 100);
                       return (
                         <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
                           <div className="flex-1 w-full flex items-end justify-center gap-1">
                             {/* Last Year bar */}
                             <div 
-                              style={{ height: `${lastVal}%` }}
+                              style={{ height: `${lastHeight}%` }}
                               className="w-1/3 bg-slate-200 rounded-t-md hover:bg-slate-300 transition-colors shadow-sm"
                               title={`ปีที่แล้ว: ${lastVal} ชม.`}
                             ></div>
                             {/* Current Year bar */}
                             <div 
-                              style={{ height: `${curVal}%` }}
+                              style={{ height: `${curHeight}%` }}
                               className="w-1/3 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:opacity-90 transition-opacity shadow-sm"
                               title={`ปีปัจจุบัน: ${curVal} ชม.`}
                             ></div>
@@ -1677,15 +1747,30 @@ export default function App() {
                       ) : (
                         reportDepartments.slice(0, 5).map((dept) => {
                           const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
-                          const maxOt = 500;
+                          const budgetUsed = dept.budgetUsed || 0;
+                          
+                          const maxOt = Math.max(...reportDepartments.map(d => d.otHours), 50);
+                          const maxBudget = Math.max(...reportDepartments.map(d => d.budgetUsed), 10000);
+                          
                           const otHeight = Math.round((otHours / maxOt) * 100);
+                          const budgetHeight = Math.round((budgetUsed / maxBudget) * 100);
                           return (
                             <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
-                              <div 
-                                style={{ height: `${otHeight}%` }}
-                                className="w-10 bg-blue-600 absolute bottom-0 rounded-t transition-all hover:bg-blue-700 shadow-sm"
-                              ></div>
-                              <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500">{dept.name}</span>
+                              <div className="flex items-end justify-center gap-1.5 w-full h-full pb-6">
+                                {/* OT Hours Bar */}
+                                <div 
+                                  style={{ height: `${otHeight}%` }}
+                                  className="w-3 bg-blue-600 rounded-t transition-all hover:bg-blue-700 shadow-sm cursor-pointer"
+                                  title={`${dept.nameTh}: OT ${otHours} ชม.`}
+                                ></div>
+                                {/* Spending Bar */}
+                                <div 
+                                  style={{ height: `${budgetHeight}%` }}
+                                  className="w-3 bg-amber-500 rounded-t transition-all hover:bg-amber-600 shadow-sm cursor-pointer"
+                                  title={`${dept.nameTh}: งบประมาณ ฿${budgetUsed.toLocaleString()}`}
+                                ></div>
+                              </div>
+                              <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 text-center truncate max-w-[70px]">{dept.name}</span>
                             </div>
                           );
                         })
@@ -1694,8 +1779,8 @@ export default function App() {
 
                     {/* Left axis (Hours) */}
                     <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold text-slate-400 pb-6">
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : "500h"}</span>
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : "250h"}</span>
+                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50))}h`}</span>
+                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50) / 2)}h`}</span>
                       <span>0h</span>
                     </div>
 
@@ -1709,9 +1794,9 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <span className="text-red-500">฿200k</span>
-                          <span className="text-red-500">฿100k</span>
-                          <span className="text-red-500">฿0</span>
+                          <span className="text-amber-600">{`฿${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
+                          <span className="text-amber-600">{`฿${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
+                          <span className="text-slate-400">฿0</span>
                         </>
                       )}
                     </div>
@@ -1794,31 +1879,37 @@ export default function App() {
                     ))}
                     
                     <div className="text-[10px] font-bold text-slate-500 flex items-center">17:00-19:00</div>
-                    <div className="h-8 bg-blue-100 rounded-sm"></div>
-                    <div className="h-8 bg-blue-100 rounded-sm"></div>
-                    <div className="h-8 bg-blue-300 rounded-sm"></div>
-                    <div className="h-8 bg-blue-100 rounded-sm"></div>
-                    <div className="h-8 bg-blue-500 rounded-sm"></div>
-                    <div className="h-8 bg-blue-300 rounded-sm"></div>
-                    <div className="h-8 bg-slate-100 rounded-sm"></div>
+                    {heatmapGrid[0].map((val, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                        title={`ยอด OT รวม: ${val} ชม.`}
+                      >
+                        {val > 0 ? `${val}h` : ""}
+                      </div>
+                    ))}
 
                     <div className="text-[10px] font-bold text-slate-500 flex items-center">19:00-21:00</div>
-                    <div className="h-8 bg-blue-300 rounded-sm"></div>
-                    <div className="h-8 bg-blue-500 rounded-sm"></div>
-                    <div className="h-8 bg-blue-800 rounded-sm"></div>
-                    <div className="h-8 bg-blue-500 rounded-sm"></div>
-                    <div className="h-8 bg-blue-800 rounded-sm"></div>
-                    <div className="h-8 bg-blue-500 rounded-sm"></div>
-                    <div className="h-8 bg-slate-200 rounded-sm"></div>
+                    {heatmapGrid[1].map((val, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                        title={`ยอด OT รวม: ${val} ชม.`}
+                      >
+                        {val > 0 ? `${val}h` : ""}
+                      </div>
+                    ))}
 
                     <div className="text-[10px] font-bold text-slate-500 flex items-center">21:00-23:00</div>
-                    <div className="h-8 bg-slate-100 rounded-sm"></div>
-                    <div className="h-8 bg-blue-100 rounded-sm"></div>
-                    <div className="h-8 bg-blue-300 rounded-sm"></div>
-                    <div className="h-8 bg-blue-500 rounded-sm"></div>
-                    <div className="h-8 bg-blue-300 rounded-sm"></div>
-                    <div className="h-8 bg-blue-100 rounded-sm"></div>
-                    <div className="h-8 bg-slate-100 rounded-sm"></div>
+                    {heatmapGrid[2].map((val, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                        title={`ยอด OT รวม: ${val} ชม.`}
+                      >
+                        {val > 0 ? `${val}h` : ""}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1843,24 +1934,26 @@ export default function App() {
                       <line x1="50" y1="50" x2="12" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
 
                       {/* Actual polygon values overlay */}
-                      <polygon points="50,15 80,41 68,75 32,75 20,41" fill="rgba(59, 130, 246, 0.12)" stroke="#2563eb" strokeWidth="1.5" />
-                      <polygon points="50,25 70,45 60,80 40,80 30,45" fill="rgba(239, 68, 68, 0.08)" stroke="#ef4444" strokeWidth="1.2" />
+                      <polygon points={companyPoints} fill="rgba(59, 130, 246, 0.15)" stroke="#2563eb" strokeWidth="1.5" />
+                      <polygon points={safetyBaselinePoints} fill="rgba(249, 115, 22, 0.05)" stroke="#f97316" strokeWidth="1.2" strokeDasharray="2,2" />
                     </svg>
 
                     {/* Labels */}
-                    <span className="absolute top-2 text-[8px] font-bold text-slate-500">อัตราการผลิต</span>
-                    <span className="absolute bottom-2 left-6 text-[8px] font-bold text-slate-500">ความล้าสะสม</span>
-                    <span className="absolute bottom-2 right-6 text-[8px] font-bold text-slate-500">ความคุ้มค่า</span>
+                    <span className="absolute top-1 text-[8px] font-bold text-slate-500 text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
+                    <span className="absolute top-16 right-0 text-[8px] font-bold text-slate-500">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
+                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-500">ความคุ้มค่า ({Math.round(costEfficiencyPct * 100)}%)</span>
+                    <span className="absolute bottom-1 left-2 text-[8px] font-bold text-slate-500">ความปลอดภัย ({Math.round(safetyPct * 100)}%)</span>
+                    <span className="absolute top-16 left-0 text-[8px] font-bold text-slate-500">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
                   </div>
 
                   <div className="flex gap-4 justify-center text-[10px] font-bold text-slate-600 mt-2">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                      <span>ฝ่ายผลิต</span>
+                      <span>ดัชนีบริษัท (Company Index)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-red-500 rounded-sm"></span>
-                      <span>ตรวจสอบคุณภาพ</span>
+                      <span className="w-2.5 h-2.5 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
+                      <span>เกณฑ์แนะนำ (Baseline)</span>
                     </div>
                   </div>
                 </div>
