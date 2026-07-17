@@ -2353,7 +2353,7 @@ export default function App() {
                     </div>
 
                     {/* Employee scheduler rows */}
-                    <div className="divide-y divide-slate-100">
+                    <div className={`divide-y divide-slate-100 ${isEditingShifts ? "pb-60" : ""}`}>
                       {(isEditingShifts ? tempEmployees : state.employees)
                         .filter(emp => activeDeptId === "all" || emp.deptId === activeDeptId)
                         .map((emp) => {
@@ -2361,7 +2361,7 @@ export default function App() {
                           <div 
                             key={emp.id} 
                             className={`flex hover:bg-slate-50/50 transition-colors group ${
-                              activeEditingCell && activeEditingCell.employeeId === emp.id ? "relative z-30" : "relative z-0"
+                              activeEditingCell && activeEditingCell.employeeId === emp.id ? "relative z-30" : ""
                             }`}
                           >
                             {/* Employee ID & Name head */}
@@ -2392,7 +2392,7 @@ export default function App() {
                                     className={`flex-shrink-0 p-1 border-r border-slate-200 flex items-center justify-center cursor-pointer select-none transition-all relative ${
                                       isEditingShifts ? "hover:scale-95 hover:shadow-inner bg-slate-50/50" : ""
                                     } ${
-                                      isActiveCell ? "z-50" : "z-0"
+                                      isActiveCell ? "z-[100]" : ""
                                     }`}
                                   >
                                     <div className={`w-full h-full border rounded-lg flex items-center justify-center font-extrabold ${
@@ -2410,7 +2410,7 @@ export default function App() {
                                     {/* Interactive Dropdown Popover Picker */}
                                     {isEditingShifts && activeEditingCell && activeEditingCell.employeeId === emp.id && activeEditingCell.dayIndex === dayIdx && (
                                       <div 
-                                        className="absolute top-12 left-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2.5 min-w-[280px] text-left"
+                                        className="absolute top-12 left-0 z-[200] bg-white border border-slate-200 rounded-2xl shadow-2xl p-2.5 min-w-[280px] text-left"
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">เลือกกะการทำงาน:</div>
@@ -2585,14 +2585,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Instructions if editing */}
-              {isEditingShifts && (
-                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3 text-xs text-blue-700 shadow-sm animate-bounce">
-                  <Info className="w-4 h-4 flex-shrink-0" />
-                  <p><strong>💡 วิธีการแก้ไขกะด่วน:</strong> คุณสามารถคลิกที่รหัสกะของพนักงานเพื่อสลับเวร (พักผ่อน O &rarr; เช้า M &rarr; บ่าย A &rarr; ดึก N) และระบบจะคำนวณสถิติด้านล่างทันที!</p>
-                </div>
-              )}
-            </div>
+             </div>
           )}
 
           {/* ======================================= */}
