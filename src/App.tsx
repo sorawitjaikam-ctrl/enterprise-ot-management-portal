@@ -269,6 +269,31 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
   );
 }
 
+function EmployeeAvatar({ empId, empName, className = "w-9 h-9" }: { empId: string; empName: string; className?: string }) {
+  const [error, setError] = useState(false);
+  
+  // Reset error state if empId changes
+  useEffect(() => {
+    setError(false);
+  }, [empId]);
+
+  const initials = empName ? empName.substring(0, 2) : "??";
+  const imgUrl = `https://intranet.advanceagro.net/employeecard/empimages/${empId}.jpg`;
+
+  return error ? (
+    <div className={`${className} rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs flex-shrink-0`}>
+      {initials}
+    </div>
+  ) : (
+    <img 
+      src={imgUrl} 
+      alt={empName}
+      onError={() => setError(true)}
+      className={`${className} rounded-full object-cover border border-slate-200 flex-shrink-0`}
+    />
+  );
+}
+
 export default function App() {
   // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
@@ -1486,10 +1511,8 @@ export default function App() {
                         }`}
                       >
                         <div className="flex items-center gap-3 mb-4">
-                          <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm border relative shadow-sm ${
-                            isOver ? "bg-red-100 text-red-700 border-red-200" : "bg-blue-50 text-blue-700 border-blue-100"
-                          }`}>
-                            {emp.name.substring(0, 2)}
+                          <div className="relative">
+                            <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-11 h-11" />
                             <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
                               isOver ? "bg-red-500" : "bg-green-500"
                             }`}></span>
@@ -2037,9 +2060,7 @@ export default function App() {
                           <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold flex items-center justify-center">
-                                  {emp.name.substring(0, 2)}
-                                </div>
+                                <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-9 h-9" />
                                 <div>
                                   <p className="font-bold text-slate-800">{emp.name}</p>
                                   <p className="text-[10px] text-slate-400 font-mono">{emp.id}</p>
@@ -2344,13 +2365,12 @@ export default function App() {
                             }`}
                           >
                             {/* Employee ID & Name head */}
-                            <div className={`w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-slate-50 flex sticky left-0 z-10 shadow-sm ${
-                              daysLimit === 30 
-                                ? "flex-row items-center justify-between px-3 py-1" 
-                                : "flex-col justify-center px-4 py-2"
-                            }`}>
-                              <span className="text-xs font-bold text-slate-800 truncate">{emp.name}</span>
-                              <span className={`font-mono font-medium ${daysLimit === 30 ? "text-[9px] text-slate-400" : "text-[10px] text-slate-400"}`}>{emp.id}</span>
+                            <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-slate-50 flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
+                              <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate">{emp.name}</p>
+                                <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
+                              </div>
                             </div>
 
                             {/* Shift Cells */}
