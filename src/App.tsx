@@ -157,6 +157,26 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
 
   React.useEffect(() => { fetchRecords(); }, [filterYear, filterMonth, filterDept]);
 
+  const handleExportOtRecordsCsv = () => {
+    if (records.length === 0) { alert("ไม่มีข้อมูล OT สำหรับส่งออก"); return; }
+    const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
+    let csv = "\ufeff"; // BOM for Excel Thai
+    csv += "วันที่,รหัสพนักงาน,ชื่อพนักงาน,แผนก,รหัสกะ,ชั่วโมง OT\n";
+    records.forEach(r => {
+      csv += [
+        esc(r.date), esc(r.employeeId), esc(r.employeeName),
+        esc(DEPT_LABELS[r.deptId] || r.deptId), esc(r.shiftCode), r.otHours
+      ].join(",") + "\n";
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `OT_Records_${filterYear}_${String(filterMonth).padStart(2,"0")}_${filterDept === "all" ? "ทุกแผนก" : (DEPT_LABELS[filterDept] || filterDept)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const totalOt = records.reduce((s, r) => s + r.otHours, 0);
 
   const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
@@ -207,8 +227,18 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
           </select>
         )}
 
-        <div className="ml-auto bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs font-bold text-blue-700">
-          OT รวม: <span className="text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
+        <div className="ml-auto flex items-center gap-2">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs font-bold text-blue-700">
+            OT รวม: <span className="text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
+          </div>
+          <button
+            onClick={handleExportOtRecordsCsv}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
+            title="ส่งออกรายการ OT เป็นไฟล์ CSV"
+          >
+            <span>⬇</span>
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
@@ -589,6 +619,8 @@ export default function App() {
 
   // Sort and display filters for report
   const [reportSortBy, setReportSortBy] = useState<string>("OT Hours (High to Low)");
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("ทุกตำแหน่ง");
+
 
   // Fetch initial portal state
   const fetchPortalState = async () => {
@@ -682,18 +714,22 @@ export default function App() {
       emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.role.toLowerCase().includes(searchQuery.toLowerCase());
     
-    if (selectedDeptFilter === "ทุกแผนก") return matchesSearch;
+    let matchesDept = true;
+    if (selectedDeptFilter !== "ทุกแผนก") {
+      const deptMap: { [key: string]: string } = {
+        "INTER 2": "inter2",
+        "INTER 3": "inter3",
+        "INTER 5": "inter5",
+        "INTER 7": "inter7",
+        "Heavy Machine": "heavy",
+        "ECC": "ecc"
+      };
+      const filterDeptId = deptMap[selectedDeptFilter];
+      matchesDept = emp.deptId === filterDeptId;
+    }
     
-    const deptMap: { [key: string]: string } = {
-      "INTER 2": "inter2",
-      "INTER 3": "inter3",
-      "INTER 5": "inter5",
-      "INTER 7": "inter7",
-      "Heavy Machine": "heavy",
-      "ECC": "ecc"
-    };
-    const filterDeptId = deptMap[selectedDeptFilter];
-    return matchesSearch && emp.deptId === filterDeptId;
+    const matchesRole = matchesRoleFilter(emp.role);
+    return matchesSearch && matchesDept && matchesRole;
   });
 
   // Handle adding new employee
@@ -726,9 +762,13 @@ export default function App() {
         // Reload state
         await fetchPortalState();
         alert("เพิ่มพนักงานใหม่สำเร็จ!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "เกิดข้อผิดพลาดในการเพิ่มข้อมูลพนักงาน");
       }
     } catch (err) {
       console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -764,13 +804,49 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data.employees, null, 2));
+        const employees = data.employees || [];
+        
+        // Define CSV headers
+        const headers = ["id", "name", "deptId", "role", "targetOt", "actualOt", "otPct", "status", "groupName", "shifts"];
+        
+        // Helper to escape values for CSV
+        const escapeCsv = (val: any) => {
+          if (val === null || val === undefined) return '""';
+          let str = String(val);
+          // Replace double quotes with two double quotes
+          str = str.replace(/"/g, '""');
+          return `"${str}"`;
+        };
+
+        let csvContent = "\ufeff"; // Add BOM for Excel Thai language support
+        csvContent += headers.join(",") + "\n";
+
+        employees.forEach((emp: any) => {
+          const shiftsStr = Array.isArray(emp.shifts) ? emp.shifts.join(",") : "";
+          const row = [
+            escapeCsv(emp.id),
+            escapeCsv(emp.name),
+            escapeCsv(emp.deptId),
+            escapeCsv(emp.role),
+            emp.targetOt ?? 48,
+            emp.actualOt ?? 0,
+            emp.otPct ?? 0,
+            escapeCsv(emp.status || "On Track"),
+            escapeCsv(emp.groupName || ""),
+            escapeCsv(shiftsStr)
+          ];
+          csvContent += row.join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `employees_backup_${new Date().toISOString().substring(0, 10)}.json`);
+        downloadAnchor.setAttribute("href", url);
+        downloadAnchor.setAttribute("download", `employees_database_${new Date().toISOString().substring(0, 10)}.csv`);
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+        URL.revokeObjectURL(url);
       } else {
         const errData = await res.json();
         alert(errData.error || "เกิดข้อผิดพลาดในการส่งออกข้อมูล");
@@ -784,27 +860,119 @@ export default function App() {
   const handleImportEmployees = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const parseCsvLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = "";
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current);
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      result.push(current);
+      return result;
+    };
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const employees = JSON.parse(event.target?.result as string);
-        if (!Array.isArray(employees)) {
-          alert("ข้อมูลไฟล์สำรองไม่ถูกต้อง (ต้องเป็นรายการอาร์เรย์พนักงาน)");
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+        if (lines.length < 2) {
+          alert("ไฟล์ CSV ไม่มีข้อมูลพนักงาน (ต้องมีแถวหัวตารางและข้อมูลอย่างน้อย 1 แถว)");
           return;
         }
-        if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${employees.length} คน? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
+
+        const rawHeaders = parseCsvLine(lines[0]);
+        const headerMap: Record<string, number> = {};
+        rawHeaders.forEach((h, idx) => {
+          const cleaned = h.trim().toLowerCase();
+          headerMap[cleaned] = idx;
+        });
+
+        const getColIndex = (engKey: string, thaiKeys: string[]) => {
+          if (headerMap[engKey.toLowerCase()] !== undefined) {
+            return headerMap[engKey.toLowerCase()];
+          }
+          for (const tk of thaiKeys) {
+            if (headerMap[tk.toLowerCase()] !== undefined) {
+              return headerMap[tk.toLowerCase()];
+            }
+          }
+          return -1;
+        };
+
+        const idIdx        = getColIndex("id",        ["รหัสพนักงาน", "รหัส"]);
+        const nameIdx      = getColIndex("name",      ["ชื่อพนักงาน", "ชื่อ"]);
+        const deptIdIdx    = getColIndex("deptId",    ["รหัสแผนก", "แผนก"]);
+        const roleIdx      = getColIndex("role",      ["ตำแหน่ง", "บทบาท"]);
+        const targetOtIdx  = getColIndex("targetOt",  ["เป้าหมาย ot", "เป้าหมาย"]);
+        const groupNameIdx = getColIndex("groupName", ["กลุ่มการทำงาน", "กลุ่ม"]);
+        const shiftsIdx    = getColIndex("shifts",    ["รหัสกะรายวัน", "รหัสกะ"]);
+
+        if (idIdx === -1 || nameIdx === -1 || deptIdIdx === -1) {
+          alert("โครงสร้างหัวตาราง CSV ไม่ถูกต้อง อย่างน้อยต้องมีคอลัมน์: รหัสพนักงาน (id), ชื่อพนักงาน (name), รหัสแผนก (deptId)");
           return;
         }
+
+        const parsedEmployees: any[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCsvLine(lines[i]);
+          if (values.length < 3) continue;
+
+          const id = values[idIdx]?.trim();
+          const name = values[nameIdx]?.trim();
+          const deptId = values[deptIdIdx]?.trim();
+
+          if (!id || !name || !deptId) continue;
+
+          const role      = roleIdx      !== -1 ? (values[roleIdx]?.trim()      || "Operator") : "Operator";
+          const targetOt  = targetOtIdx  !== -1 ? (Number(values[targetOtIdx])  || 48)         : 48;
+          const groupName = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "")         : "";
+          
+          let shifts: string[] = [];
+          if (shiftsIdx !== -1) {
+            const rawShifts = values[shiftsIdx]?.trim() || "";
+            if (rawShifts) {
+              shifts = rawShifts.split(",").map(s => s.trim()).filter(s => s !== "");
+            }
+          }
+
+          parsedEmployees.push({ id, name, deptId, role, targetOt, groupName, shifts });
+        }
+
+        if (parsedEmployees.length === 0) {
+          alert("ไม่พบข้อมูลพนักงานที่ถูกต้องในไฟล์ CSV");
+          return;
+        }
+
+        if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
+          return;
+        }
+
         const res = await fetch("/api/import-employees", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             username: currentUser?.username,
-            employees
+            employees: parsedEmployees
           })
         });
+
         if (res.ok) {
-          alert("นำเข้าฐานข้อมูลพนักงานสำเร็จเรียบร้อยแล้ว!");
+          alert("นำเข้าฐานข้อมูลพนักงานจากไฟล์ CSV สำเร็จเรียบร้อยแล้ว!");
           await fetchPortalState();
         } else {
           const errData = await res.json();
@@ -812,7 +980,7 @@ export default function App() {
         }
       } catch (err) {
         console.error(err);
-        alert("รูปแบบไฟล์ JSON ไม่ถูกต้อง");
+        alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV");
       }
     };
     reader.readAsText(file);
@@ -931,10 +1099,49 @@ export default function App() {
         setIsEditingShifts(false);
         await fetchPortalState();
         alert("บันทึกตารางกะสำเร็จแล้ว!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "เกิดข้อผิดพลาดในการบันทึกตารางกะ");
       }
     } catch (err) {
       console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
+  };
+
+  // Export shift schedule as CSV
+  const handleExportShiftsCsv = () => {
+    const activeList = isEditingShifts ? tempEmployees : state.employees;
+    const deptFilter = activeDeptId !== "all" ? activeDeptId : undefined;
+    const filtered = deptFilter ? activeList.filter(e => e.deptId === deptFilter) : activeList;
+    if (filtered.length === 0) { alert("ไม่มีข้อมูลพนักงานสำหรับส่งออก"); return; }
+
+    const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
+    const currentMonth = state.shiftConfig.currentMonth || new Date().toISOString().substring(0, 7);
+
+    const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
+
+    // Build header row: id, name, dept, role, day1, day2, ... dayN
+    const maxDays = daysLimit;
+    const dayHeaders = Array.from({ length: maxDays }, (_, i) => `วันที่ ${i + 1}`).join(",");
+    let csv = "\ufeff"; // BOM
+    csv += `รหัสพนักงาน,ชื่อพนักงาน,แผนก,ตำแหน่ง,กลุ่ม,OT รวม (ชม.),${dayHeaders}\n`;
+
+    filtered.forEach(emp => {
+      const shifts = getEmployeeShiftsForView(emp.shifts, maxDays);
+      const totalOt = shifts.reduce((s, code) => s + (SHIFT_OT_HOURS[code] || 0), 0);
+      const deptLabel = DEPT_LABELS[emp.deptId] || emp.deptId;
+      const shiftCells = shifts.map(s => esc(s)).join(",");
+      csv += [esc(emp.id), esc(emp.name), esc(deptLabel), esc(emp.role || ""), esc(emp.groupName || ""), totalOt, shiftCells].join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ตารางกะ_${currentMonth}_${deptFilter ? (DEPT_LABELS[deptFilter] || deptFilter) : "ทุกแผนก"}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
   };
 
   // Trigger Gemini AI compliance and audit report
@@ -1053,6 +1260,15 @@ export default function App() {
     }
   });
 
+  const getRadarPoints = (v1: number, v2: number, v3: number, v4: number, v5: number) => {
+    const p1 = `50,${50 - 40 * v1}`;
+    const p2 = `${50 + 38 * v2},${50 - 12 * v2}`;
+    const p3 = `${50 + 24 * v3},${50 + 32 * v3}`;
+    const p4 = `${50 - 24 * v4},${50 + 32 * v4}`;
+    const p5 = `${50 - 38 * v5},${50 - 12 * v5}`;
+    return `${p1} ${p2} ${p3} ${p4} ${p5}`;
+  };
+
   const getWeeksInMonth = (year: number, month: number) => {
     const numDays = new Date(year, month, 0).getDate();
     const weeks: { weekNum: number; startDay: number; endDay: number }[] = [];
@@ -1109,32 +1325,71 @@ export default function App() {
   });
 
   // ==========================================
-  // Radar KPI coordinates calculations
+  // KPI Role filter helper
   // ==========================================
-  const getRadarPoints = (v1: number, v2: number, v3: number, v4: number, v5: number) => {
-    const p1 = `50,${50 - 40 * v1}`;
-    const p2 = `${50 + 38 * v2},${50 - 12 * v2}`;
-    const p3 = `${50 + 24 * v3},${50 + 32 * v3}`;
-    const p4 = `${50 - 24 * v4},${50 + 32 * v4}`;
-    const p5 = `${50 - 38 * v5},${50 - 12 * v5}`;
-    return `${p1} ${p2} ${p3} ${p4} ${p5}`;
+  const matchesRoleFilter = (empRole: string) => {
+    if (selectedRoleFilter === "ทุกตำแหน่ง") return true;
+    if (selectedRoleFilter === "กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)") {
+      const targetRoles = [
+        "ผู้ควบคุมงานขนถ่ายสินค้า",
+        "พนักงานขับเครน",
+        "ปากเรือ",
+        "ผู้ควบคุมงานจักรกลหนัก",
+        "ช่างขับจักรกลหนัก",
+        "O&M - Specialist",
+        "O&M - Generator",
+        "O&M - Mechanical",
+        "O&M - Electrical",
+        "ECC"
+      ];
+      return targetRoles.includes(empRole);
+    }
+    return empRole === selectedRoleFilter;
   };
 
-  const empLen = state.employees.length;
-  const scheduledCount = empLen > 0 ? state.employees.filter(e => e.shifts && e.shifts.some(s => s !== "O")).length : 0;
-  const coveragePct = empLen > 0 ? (scheduledCount / empLen) : 0.6;
-  
-  const warningCount = empLen > 0 ? state.employees.filter(e => e.status === "Warning").length : 0;
-  const productivityPct = empLen > 0 ? (1 - warningCount / empLen) : 0.8;
-  
-  const avgBudgetUtilization = state.departments.length > 0 ? (state.departments.reduce((s, d) => s + d.budgetUtilization, 0) / state.departments.length) : 0;
-  const costEfficiencyPct = state.departments.length > 0 ? Math.max(0.2, 1 - (avgBudgetUtilization / 150)) : 0.7;
-  
-  const fatiguePct = empLen > 0 ? (state.employees.filter(e => e.actualOt > 36).length / empLen) : 0;
-  const safetyPct = empLen > 0 ? (1 - fatiguePct) : 0.9;
-  
-  const attendanceCount = empLen > 0 ? state.employees.filter(e => e.shifts && e.shifts.some(s => s === "D" || s.startsWith("M") || s.startsWith("A") || s.startsWith("N"))).length : 0;
-  const attendancePct = empLen > 0 ? (attendanceCount / empLen) : 0.85;
+  // Filter employees dynamically for dashboard
+  const dashboardEmployees = state.employees.filter(emp => {
+    let matchesDept = true;
+    if (selectedDeptFilter !== "ทุกแผนก") {
+      const deptMap: { [key: string]: string } = {
+        "INTER 2": "inter2",
+        "INTER 3": "inter3",
+        "INTER 5": "inter5",
+        "INTER 7": "inter7",
+        "Heavy Machine": "heavy",
+        "ECC": "ecc"
+      };
+      const filterDeptId = deptMap[selectedDeptFilter];
+      matchesDept = emp.deptId === filterDeptId;
+    }
+    const matchesRole = matchesRoleFilter(emp.role);
+    return matchesDept && matchesRole;
+  });
+
+  // Compute KPI metrics for a given employee subset
+  const computeKpiForEmployees = (emps: typeof state.employees) => {
+    const n = emps.length;
+    if (n === 0) return { coveragePct: 0, productivityPct: 0, costEfficiencyPct: 0, safetyPct: 0, attendancePct: 0 };
+    const scheduledCount = emps.filter(e => e.shifts && e.shifts.some((s: string) => s !== "O" && s !== "")).length;
+    const coveragePct = scheduledCount / n;
+    const warningCount = emps.filter(e => (e.actualOt || 0) > (e.targetOt || 48)).length;
+    const productivityPct = Math.max(0, 1 - warningCount / n);
+    
+    // Cost efficiency based on budget utilization
+    const subsetBudgetUsed = emps.reduce((s, e) => s + (e.actualOt || 0) * 300, 0);
+    const targetBudget = emps.reduce((s, e) => s + (e.targetOt || 48) * 300, 0);
+    const costEfficiencyPct = targetBudget > 0 ? Math.max(0.1, 1 - Math.abs(targetBudget - subsetBudgetUsed) / targetBudget) : 0.7;
+    
+    const fatiguedCount = emps.filter(e => (e.actualOt || 0) > 36).length;
+    const safetyPct = Math.max(0, 1 - fatiguedCount / n);
+    const activeCount = emps.filter(e => e.shifts && e.shifts.some((s: string) => s === "D" || s.startsWith("M") || s.startsWith("A") || s.startsWith("N"))).length;
+    const attendancePct = activeCount / n;
+    return { coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct };
+  };
+
+  // Compute stats dynamically for Dashboard based on selected month/dept/role
+  const kpi = computeKpiForEmployees(dashboardEmployees);
+  const { coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct } = kpi;
 
   const companyPoints = getRadarPoints(coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct);
   const safetyBaselinePoints = getRadarPoints(0.5, 0.6, 0.55, 0.5, 0.6);
@@ -1262,6 +1517,36 @@ export default function App() {
     );
   }
 
+  const handleExportCsvReport = () => {
+    try {
+      let csvContent = "";
+      // Add UTF-8 BOM so Excel opens it with correct Thai characters encoding
+      csvContent += "\ufeff";
+      
+      // Header row
+      csvContent += "แผนก,จำนวนพนักงาน (คน),ชั่วโมง OT รวม (ชม.),งบประมาณที่ใช้จริง (บาท),สัดส่วนการใช้งบ (%),สถานะงบประมาณ\n";
+      
+      reportDepartments.forEach(dept => {
+        const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+        const budgetUsed = dept.budgetUsed || 0;
+        csvContent += `"${dept.nameTh || dept.name}","${dept.employeesCount}","${otHours}","${budgetUsed}","${dept.budgetUtilization}%","${dept.status}"\n`;
+      });
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `OT_Executive_Report_${selectedMonthFilter || "Summary"}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการสร้างไฟล์ Excel/CSV");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
       {/* Left-edge hover trigger strip */}
@@ -1353,13 +1638,30 @@ export default function App() {
                     <option>Heavy Machine</option>
                     <option>ECC</option>
                   </select>
+                  <div className="h-4 w-px bg-slate-200"></div>
+                  <select 
+                    value={selectedRoleFilter}
+                    onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold"
+                  >
+                    <option>ทุกตำแหน่ง</option>
+                    <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
+                    <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                    <option>พนักงานขับเครน</option>
+                    <option>ปากเรือ</option>
+                    <option>ผู้ควบคุมงานจักรกลหนัก</option>
+                    <option>ช่างขับจักรกลหนัก</option>
+                    <option>O&M - Specialist</option>
+                    <option>O&M - Generator</option>
+                    <option>O&M - Mechanical</option>
+                    <option>O&M - Electrical</option>
+                    <option>ECC</option>
+                  </select>
                 </div>
 
                 <div className="flex gap-3">
                   <button 
-                    onClick={() => {
-                      alert("ระบบได้สร้างไฟล์รายงานสรุปผู้บริหารเป็นรูปแบบ Excel/CSV เรียบร้อยและกำลังดาวน์โหลดในเบื้องหลัง...");
-                    }}
+                    onClick={handleExportCsvReport}
                     className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
                   >
                     <Download className="w-4 h-4 text-slate-500" />
@@ -1384,7 +1686,7 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ชั่วโมง OT รวมเดือนนี้</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {filteredDeptsForStats.reduce((acc, curr) => acc + curr.otHours, 0).toLocaleString()}
+                        {Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0), 0) * 10) / 10}
                       </h3>
                       <span className="text-xs font-bold text-slate-500">ชม.</span>
                     </div>
@@ -1404,7 +1706,7 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        ฿{(filteredDeptsForStats.reduce((acc, curr) => acc + curr.budgetUsed, 0) / 1000).toFixed(1)}K
+                        ฿{(Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0)) / 1000).toFixed(1)}K
                       </h3>
                       <span className="text-xs font-bold text-slate-500">THB</span>
                     </div>
@@ -1418,13 +1720,13 @@ export default function App() {
                     <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
                       <Users className="w-6 h-6" />
                     </div>
-                    <span className="text-slate-500 text-[10px] font-bold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">จากพนักงาน 850 คน</span>
+                    <span className="text-slate-500 text-[10px] font-bold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">จากพนักงานทั้งหมด {state.employees.length} คน</span>
                   </div>
                   <div className="relative z-10">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">จำนวนพนักงานที่ได้รับ OT</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {filteredDeptsForStats.reduce((acc, curr) => acc + curr.employeesCount, 0)}
+                        {dashboardEmployees.filter(e => (e.actualOt || 0) > 0).length}
                       </h3>
                       <span className="text-xs font-bold text-slate-500">คน</span>
                     </div>
@@ -1446,7 +1748,11 @@ export default function App() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">สัดส่วนการใช้งบสะสม</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {Math.round(filteredDeptsForStats.reduce((acc, curr) => acc + curr.budgetUtilization, 0) / (filteredDeptsForStats.length || 1))}%
+                        {(() => {
+                          const maxBudget = selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000;
+                          const spent = dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0);
+                          return maxBudget > 0 ? Math.min(100, Math.round((spent / maxBudget) * 100)) : 0;
+                        })()}%
                       </h3>
                       <span className="text-xs font-bold text-slate-500">เฉลี่ย</span>
                     </div>
@@ -1492,23 +1798,34 @@ export default function App() {
                       const lastVal = state.otTrendData.lastYear[idx] || 0;
                       
                       const maxTrendValue = Math.max(...state.otTrendData.currentYear, ...state.otTrendData.lastYear, 10);
-                      const curHeight = Math.round((curVal / maxTrendValue) * 100);
-                      const lastHeight = Math.round((lastVal / maxTrendValue) * 100);
+                      const curHeight = Math.round((curVal / maxTrendValue) * 80);
+                      const lastHeight = Math.round((lastVal / maxTrendValue) * 80);
                       return (
                         <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
-                          <div className="flex-1 w-full flex items-end justify-center gap-1">
-                            {/* Last Year bar */}
-                            <div 
-                              style={{ height: `${lastHeight}%` }}
-                              className="w-1/3 bg-slate-200 rounded-t-md hover:bg-slate-300 transition-colors shadow-sm"
-                              title={`ปีที่แล้ว: ${lastVal} ชม.`}
-                            ></div>
-                            {/* Current Year bar */}
-                            <div 
-                              style={{ height: `${curHeight}%` }}
-                              className="w-1/3 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:opacity-90 transition-opacity shadow-sm"
-                              title={`ปีปัจจุบัน: ${curVal} ชม.`}
-                            ></div>
+                          <div className="flex-1 w-full flex items-end justify-center gap-1.5 relative">
+                            {/* Last Year bar container */}
+                            <div className="w-1/3 flex flex-col justify-end items-center h-full">
+                              {lastVal > 0 && (
+                                <span className="text-[10px] font-bold text-slate-400 mb-1 animate-fade-in">{lastVal}</span>
+                              )}
+                              <div 
+                                style={{ height: `${lastHeight}%` }}
+                                className="w-full bg-slate-200 rounded-t-md hover:bg-slate-300 transition-all shadow-sm"
+                                title={`ปีที่แล้ว: ${lastVal} ชม.`}
+                              ></div>
+                            </div>
+                            
+                            {/* Current Year bar container */}
+                            <div className="w-1/3 flex flex-col justify-end items-center h-full">
+                              {curVal > 0 && (
+                                <span className="text-[10px] font-extrabold text-blue-600 mb-1 animate-fade-in">{curVal}</span>
+                              )}
+                              <div 
+                                style={{ height: `${curHeight}%` }}
+                                className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:from-blue-500 group-hover:to-blue-300 transition-all shadow-sm"
+                                title={`ปีปัจจุบัน: ${curVal} ชม.`}
+                              ></div>
+                            </div>
                           </div>
                           <span className="text-xs font-semibold text-slate-600">{month}</span>
                         </div>
@@ -1525,15 +1842,20 @@ export default function App() {
                   </div>
 
                   <div className="space-y-5 flex-1">
-                    {state.departments.slice(0, 4).map((dept) => {
-                      // Normalize percentage
-                      const maxHr = 600;
-                      const percentage = Math.min(100, Math.round((dept.otHours / maxHr) * 100));
+                    {state.departments.map((dept) => {
+                      const deptEmployees = dashboardEmployees.filter(e => e.deptId === dept.id);
+                      const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
+                      // Max hours for progress bar scaling
+                      const maxHr = Math.max(...state.departments.map(d => {
+                        const dEmps = dashboardEmployees.filter(e => e.deptId === d.id);
+                        return dEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
+                      }), 100);
+                      const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
                       return (
                         <div key={dept.id} className="group cursor-pointer">
                           <div className="flex justify-between items-end mb-1">
                             <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{dept.nameTh}</span>
-                            <span className="text-xs font-extrabold text-slate-900 font-mono">{dept.otHours} ชม.</span>
+                            <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours} ชม.</span>
                           </div>
                           <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
                             <div 
@@ -1913,7 +2235,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Simulated Radar Chart KPIs */}
+                {/* Radar Chart KPIs */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
@@ -1921,23 +2243,34 @@ export default function App() {
                   </div>
 
                   <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
-                    {/* Simulated beautiful SVG Radar spiderweb */}
+                    {dashboardEmployees.length === 0 && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-2xl z-20">
+                        <span className="text-3xl mb-2">📊</span>
+                        <p className="text-xs font-bold text-slate-500">ยังไม่มีข้อมูลพนักงาน</p>
+                        <p className="text-[10px] text-slate-400 mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
+                      </div>
+                    )}
                     <svg className="w-44 h-44 overflow-visible" viewBox="0 0 100 100">
+                      {/* Grid */}
                       <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
                       <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
                       <polygon points="50,30 69,44 62,66 38,66 31,44" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      
+                      {/* Axis lines */}
                       <line x1="50" y1="50" x2="50" y2="10" stroke="#e2e8f0" strokeWidth="0.5" />
                       <line x1="50" y1="50" x2="88" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
                       <line x1="50" y1="50" x2="74" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
                       <line x1="50" y1="50" x2="26" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
                       <line x1="50" y1="50" x2="12" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
-
-                      {/* Actual polygon values overlay */}
+                      {/* Baseline */}
+                      <polygon points={safetyBaselinePoints} fill="rgba(249,115,22,0.05)" stroke="#f97316" strokeWidth="1.2" strokeDasharray="2,2" />
+                      {/* Company polygon */}
                       <polygon points={companyPoints} fill="rgba(59, 130, 246, 0.15)" stroke="#2563eb" strokeWidth="1.5" />
-                      <polygon points={safetyBaselinePoints} fill="rgba(249, 115, 22, 0.05)" stroke="#f97316" strokeWidth="1.2" strokeDasharray="2,2" />
+                      {/* Dots at vertices */}
+                      {companyPoints.split(" ").map((pt, i) => {
+                        const [x, y] = pt.split(",").map(Number);
+                        return <circle key={i} cx={x} cy={y} r="2" fill="#2563eb" />;
+                      })}
                     </svg>
-
                     {/* Labels */}
                     <span className="absolute top-1 text-[8px] font-bold text-slate-500 text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
                     <span className="absolute top-16 right-0 text-[8px] font-bold text-slate-500">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
@@ -1949,7 +2282,7 @@ export default function App() {
                   <div className="flex gap-4 justify-center text-[10px] font-bold text-slate-600 mt-2">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                      <span>ดัชนีบริษัท (Company Index)</span>
+                      <span>ดัชนีสะสม (Current Index)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
@@ -2092,22 +2425,22 @@ export default function App() {
                       <button 
                         onClick={handleExportEmployees}
                         className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        title="สำรองข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ JSON"
+                        title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
                       >
                         <Download className="w-3.5 h-3.5 text-blue-600" />
-                        <span>ส่งออกข้อมูล (Export)</span>
+                        <span>ส่งออกข้อมูล (Export CSV)</span>
                       </button>
 
                       {/* Import Button */}
                       <label 
                         className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        title="นำเข้าไฟล์สำรองเพื่อกู้คืนฐานข้อมูลพนักงาน"
+                        title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
                       >
                         <Upload className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>นำเข้าข้อมูล (Import)</span>
+                        <span>นำเข้าข้อมูล (Import CSV)</span>
                         <input 
                           type="file"
-                          accept=".json"
+                          accept=".csv"
                           onChange={handleImportEmployees}
                           className="hidden"
                         />
@@ -2344,15 +2677,25 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <button 
-                      onClick={() => {
-                        setIsEditingShifts(true);
-                        setTempEmployees(JSON.parse(JSON.stringify(state.employees)));
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/10"
-                    >
-                      <span>แก้ไขกะด่วน</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportShiftsCsv}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="ส่งออกตารางกะเป็นไฟล์ CSV"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Export CSV</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setIsEditingShifts(true);
+                          setTempEmployees(JSON.parse(JSON.stringify(state.employees)));
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/10"
+                      >
+                        <span>แก้ไขกะด่วน</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

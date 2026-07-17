@@ -58,13 +58,15 @@ const REAL_DEPARTMENTS = [
   { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "-", managerRole: "Section Manager", managerImg: "", icon: "electrical_services" },
 ];
 
-// Roles that can see ALL departments
 const FULL_ACCESS_ROLES = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"];
-
 const hasFullAccess = (role: string) => FULL_ACCESS_ROLES.includes(role);
 
+// Default OT budget config
+const DEFAULT_OT_RATE    = 300;    // บาท/ชั่วโมง
+const DEFAULT_BUDGET_MAX = 150000; // บาทต่อแผนกต่อเดือน
+
 // ============================================================
-// Initial in-memory state
+// Initial in-memory state (offline mode)
 // ============================================================
 let appState = {
   departments: REAL_DEPARTMENTS.map(d => ({ ...d, employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUtilization: 0, status: "On Track" })),
@@ -77,7 +79,6 @@ let appState = {
   otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] }
 };
 
-// Fallback in-memory accounts
 let appAccounts: any[] = [
   { username: "admin",      password: "admin123",       name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all", avatar: "", canBackup: 1 },
   { username: "hr",         password: "hr1234",         name: "HR Manager",             role: "HR",                 deptId: "all", avatar: "", canBackup: 1 },
@@ -152,6 +153,40 @@ const queryD1 = async (sql: string, params: any[] = []): Promise<any> => {
 };
 
 // ============================================================
+// Audit log helper
+// ============================================================
+const writeAuditLog = async (username: string, action: string, targetType: string, targetId: string, detail: any) => {
+  try {
+    if (isD1Enabled()) {
+      const id = `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      await queryD1(
+        `INSERT INTO audit_logs (id, timestamp, username, action, targetType, targetId, detail) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, new Date().toISOString(), username || "system", action, targetType, targetId, JSON.stringify(detail)]
+      );
+    }
+  } catch (e) { /* silent — don't break main flow */ }
+};
+
+// ============================================================
+// Helper: compute employee OT from ot_daily_records (D1)
+// ============================================================
+const computeEmployeeOtStats = async (employeeId: string, targetOt: number) => {
+  const rows = await queryD1("SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE employeeId = ?", [employeeId]);
+  const actualOt = Math.round((rows[0]?.total || 0) * 10) / 10;
+  const otPct    = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
+  const status   = actualOt > targetOt ? "Warning" : "On Track";
+  return { actualOt, otPct, status };
+};
+
+// Helper: enrich employees array with computed OT stats (D1)
+const enrichEmployeesWithOt = async (employees: any[]): Promise<any[]> => {
+  return Promise.all(employees.map(async (e: any) => {
+    const { actualOt, otPct, status } = await computeEmployeeOtStats(e.id, e.targetOt || 48);
+    return { ...e, shifts: JSON.parse(e.shifts || "[]"), actualOt, otPct, status };
+  }));
+};
+
+// ============================================================
 // D1 Database Initialization
 // ============================================================
 const initD1Database = async () => {
@@ -162,22 +197,25 @@ const initD1Database = async () => {
 
   console.log("Initializing Cloudflare D1 database tables...");
   try {
-    // Departments
+    // Departments (no computed fields)
     await queryD1(`CREATE TABLE IF NOT EXISTS departments (
       id TEXT PRIMARY KEY, name TEXT, nameTh TEXT,
-      manager TEXT, managerRole TEXT, managerImg TEXT,
-      employeesCount INTEGER DEFAULT 0, otHours REAL DEFAULT 0,
-      budgetUsed REAL DEFAULT 0, budgetUtilization REAL DEFAULT 0,
-      status TEXT DEFAULT 'On Track', icon TEXT
+      manager TEXT, managerRole TEXT, managerImg TEXT, icon TEXT
     )`);
 
-    // Employees
+    // Employees (clean schema — no computed actualOt/otPct/status)
     await queryD1(`CREATE TABLE IF NOT EXISTS employees (
       id TEXT PRIMARY KEY, name TEXT, deptId TEXT, role TEXT,
-      targetOt REAL DEFAULT 48, actualOt REAL DEFAULT 0,
-      otPct REAL DEFAULT 0, status TEXT DEFAULT 'On Track',
-      groupName TEXT, shifts TEXT DEFAULT '[]'
+      targetOt REAL DEFAULT 48, groupName TEXT, shifts TEXT DEFAULT '[]'
     )`);
+
+    // Migration: drop legacy computed columns if they still exist
+    for (const col of ["actualOt", "otPct", "status"]) {
+      try { await queryD1(`ALTER TABLE employees DROP COLUMN ${col}`); } catch (_) { /* already gone */ }
+    }
+    for (const col of ["employeesCount", "otHours", "budgetUsed", "budgetUtilization", "status"]) {
+      try { await queryD1(`ALTER TABLE departments DROP COLUMN ${col}`); } catch (_) { /* already gone */ }
+    }
 
     // Check if ot_daily_records is outdated (missing month column)
     try {
@@ -187,7 +225,7 @@ const initD1Database = async () => {
       await queryD1("DROP TABLE IF EXISTS ot_daily_records");
     }
 
-    // OT Daily Records (new — computed from shifts)
+    // OT Daily Records
     await queryD1(`CREATE TABLE IF NOT EXISTS ot_daily_records (
       id TEXT PRIMARY KEY,
       year INTEGER NOT NULL,
@@ -201,6 +239,39 @@ const initD1Database = async () => {
       note TEXT DEFAULT ''
     )`);
 
+    // Dept Budgets (NEW) — งบประมาณ OT รายแผนกรายเดือน (month=0 หมายถึงตั้งค่าทั้งปี)
+    await queryD1(`CREATE TABLE IF NOT EXISTS dept_budgets (
+      id TEXT PRIMARY KEY,
+      deptId TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL DEFAULT 0,
+      budgetMax REAL DEFAULT 150000,
+      otRatePerHour REAL DEFAULT 300,
+      UNIQUE(deptId, year, month)
+    )`);
+
+    // Audit Logs (NEW) — ประวัติการแก้ไข
+    await queryD1(`CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      timestamp TEXT NOT NULL,
+      username TEXT NOT NULL,
+      action TEXT NOT NULL,
+      targetType TEXT,
+      targetId TEXT,
+      detail TEXT
+    )`);
+
+    // Leave Records (NEW) — บันทึกวันลา
+    await queryD1(`CREATE TABLE IF NOT EXISTS leave_records (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT,
+      deptId TEXT,
+      date TEXT NOT NULL,
+      leaveType TEXT DEFAULT 'vacation',
+      note TEXT
+    )`);
+
     // Shift config
     await queryD1(`CREATE TABLE IF NOT EXISTS shift_config (
       pattern TEXT, currentMonth TEXT, currentDept TEXT
@@ -212,39 +283,33 @@ const initD1Database = async () => {
       role TEXT, deptId TEXT, avatar TEXT, canBackup INTEGER DEFAULT 0
     )`);
 
-    // Check if canBackup column exists in accounts table
-    try {
-      await queryD1("SELECT canBackup FROM accounts LIMIT 1");
-    } catch (e) {
-      console.log("Adding canBackup column to accounts table...");
-      try {
-        await queryD1("ALTER TABLE accounts ADD COLUMN canBackup INTEGER DEFAULT 0");
-      } catch (err) {
-        console.error("Failed to alter accounts table:", err);
-      }
+    // Add canBackup if missing
+    try { await queryD1("SELECT canBackup FROM accounts LIMIT 1"); }
+    catch (e) {
+      try { await queryD1("ALTER TABLE accounts ADD COLUMN canBackup INTEGER DEFAULT 0"); } catch (_) {}
     }
 
     // Seed departments if empty
     const depts = await queryD1("SELECT id FROM departments LIMIT 1");
     if (depts.length === 0) {
       console.log("Seeding real departments and default accounts...");
-
       for (const d of REAL_DEPARTMENTS) {
-        await queryD1(`INSERT INTO departments (id, name, nameTh, manager, managerRole, managerImg, employeesCount, otHours, budgetUsed, budgetUtilization, status, icon)
-          VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 'On Track', ?)`,
-          [d.id, d.name, d.nameTh, d.manager, d.managerRole, d.managerImg, d.icon]);
+        await queryD1(
+          `INSERT INTO departments (id, name, nameTh, manager, managerRole, managerImg, icon) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [d.id, d.name, d.nameTh, d.manager, d.managerRole, d.managerImg, d.icon]
+        );
       }
 
-      // Seed accounts
       const existingAccounts = await queryD1("SELECT username FROM accounts LIMIT 1");
       if (existingAccounts.length === 0) {
         for (const acc of appAccounts) {
-          await queryD1(`INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar, acc.canBackup ? 1 : 0]);
+          await queryD1(
+            `INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar, acc.canBackup ? 1 : 0]
+          );
         }
       }
 
-      // Seed shift config
       const sc = appState.shiftConfig;
       await queryD1(`INSERT INTO shift_config (pattern, currentMonth, currentDept) VALUES (?, ?, ?)`,
         [sc.pattern, sc.currentMonth, sc.currentDept]);
@@ -254,22 +319,6 @@ const initD1Database = async () => {
     console.log("D1 Database initialization completed.");
   } catch (error) {
     console.error("Failed to initialize D1 database:", error);
-  }
-};
-
-// ============================================================
-// Helper: recompute actualOt for an employee from ot_daily_records
-// ============================================================
-const recomputeEmployeeOt = async (employeeId: string, deptId: string) => {
-  if (isD1Enabled()) {
-    const rows = await queryD1("SELECT SUM(otHours) as total FROM ot_daily_records WHERE employeeId = ?", [employeeId]);
-    const totalOt = rows[0]?.total || 0;
-    const emps = await queryD1("SELECT targetOt FROM employees WHERE id = ? LIMIT 1", [employeeId]);
-    const targetOt = emps[0]?.targetOt || 48;
-    const otPct = Math.round((totalOt / targetOt) * 100);
-    const status = totalOt > targetOt ? "Warning" : "On Track";
-    await queryD1("UPDATE employees SET actualOt = ?, otPct = ?, status = ? WHERE id = ?",
-      [totalOt, otPct, status, employeeId]);
   }
 };
 
@@ -306,7 +355,7 @@ app.post("/api/update-profile", async (req, res) => {
       } else {
         await queryD1("UPDATE accounts SET name = ?, avatar = ? WHERE username = ?", [name, avatar, username]);
       }
-      const rows = await queryD1("SELECT username, name, role, deptId, avatar FROM accounts WHERE username = ?", [username]);
+      const rows = await queryD1("SELECT username, name, role, deptId, avatar, canBackup FROM accounts WHERE username = ?", [username]);
       if (rows.length > 0) {
         res.json({ success: true, user: rows[0] });
       } else {
@@ -348,6 +397,7 @@ app.post("/api/add-account", async (req, res) => {
     if (isD1Enabled()) {
       await queryD1("INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [username, password, name || username, role || "Section Manager", deptId || "all", avatar || "", canBackup ? 1 : 0]);
+      await writeAuditLog(username, "add_account", "account", username, { name, role, deptId });
     } else {
       if (appAccounts.find(a => a.username === username)) return res.status(409).json({ error: "Username นี้มีอยู่แล้ว" });
       appAccounts.push({ username, password, name: name || username, role: role || "Section Manager", deptId: deptId || "all", avatar: avatar || "", canBackup: canBackup ? 1 : 0 });
@@ -372,7 +422,7 @@ app.post("/api/update-account-permission", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// --- Edit account (username + name + deptId + role) ---
+// --- Edit account ---
 app.post("/api/edit-account", async (req, res) => {
   const { originalUsername, username, name, role, deptId, avatar, canBackup } = req.body;
   if (!originalUsername) return res.status(400).json({ error: "ต้องระบุ originalUsername" });
@@ -385,6 +435,7 @@ app.post("/api/edit-account", async (req, res) => {
         await queryD1("UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ?, canBackup = ? WHERE username = ?",
           [name, role, deptId, avatar, canBackup ? 1 : 0, originalUsername]);
       }
+      await writeAuditLog(originalUsername, "edit_account", "account", username, { name, role, deptId });
     } else {
       const idx = appAccounts.findIndex(a => a.username === originalUsername);
       if (idx !== -1) {
@@ -405,12 +456,11 @@ app.post("/api/edit-account", async (req, res) => {
 app.post("/api/delete-account", async (req, res) => {
   const { targetUsername, role } = req.body;
   const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
-  if (!isHrOrAdmin) {
-    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบบัญชีผู้ใช้" });
-  }
+  if (!isHrOrAdmin) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบบัญชีผู้ใช้" });
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM accounts WHERE username = ?", [targetUsername]);
+      await writeAuditLog(targetUsername, "delete_account", "account", targetUsername, {});
     } else {
       appAccounts = appAccounts.filter(a => a.username !== targetUsername);
       saveLocalDb();
@@ -426,6 +476,7 @@ app.post("/api/reset-account-password", async (req, res) => {
   try {
     if (isD1Enabled()) {
       await queryD1("UPDATE accounts SET password = ? WHERE username = ?", [newPassword, targetUsername]);
+      await writeAuditLog(targetUsername, "reset_password", "account", targetUsername, {});
     } else {
       const acc = appAccounts.find(a => a.username === targetUsername);
       if (acc) acc.password = newPassword;
@@ -446,61 +497,93 @@ app.get("/api/portal-state", async (req, res) => {
     const lastYear  = thisYear - 1;
 
     if (isD1Enabled()) {
-      const departments   = await queryD1("SELECT * FROM departments");
-      const employeesRaw  = await queryD1("SELECT * FROM employees");
+      const departments    = await queryD1("SELECT * FROM departments");
+      const employeesRaw   = await queryD1("SELECT * FROM employees");
       const shiftConfigRaw = await queryD1("SELECT * FROM shift_config LIMIT 1");
 
-      const employees = employeesRaw.map((e: any) => ({ ...e, shifts: JSON.parse(e.shifts || "[]") }));
+      // Compute OT stats for each employee from ot_daily_records
+      const employees = await enrichEmployeesWithOt(employeesRaw);
 
-      // Compute dept stats dynamically from employees
-      const enrichedDepartments = departments.map((dept: any) => {
-        const deptEmp = employees.filter((e: any) => e.deptId === dept.id);
-        const employeesCount = deptEmp.length;
-        const otHours = Math.round(deptEmp.reduce((s: number, e: any) => s + (e.actualOt || 0), 0) * 10) / 10;
-        const budgetUsed = Math.round(otHours * 300);
-        const budgetMax = 150000;
-        const budgetUtilization = Math.min(100, Math.round((budgetUsed / budgetMax) * 100));
-        const status = budgetUtilization > 95 ? "Warning" : "On Track";
-        return { ...dept, employeesCount, otHours, budgetUsed, budgetUtilization, status };
+      // Fetch dept budgets for current month
+      const budgetRows = await queryD1(
+        "SELECT deptId, budgetMax, otRatePerHour FROM dept_budgets WHERE year = ? AND (month = ? OR month IS NULL)",
+        [thisYear, thisMonth]
+      );
+      const budgetMap: Record<string, { budgetMax: number; otRate: number }> = {};
+      budgetRows.forEach((b: any) => {
+        budgetMap[b.deptId] = { budgetMax: b.budgetMax || DEFAULT_BUDGET_MAX, otRate: b.otRatePerHour || DEFAULT_OT_RATE };
       });
 
-      // OT trend: 12 months current year vs last year from ot_daily_records
-      const MONTH_LABELS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      const trendThisYear = await queryD1(
-        "SELECT month, SUM(otHours) as total FROM ot_daily_records WHERE year = ? GROUP BY month ORDER BY month",
-        [thisYear]
+      // Compute dept stats dynamically
+      const enrichedDepartments = departments.map((dept: any) => {
+        const deptEmp        = employees.filter((e: any) => e.deptId === dept.id);
+        const employeesCount = deptEmp.length;
+        const otHours        = Math.round(deptEmp.reduce((s: number, e: any) => s + (e.actualOt || 0), 0) * 10) / 10;
+        const cfg            = budgetMap[dept.id] || { budgetMax: DEFAULT_BUDGET_MAX, otRate: DEFAULT_OT_RATE };
+        const budgetUsed     = Math.round(otHours * cfg.otRate);
+        const budgetUtilization = Math.min(100, Math.round((budgetUsed / cfg.budgetMax) * 100));
+        const status         = budgetUtilization > 95 ? "Warning" : "On Track";
+        return { ...dept, employeesCount, otHours, budgetUsed, budgetMax: cfg.budgetMax, otRatePerHour: cfg.otRate, budgetUtilization, status };
+      });
+
+      // OT trend — 6 เดือนล่าสุดย้อนหลัง (rolling window)
+      const MONTH_LABELS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+
+      // Build last 6 months (month=1-12, year) from now going back
+      const last6: { year: number; month: number; label: string }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = thisMonth - i;
+        let y = thisYear;
+        if (m <= 0) { m += 12; y -= 1; }
+        last6.push({ year: y, month: m, label: MONTH_LABELS_TH[m - 1] });
+      }
+
+      // Query OT sums for those months (current year and previous year same period)
+      const monthNumbers = last6.map(x => x.month);
+      const prevYearNumbers = last6.map(x => ({ year: x.year - 1, month: x.month }));
+
+      // Current period
+      const trendCur = await queryD1(
+        `SELECT year, month, SUM(otHours) as total FROM ot_daily_records
+         WHERE (year = ? AND month IN (${monthNumbers.join(",")}))
+         OR    (year = ? AND month IN (${monthNumbers.join(",")}))
+         GROUP BY year, month`,
+        [thisYear, thisYear - 1]
       );
-      const trendLastYear = await queryD1(
-        "SELECT month, SUM(otHours) as total FROM ot_daily_records WHERE year = ? GROUP BY month ORDER BY month",
-        [lastYear]
-      );
-      const thisYearMap: Record<number, number> = {};
-      const lastYearMap: Record<number, number> = {};
-      trendThisYear.forEach((r: any) => { thisYearMap[r.month] = r.total; });
-      trendLastYear.forEach((r: any) => { lastYearMap[r.month] = r.total; });
+      const trendMap: Record<string, number> = {};
+      trendCur.forEach((r: any) => { trendMap[`${r.year}-${r.month}`] = Number(r.total) || 0; });
 
       const otTrendData = {
-        months:      MONTH_LABELS,
-        currentYear: MONTH_LABELS.map((_, i) => thisYearMap[i + 1] || 0),
-        lastYear:    MONTH_LABELS.map((_, i) => lastYearMap[i + 1] || 0),
+        months:      last6.map(x => x.label),
+        currentYear: last6.map(x => Math.round((trendMap[`${x.year}-${x.month}`] || 0) * 10) / 10),
+        lastYear:    last6.map(x => Math.round((trendMap[`${x.year - 1}-${x.month}`] || 0) * 10) / 10),
+        meta:        last6.map(x => ({ year: x.year, month: x.month })),
       };
 
       const shiftConfig = shiftConfigRaw[0] || appState.shiftConfig;
-
       res.json({ departments: enrichedDepartments, employees, shiftConfig, otTrendData, requests: [] });
+
     } else {
-      // Offline mode
-      const enriched = appState.departments.map(dept => {
-        const deptEmp = appState.employees.filter(e => e.deptId === dept.id);
-        const employeesCount = deptEmp.length;
-        const otHours = Math.round(deptEmp.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
-        const budgetUsed = Math.round(otHours * 300);
-        const budgetMax = 150000;
-        const budgetUtilization = Math.min(100, Math.round((budgetUsed / budgetMax) * 100));
-        const status = budgetUtilization > 95 ? "Warning" : "On Track";
-        return { ...dept, employeesCount, otHours, budgetUsed, budgetUtilization, status };
+      // Offline mode — compute from shifts
+      const enrichedEmps = appState.employees.map(emp => {
+        const shifts   = emp.shifts || [];
+        const actualOt = Math.round(shifts.reduce((s: number, c: string) => s + getShiftOt(c), 0) * 10) / 10;
+        const otPct    = emp.targetOt > 0 ? Math.round((actualOt / emp.targetOt) * 100) : 0;
+        const status   = actualOt > emp.targetOt ? "Warning" : "On Track";
+        return { ...emp, actualOt, otPct, status };
       });
-      res.json({ ...appState, departments: enriched, requests: [] });
+
+      const enrichedDepts = appState.departments.map(dept => {
+        const deptEmp        = enrichedEmps.filter(e => e.deptId === dept.id);
+        const employeesCount = deptEmp.length;
+        const otHours        = Math.round(deptEmp.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
+        const budgetUsed     = Math.round(otHours * DEFAULT_OT_RATE);
+        const budgetUtilization = Math.min(100, Math.round((budgetUsed / DEFAULT_BUDGET_MAX) * 100));
+        const status         = budgetUtilization > 95 ? "Warning" : "On Track";
+        return { ...dept, employeesCount, otHours, budgetUsed, budgetMax: DEFAULT_BUDGET_MAX, otRatePerHour: DEFAULT_OT_RATE, budgetUtilization, status };
+      });
+
+      res.json({ ...appState, departments: enrichedDepts, employees: enrichedEmps, requests: [] });
     }
   } catch (error: any) {
     console.error("portal-state error:", error);
@@ -517,14 +600,12 @@ app.post("/api/update-shift-config", async (req, res) => {
     if (isD1Enabled()) {
       const config = await queryD1("SELECT * FROM shift_config LIMIT 1");
       if (config.length > 0) {
-        let sql = "UPDATE shift_config SET ";
         const updates: string[] = [];
         const params: any[] = [];
         if (currentMonth !== undefined) { updates.push("currentMonth = ?"); params.push(currentMonth); }
         if (pattern !== undefined) { updates.push("pattern = ?"); params.push(pattern); }
         if (currentDept !== undefined) { updates.push("currentDept = ?"); params.push(currentDept); }
-        sql += updates.join(", ");
-        await queryD1(sql, params);
+        if (updates.length > 0) await queryD1(`UPDATE shift_config SET ${updates.join(", ")}`, params);
       } else {
         await queryD1("INSERT INTO shift_config (pattern, currentMonth, currentDept) VALUES (?, ?, ?)",
           [pattern || "4-on-2-off", currentMonth || new Date().toISOString().substring(0, 7), currentDept || "inter2"]);
@@ -544,7 +625,7 @@ app.post("/api/update-shift-config", async (req, res) => {
 // ============================================================
 app.post("/api/save-shifts", async (req, res) => {
   try {
-    const { employees, year, month } = req.body;
+    const { employees, year, month, username } = req.body;
     if (!Array.isArray(employees)) return res.status(400).json({ error: "Invalid payload" });
 
     const now = new Date();
@@ -553,19 +634,15 @@ app.post("/api/save-shifts", async (req, res) => {
 
     if (isD1Enabled()) {
       for (const emp of employees) {
-        // Update shifts
         await queryD1("UPDATE employees SET shifts = ? WHERE id = ?", [JSON.stringify(emp.shifts || []), emp.id]);
 
-        // Delete old OT records for this employee × this year/month
         await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ? AND year = ? AND month = ?",
           [emp.id, recordYear, recordMonth]);
 
-        // Get employee info
         const empRows = await queryD1("SELECT name, deptId FROM employees WHERE id = ? LIMIT 1", [emp.id]);
         const empName = empRows[0]?.name || emp.name || "";
         const deptId  = empRows[0]?.deptId || emp.deptId || "";
 
-        // Insert OT records for each day with OT > 0
         const shifts: string[] = emp.shifts || [];
         for (let dayIdx = 0; dayIdx < shifts.length; dayIdx++) {
           const shiftCode = shifts[dayIdx];
@@ -579,22 +656,23 @@ app.post("/api/save-shifts", async (req, res) => {
               [recId, recordYear, recordMonth, dateStr, emp.id, empName, deptId, shiftCode, otHrs]);
           }
         }
-
-        // Recompute actualOt for this employee
-        await recomputeEmployeeOt(emp.id, emp.deptId || deptId);
       }
 
-      const updatedEmps = await queryD1("SELECT * FROM employees");
-      res.json({ success: true, message: "บันทึกตารางกะสำเร็จ", employees: updatedEmps.map((e: any) => ({ ...e, shifts: JSON.parse(e.shifts || "[]") })) });
+      // Return employees with computed OT (from ot_daily_records)
+      const updatedRaw = await queryD1("SELECT * FROM employees");
+      const updatedEmps = await enrichEmployeesWithOt(updatedRaw);
+      await writeAuditLog(username || "system", "save_shifts", "shift", `${recordYear}-${recordMonth}`, { employeeCount: employees.length });
+      res.json({ success: true, message: "บันทึกตารางกะสำเร็จ", employees: updatedEmps });
+
     } else {
-      // Offline
+      // Offline mode
       appState.employees = appState.employees.map(emp => {
         const updated = employees.find((e: any) => e.id === emp.id);
         if (updated) {
           const shifts: string[] = updated.shifts || [];
-          const totalOt = shifts.reduce((s, code) => s + getShiftOt(code), 0);
-          const otPct = Math.round((totalOt / emp.targetOt) * 100);
-          return { ...emp, shifts, actualOt: totalOt, otPct, status: totalOt > emp.targetOt ? "Warning" : "On Track" };
+          const actualOt = Math.round(shifts.reduce((s, code) => s + getShiftOt(code), 0) * 10) / 10;
+          const otPct    = Math.round((actualOt / emp.targetOt) * 100);
+          return { ...emp, shifts, actualOt, otPct, status: actualOt > emp.targetOt ? "Warning" : "On Track" };
         }
         return emp;
       });
@@ -620,7 +698,6 @@ app.get("/api/ot-records", async (req, res) => {
       const rows = await queryD1(sql, params);
       res.json(rows);
     } else {
-      // Offline: generate from employee shifts
       const rows: any[] = [];
       for (const emp of appState.employees) {
         if (deptId && deptId !== "all" && emp.deptId !== deptId) continue;
@@ -662,20 +739,19 @@ app.delete("/api/delete-ot-record/:id", async (req, res) => {
 app.post("/api/add-employee", async (req, res) => {
   try {
     const { id, name, deptId, role, groupName, targetOt } = req.body;
-    const empId       = id        || "EMP-" + Date.now();
-    const empName     = name      || "พนักงานใหม่";
-    const empDeptId   = deptId    || "inter2";
-    const empRole     = role      || "Operator";
-    const empTargetOt = Number(targetOt) || 48;
+    const empId        = id        || "EMP-" + Date.now();
+    const empName      = name      || "พนักงานใหม่";
+    const empDeptId    = deptId    || "inter2";
+    const empRole      = role      || "Operator";
+    const empTargetOt  = Number(targetOt) || 48;
     const empGroupName = groupName || "";
-    const empShifts   = [] as string[];
 
     if (isD1Enabled()) {
-      await queryD1(`INSERT INTO employees (id, name, deptId, role, targetOt, actualOt, otPct, status, groupName, shifts)
-        VALUES (?, ?, ?, ?, ?, 0, 0, 'On Track', ?, ?)`,
-        [empId, empName, empDeptId, empRole, empTargetOt, empGroupName, JSON.stringify(empShifts)]);
+      await queryD1(`INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [empId, empName, empDeptId, empRole, empTargetOt, empGroupName, "[]"]);
+      await writeAuditLog(req.body.username || "system", "add_employee", "employee", empId, { name: empName, deptId: empDeptId });
     } else {
-      appState.employees.push({ id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt, actualOt: 0, otPct: 0, status: "On Track", groupName: empGroupName, shifts: empShifts });
+      appState.employees.push({ id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt, groupName: empGroupName, shifts: [] });
       saveLocalDb();
     }
     res.json({ success: true, employee: { id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt } });
@@ -684,25 +760,23 @@ app.post("/api/add-employee", async (req, res) => {
 
 app.post("/api/edit-employee", async (req, res) => {
   try {
-    const { id, name, deptId, role, groupName, targetOt } = req.body;
+    const { id, name, deptId, role, groupName, targetOt, username } = req.body;
     if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
     const newTargetOt = Number(targetOt) || 48;
 
     if (isD1Enabled()) {
-      await queryD1(`UPDATE employees SET name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ?,
-        otPct = ROUND((actualOt / ?) * 100), status = CASE WHEN actualOt > ? THEN 'Warning' ELSE 'On Track' END WHERE id = ?`,
-        [name, deptId, role, groupName, newTargetOt, newTargetOt, newTargetOt, id]);
+      await queryD1(`UPDATE employees SET name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ? WHERE id = ?`,
+        [name, deptId, role, groupName, newTargetOt, id]);
+      await writeAuditLog(username || "system", "edit_employee", "employee", id, { name, deptId, role, targetOt: newTargetOt });
     } else {
       const idx = appState.employees.findIndex(e => e.id === id);
       if (idx !== -1) {
         const emp = appState.employees[idx];
-        emp.name = name || emp.name;
-        emp.deptId = deptId || emp.deptId;
-        emp.role = role || emp.role;
-        emp.groupName = groupName || emp.groupName;
-        emp.targetOt = newTargetOt;
-        emp.otPct = Math.round((emp.actualOt / emp.targetOt) * 100);
-        emp.status = emp.actualOt > emp.targetOt ? "Warning" : "On Track";
+        emp.name      = name || emp.name;
+        emp.deptId    = deptId || emp.deptId;
+        emp.role      = role || emp.role;
+        emp.groupName = groupName ?? emp.groupName;
+        emp.targetOt  = newTargetOt;
       }
       saveLocalDb();
     }
@@ -711,16 +785,16 @@ app.post("/api/edit-employee", async (req, res) => {
 });
 
 app.post("/api/delete-employee", async (req, res) => {
-  const { id, role } = req.body;
+  const { id, role, username } = req.body;
   if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
   const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
-  if (!isHrOrAdmin) {
-    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบพนักงาน" });
-  }
+  if (!isHrOrAdmin) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบพนักงาน" });
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees WHERE id = ?", [id]);
       await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [id]);
+      await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [id]);
+      await writeAuditLog(username || "system", "delete_employee", "employee", id, {});
     } else {
       appState.employees = appState.employees.filter(e => e.id !== id);
       saveLocalDb();
@@ -742,22 +816,25 @@ app.post("/api/export-employees", async (req, res) => {
       }
     } else {
       const user = appAccounts.find(a => a.username === username);
-      if (user) {
-        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
-      }
+      if (user) isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
     }
 
     if (!isAllowed) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการส่งออกข้อมูลพนักงาน" });
 
     let employees: any[] = [];
     if (isD1Enabled()) {
-      const rows = await queryD1("SELECT * FROM employees");
-      employees = rows.map((e: any) => ({
-        ...e,
-        shifts: JSON.parse(e.shifts || "[]")
-      }));
+      const raw = await queryD1("SELECT * FROM employees");
+      // Enrich with computed OT stats from ot_daily_records
+      employees = await enrichEmployeesWithOt(raw);
+      await writeAuditLog(username, "export_employees", "employees", "all", { count: employees.length });
     } else {
-      employees = appState.employees;
+      employees = appState.employees.map(emp => {
+        const shifts   = emp.shifts || [];
+        const actualOt = Math.round(shifts.reduce((s: number, c: string) => s + getShiftOt(c), 0) * 10) / 10;
+        const otPct    = emp.targetOt > 0 ? Math.round((actualOt / emp.targetOt) * 100) : 0;
+        const status   = actualOt > emp.targetOt ? "Warning" : "On Track";
+        return { ...emp, actualOt, otPct, status };
+      });
     }
     res.json({ success: true, employees });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -777,40 +854,27 @@ app.post("/api/import-employees", async (req, res) => {
       }
     } else {
       const user = appAccounts.find(a => a.username === username);
-      if (user) {
-        isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
-      }
+      if (user) isAllowed = user.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(user.role);
     }
 
     if (!isAllowed) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการนำเข้าข้อมูลพนักงาน" });
 
     if (isD1Enabled()) {
-      // Clear existing employees and daily records first to ensure a clean import/restore
       await queryD1("DELETE FROM employees");
       await queryD1("DELETE FROM ot_daily_records");
 
       for (const emp of employees) {
         const shiftsStr = typeof emp.shifts === "string" ? emp.shifts : JSON.stringify(emp.shifts || []);
         await queryD1(
-          `INSERT INTO employees (id, name, deptId, role, targetOt, actualOt, otPct, status, groupName, shifts)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            emp.id,
-            emp.name,
-            emp.deptId,
-            emp.role,
-            emp.targetOt ?? 48,
-            emp.actualOt ?? 0,
-            emp.otPct ?? 0,
-            emp.status ?? "On Track",
-            emp.groupName ?? "",
-            shiftsStr
-          ]
+          `INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [emp.id, emp.name, emp.deptId, emp.role, emp.targetOt ?? 48, emp.groupName ?? "", shiftsStr]
         );
       }
+      await writeAuditLog(username, "import_employees", "employees", "all", { count: employees.length });
     } else {
       appState.employees = employees.map(emp => ({
-        ...emp,
+        id: emp.id, name: emp.name, deptId: emp.deptId, role: emp.role,
+        targetOt: emp.targetOt ?? 48, groupName: emp.groupName ?? "",
         shifts: Array.isArray(emp.shifts) ? emp.shifts : JSON.parse(emp.shifts || "[]")
       }));
       saveLocalDb();
@@ -839,55 +903,166 @@ app.post("/api/update-dept-manager", async (req, res) => {
 });
 
 // ============================================================
-// Clear all employee & OT data and reset/seed departments and accounts
+// Dept Budgets (NEW)
+// ============================================================
+app.get("/api/dept-budgets", async (req, res) => {
+  const { year } = req.query;
+  try {
+    if (isD1Enabled()) {
+      const rows = await queryD1(
+        "SELECT * FROM dept_budgets WHERE year = ? ORDER BY deptId, month",
+        [Number(year) || new Date().getFullYear()]
+      );
+      res.json(rows);
+    } else {
+      res.json([]);
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post("/api/update-dept-budget", async (req, res) => {
+  const { deptId, year, month, budgetMax, otRatePerHour, username } = req.body;
+  if (!deptId || !year) return res.status(400).json({ error: "ต้องระบุ deptId และ year" });
+  try {
+    if (isD1Enabled()) {
+      const id = `BUD-${deptId}-${year}-${month || "all"}`;
+      await queryD1(
+        `INSERT INTO dept_budgets (id, deptId, year, month, budgetMax, otRatePerHour)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(deptId, year, month) DO UPDATE SET
+           budgetMax = excluded.budgetMax,
+           otRatePerHour = excluded.otRatePerHour`,
+        [id, deptId, year, month ?? 0, budgetMax ?? DEFAULT_BUDGET_MAX, otRatePerHour ?? DEFAULT_OT_RATE]
+      );
+      await writeAuditLog(username || "system", "update_dept_budget", "dept_budget", deptId, { year, month, budgetMax, otRatePerHour });
+      res.json({ success: true });
+    } else {
+      res.json({ success: true, message: "offline mode — budget not persisted" });
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================
+// Leave Records (NEW)
+// ============================================================
+app.get("/api/leave-records", async (req, res) => {
+  const { employeeId, year, month, deptId } = req.query;
+  try {
+    if (isD1Enabled()) {
+      let sql = "SELECT * FROM leave_records WHERE 1=1";
+      const params: any[] = [];
+      if (employeeId) { sql += " AND employeeId = ?"; params.push(employeeId); }
+      if (deptId && deptId !== "all") { sql += " AND deptId = ?"; params.push(deptId); }
+      if (year && month) {
+        sql += " AND date LIKE ?";
+        params.push(`${year}-${String(month).padStart(2,"0")}-%`);
+      } else if (year) {
+        sql += " AND date LIKE ?";
+        params.push(`${year}-%`);
+      }
+      sql += " ORDER BY date DESC";
+      res.json(await queryD1(sql, params));
+    } else {
+      res.json([]);
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post("/api/add-leave-record", async (req, res) => {
+  const { employeeId, date, leaveType, note, username } = req.body;
+  if (!employeeId || !date) return res.status(400).json({ error: "ต้องระบุ employeeId และ date" });
+  try {
+    if (isD1Enabled()) {
+      const empRows = await queryD1("SELECT name, deptId FROM employees WHERE id = ? LIMIT 1", [employeeId]);
+      const empName = empRows[0]?.name || "";
+      const deptId  = empRows[0]?.deptId || "";
+      const id = `LVR-${employeeId}-${date}`;
+      await queryD1(
+        `INSERT OR REPLACE INTO leave_records (id, employeeId, employeeName, deptId, date, leaveType, note) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, employeeId, empName, deptId, date, leaveType || "vacation", note || ""]
+      );
+      await writeAuditLog(username || "system", "add_leave", "leave_record", id, { employeeId, date, leaveType });
+      res.json({ success: true });
+    } else {
+      res.json({ success: true, message: "offline mode — leave not persisted" });
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete("/api/delete-leave-record/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM leave_records WHERE id = ?", [id]);
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================
+// Audit Logs (NEW)
+// ============================================================
+app.get("/api/audit-logs", async (req, res) => {
+  const { limit } = req.query;
+  try {
+    if (isD1Enabled()) {
+      const rows = await queryD1(
+        `SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?`,
+        [Number(limit) || 100]
+      );
+      res.json(rows);
+    } else {
+      res.json([]);
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================
+// Clear all data and reset
 // ============================================================
 app.post("/api/clear-mock-data", async (req, res) => {
   const { role } = req.body;
   const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
-  if (!isHrOrAdmin) {
-    return res.status(403).json({ error: "ไม่มีสิทธิ์ในการล้างข้อมูลฐานข้อมูล" });
-  }
+  if (!isHrOrAdmin) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการล้างข้อมูลฐานข้อมูล" });
   try {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees");
       await queryD1("DELETE FROM ot_daily_records");
+      await queryD1("DELETE FROM leave_records");
       await queryD1("DELETE FROM departments");
       await queryD1("DELETE FROM accounts");
 
-      // Seed departments
       for (const d of REAL_DEPARTMENTS) {
-        await queryD1(`INSERT INTO departments (id, name, nameTh, manager, managerRole, managerImg, employeesCount, otHours, budgetUsed, budgetUtilization, status, icon)
-          VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 'On Track', ?)`,
-          [d.id, d.name, d.nameTh, d.manager, d.managerRole, d.managerImg, d.icon]);
+        await queryD1(
+          `INSERT INTO departments (id, name, nameTh, manager, managerRole, managerImg, icon) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [d.id, d.name, d.nameTh, d.manager, d.managerRole, d.managerImg, d.icon]
+        );
       }
-
-      // Seed accounts
       for (const acc of appAccounts) {
-        await queryD1(`INSERT INTO accounts (username, password, name, role, deptId, avatar) VALUES (?, ?, ?, ?, ?, ?)`,
-          [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar]);
+        await queryD1(`INSERT INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [acc.username, acc.password, acc.name, acc.role, acc.deptId, acc.avatar, acc.canBackup ? 1 : 0]);
       }
+      await writeAuditLog(req.body.username || "system", "clear_all_data", "system", "all", {});
     } else {
       appState.employees = [];
       appState.departments = REAL_DEPARTMENTS.map(d => ({ ...d, employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUtilization: 0, status: "On Track" }));
       appAccounts = [
-        { username: "admin",      password: "admin123",       name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all", avatar: "" },
-        { username: "hr",         password: "hr1234",         name: "HR Manager",             role: "HR",                 deptId: "all", avatar: "" },
-        { username: "hr_sec",     password: "hrsec1234",      name: "HR Section Manager",     role: "HR Section Manager", deptId: "all", avatar: "" },
-        { username: "op_dir",     password: "opdir1234",      name: "Operation Director",     role: "Operation Dir",      deptId: "all", avatar: "" },
-        { username: "op_dept",    password: "opdept1234",     name: "Operation Department",   role: "Operation Depart",   deptId: "all", avatar: "" },
-        { username: "inter2_mgr", password: "i2mgr1234",      name: "Section Manager INTER2", role: "Section Manager",    deptId: "inter2", avatar: "" },
-        { username: "inter3_mgr", password: "i3mgr1234",      name: "Section Manager INTER3", role: "Section Manager",    deptId: "inter3", avatar: "" },
-        { username: "inter5_mgr", password: "i5mgr1234",      name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "" },
-        { username: "inter7_mgr", password: "i7mgr1234",      name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "" },
-        { username: "heavy_mgr",  password: "hvmgr1234",      name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "" },
-        { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "" },
+        { username: "admin",      password: "admin123",  name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all",    avatar: "", canBackup: 1 },
+        { username: "hr",         password: "hr1234",    name: "HR Manager",             role: "HR",                 deptId: "all",    avatar: "", canBackup: 1 },
+        { username: "hr_sec",     password: "hrsec1234", name: "HR Section Manager",     role: "HR Section Manager", deptId: "all",    avatar: "", canBackup: 1 },
+        { username: "op_dir",     password: "opdir1234", name: "Operation Director",     role: "Operation Dir",      deptId: "all",    avatar: "", canBackup: 0 },
+        { username: "op_dept",    password: "opdept1234",name: "Operation Department",   role: "Operation Depart",   deptId: "all",    avatar: "", canBackup: 0 },
+        { username: "inter2_mgr", password: "i2mgr1234", name: "Section Manager INTER2", role: "Section Manager",    deptId: "inter2", avatar: "", canBackup: 0 },
+        { username: "inter3_mgr", password: "i3mgr1234", name: "Section Manager INTER3", role: "Section Manager",    deptId: "inter3", avatar: "", canBackup: 0 },
+        { username: "inter5_mgr", password: "i5mgr1234", name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "", canBackup: 0 },
+        { username: "inter7_mgr", password: "i7mgr1234", name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "", canBackup: 0 },
+        { username: "heavy_mgr",  password: "hvmgr1234", name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "", canBackup: 0 },
+        { username: "ecc_mgr",    password: "eccmgr1234",name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "", canBackup: 0 },
       ];
       saveLocalDb();
     }
-    res.json({ success: true, message: "รีเซ็ตฐานข้อมูลเรียบร้อยและเริ่มระบบด้วยแผนกจริง 6 แผนกแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+    res.json({ success: true, message: "รีเซ็ตฐานข้อมูลเรียบร้อย" });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============================================================
@@ -900,11 +1075,16 @@ app.post("/api/audit-report", async (req, res) => {
     let deptsData: any[] = [];
 
     if (isD1Enabled()) {
-      const emps = await queryD1("SELECT * FROM employees");
-      employeesData = emps.map((e: any) => ({ ...e, shifts: JSON.parse(e.shifts || "[]") }));
+      const raw = await queryD1("SELECT * FROM employees");
+      employeesData = await enrichEmployeesWithOt(raw);
       deptsData = await queryD1("SELECT * FROM departments");
     } else {
-      employeesData = appState.employees;
+      employeesData = appState.employees.map(emp => {
+        const shifts   = emp.shifts || [];
+        const actualOt = Math.round(shifts.reduce((s: number, c: string) => s + getShiftOt(c), 0) * 10) / 10;
+        const status   = actualOt > emp.targetOt ? "Warning" : "On Track";
+        return { ...emp, actualOt, status };
+      });
       deptsData = appState.departments;
     }
 
@@ -916,8 +1096,8 @@ app.post("/api/audit-report", async (req, res) => {
       `- ${e.name} (${e.id}) [${e.role}] แผนก: ${e.deptId}: OT จริง = ${e.actualOt} ชม., เป้าหมาย = ${e.targetOt} ชม., สถานะ = ${e.status}`
     ).join("\n");
 
-    const formattedDepts = deptsData.map(d =>
-      `- ${d.nameTh || d.name}: OT รวม = ${d.otHours} ชม., งบ = ${d.budgetUsed} บาท, ใช้งบ = ${d.budgetUtilization}%, สถานะ = ${d.status}`
+    const formattedDepts = deptsData.map((d: any) =>
+      `- ${d.nameTh || d.name}: manager = ${d.manager || "-"}`
     ).join("\n");
 
     const prompt = `คุณคือผู้เชี่ยวชาญด้าน HR และการจัดการกะทำงานโรงงานอุตสาหกรรม
