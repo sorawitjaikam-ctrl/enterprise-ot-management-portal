@@ -71,4 +71,5 @@ export interface AppState {
   shiftConfig: ShiftConfig;
   otTrendData: OtTrendData;
   leaveRecords?: LeaveRecord[];
+  d1Connected?: boolean;
 }

@@ -12,6 +12,19 @@ const PORT = 3000;
 
 app.use(express.json());
 
+const isD1Enabled = () =>
+  !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_DATABASE_ID);
+
+// Intercept write requests if Cloudflare D1 is not enabled
+app.use((req, res, next) => {
+  if (!isD1Enabled() && ["POST", "PUT", "DELETE"].includes(req.method) && !req.path.startsWith("/api/login") && !req.path.startsWith("/api/logout")) {
+    return res.status(403).json({
+      error: "ไม่สามารถทำรายการได้ เนื่องจากเซิร์ฟเวอร์ไม่ได้เชื่อมต่อกับ Cloudflare D1 Database (กรุณาเชื่อมต่อฐานข้อมูลก่อน)"
+    });
+  }
+  next();
+});
+
 // Initialize Gemini SDK
 const getGeminiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -123,8 +136,6 @@ loadLocalDb();
 // ============================================================
 // Cloudflare D1 helpers
 // ============================================================
-const isD1Enabled = () =>
-  !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_DATABASE_ID);
 
 const queryD1 = async (sql: string, params: any[] = []): Promise<any> => {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -590,29 +601,28 @@ app.get("/api/portal-state", async (req, res) => {
       };
 
       const shiftConfig = shiftConfigRaw[0] || appState.shiftConfig;
-      res.json({ departments: enrichedDepartments, employees, shiftConfig, otTrendData, requests: [] });
+      res.json({ departments: enrichedDepartments, employees, shiftConfig, otTrendData, requests: [], d1Connected: true });
 
     } else {
-      // Offline mode — compute from shifts
-      const enrichedEmps = appState.employees.map(emp => {
-        const shifts   = emp.shifts || [];
-        const actualOt = Math.round(shifts.reduce((s: number, c: string) => s + getShiftOt(c), 0) * 10) / 10;
-        const otPct    = emp.targetOt > 0 ? Math.round((actualOt / emp.targetOt) * 100) : 0;
-        const status   = actualOt > emp.targetOt ? "Warning" : "On Track";
-        return { ...emp, actualOt, otPct, status };
-      });
+      // Offline mode — do NOT display mock data (return empty)
+      const emptyDepts = appState.departments.map(dept => ({
+        ...dept,
+        employeesCount: 0,
+        otHours: 0,
+        budgetUsed: 0,
+        budgetUtilization: 0,
+        status: "On Track" as const
+      }));
 
-      const enrichedDepts = appState.departments.map(dept => {
-        const deptEmp        = enrichedEmps.filter(e => e.deptId === dept.id);
-        const employeesCount = deptEmp.length;
-        const otHours        = Math.round(deptEmp.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
-        const budgetUsed     = Math.round(otHours * DEFAULT_OT_RATE);
-        const budgetUtilization = Math.min(100, Math.round((budgetUsed / DEFAULT_BUDGET_MAX) * 100));
-        const status         = budgetUtilization > 95 ? "Warning" : "On Track";
-        return { ...dept, employeesCount, otHours, budgetUsed, budgetMax: DEFAULT_BUDGET_MAX, otRatePerHour: DEFAULT_OT_RATE, budgetUtilization, status };
+      res.json({
+        departments: emptyDepts,
+        employees: [],
+        shiftConfig: appState.shiftConfig,
+        otTrendData: { months: [], lastYear: [], currentYear: [] },
+        leaveRecords: [],
+        requests: [],
+        d1Connected: false
       });
-
-      res.json({ ...appState, departments: enrichedDepts, employees: enrichedEmps, requests: [] });
     }
   } catch (error: any) {
     console.error("portal-state error:", error);
@@ -727,27 +737,7 @@ app.get("/api/ot-records", async (req, res) => {
       const rows = await queryD1(sql, params);
       res.json(rows);
     } else {
-      const rows: any[] = [];
-      for (const emp of appState.employees) {
-        if (deptId && deptId !== "all" && emp.deptId !== deptId) continue;
-        const shifts: string[] = emp.shifts || [];
-        const nowDate = new Date();
-        const y = Number(year) || nowDate.getFullYear();
-        const m = Number(month) || (nowDate.getMonth() + 1);
-        shifts.forEach((code, idx) => {
-          const otHrs = getShiftOt(code);
-          if (otHrs > 0) {
-            rows.push({
-              id: `OTD-${emp.id}-${y}-${m}-${idx + 1}`,
-              year: y, month: m,
-              date: `${y}-${String(m).padStart(2,"0")}-${String(idx+1).padStart(2,"0")}`,
-              employeeId: emp.id, employeeName: emp.name,
-              deptId: emp.deptId, shiftCode: code, otHours: otHrs, note: ""
-            });
-          }
-        });
-      }
-      res.json(rows.sort((a, b) => b.date.localeCompare(a.date)));
+      res.json([]);
     }
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -1073,17 +1063,7 @@ app.get("/api/leave-records", async (req, res) => {
       sql += " ORDER BY date DESC";
       res.json(await queryD1(sql, params));
     } else {
-      let filtered = [...(appState.leaveRecords || [])];
-      if (employeeId) { filtered = filtered.filter(l => l.employeeId === employeeId); }
-      if (deptId && deptId !== "all") { filtered = filtered.filter(l => l.deptId === deptId); }
-      if (year && month) {
-        const prefix = `${year}-${String(month).padStart(2,"0")}`;
-        filtered = filtered.filter(l => l.date.startsWith(prefix));
-      } else if (year) {
-        filtered = filtered.filter(l => l.date.startsWith(`${year}`));
-      }
-      filtered.sort((a,b) => b.date.localeCompare(a.date));
-      res.json(filtered);
+      res.json([]);
     }
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

@@ -2193,6 +2193,19 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Cloudflare D1 Connection Warning */}
+              {!state?.d1Connected && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-700 flex-shrink-0 font-bold text-lg">
+                    ⚠️
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-red-950">ไม่ได้เชื่อมต่อกับ Cloudflare D1 Database</h4>
+                    <p className="text-[10px] text-red-700 mt-0.5">ระบบปิดการทำงานของโหมด Offline/Mock data โดยจะไม่แสดงผลหรืออนุญาตให้เขียนข้อมูลใดๆ จนกว่าจะตั้งค่าไฟล์ .env เพื่อเชื่อมต่อ Cloudflare D1 สำเร็จ</p>
+                  </div>
+                </div>
+              )}
+
               {/* Labor Compliance Warning Banner */}
               {fatiguedEmployees.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
