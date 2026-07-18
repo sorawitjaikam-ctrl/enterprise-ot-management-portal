@@ -203,11 +203,37 @@ const initD1Database = async () => {
       manager TEXT, managerRole TEXT, managerImg TEXT, icon TEXT
     )`);
 
-    // Employees (clean schema — no computed actualOt/otPct/status)
+    // Employees (expanded schema for employee details)
     await queryD1(`CREATE TABLE IF NOT EXISTS employees (
       id TEXT PRIMARY KEY, name TEXT, deptId TEXT, role TEXT,
-      targetOt REAL DEFAULT 48, groupName TEXT, shifts TEXT DEFAULT '[]'
+      targetOt REAL DEFAULT 48, groupName TEXT, shifts TEXT DEFAULT '[]',
+      prefix TEXT, firstName TEXT, lastName TEXT, nickname TEXT,
+      division TEXT, salary REAL DEFAULT 0, birthday TEXT,
+      age INTEGER DEFAULT 0, calculatedAge INTEGER DEFAULT 0,
+      startDate TEXT, tenure TEXT, probationDate TEXT, calendarType TEXT
     )`);
+
+    // Migration: add new columns if they do not exist
+    const newEmpCols = [
+      { name: "prefix", type: "TEXT" },
+      { name: "firstName", type: "TEXT" },
+      { name: "lastName", type: "TEXT" },
+      { name: "nickname", type: "TEXT" },
+      { name: "division", type: "TEXT" },
+      { name: "salary", type: "REAL DEFAULT 0" },
+      { name: "birthday", type: "TEXT" },
+      { name: "age", type: "INTEGER DEFAULT 0" },
+      { name: "calculatedAge", type: "INTEGER DEFAULT 0" },
+      { name: "startDate", type: "TEXT" },
+      { name: "tenure", type: "TEXT" },
+      { name: "probationDate", type: "TEXT" },
+      { name: "calendarType", type: "TEXT" }
+    ];
+    for (const col of newEmpCols) {
+      try {
+        await queryD1(`ALTER TABLE employees ADD COLUMN ${col.name} ${col.type}`);
+      } catch (_) { /* column already exists */ }
+    }
 
     // Migration: drop legacy computed columns if they still exist
     for (const col of ["actualOt", "otPct", "status"]) {
@@ -738,20 +764,50 @@ app.delete("/api/delete-ot-record/:id", async (req, res) => {
 // ============================================================
 app.post("/api/add-employee", async (req, res) => {
   try {
-    const { id, name, deptId, role, groupName, targetOt } = req.body;
-    const empId        = id        || "EMP-" + Date.now();
-    const empName      = name      || "พนักงานใหม่";
-    const empDeptId    = deptId    || "inter2";
-    const empRole      = role      || "Operator";
-    const empTargetOt  = Number(targetOt) || 48;
+    const {
+      id, name, deptId, role, groupName, targetOt,
+      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+    } = req.body;
+    
+    const empId = id || "EMP-" + Date.now();
+    const empPrefix = prefix || "";
+    const empFirstName = firstName || "พนักงานใหม่";
+    const empLastName = lastName || "";
+    const empNickname = nickname || "";
+    const empName = name || (empFirstName + (empLastName ? " " + empLastName : ""));
+    const empDeptId = deptId || "inter2";
+    const empRole = role || "Operator";
+    const empTargetOt = Number(targetOt) || 48;
     const empGroupName = groupName || "";
+    const empDivision = division || "";
+    const empSalary = Number(salary) || 0;
+    const empBirthday = birthday || "";
+    const empAge = Number(age) || 0;
+    const empCalculatedAge = Number(calculatedAge) || 0;
+    const empStartDate = startDate || "";
+    const empTenure = tenure || "";
+    const empProbationDate = probationDate || "";
+    const empCalendarType = calendarType || "";
 
     if (isD1Enabled()) {
-      await queryD1(`INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [empId, empName, empDeptId, empRole, empTargetOt, empGroupName, "[]"]);
+      await queryD1(
+        `INSERT INTO employees (
+          id, name, deptId, role, targetOt, groupName, shifts,
+          prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          empId, empName, empDeptId, empRole, empTargetOt, empGroupName, "[]",
+          empPrefix, empFirstName, empLastName, empNickname, empDivision, empSalary, empBirthday, empAge, empCalculatedAge, empStartDate, empTenure, empProbationDate, empCalendarType
+        ]
+      );
       await writeAuditLog(req.body.username || "system", "add_employee", "employee", empId, { name: empName, deptId: empDeptId });
     } else {
-      appState.employees.push({ id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt, groupName: empGroupName, shifts: [] });
+      appState.employees.push({
+        id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt, groupName: empGroupName, shifts: [],
+        prefix: empPrefix, firstName: empFirstName, lastName: empLastName, nickname: empNickname, division: empDivision,
+        salary: empSalary, birthday: empBirthday, age: empAge, calculatedAge: empCalculatedAge, startDate: empStartDate,
+        tenure: empTenure, probationDate: empProbationDate, calendarType: empCalendarType
+      });
       saveLocalDb();
     }
     res.json({ success: true, employee: { id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt } });
@@ -760,23 +816,49 @@ app.post("/api/add-employee", async (req, res) => {
 
 app.post("/api/edit-employee", async (req, res) => {
   try {
-    const { id, name, deptId, role, groupName, targetOt, username } = req.body;
+    const {
+      id, name, deptId, role, groupName, targetOt, username,
+      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+    } = req.body;
     if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
     const newTargetOt = Number(targetOt) || 48;
+    const empName = name || ((firstName || "") + (lastName ? " " + lastName : ""));
 
     if (isD1Enabled()) {
-      await queryD1(`UPDATE employees SET name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ? WHERE id = ?`,
-        [name, deptId, role, groupName, newTargetOt, id]);
-      await writeAuditLog(username || "system", "edit_employee", "employee", id, { name, deptId, role, targetOt: newTargetOt });
+      await queryD1(
+        `UPDATE employees SET 
+          name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ?,
+          prefix = ?, firstName = ?, lastName = ?, nickname = ?, division = ?, salary = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, tenure = ?, probationDate = ?, calendarType = ?
+         WHERE id = ?`,
+        [
+          empName, deptId, role, groupName, newTargetOt,
+          prefix, firstName, lastName, nickname, division, Number(salary) || 0, birthday, Number(age) || 0, Number(calculatedAge) || 0, startDate, tenure, probationDate, calendarType,
+          id
+        ]
+      );
+      await writeAuditLog(username || "system", "edit_employee", "employee", id, { name: empName, deptId, role, targetOt: newTargetOt });
     } else {
       const idx = appState.employees.findIndex(e => e.id === id);
       if (idx !== -1) {
         const emp = appState.employees[idx];
-        emp.name      = name || emp.name;
-        emp.deptId    = deptId || emp.deptId;
-        emp.role      = role || emp.role;
+        emp.name = empName;
+        emp.deptId = deptId || emp.deptId;
+        emp.role = role || emp.role;
         emp.groupName = groupName ?? emp.groupName;
-        emp.targetOt  = newTargetOt;
+        emp.targetOt = newTargetOt;
+        emp.prefix = prefix ?? emp.prefix;
+        emp.firstName = firstName ?? emp.firstName;
+        emp.lastName = lastName ?? emp.lastName;
+        emp.nickname = nickname ?? emp.nickname;
+        emp.division = division ?? emp.division;
+        emp.salary = Number(salary) || 0;
+        emp.birthday = birthday ?? emp.birthday;
+        emp.age = Number(age) || 0;
+        emp.calculatedAge = Number(calculatedAge) || 0;
+        emp.startDate = startDate ?? emp.startDate;
+        emp.tenure = tenure ?? emp.tenure;
+        emp.probationDate = probationDate ?? emp.probationDate;
+        emp.calendarType = calendarType ?? emp.calendarType;
       }
       saveLocalDb();
     }
@@ -865,17 +947,42 @@ app.post("/api/import-employees", async (req, res) => {
 
       for (const emp of employees) {
         const shiftsStr = typeof emp.shifts === "string" ? emp.shifts : JSON.stringify(emp.shifts || []);
+        const empName = emp.name || ((emp.firstName || "") + (emp.lastName ? " " + emp.lastName : ""));
         await queryD1(
-          `INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [emp.id, emp.name, emp.deptId, emp.role, emp.targetOt ?? 48, emp.groupName ?? "", shiftsStr]
+          `INSERT INTO employees (
+            id, name, deptId, role, targetOt, groupName, shifts,
+            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            emp.id, empName, emp.deptId, emp.role, emp.targetOt ?? 48, emp.groupName ?? "", shiftsStr,
+            emp.prefix ?? "", emp.firstName ?? "", emp.lastName ?? "", emp.nickname ?? "", emp.division ?? "", Number(emp.salary) || 0,
+            emp.birthday ?? "", Number(emp.age) || 0, Number(emp.calculatedAge) || 0, emp.startDate ?? "", emp.tenure ?? "", emp.probationDate ?? "", emp.calendarType ?? ""
+          ]
         );
       }
       await writeAuditLog(username, "import_employees", "employees", "all", { count: employees.length });
     } else {
       appState.employees = employees.map(emp => ({
-        id: emp.id, name: emp.name, deptId: emp.deptId, role: emp.role,
-        targetOt: emp.targetOt ?? 48, groupName: emp.groupName ?? "",
-        shifts: Array.isArray(emp.shifts) ? emp.shifts : JSON.parse(emp.shifts || "[]")
+        id: emp.id,
+        name: emp.name || ((emp.firstName || "") + (emp.lastName ? " " + emp.lastName : "")),
+        deptId: emp.deptId,
+        role: emp.role,
+        targetOt: emp.targetOt ?? 48,
+        groupName: emp.groupName ?? "",
+        shifts: Array.isArray(emp.shifts) ? emp.shifts : JSON.parse(emp.shifts || "[]"),
+        prefix: emp.prefix ?? "",
+        firstName: emp.firstName ?? "",
+        lastName: emp.lastName ?? "",
+        nickname: emp.nickname ?? "",
+        division: emp.division ?? "",
+        salary: Number(emp.salary) || 0,
+        birthday: emp.birthday ?? "",
+        age: Number(emp.age) || 0,
+        calculatedAge: Number(emp.calculatedAge) || 0,
+        startDate: emp.startDate ?? "",
+        tenure: emp.tenure ?? "",
+        probationDate: emp.probationDate ?? "",
+        calendarType: emp.calendarType ?? ""
       }));
       saveLocalDb();
     }

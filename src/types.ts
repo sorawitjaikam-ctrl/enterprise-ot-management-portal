@@ -26,6 +26,21 @@ export interface Employee {
   status: "On Track" | "Warning";
   groupName: string;
   shifts: string[]; // List of 10 items e.g., ["M", "M", "O", "O", "A", "A", "A", "A", "O", "O"] or "⚠"
+  
+  // New fields from Data .csv
+  prefix?: string;
+  firstName?: string;
+  lastName?: string;
+  nickname?: string;
+  division?: string;
+  salary?: number;
+  birthday?: string;
+  age?: number;
+  calculatedAge?: number;
+  startDate?: string;
+  tenure?: string;
+  probationDate?: string;
+  calendarType?: string;
 }
 
 export interface ShiftConfig {

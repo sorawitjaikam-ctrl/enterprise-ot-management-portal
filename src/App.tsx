@@ -588,6 +588,13 @@ export default function App() {
   const [daysLimit, setDaysLimit] = useState<number>(30);
   const [selectedWeek, setSelectedWeek] = useState<string>("all");
   const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
+  const [shiftsDeptFilter, setShiftsDeptFilter] = useState<string>("inter2");
+
+  useEffect(() => {
+    if (currentUser && currentUser.deptId && currentUser.deptId !== "all") {
+      setShiftsDeptFilter(currentUser.deptId);
+    }
+  }, [currentUser]);
   
   // Modals / Overlays
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState<boolean>(false);
@@ -601,6 +608,19 @@ export default function App() {
   const [newEmpRole, setNewEmpRole] = useState<string>("Operator");
   const [newEmpGroupName, setNewEmpGroupName] = useState<string>("ทีม ก.");
   const [newEmpTargetOt, setNewEmpTargetOt] = useState<number>(48);
+  const [newEmpPrefix, setNewEmpPrefix] = useState<string>("นาย");
+  const [newEmpFirstName, setNewEmpFirstName] = useState<string>("");
+  const [newEmpLastName, setNewEmpLastName] = useState<string>("");
+  const [newEmpNickname, setNewEmpNickname] = useState<string>("");
+  const [newEmpDivision, setNewEmpDivision] = useState<string>("");
+  const [newEmpSalary, setNewEmpSalary] = useState<number>(15000);
+  const [newEmpBirthday, setNewEmpBirthday] = useState<string>("");
+  const [newEmpAge, setNewEmpAge] = useState<number>(0);
+  const [newEmpCalculatedAge, setNewEmpCalculatedAge] = useState<number>(0);
+  const [newEmpStartDate, setNewEmpStartDate] = useState<string>("");
+  const [newEmpTenure, setNewEmpTenure] = useState<string>("");
+  const [newEmpProbationDate, setNewEmpProbationDate] = useState<string>("");
+  const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
 
   // Edit Employee Form State
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState<boolean>(false);
@@ -610,6 +630,22 @@ export default function App() {
   const [editEmpRole, setEditEmpRole] = useState<string>("Operator");
   const [editEmpGroupName, setEditEmpGroupName] = useState<string>("ทีม ก.");
   const [editEmpTargetOt, setEditEmpTargetOt] = useState<number>(48);
+  const [editEmpPrefix, setEditEmpPrefix] = useState<string>("นาย");
+  const [editEmpFirstName, setEditEmpFirstName] = useState<string>("");
+  const [editEmpLastName, setEditEmpLastName] = useState<string>("");
+  const [editEmpNickname, setEditEmpNickname] = useState<string>("");
+  const [editEmpDivision, setEditEmpDivision] = useState<string>("");
+  const [editEmpSalary, setEditEmpSalary] = useState<number>(15000);
+  const [editEmpBirthday, setEditEmpBirthday] = useState<string>("");
+  const [editEmpAge, setEditEmpAge] = useState<number>(0);
+  const [editEmpCalculatedAge, setEditEmpCalculatedAge] = useState<number>(0);
+  const [editEmpStartDate, setEditEmpStartDate] = useState<string>("");
+  const [editEmpTenure, setEditEmpTenure] = useState<string>("");
+  const [editEmpProbationDate, setEditEmpProbationDate] = useState<string>("");
+  const [editEmpCalendarType, setEditEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+
+  // Detail Modal State
+  const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
 
   // Active shift management edit state
   const [isEditingShifts, setIsEditingShifts] = useState<boolean>(false);
@@ -758,21 +794,35 @@ export default function App() {
   // Handle adding new employee
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmpName) {
+    if (!newEmpFirstName) {
       alert("กรุณากรอกชื่อพนักงาน");
       return;
     }
+    const fullName = (newEmpFirstName + (newEmpLastName ? " " + newEmpLastName : "")).trim();
     try {
       const res = await fetch("/api/add-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: newEmpId || undefined,
-          name: newEmpName,
+          name: fullName,
           deptId: newEmpDept,
           role: newEmpRole,
           groupName: newEmpGroupName,
-          targetOt: newEmpTargetOt
+          targetOt: newEmpTargetOt,
+          prefix: newEmpPrefix,
+          firstName: newEmpFirstName,
+          lastName: newEmpLastName,
+          nickname: newEmpNickname,
+          division: newEmpDivision,
+          salary: newEmpSalary,
+          birthday: newEmpBirthday,
+          age: newEmpAge,
+          calculatedAge: newEmpCalculatedAge,
+          startDate: newEmpStartDate,
+          tenure: newEmpTenure,
+          probationDate: newEmpProbationDate,
+          calendarType: newEmpCalendarType
         })
       });
       if (res.ok) {
@@ -780,6 +830,18 @@ export default function App() {
         // Reset form
         setNewEmpId("");
         setNewEmpName("");
+        setNewEmpFirstName("");
+        setNewEmpLastName("");
+        setNewEmpNickname("");
+        setNewEmpDivision("");
+        setNewEmpSalary(15000);
+        setNewEmpBirthday("");
+        setNewEmpAge(0);
+        setNewEmpCalculatedAge(0);
+        setNewEmpStartDate("");
+        setNewEmpTenure("");
+        setNewEmpProbationDate("");
+        setNewEmpCalendarType("ปฏิทินกะ 4-on-2-off");
         setNewEmpRole("Operator");
         setNewEmpTargetOt(48);
         // Reload state
@@ -830,7 +892,12 @@ export default function App() {
         const employees = data.employees || [];
         
         // Define CSV headers
-        const headers = ["id", "name", "deptId", "role", "targetOt", "actualOt", "otPct", "status", "groupName", "shifts"];
+        const headers = [
+          "รหัสพนักงาน", "คำนำหน้า", "ชื่อ", "นามสกุล", "ชื่อเล่น",
+          "ตำแหน่ง", "แผนก", "ฝ่าย", "ฐานเงินเดือน ปี 2568", "วันเกิด",
+          "อายุตัว", "คำนวณอายุตัว", "วันเริ่มงาน", "อายุงาน", "วันที่ผ่านทดลองงาน", "ปฏิทินทำงาน",
+          "เป้าหมาย OT", "กลุ่มการทำงาน", "รหัสกะรายวัน"
+        ];
         
         // Helper to escape values for CSV
         const escapeCsv = (val: any) => {
@@ -841,6 +908,11 @@ export default function App() {
           return `"${str}"`;
         };
 
+        const DEPT_LABELS: Record<string, string> = {
+          inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
+          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
+        };
+
         let csvContent = "\ufeff"; // Add BOM for Excel Thai language support
         csvContent += headers.join(",") + "\n";
 
@@ -848,13 +920,22 @@ export default function App() {
           const shiftsStr = Array.isArray(emp.shifts) ? emp.shifts.join(",") : "";
           const row = [
             escapeCsv(emp.id),
-            escapeCsv(emp.name),
-            escapeCsv(emp.deptId),
-            escapeCsv(emp.role),
+            escapeCsv(emp.prefix || ""),
+            escapeCsv(emp.firstName || emp.name?.split(" ")[0] || ""),
+            escapeCsv(emp.lastName || emp.name?.split(" ")[1] || ""),
+            escapeCsv(emp.nickname || ""),
+            escapeCsv(emp.role || ""),
+            escapeCsv(DEPT_LABELS[emp.deptId] || emp.deptId),
+            escapeCsv(emp.division || ""),
+            emp.salary || 0,
+            escapeCsv(emp.birthday || ""),
+            emp.age || 0,
+            emp.calculatedAge || 0,
+            escapeCsv(emp.startDate || ""),
+            escapeCsv(emp.tenure || ""),
+            escapeCsv(emp.probationDate || ""),
+            escapeCsv(emp.calendarType || ""),
             emp.targetOt ?? 48,
-            emp.actualOt ?? 0,
-            emp.otPct ?? 0,
-            escapeCsv(emp.status || "On Track"),
             escapeCsv(emp.groupName || ""),
             escapeCsv(shiftsStr)
           ];
@@ -937,33 +1018,70 @@ export default function App() {
           return -1;
         };
 
-        const idIdx        = getColIndex("id",        ["รหัสพนักงาน", "รหัส"]);
-        const nameIdx      = getColIndex("name",      ["ชื่อพนักงาน", "ชื่อ"]);
-        const deptIdIdx    = getColIndex("deptId",    ["รหัสแผนก", "แผนก"]);
-        const roleIdx      = getColIndex("role",      ["ตำแหน่ง", "บทบาท"]);
-        const targetOtIdx  = getColIndex("targetOt",  ["เป้าหมาย ot", "เป้าหมาย"]);
-        const groupNameIdx = getColIndex("groupName", ["กลุ่มการทำงาน", "กลุ่ม"]);
-        const shiftsIdx    = getColIndex("shifts",    ["รหัสกะรายวัน", "รหัสกะ"]);
+        const idIdx          = getColIndex("id",           ["รหัสพนักงาน", "รหัส"]);
+        const prefixIdx      = getColIndex("prefix",       ["คำนำหน้า"]);
+        const firstNameIdx   = getColIndex("firstName",    ["ชื่อ", "ชื่อพนักงาน"]);
+        const lastNameIdx    = getColIndex("lastName",     ["นามสกุล"]);
+        const nicknameIdx    = getColIndex("nickname",     ["ชื่อเล่น"]);
+        const roleIdx        = getColIndex("role",         ["ตำแหน่ง", "บทบาท"]);
+        const deptIdIdx      = getColIndex("deptId",       ["แผนก", "รหัสแผนก"]);
+        const divisionIdx    = getColIndex("division",     ["ฝ่าย"]);
+        const salaryIdx      = getColIndex("salary",       ["ฐานเงินเดือน ปี 2568", "ฐานเงินเดือน", "เงินเดือน"]);
+        const birthdayIdx    = getColIndex("birthday",     ["วันเกิด"]);
+        const ageIdx         = getColIndex("age",          ["อายุตัว"]);
+        const calcAgeIdx     = getColIndex("calculatedAge", ["คำนวณอายุตัว"]);
+        const startDateIdx   = getColIndex("startDate",     ["วันเริ่มงาน"]);
+        const tenureIdx      = getColIndex("tenure",        ["อายุงาน"]);
+        const probationIdx   = getColIndex("probationDate", ["วันที่ผ่านทดลองงาน", "ผ่านโปร"]);
+        const calendarIdx    = getColIndex("calendarType",  ["ปฏิทินทำงาน"]);
+        const targetOtIdx    = getColIndex("targetOt",     ["เป้าหมาย OT", "เป้าหมาย"]);
+        const groupNameIdx   = getColIndex("groupName",    ["กลุ่มการทำงาน", "กลุ่ม"]);
+        const shiftsIdx      = getColIndex("shifts",       ["รหัสกะรายวัน", "รหัสกะ"]);
 
-        if (idIdx === -1 || nameIdx === -1 || deptIdIdx === -1) {
-          alert("โครงสร้างหัวตาราง CSV ไม่ถูกต้อง อย่างน้อยต้องมีคอลัมน์: รหัสพนักงาน (id), ชื่อพนักงาน (name), รหัสแผนก (deptId)");
+        if (idIdx === -1) {
+          alert("โครงสร้างหัวตาราง CSV ไม่ถูกต้อง อย่างน้อยต้องมีคอลัมน์: รหัสพนักงาน");
           return;
         }
 
         const parsedEmployees: any[] = [];
         for (let i = 1; i < lines.length; i++) {
           const values = parseCsvLine(lines[i]);
-          if (values.length < 3) continue;
+          if (values.length < 1) continue;
 
           const id = values[idIdx]?.trim();
-          const name = values[nameIdx]?.trim();
-          const deptId = values[deptIdIdx]?.trim();
+          if (!id) continue;
 
-          if (!id || !name || !deptId) continue;
+          const prefix      = prefixIdx !== -1 ? (values[prefixIdx]?.trim() || "นาย") : "นาย";
+          const firstName   = firstNameIdx !== -1 ? (values[firstNameIdx]?.trim() || "") : "";
+          const lastName    = lastNameIdx !== -1 ? (values[lastNameIdx]?.trim() || "") : "";
+          const nickname    = nicknameIdx !== -1 ? (values[nicknameIdx]?.trim() || "") : "";
+          const name        = (firstName + (lastName ? " " + lastName : "")).trim() || id;
+          
+          const rawDept     = deptIdIdx !== -1 ? (values[deptIdIdx]?.trim() || "inter2") : "inter2";
+          const cleanedDept = rawDept.toLowerCase().replace(/แผนก\s*/, "");
+          const deptMap: Record<string, string> = {
+            "inter 2": "inter2", "inter2": "inter2",
+            "inter 3": "inter3", "inter3": "inter3",
+            "inter 5": "inter5", "inter5": "inter5",
+            "inter 7": "inter7", "inter7": "inter7",
+            "heavy machine": "heavy", "heavy": "heavy", "heavy_machine": "heavy",
+            "ecc": "ecc"
+          };
+          const deptId      = deptMap[cleanedDept] || rawDept;
+          
+          const role        = roleIdx !== -1 ? (values[roleIdx]?.trim() || "Operator") : "Operator";
+          const division    = divisionIdx !== -1 ? (values[divisionIdx]?.trim() || "") : "";
+          const salary      = salaryIdx !== -1 ? (Number(values[salaryIdx]) || 15000) : 15000;
+          const birthday    = birthdayIdx !== -1 ? (values[birthdayIdx]?.trim() || "") : "";
+          const age         = ageIdx !== -1 ? (Number(values[ageIdx]) || 0) : 0;
+          const calculatedAge = calcAgeIdx !== -1 ? (Number(values[calcAgeIdx]) || 0) : 0;
+          const startDate   = startDateIdx !== -1 ? (values[startDateIdx]?.trim() || "") : "";
+          const tenure      = tenureIdx !== -1 ? (values[tenureIdx]?.trim() || "") : "";
+          const probationDate = probationIdx !== -1 ? (values[probationIdx]?.trim() || "") : "";
+          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "ปฏิทินกะ 4-on-2-off") : "ปฏิทินกะ 4-on-2-off";
 
-          const role      = roleIdx      !== -1 ? (values[roleIdx]?.trim()      || "Operator") : "Operator";
-          const targetOt  = targetOtIdx  !== -1 ? (Number(values[targetOtIdx])  || 48)         : 48;
-          const groupName = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "")         : "";
+          const targetOt    = targetOtIdx !== -1 ? (Number(values[targetOtIdx]) || 48) : 48;
+          const groupName   = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "") : "";
           
           let shifts: string[] = [];
           if (shiftsIdx !== -1) {
@@ -973,7 +1091,10 @@ export default function App() {
             }
           }
 
-          parsedEmployees.push({ id, name, deptId, role, targetOt, groupName, shifts });
+          parsedEmployees.push({
+            id, name, deptId, role, targetOt, groupName, shifts,
+            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+          });
         }
 
         if (parsedEmployees.length === 0) {
@@ -1014,21 +1135,36 @@ export default function App() {
   const handleEditEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEmployee) return;
-    if (!editEmpName) {
+    if (!editEmpFirstName) {
       alert("กรุณากรอกชื่อพนักงาน");
       return;
     }
+    const fullName = (editEmpFirstName + (editEmpLastName ? " " + editEmpLastName : "")).trim();
     try {
       const res = await fetch("/api/edit-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingEmployee.id,
-          name: editEmpName,
+          name: fullName,
           deptId: editEmpDept,
           role: editEmpRole,
           groupName: editEmpGroupName,
-          targetOt: editEmpTargetOt
+          targetOt: editEmpTargetOt,
+          prefix: editEmpPrefix,
+          firstName: editEmpFirstName,
+          lastName: editEmpLastName,
+          nickname: editEmpNickname,
+          division: editEmpDivision,
+          salary: editEmpSalary,
+          birthday: editEmpBirthday,
+          age: editEmpAge,
+          calculatedAge: editEmpCalculatedAge,
+          startDate: editEmpStartDate,
+          tenure: editEmpTenure,
+          probationDate: editEmpProbationDate,
+          calendarType: editEmpCalendarType,
+          username: currentUser?.username
         })
       });
       if (res.ok) {
@@ -1077,6 +1213,21 @@ export default function App() {
     setEditEmpRole(emp.role);
     setEditEmpGroupName(emp.groupName);
     setEditEmpTargetOt(emp.targetOt);
+    
+    setEditEmpPrefix(emp.prefix || "นาย");
+    setEditEmpFirstName(emp.firstName || emp.name.split(" ")[0] || "");
+    setEditEmpLastName(emp.lastName || emp.name.split(" ")[1] || "");
+    setEditEmpNickname(emp.nickname || "");
+    setEditEmpDivision(emp.division || "");
+    setEditEmpSalary(emp.salary || 15000);
+    setEditEmpBirthday(emp.birthday || "");
+    setEditEmpAge(emp.age || 0);
+    setEditEmpCalculatedAge(emp.calculatedAge || 0);
+    setEditEmpStartDate(emp.startDate || "");
+    setEditEmpTenure(emp.tenure || "");
+    setEditEmpProbationDate(emp.probationDate || "");
+    setEditEmpCalendarType(emp.calendarType || "ปฏิทินกะ 4-on-2-off");
+    
     setShowEditEmployeeModal(true);
   };
 
@@ -1396,6 +1547,51 @@ export default function App() {
   const companyPoints = getRadarPoints(coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct);
   const safetyBaselinePoints = getRadarPoints(0.5, 0.6, 0.55, 0.5, 0.6);
 
+  // Compute OT skewness / distribution for the 10 operating roles
+  const operatingRoles = [
+    "ผู้ควบคุมงานขนถ่ายสินค้า",
+    "พนักงานขับเครน",
+    "ปากเรือ",
+    "ผู้ควบคุมงานจักรกลหนัก",
+    "ช่างขับจักรกลหนัก",
+    "O&M - Specialist",
+    "O&M - Generator",
+    "O&M - Mechanical",
+    "O&M - Electrical",
+    "ECC"
+  ];
+
+  const roleOtData = operatingRoles.map(role => {
+    // Sum OT hours of all employees in this role in the filtered dashboard list
+    const empsInRole = dashboardEmployees.filter(e => e.role === role);
+    const totalOt = Math.round(empsInRole.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
+    const empCount = empsInRole.length;
+    return { role, totalOt, empCount };
+  });
+
+  const maxRoleOt = Math.max(...roleOtData.map(r => r.totalOt), 1);
+
+  // Compute Thai labor law compliance violations dynamically
+  const fatiguedEmployees = dashboardEmployees.filter(emp => {
+    // 1. OT hours > 36 hours (risk threshold)
+    if ((emp.actualOt || 0) > 36) return true;
+    
+    // 2. Consecutive shifts (more than 6 days in a row without 'O' or '')
+    let maxConsecutive = 0;
+    let currentConsecutive = 0;
+    for (const shift of emp.shifts || []) {
+      if (shift !== "O" && shift !== "") {
+        currentConsecutive++;
+        if (currentConsecutive > maxConsecutive) {
+          maxConsecutive = currentConsecutive;
+        }
+      } else {
+        currentConsecutive = 0;
+      }
+    }
+    return maxConsecutive > 6;
+  });
+
   // ==========================================
   // Heatmap Aggregation calculations
   // ==========================================
@@ -1671,6 +1867,31 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Labor Compliance Warning Banner */}
+              {fatiguedEmployees.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 font-bold text-lg">
+                      ⚠️
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-amber-950">ตรวจพบพนักงานกลุ่มเสี่ยงความล้าสะสม ({fatiguedEmployees.length} คน)</h4>
+                      <p className="text-[10px] text-amber-700 mt-0.5">มีพนักงานทำงานล่วงเวลาสะสมเกิน 36 ชม. หรือทำงานต่อเนื่องกันเกิน 6 วันโดยไม่มีวันหยุดตามกฎหมายแรงงานไทย</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSelectedRoleFilter("ทุกตำแหน่ง");
+                      setSearchQuery("");
+                      setActiveTab("employees");
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-extrabold transition-colors cursor-pointer"
+                  >
+                    ตรวจสอบรายชื่อพนักงานกลุ่มเสี่ยง
+                  </button>
+                </div>
+              )}
 
               {/* KPI Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2172,11 +2393,11 @@ export default function App() {
 
               </div>
 
-              {/* Row: Peak Heatmap & KPIs radar simulation */}
+              {/* Row: Peak Heatmap & KPIs radar simulation & Position Distribution */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Heatmap block */}
-                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
@@ -2238,10 +2459,10 @@ export default function App() {
                 </div>
 
                 {/* Radar Chart KPIs */}
-                <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
-                    <p className="text-xs text-slate-500 mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากรการผลิต</p>
+                    <p className="text-xs text-slate-500 mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
                   </div>
 
                   <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
@@ -2252,7 +2473,7 @@ export default function App() {
                         <p className="text-[10px] text-slate-400 mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
                       </div>
                     )}
-                    <svg className="w-44 h-44 overflow-visible" viewBox="0 0 100 100">
+                    <svg className="w-40 h-40 overflow-visible" viewBox="0 0 100 100">
                       {/* Grid */}
                       <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
                       <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
@@ -2281,15 +2502,50 @@ export default function App() {
                     <span className="absolute top-16 left-0 text-[8px] font-bold text-slate-500">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
                   </div>
 
-                  <div className="flex gap-4 justify-center text-[10px] font-bold text-slate-600 mt-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                      <span>ดัชนีสะสม (Current Index)</span>
+                  <div className="flex gap-4 justify-center text-[9px] font-bold text-slate-600 mt-2">
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-blue-600 rounded-sm"></span>
+                      <span>ดัชนี (Current)</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
-                      <span>เกณฑ์แนะนำ (Baseline)</span>
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
+                      <span>เกณฑ์ (Baseline)</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* OT Distribution by Position */}
+                <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
+                    <p className="text-[10px] text-slate-500 mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
+                  </div>
+
+                  <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
+                    {roleOtData.map((item, idx) => {
+                      const pct = Math.round((item.totalOt / maxRoleOt) * 100);
+                      return (
+                        <div key={idx} className="group">
+                          <div className="flex justify-between items-center text-[10px] mb-0.5">
+                            <span className="font-bold text-slate-600 group-hover:text-blue-600 truncate max-w-[130px] transition-colors" title={item.role}>
+                              {item.role}
+                            </span>
+                            <span className="font-bold text-slate-900 font-mono">{item.totalOt} ชม. ({item.empCount} คน)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden shadow-inner">
+                            <div 
+                              style={{ width: `${pct}%` }}
+                              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all"
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="pt-2.5 border-t border-slate-100 mt-4 flex items-center justify-between text-[9px] font-bold text-slate-400">
+                    <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
+                    <span className="text-blue-600">วิเคราะห์เอนเอียง</span>
                   </div>
                 </div>
 
@@ -2486,11 +2742,11 @@ export default function App() {
                         const dept = state.departments.find(d => d.id === emp.deptId);
                         return (
                           <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => setViewingEmployeeDetails(emp)}>
                               <div className="flex items-center gap-3">
                                 <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-9 h-9" />
                                 <div>
-                                  <p className="font-bold text-slate-800">{emp.name}</p>
+                                  <p className="font-bold text-slate-800 hover:text-blue-600 transition-colors">{emp.name}</p>
                                   <p className="text-[10px] text-slate-400 font-mono">{emp.id}</p>
                                 </div>
                               </div>
@@ -2530,6 +2786,17 @@ export default function App() {
                             </td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingEmployeeDetails(emp)}
+                                  className="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                                  title="ดูประวัติและรายละเอียดพนักงาน"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                  </svg>
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => startEditEmployee(emp)}
@@ -2574,10 +2841,30 @@ export default function App() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-lg font-extrabold text-slate-800">ตารางการจัดกะทำงานและแผนงาน (Shift Planner)</h3>
-                  <p className="text-xs text-slate-500 mt-1">แผนกผลิต A</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    แผนก: <span className="font-extrabold text-blue-600">
+                      {state?.departments.find(d => d.id === shiftsDeptFilter)?.nameTh || shiftsDeptFilter}
+                    </span>
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  {/* Select Department (Only visible to HR/Admin) */}
+                  {activeDeptId === "all" && (
+                    <select
+                      value={shiftsDeptFilter}
+                      onChange={(e) => setShiftsDeptFilter(e.target.value)}
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="inter2">แผนก INTER 2</option>
+                      <option value="inter3">แผนก INTER 3</option>
+                      <option value="inter5">แผนก INTER 5</option>
+                      <option value="inter7">แผนก INTER 7</option>
+                      <option value="heavy">แผนก Heavy Machine</option>
+                      <option value="ecc">แผนก ECC</option>
+                    </select>
+                  )}
+
                   {/* Select Year */}
                   <select
                     value={(state?.shiftConfig?.currentMonth || "2026-07").split("-")[0]}
@@ -2793,7 +3080,7 @@ export default function App() {
                     {/* Employee scheduler rows */}
                     <div className={`divide-y divide-slate-100 ${isEditingShifts ? "pb-60" : ""}`}>
                       {(isEditingShifts ? tempEmployees : state.employees)
-                        .filter(emp => activeDeptId === "all" || emp.deptId === activeDeptId)
+                        .filter(emp => emp.deptId === shiftsDeptFilter)
                         .map((emp) => {
                         return (
                           <div 
@@ -3140,7 +3427,6 @@ export default function App() {
                       <h4 className="text-sm font-bold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Users & Permissions)</h4>
                       <p className="text-xs text-slate-500">ปรับเปลี่ยนสิทธิ์ความรับผิดชอบของหัวหน้างาน หรือรีเซ็ตรหัสผ่านของพนักงานอื่น</p>
                     </div>
-
                     <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
                       <table className="w-full text-left text-xs text-slate-600">
                         <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
@@ -3518,7 +3804,7 @@ export default function App() {
       {/* ======================================= */}
       {showEditEmployeeModal && editingEmployee && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-bold text-slate-900">แก้ไขข้อมูลพนักงาน</h3>
@@ -3535,68 +3821,235 @@ export default function App() {
               </button>
             </div>
 
-            <form onSubmit={handleEditEmployee} className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อพนักงาน</label>
-                <input 
-                  type="text"
-                  value={editEmpName}
-                  onChange={(e) => setEditEmpName(e.target.value)}
-                  placeholder="เช่น สมศักดิ์ มั่นใจ"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
+            <form onSubmit={handleEditEmployee} className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                  1. ข้อมูลทั่วไปของบุคลากร (General Profile)
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">คำนำหน้า</label>
+                    <select
+                      value={editEmpPrefix}
+                      onChange={(e) => setEditEmpPrefix(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="นาย">นาย</option>
+                      <option value="นาง">นาง</option>
+                      <option value="นางสาว">นางสาว</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อจริง *</label>
+                    <input
+                      type="text"
+                      value={editEmpFirstName}
+                      onChange={(e) => setEditEmpFirstName(e.target.value)}
+                      placeholder="ชื่อจริง"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">นามสกุล</label>
+                    <input
+                      type="text"
+                      value={editEmpLastName}
+                      onChange={(e) => setEditEmpLastName(e.target.value)}
+                      placeholder="นามสกุล"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อเล่น</label>
+                    <input
+                      type="text"
+                      value={editEmpNickname}
+                      onChange={(e) => setEditEmpNickname(e.target.value)}
+                      placeholder="ชื่อเล่น"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเกิด</label>
+                    <input
+                      type="date"
+                      value={editEmpBirthday}
+                      onChange={(e) => {
+                        setEditEmpBirthday(e.target.value);
+                        if (e.target.value) {
+                          const birthYear = new Date(e.target.value).getFullYear();
+                          const currentYear = new Date().getFullYear();
+                          setEditEmpAge(currentYear - birthYear);
+                          setEditEmpCalculatedAge(currentYear - birthYear);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">อายุตัว (ปี)</label>
+                    <input
+                      type="number"
+                      value={editEmpAge || ""}
+                      onChange={(e) => {
+                        setEditEmpAge(Number(e.target.value));
+                        setEditEmpCalculatedAge(Number(e.target.value));
+                      }}
+                      placeholder="คำนวณอัตโนมัติ"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกสังกัดหลัก</label>
-                <select 
-                  value={editEmpDept}
-                  onChange={(e) => setEditEmpDept(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                >
-                  <option value="inter2">INTER 2</option>
-                  <option value="inter3">INTER 3</option>
-                  <option value="inter5">INTER 5</option>
-                  <option value="inter7">INTER 7</option>
-                  <option value="heavy">Heavy Machine</option>
-                  <option value="ecc">ECC</option>
-                </select>
+              {/* ส่วนที่ 2: สังกัดและตำแหน่งงาน */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                  2. สังกัดและสายงานผลิต (Organization & Roles)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ตำแหน่งงาน *</label>
+                    <input 
+                      type="text"
+                      value={editEmpRole}
+                      onChange={(e) => setEditEmpRole(e.target.value)}
+                      placeholder="เช่น พนักงานขับเครน"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">สังกัดแผนก</label>
+                    <select 
+                      value={editEmpDept}
+                      onChange={(e) => setEditEmpDept(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="inter2">INTER 2</option>
+                      <option value="inter3">INTER 3</option>
+                      <option value="inter5">INTER 5</option>
+                      <option value="inter7">INTER 7</option>
+                      <option value="heavy">Heavy Machine</option>
+                      <option value="ecc">ECC</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ฝ่าย</label>
+                    <input 
+                      type="text"
+                      value={editEmpDivision}
+                      onChange={(e) => setEditEmpDivision(e.target.value)}
+                      placeholder="เช่น ปฏิบัติการ"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">กลุ่มการทำงาน / ทีมย่อย</label>
+                    <input 
+                      type="text"
+                      value={editEmpGroupName}
+                      onChange={(e) => setEditEmpGroupName(e.target.value)}
+                      placeholder="เช่น ทีม ก."
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ปฏิทินทำงาน</label>
+                    <select
+                      value={editEmpCalendarType}
+                      onChange={(e) => setEditEmpCalendarType(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ปฏิทินกะ 4-on-2-off">ปฏิทินกะ 4-on-2-off</option>
+                      <option value="ทำงานวันจันทร์-ศุกร์ (Office)">ทำงานวันจันทร์-ศุกร์ (Office)</option>
+                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์">วันทำงานปกติ 6 วันต่อสัปดาห์</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ตำแหน่งงานปฏิบัติการ (Role)</label>
-                <input 
-                  type="text"
-                  value={editEmpRole}
-                  onChange={(e) => setEditEmpRole(e.target.value)}
-                  placeholder="เช่น Lead Operator / Senior Tech"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
-              </div>
+              {/* ส่วนที่ 3: สัญญาจ้างและสิทธิ์ OT */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  3. สัญญาจ้างงานและเป้าหมายโอที (Employment & Quota)
+                </h4>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อทีมย่อยสำหรับการจัดตารางกะ</label>
-                <input 
-                  type="text"
-                  value={editEmpGroupName}
-                  onChange={(e) => setEditEmpGroupName(e.target.value)}
-                  placeholder="เช่น ทีม ก. (ช่างเทคนิคอาวุโส) หรือ ทีม ข. (โอเปอเรเตอร์)"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ฐานเงินเดือน ปี 2568 (บาท)</label>
+                    <input 
+                      type="number"
+                      value={editEmpSalary || ""}
+                      onChange={(e) => setEditEmpSalary(Number(e.target.value))}
+                      placeholder="เช่น 18000"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเริ่มงาน</label>
+                    <input 
+                      type="date"
+                      value={editEmpStartDate}
+                      onChange={(e) => {
+                        setEditEmpStartDate(e.target.value);
+                        if (e.target.value) {
+                          const start = new Date(e.target.value);
+                          const diff = Date.now() - start.getTime();
+                          const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+                          const months = Math.floor((diff % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.43));
+                          setEditEmpTenure(`${years} ปี ${months} เดือน`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ผ่านทดลองงาน</label>
+                    <input 
+                      type="date"
+                      value={editEmpProbationDate}
+                      onChange={(e) => setEditEmpProbationDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">โควตาความปลอดภัยสะสมสูงสุดต่อเดือน (ชั่วโมง)</label>
-                <input 
-                  type="number"
-                  value={editEmpTargetOt}
-                  onChange={(e) => setEditEmpTargetOt(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                  required
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">อายุงาน (คำนวณอัตโนมัติ)</label>
+                    <input 
+                      type="text"
+                      value={editEmpTenure}
+                      onChange={(e) => setEditEmpTenure(e.target.value)}
+                      placeholder="เช่น 1 ปี 4 เดือน"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">โควตาเป้าหมาย OT (ชม./เดือน)</label>
+                    <input 
+                      type="number"
+                      value={editEmpTargetOt}
+                      onChange={(e) => setEditEmpTargetOt(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex gap-2 items-center">
@@ -3628,6 +4081,191 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: VIEW EMPLOYEE PROFILE DETAILS */}
+      {/* ======================================= */}
+      {viewingEmployeeDetails && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+            {/* Header / Avatar Banner */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-start">
+              <div className="flex items-center gap-4">
+                <EmployeeAvatar 
+                  empId={viewingEmployeeDetails.id} 
+                  empName={viewingEmployeeDetails.name} 
+                  className="w-16 h-16 text-lg border-2 border-white shadow-md" 
+                />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-extrabold text-slate-900">
+                      {viewingEmployeeDetails.prefix || ""}{viewingEmployeeDetails.name}
+                    </h3>
+                    {viewingEmployeeDetails.nickname && (
+                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg text-[10px] font-extrabold">
+                        ({viewingEmployeeDetails.nickname})
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">รหัสพนักงาน: <span className="text-slate-800 font-bold">{viewingEmployeeDetails.id}</span></p>
+                  <p className="text-[11px] text-indigo-600 font-bold mt-1">
+                    {viewingEmployeeDetails.role} • แผนก {
+                      state.departments.find(d => d.id === viewingEmployeeDetails.deptId)?.nameTh || viewingEmployeeDetails.deptId
+                    }
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewingEmployeeDetails(null)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Profile Content Body */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1 text-slate-700 text-xs">
+              {/* Category 1: ข้อมูลทั่วไป */}
+              <div className="space-y-2.5">
+                <h4 className="font-extrabold text-blue-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
+                  📁 ข้อมูลทั่วไปของพนักงาน (General)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">คำนำหน้า</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.prefix || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">ชื่อจริง</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.firstName || viewingEmployeeDetails.name?.split(" ")[0] || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">นามสกุล</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.lastName || viewingEmployeeDetails.name?.split(" ")[1] || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">วันเกิด (ปี/เดือน/วัน)</span>
+                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.birthday || "-"}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">อายุตัว</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.age || "-"} ปี</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">คำนวณอายุตัว</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.calculatedAge || "-"} ปี</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category 2: โครงสร้างสังกัด */}
+              <div className="space-y-2.5">
+                <h4 className="font-extrabold text-indigo-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
+                  🏢 สังกัดและโครงสร้างสายปฏิบัติงาน (Organization)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">ตำแหน่งงาน</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.role || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">แผนกปฏิบัติการ</span>
+                    <span className="font-bold text-slate-800">
+                      {state.departments.find(d => d.id === viewingEmployeeDetails.deptId)?.nameTh || viewingEmployeeDetails.deptId}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">ฝ่ายงาน</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.division || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">ทีมย่อย / กลุ่มทำงาน</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.groupName || "-"}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
+                  <div className="col-span-2">
+                    <span className="block text-[10px] text-slate-400 font-medium">ปฏิทินปฏิบัติงาน</span>
+                    <span className="font-bold text-indigo-700">{viewingEmployeeDetails.calendarType || "-"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category 3: การจ้างงานและโควตา */}
+              <div className="space-y-2.5">
+                <h4 className="font-extrabold text-emerald-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
+                  💰 ข้อมูลสัญญาการจ้างงานและข้อจำกัดโอที (Compensation & Policy)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
+                    <span className="font-bold text-slate-800 font-mono">฿{viewingEmployeeDetails.salary?.toLocaleString() || "0"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">วันเริ่มงาน</span>
+                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.startDate || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">อายุงานรวม</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.tenure || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-medium">วันที่ผ่านทดลองงาน</span>
+                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.probationDate || "-"}</span>
+                  </div>
+                </div>
+                
+                {/* OT Stats inside details */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-emerald-50/40 p-3 rounded-2xl border border-emerald-100/50">
+                  <div>
+                    <span className="block text-[10px] text-emerald-600 font-bold">เป้าหมาย OT สะสมสูงสุด</span>
+                    <span className="font-black text-slate-800 font-mono">{viewingEmployeeDetails.targetOt || 48} ชม.</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-emerald-600 font-bold">OT สะสมจริงเดือนนี้</span>
+                    <span className="font-black text-blue-700 font-mono">{viewingEmployeeDetails.actualOt || 0} ชม.</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="block text-[10px] text-emerald-600 font-bold">สัดส่วนเป้าหมายที่ใช้ไป</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <div className="w-24 bg-slate-200 h-2 rounded-full overflow-hidden">
+                        <div 
+                          style={{ width: `${Math.min(100, viewingEmployeeDetails.otPct || 0)}%` }}
+                          className={`h-full rounded-full ${viewingEmployeeDetails.actualOt > viewingEmployeeDetails.targetOt ? 'bg-red-500' : 'bg-blue-600'}`}
+                        ></div>
+                      </div>
+                      <span className="font-black text-slate-800 font-mono">{viewingEmployeeDetails.otPct || 0}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingEmployeeDetails(null);
+                  startEditEmployee(viewingEmployeeDetails);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+              >
+                ✏️ แก้ไขข้อมูลโปรไฟล์
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingEmployeeDetails(null)}
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 text-xs font-bold rounded-xl transition-colors"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
           </div>
         </div>
       )}
