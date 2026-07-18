@@ -132,6 +132,330 @@ type OtRecord = {
 
 const MONTH_TH = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
+type LeaveRecord = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  deptId: string;
+  date: string;
+  leaveType: string;
+  note: string;
+};
+
+const LEAVE_TYPES: Record<string, string> = {
+  vacation: "ลาพักร้อน",
+  sick: "ลาป่วย",
+  personal: "ลากิจ",
+  other: "อื่นๆ"
+};
+
+function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: AppState }) {
+  const fullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"].includes(currentUser?.role || "");
+  const now = new Date();
+  const [filterYear, setFilterYear] = React.useState(now.getFullYear());
+  const [filterMonth, setFilterMonth] = React.useState<number | string>(now.getMonth() + 1);
+  const [filterDept, setFilterDept] = React.useState(fullAccess ? "all" : (currentUser?.deptId || "all"));
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [records, setRecords] = React.useState<LeaveRecord[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [newEmployeeId, setNewEmployeeId] = React.useState("");
+  const [newDate, setNewDate] = React.useState(new Date().toISOString().substring(0, 10));
+  const [newType, setNewType] = React.useState("vacation");
+  const [newNote, setNewNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        year: String(filterYear),
+        deptId: filterDept
+      });
+      if (filterMonth !== "all") {
+        params.append("month", String(filterMonth));
+      }
+      const res = await fetch(`/api/leave-records?${params}`);
+      if (res.ok) setRecords(await res.json());
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  React.useEffect(() => { fetchRecords(); }, [filterYear, filterMonth, filterDept]);
+
+  const handleAddLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmployeeId || !newDate) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/add-leave-record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: newEmployeeId,
+          date: newDate,
+          leaveType: newType,
+          note: newNote,
+          username: currentUser?.username
+        })
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setNewEmployeeId("");
+        setNewNote("");
+        fetchRecords();
+      } else {
+        const data = await res.json();
+        alert(data.error || "เกิดข้อผิดพลาดในการบันทึก");
+      }
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const handleDeleteLeave = async (id: string) => {
+    if (!confirm("คุณต้องการลบรายการลานี้ใช่หรือไม่?")) return;
+    try {
+      const res = await fetch(`/api/delete-leave-record/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) fetchRecords();
+    } catch (e) { console.error(e); }
+  };
+
+  const filteredRecords = records.filter(r => 
+    r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.employeeId.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
+  const departments = state.departments;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+            <span className="text-white text-lg">📝</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-800">ประวัติการลางานพนักงาน (Leave Records)</h3>
+            <p className="text-xs text-slate-500 mt-0.5">ระบบจัดการประวัติการลา ลาป่วย ลากิจ และพักร้อนของบุคลากร</p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            if (state.employees.length > 0) {
+              setNewEmployeeId(state.employees[0].id);
+            }
+            setShowAddModal(true);
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 cursor-pointer"
+        >
+          <span>+ บันทึกการลาใหม่</span>
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3">
+        <select
+          value={filterYear}
+          onChange={e => setFilterYear(Number(e.target.value))}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+        >
+          {years.map(y => <option key={y} value={y}>ปี {y}</option>)}
+        </select>
+
+        <select
+          value={filterMonth}
+          onChange={e => {
+            const v = e.target.value;
+            setFilterMonth(v === "all" ? "all" : Number(v));
+          }}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+        >
+          <option value="all">ทุกเดือน</option>
+          {MONTH_TH.slice(1).map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+        </select>
+
+        {fullAccess && (
+          <select
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+          >
+            <option value="all">ทุกแผนก</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>{d.nameTh}</option>
+            ))}
+          </select>
+        )}
+
+        <input
+          type="text"
+          placeholder="ค้นหาชื่อหรือรหัสพนักงาน..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none w-56 placeholder-slate-400"
+        />
+        
+        <div className="ml-auto bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 text-xs font-bold text-indigo-700">
+          วันลาทั้งหมด: <span className="text-lg font-black">{filteredRecords.length}</span> ครั้ง
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-4 py-3 text-left font-bold text-slate-600">วันที่ลา</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">รหัสพนักงาน</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">ชื่อพนักงาน</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">แผนก</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">ประเภทการลา</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">หมายเหตุ / รายละเอียด</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+              ) : filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-4xl">📝</span>
+                      <p className="text-sm font-bold text-slate-500">ไม่พบประวัติการลางาน</p>
+                      <p className="text-xs text-slate-400">กดปุ่ม "+ บันทึกการลาใหม่" เพื่อเริ่มต้นบันทึกการลาพนักงาน</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredRecords.map(r => (
+                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 py-3 text-slate-700 font-mono font-bold">{r.date}</td>
+                  <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {departments.find(d => d.id === r.deptId)?.nameTh || r.deptId}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full border font-extrabold text-[10px] ${
+                      r.leaveType === "sick" ? "bg-red-50 text-red-700 border-red-200" :
+                      r.leaveType === "personal" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                      r.leaveType === "vacation" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                      "bg-slate-50 text-slate-700 border-slate-200"
+                    }`}>
+                      {LEAVE_TYPES[r.leaveType] || r.leaveType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 font-medium">{r.note || "-"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => handleDeleteLeave(r.id)}
+                      className="px-2.5 py-1 text-[10px] font-extrabold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      ลบ
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Leave Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-extrabold text-slate-800 text-sm">บันทึกประวัติการลางานใหม่</h3>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleAddLeave} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">เลือกพนักงาน</label>
+                <select
+                  value={newEmployeeId}
+                  onChange={e => setNewEmployeeId(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                >
+                  {state.employees.map(e => (
+                    <option key={e.id} value={e.id}>{e.id} - {e.name} ({departments.find(d => d.id === e.deptId)?.name || e.deptId})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">วันที่หยุดงาน</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={e => setNewDate(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">ประเภทการลา</label>
+                <select
+                  value={newType}
+                  onChange={e => setNewType(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                >
+                  <option value="vacation">ลาพักร้อน (Vacation)</option>
+                  <option value="sick">ลาป่วย (Sick Leave)</option>
+                  <option value="personal">ลากิจ (Personal Leave)</option>
+                  <option value="other">อื่นๆ (Other)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">หมายเหตุ / รายละเอียด</label>
+                <textarea
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  rows={3}
+                  placeholder="เช่น ลาป่วยใบรับรองแพทย์, ลากิจไปทำธุระส่วนตัว..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors resize-none placeholder-slate-400"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10"
+                >
+                  {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppState }) {
   const fullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"].includes(currentUser?.role);
   const now = new Date();
@@ -1783,6 +2107,7 @@ export default function App() {
               activeTab === "dashboard" ? "แดชบอร์ดจัดการ OT อัจฉริยะ" : 
               activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
               activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
+              activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
               activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
               activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
               activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
@@ -3318,6 +3643,16 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "ot-records" && (
             <OtRecordsView 
+              currentUser={currentUser} 
+              state={state}
+            />
+          )}
+
+          {/* ======================================= */}
+          {/* VIEW: LEAVE RECORDS */}
+          {/* ======================================= */}
+          {activeTab === "leave-records" && (
+            <LeaveRecordsView 
               currentUser={currentUser} 
               state={state}
             />

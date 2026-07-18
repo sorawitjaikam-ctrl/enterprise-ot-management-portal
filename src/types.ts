@@ -55,9 +55,20 @@ export interface OtTrendData {
   currentYear: number[];
 }
 
+export interface LeaveRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  deptId: string;
+  date: string;
+  leaveType: string;
+  note: string;
+}
+
 export interface AppState {
   departments: Department[];
   employees: Employee[];
   shiftConfig: ShiftConfig;
   otTrendData: OtTrendData;
+  leaveRecords?: LeaveRecord[];
 }

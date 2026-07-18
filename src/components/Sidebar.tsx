@@ -1,4 +1,3 @@
-import React from "react";
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -8,7 +7,8 @@ import {
   HelpCircle, 
   LogOut, 
   Factory,
-  ClipboardList
+  ClipboardList,
+  FileText
 } from "lucide-react";
 
 interface SidebarProps {
@@ -26,6 +26,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
     ...(isHrOrFullAccess ? [
       { id: "employees",  label: "รายชื่อพนักงาน",           icon: Users },
+      { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: FileText },
     ] : []),
     { id: "shifts",     label: "จัดการตารางกะ (Shifts)",   icon: Calendar },
     ...(isHrOrFullAccess ? [

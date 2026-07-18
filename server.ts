@@ -76,7 +76,8 @@ let appState = {
     currentMonth: new Date().toISOString().substring(0, 7),
     currentDept: "inter2"
   },
-  otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] }
+  otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] },
+  leaveRecords: [] as any[]
 };
 
 let appAccounts: any[] = [
@@ -288,6 +289,17 @@ const initD1Database = async () => {
     )`);
 
 
+
+    // Leave Records — บันทึกวันลา
+    await queryD1(`CREATE TABLE IF NOT EXISTS leave_records (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT,
+      deptId TEXT,
+      date TEXT NOT NULL,
+      leaveType TEXT DEFAULT 'vacation',
+      note TEXT
+    )`);
 
     // Shift config
     await queryD1(`CREATE TABLE IF NOT EXISTS shift_config (
@@ -866,6 +878,7 @@ app.post("/api/delete-employee", async (req, res) => {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees WHERE id = ?", [id]);
       await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [id]);
+      await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [id]);
       await writeAuditLog(username || "system", "delete_employee", "employee", id, {});
     } else {
       appState.employees = appState.employees.filter(e => e.id !== id);
@@ -1039,7 +1052,91 @@ app.post("/api/update-dept-budget", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============================================================
+// Leave Records (NEW)
+// ============================================================
+app.get("/api/leave-records", async (req, res) => {
+  const { employeeId, year, month, deptId } = req.query;
+  try {
+    if (isD1Enabled()) {
+      let sql = "SELECT * FROM leave_records WHERE 1=1";
+      const params: any[] = [];
+      if (employeeId) { sql += " AND employeeId = ?"; params.push(employeeId); }
+      if (deptId && deptId !== "all") { sql += " AND deptId = ?"; params.push(deptId); }
+      if (year && month) {
+        sql += " AND date LIKE ?";
+        params.push(`${year}-${String(month).padStart(2,"0")}-%`);
+      } else if (year) {
+        sql += " AND date LIKE ?";
+        params.push(`${year}-%`);
+      }
+      sql += " ORDER BY date DESC";
+      res.json(await queryD1(sql, params));
+    } else {
+      let filtered = [...(appState.leaveRecords || [])];
+      if (employeeId) { filtered = filtered.filter(l => l.employeeId === employeeId); }
+      if (deptId && deptId !== "all") { filtered = filtered.filter(l => l.deptId === deptId); }
+      if (year && month) {
+        const prefix = `${year}-${String(month).padStart(2,"0")}`;
+        filtered = filtered.filter(l => l.date.startsWith(prefix));
+      } else if (year) {
+        filtered = filtered.filter(l => l.date.startsWith(`${year}`));
+      }
+      filtered.sort((a,b) => b.date.localeCompare(a.date));
+      res.json(filtered);
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
 
+app.post("/api/add-leave-record", async (req, res) => {
+  const { employeeId, date, leaveType, note, username } = req.body;
+  if (!employeeId || !date) return res.status(400).json({ error: "ต้องระบุ employeeId และ date" });
+  try {
+    if (isD1Enabled()) {
+      const empRows = await queryD1("SELECT name, deptId FROM employees WHERE id = ? LIMIT 1", [employeeId]);
+      const empName = empRows[0]?.name || "";
+      const deptId  = empRows[0]?.deptId || "";
+      const id = `LVR-${employeeId}-${date}`;
+      await queryD1(
+        `INSERT OR REPLACE INTO leave_records (id, employeeId, employeeName, deptId, date, leaveType, note) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, employeeId, empName, deptId, date, leaveType || "vacation", note || ""]
+      );
+      await writeAuditLog(username || "system", "add_leave", "leave_record", id, { employeeId, date, leaveType });
+      res.json({ success: true });
+    } else {
+      const emp = appState.employees.find(e => e.id === employeeId);
+      const empName = emp ? emp.name : "";
+      const deptId = emp ? emp.deptId : "";
+      const id = `LVR-${employeeId}-${date}`;
+      const record = {
+        id,
+        employeeId,
+        employeeName: empName,
+        deptId,
+        date,
+        leaveType: leaveType || "vacation",
+        note: note || ""
+      };
+      appState.leaveRecords = (appState.leaveRecords || []).filter(l => l.id !== id);
+      appState.leaveRecords.push(record);
+      saveLocalDb();
+      res.json({ success: true });
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete("/api/delete-leave-record/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM leave_records WHERE id = ?", [id]);
+    } else {
+      appState.leaveRecords = (appState.leaveRecords || []).filter(l => l.id !== id);
+      saveLocalDb();
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
 
 // ============================================================
 // Audit Logs (NEW)
@@ -1070,6 +1167,7 @@ app.post("/api/clear-mock-data", async (req, res) => {
     if (isD1Enabled()) {
       await queryD1("DELETE FROM employees");
       await queryD1("DELETE FROM ot_daily_records");
+      await queryD1("DELETE FROM leave_records");
       await queryD1("DELETE FROM departments");
       await queryD1("DELETE FROM accounts");
       for (const d of REAL_DEPARTMENTS) {
