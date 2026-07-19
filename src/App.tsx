@@ -1085,6 +1085,9 @@ export default function App() {
 
   const activeDeptId = currentUser?.deptId || "all";
   const filteredDeptsForStats = state.departments.filter(d => activeDeptId === "all" || d.id === activeDeptId);
+  const currentShiftsDept = activeDeptId === "all" ? shiftsDeptFilter : activeDeptId;
+  const deptEmpsCount = state.employees.filter(emp => emp.deptId === currentShiftsDept).length;
+  const currentDeptObj = state.departments.find(d => d.id === currentShiftsDept);
 
   // Dynamically extract unique roles and groups for auto-suggestions
   const uniqueRoles = Array.from(new Set(state.employees.map(emp => emp.role))).filter(Boolean);
@@ -1739,20 +1742,20 @@ export default function App() {
   };
 
   // Calculations for shift view summary
-  const getDailyShiftSummary = (dayIndex: number) => {
+  const getDailyShiftSummary = (dayIndex: number, deptId: string) => {
     let mCount = 0;
     let aCount = 0;
     let nCount = 0;
-    
-    const activeList = isEditingShifts ? tempEmployees : state.employees;
-    
+
+    const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === deptId);
+
     activeList.forEach(emp => {
       const paddedShifts = getEmployeeShiftsForView(emp.shifts, daysLimit);
       const shift = paddedShifts[dayIndex];
       if (shift) {
-        if (shift === "M" || shift.startsWith("M")) mCount++;
-        if (shift === "A" || shift.startsWith("A")) aCount++;
-        if (shift === "N" || shift.startsWith("N")) nCount++;
+        if (shift === "M" || shift.startsWith("M") || shift === "M12" || shift === "M16") mCount++;
+        if (shift === "A" || shift.startsWith("A") || shift === "A12") aCount++;
+        if (shift === "N" || shift.startsWith("N") || shift === "N12" || shift === "N16") nCount++;
       }
     });
     
@@ -3252,22 +3255,33 @@ export default function App() {
             <div className="space-y-6">
               {/* Header toolbar */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">ตารางการจัดกะทำงานและแผนงาน (Shift Planner)</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    แผนก: <span className="font-extrabold text-blue-600">
-                      {state?.departments.find(d => d.id === shiftsDeptFilter)?.nameTh || shiftsDeptFilter}
-                    </span>
-                  </p>
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Department Name Badge */}
+                  <div className="bg-emerald-600 px-4 py-2.5 rounded-xl text-white shadow-sm">
+                    <span className="text-[10px] font-medium block opacity-75 uppercase tracking-wide">แผนกปฏิบัติงาน</span>
+                    <span className="text-sm font-black leading-tight">{currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}</span>
+                  </div>
+
+                  {/* Employees Count Badge */}
+                  <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-slate-800 shadow-sm">
+                    <span className="text-[10px] font-bold text-slate-500 block">จำนวนพนักงาน</span>
+                    <span className="text-sm font-black leading-tight"><span className="text-blue-600">{deptEmpsCount}</span> คน</span>
+                  </div>
+
+                  {/* Manager / Planning Pattern info */}
+                  <div className="bg-blue-600 px-4 py-2.5 rounded-xl text-white shadow-sm">
+                    <span className="text-[10px] font-medium block opacity-75">ผู้จัดแผนการทำงาน: <strong className="font-extrabold">{currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "หัวหน้าฝ่าย"}</strong></span>
+                    <span className="text-xs font-black block mt-0.5">รูปแบบกะ: {state?.shiftConfig?.pattern === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}</span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Select Department (Only visible to HR/Admin) */}
                   {activeDeptId === "all" && (
                     <select
-                      value={shiftsDeptFilter}
+                      value={currentShiftsDept}
                       onChange={(e) => setShiftsDeptFilter(e.target.value)}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                     >
                       <option value="inter2">แผนก INTER 2</option>
                       <option value="inter3">แผนก INTER 3</option>
@@ -3493,7 +3507,7 @@ export default function App() {
                     {/* Employee scheduler rows */}
                     <div className={`divide-y divide-slate-100 ${isEditingShifts ? "pb-60" : ""}`}>
                       {(isEditingShifts ? tempEmployees : state.employees)
-                        .filter(emp => emp.deptId === shiftsDeptFilter)
+                        .filter(emp => emp.deptId === currentShiftsDept)
                         .map((emp) => {
                         return (
                           <div 
@@ -3654,7 +3668,7 @@ export default function App() {
                         
                         <div className="flex flex-1 text-[10px] font-extrabold text-slate-600 font-mono">
                           {currentDays.map((_, dayIdx) => {
-                            const summary = getDailyShiftSummary(dayIdx);
+                            const summary = getDailyShiftSummary(dayIdx, currentShiftsDept);
                             return (
                               <div 
                                 key={dayIdx} 
@@ -3681,7 +3695,7 @@ export default function App() {
                         <div className="flex flex-1 text-[10px] font-extrabold text-blue-700 font-mono">
                           {currentDays.map((_, dayIdx) => {
                             let dailyOt = 0;
-                            const activeList = isEditingShifts ? tempEmployees : state.employees;
+                            const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === currentShiftsDept);
                             activeList.forEach(emp => {
                                const periodShifts = getEmployeeShiftsForView(emp.shifts, daysLimit);
                                dailyOt += getShiftOtHours(periodShifts[dayIdx] || "O");
@@ -3704,7 +3718,7 @@ export default function App() {
                         <div className={`flex-shrink-0 p-1 text-center border-l border-slate-200 flex flex-col justify-center items-center bg-blue-100 ${daysLimit === 30 ? "w-20" : "w-24"}`}>
                            {(() => {
                               let totalOt = 0;
-                              const activeList = isEditingShifts ? tempEmployees : state.employees;
+                              const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === currentShiftsDept);
                               activeList.forEach(emp => {
                                  const periodShifts = getEmployeeShiftsForView(emp.shifts, daysLimit);
                                  totalOt += periodShifts.reduce((acc, shift) => acc + getShiftOtHours(shift), 0);
@@ -3722,8 +3736,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-             </div>
+            </div>
           )}
 
           {/* ======================================= */}
