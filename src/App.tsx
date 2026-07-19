@@ -913,6 +913,8 @@ export default function App() {
   const [selectedWeek, setSelectedWeek] = useState<string>("all");
   const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
   const [shiftsDeptFilter, setShiftsDeptFilter] = useState<string>("inter2");
+  const activeDeptId = currentUser?.deptId || "all";
+  const currentShiftsDept = activeDeptId === "all" ? shiftsDeptFilter : activeDeptId;
 
   useEffect(() => {
     if (currentUser && currentUser.deptId && currentUser.deptId !== "all") {
@@ -1004,6 +1006,38 @@ export default function App() {
     return empRole === selectedRoleFilter;
   };
 
+  // Vessel & Crane state
+  const [vesselSchedules, setVesselSchedules] = useState<any[]>([]);
+  const [showVesselModal, setShowVesselModal] = useState<boolean>(false);
+  const [newVesselType, setNewVesselType] = useState<"vessel" | "crane">("vessel");
+  const [newVesselPlanType, setNewVesselPlanType] = useState<"plan" | "actual">("plan");
+  const [newVesselName, setNewVesselName] = useState<string>("");
+  const [newVesselStartDate, setNewVesselStartDate] = useState<string>("");
+  const [newVesselEndDate, setNewVesselEndDate] = useState<string>("");
+  const [newVesselColor, setNewVesselColor] = useState<string>("#fef08a");
+
+  const fetchVesselSchedules = async () => {
+    if (!state?.shiftConfig?.currentMonth || !currentShiftsDept) return;
+    try {
+      const [y, m] = state.shiftConfig.currentMonth.split("-");
+      const params = new URLSearchParams({
+        deptId: currentShiftsDept,
+        year: y || "",
+        month: m || ""
+      });
+      const res = await fetch(`/api/vessel-schedules?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVesselSchedules(data);
+      }
+    } catch (err) {
+      console.error("Error fetching vessel schedules:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchVesselSchedules();
+  }, [state?.shiftConfig?.currentMonth, currentShiftsDept]);
 
   // Fetch initial portal state
   const fetchPortalState = async () => {
@@ -1083,9 +1117,7 @@ export default function App() {
     );
   }
 
-  const activeDeptId = currentUser?.deptId || "all";
   const filteredDeptsForStats = state.departments.filter(d => activeDeptId === "all" || d.id === activeDeptId);
-  const currentShiftsDept = activeDeptId === "all" ? shiftsDeptFilter : activeDeptId;
   const deptEmpsCount = state.employees.filter(emp => emp.deptId === currentShiftsDept).length;
   const currentDeptObj = state.departments.find(d => d.id === currentShiftsDept);
 
@@ -1682,6 +1714,60 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
+  const handleSaveVesselSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVesselName || !newVesselStartDate || !newVesselEndDate || !currentShiftsDept) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+    try {
+      const res = await fetch("/api/save-vessel-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: newVesselType,
+          planType: newVesselPlanType,
+          name: newVesselName,
+          startDate: newVesselStartDate,
+          endDate: newVesselEndDate,
+          deptId: currentShiftsDept,
+          color: newVesselColor,
+          username: currentUser?.username || "user"
+        })
+      });
+      if (res.ok) {
+        setNewVesselName("");
+        setNewVesselStartDate("");
+        setNewVesselEndDate("");
+        await fetchVesselSchedules();
+        alert("บันทึกตารางเรียบร้อยแล้ว!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "เกิดข้อผิดพลาด");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการบันทึก");
+    }
+  };
+
+  const handleDeleteVesselSchedule = async (id: string) => {
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) return;
+    try {
+      const res = await fetch(`/api/delete-vessel-schedule/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        await fetchVesselSchedules();
+      } else {
+        alert("เกิดข้อผิดพลาดในการลบ");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาด");
     }
   };
 
@@ -3411,6 +3497,13 @@ export default function App() {
                       >
                         <span>แก้ไขกะด่วน</span>
                       </button>
+
+                      <button 
+                        onClick={() => setShowVesselModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition-colors shadow-md shadow-amber-500/10 cursor-pointer"
+                      >
+                        <span>🚢 จัดการตารางเรือ & เครน</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -3499,6 +3592,86 @@ export default function App() {
                         <span className="text-[9px] font-semibold text-blue-600">ราย{daysLimit === 7 ? "สัปดาห์" : daysLimit === 14 ? " 2 สัปดาห์" : "เดือน"}</span>
                       </div>
                     </div>
+
+                    {/* ตารางเรือ Vessel & Crane Section (NEW) */}
+                    <div className="bg-amber-50/50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+                      <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                        <span>🚢</span> ตารางเทียบเรือ & เครนตักสินค้า (Vessel & Ship Crane Schedule)
+                      </span>
+                    </div>
+
+                    {[
+                      { type: "vessel", planType: "plan", label: "ตารางเรือ Vessel", subLabel: "Plan", barColor: "#fef08a", textColor: "text-amber-950", labelBg: "bg-amber-100/90" },
+                      { type: "vessel", planType: "actual", label: "ตารางเรือ Vessel", subLabel: "Actual", barColor: "#bfdbfe", textColor: "text-blue-950", labelBg: "bg-blue-100/90" },
+                      { type: "crane", planType: "plan", label: "Ship crane", subLabel: "Plan", barColor: "#f5d0fe", textColor: "text-purple-950", labelBg: "bg-purple-100/90" },
+                      { type: "crane", planType: "actual", label: "Ship crane", subLabel: "Actual", barColor: "#ccfbf1", textColor: "text-teal-950", labelBg: "bg-teal-100/90" }
+                    ].map((row, rIdx) => (
+                      <div key={rIdx} className="flex border-b border-slate-200 hover:bg-slate-50/30 transition-colors">
+                        <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/60 flex flex-col justify-center px-3 py-2 sticky left-0 z-10 shadow-sm">
+                          <span className="text-[11px] font-extrabold text-slate-700">{row.label}</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">{row.subLabel}</span>
+                        </div>
+
+                        <div className="flex">
+                          {currentDays.map((day) => {
+                            const [y, m] = (state?.shiftConfig?.currentMonth || "2026-07").split("-");
+                            const dateStr = `${y}-${m}-${String(day.n).padStart(2, "0")}`;
+
+                            const activeVS = vesselSchedules.find(
+                              (v) =>
+                                v.type === row.type &&
+                                v.planType === row.planType &&
+                                dateStr >= v.startDate &&
+                                dateStr <= v.endDate
+                            );
+
+                            if (activeVS) {
+                              const isStart = dateStr === activeVS.startDate || day.n === startDay;
+                              const isEnd = dateStr === activeVS.endDate || day.n === endDay;
+                              const bgColor = activeVS.color || row.barColor;
+
+                              return (
+                                <div
+                                  key={day.n}
+                                  style={{
+                                    width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                    height: "36px",
+                                    backgroundColor: bgColor
+                                  }}
+                                  className={`flex-shrink-0 flex items-center justify-center relative select-none ${
+                                    isStart ? "rounded-l-md border-l border-black/10" : ""
+                                  } ${isEnd ? "rounded-r-md border-r border-black/10" : ""} ${
+                                    !isEnd ? "" : "border-r border-slate-200"
+                                  }`}
+                                  title={`${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})`}
+                                >
+                                  {isStart && (
+                                    <div className="absolute left-1.5 w-[250px] text-left truncate pointer-events-none z-10">
+                                      <span className={`text-[8.5px] font-black uppercase tracking-tight leading-none ${row.textColor} ${row.labelBg} px-1.5 py-0.5 rounded border border-black/5 shadow-sm`}>
+                                        {activeVS.name}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={day.n}
+                                style={{
+                                  width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                  height: "36px"
+                                }}
+                                className="flex-shrink-0 border-r border-slate-200 bg-slate-50/10"
+                              />
+                            );
+                          })}
+                        </div>
+
+                        <div className={`flex-shrink-0 border-l border-slate-200 bg-slate-50/10 ${daysLimit === 30 ? "w-20" : "w-24"}`} />
+                      </div>
+                    ))}
 
                     <div className="bg-blue-50/40 px-4 py-2 border-b border-slate-200">
                       <span className="text-xs font-bold text-blue-700">รายชื่อบุคลากรและแผนการจัดกะทำงานทั้งหมด (All Employees)</span>
@@ -4114,6 +4287,194 @@ export default function App() {
       </div>
 
 
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: MANAGE VESSEL & CRANE */}
+      {/* ======================================= */}
+      {showVesselModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Header */}
+            <div className="bg-slate-950 p-6 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-xl">
+                  🚢
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold font-sans">จัดการตารางเทียบเรือ & เครนตักสินค้า</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowVesselModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              
+              {/* Form to add new schedule */}
+              <form onSubmit={handleSaveVesselSchedule} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                  เพิ่มรายการเข้าเทียบเรือ / เครนใหม่
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ประเภท</label>
+                    <select
+                      value={newVesselType}
+                      onChange={(e) => setNewVesselType(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="vessel">ตารางเรือ Vessel</option>
+                      <option value="crane">Ship crane</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แผนงาน / ทำงานจริง</label>
+                    <select
+                      value={newVesselPlanType}
+                      onChange={(e) => setNewVesselPlanType(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="plan">Plan</option>
+                      <option value="actual">Actual</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อเรือ / รายละเอียดงาน</label>
+                  <input
+                    type="text"
+                    required
+                    value={newVesselName}
+                    onChange={(e) => setNewVesselName(e.target.value)}
+                    placeholder='เช่น Disch. Wheat MV "Golden Friend"'
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่เริ่ม</label>
+                    <input
+                      type="date"
+                      required
+                      value={newVesselStartDate}
+                      onChange={(e) => setNewVesselStartDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่สิ้นสุด</label>
+                    <input
+                      type="date"
+                      required
+                      value={newVesselEndDate}
+                      onChange={(e) => setNewVesselEndDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แถบสีการแสดงผล</label>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { hex: "#fef08a", label: "เหลือง" },
+                        { hex: "#bfdbfe", label: "ฟ้า" },
+                        { hex: "#f5d0fe", label: "ม่วง" },
+                        { hex: "#ccfbf1", label: "เขียวมิ้นท์" },
+                        { hex: "#fed7aa", label: "ส้ม" }
+                      ].map((c) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => setNewVesselColor(c.hex)}
+                          className={`w-6 h-6 rounded-full border transition-all ${newVesselColor === c.hex ? "ring-2 ring-amber-500 scale-110 border-amber-600" : "border-slate-300"}`}
+                          style={{ backgroundColor: c.hex }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md shadow-amber-500/10 cursor-pointer"
+                  >
+                    + เพิ่มในตาราง
+                  </button>
+                </div>
+              </form>
+
+              {/* List of existing vessel schedules for current month/dept */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                  รายการตารางในเดือนนี้ ({vesselSchedules.length} รายการ)
+                </h4>
+
+                {vesselSchedules.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                    ไม่มีรายการเทียบเรือหรือการใช้เครนในแผนกและเดือนนี้
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                    {vesselSchedules.map((vs) => (
+                      <div key={vs.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-full border border-slate-300 flex-shrink-0"
+                            style={{ backgroundColor: vs.color }}
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 font-sans">{vs.name}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5 font-sans">
+                              {vs.type === "vessel" ? "เรือ Vessel" : "Ship Crane"} ({vs.planType.toUpperCase()}) | {vs.startDate} ถึง {vs.endDate}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVesselSchedule(vs.id)}
+                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="ลบรายการ"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setShowVesselModal(false)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: ADD NEW EMPLOYEE */}

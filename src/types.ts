@@ -65,11 +65,23 @@ export interface LeaveRecord {
   note: string;
 }
 
+export interface VesselSchedule {
+  id: string;
+  type: "vessel" | "crane";
+  planType: "plan" | "actual";
+  name: string;
+  startDate: string;
+  endDate: string;
+  deptId: string;
+  color?: string;
+}
+
 export interface AppState {
   departments: Department[];
   employees: Employee[];
   shiftConfig: ShiftConfig;
   otTrendData: OtTrendData;
   leaveRecords?: LeaveRecord[];
+  vesselSchedules?: VesselSchedule[];
   d1Connected?: boolean;
 }

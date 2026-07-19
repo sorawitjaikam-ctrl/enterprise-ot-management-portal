@@ -90,7 +90,8 @@ let appState = {
     currentDept: "inter2"
   },
   otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] },
-  leaveRecords: [] as any[]
+  leaveRecords: [] as any[],
+  vesselSchedules: [] as any[]
 };
 
 let appAccounts: any[] = [
@@ -310,6 +311,18 @@ const initD1Database = async () => {
       date TEXT NOT NULL,
       leaveType TEXT DEFAULT 'vacation',
       note TEXT
+    )`);
+
+    // Vessel schedules — ตารางเรือและปั้นจั่นตักเรือ
+    await queryD1(`CREATE TABLE IF NOT EXISTS vessel_schedules (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      planType TEXT NOT NULL,
+      name TEXT NOT NULL,
+      startDate TEXT NOT NULL,
+      endDate TEXT NOT NULL,
+      deptId TEXT NOT NULL,
+      color TEXT
     )`);
 
     // Shift config
@@ -1112,6 +1125,76 @@ app.delete("/api/delete-leave-record/:id", async (req, res) => {
       await queryD1("DELETE FROM leave_records WHERE id = ?", [id]);
     } else {
       appState.leaveRecords = (appState.leaveRecords || []).filter(l => l.id !== id);
+      saveLocalDb();
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============================================================
+// Vessel Schedules (NEW)
+// ============================================================
+app.get("/api/vessel-schedules", async (req, res) => {
+  const { deptId, year, month } = req.query;
+  if (!deptId) return res.status(400).json({ error: "ต้องระบุ deptId" });
+  try {
+    if (isD1Enabled()) {
+      let sql = "SELECT * FROM vessel_schedules WHERE deptId = ?";
+      const params: any[] = [deptId];
+      if (year && month) {
+        const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
+        const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
+        const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+        sql += " AND startDate <= ? AND endDate >= ?";
+        params.push(endOfMonth, startOfMonth);
+      }
+      const rows = await queryD1(sql, params);
+      res.json(rows);
+    } else {
+      let filtered = [...(appState.vesselSchedules || [])];
+      filtered = filtered.filter(v => v.deptId === deptId);
+      if (year && month) {
+        const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
+        const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
+        const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+        filtered = filtered.filter(v => v.startDate <= endOfMonth && v.endDate >= startOfMonth);
+      }
+      res.json(filtered);
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post("/api/save-vessel-schedule", async (req, res) => {
+  const { id, type, planType, name, startDate, endDate, deptId, color, username } = req.body;
+  if (!type || !planType || !name || !startDate || !endDate || !deptId) {
+    return res.status(400).json({ error: "กรอกข้อมูลไม่ครบถ้วน" });
+  }
+  const scheduleId = id || `VS-${Date.now()}`;
+  try {
+    if (isD1Enabled()) {
+      await queryD1(
+        `INSERT OR REPLACE INTO vessel_schedules (id, type, planType, name, startDate, endDate, deptId, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [scheduleId, type, planType, name, startDate, endDate, deptId, color || "#fef08a"]
+      );
+      await writeAuditLog(username || "system", "save_vessel_schedule", "vessel_schedule", scheduleId, { type, planType, name });
+      res.json({ success: true, id: scheduleId });
+    } else {
+      const record = { id: scheduleId, type, planType, name, startDate, endDate, deptId, color: color || "#fef08a" };
+      appState.vesselSchedules = (appState.vesselSchedules || []).filter(v => v.id !== scheduleId);
+      appState.vesselSchedules.push(record);
+      saveLocalDb();
+      res.json({ success: true, id: scheduleId });
+    }
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete("/api/delete-vessel-schedule/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM vessel_schedules WHERE id = ?", [id]);
+    } else {
+      appState.vesselSchedules = (appState.vesselSchedules || []).filter(v => v.id !== id);
       saveLocalDb();
     }
     res.json({ success: true });
