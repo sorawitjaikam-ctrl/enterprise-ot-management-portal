@@ -1118,11 +1118,32 @@ export default function App() {
   // Handle adding new employee
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmpFirstName) {
+    if (!newEmpName) {
       alert("กรุณากรอกชื่อพนักงาน");
       return;
     }
-    const fullName = (newEmpFirstName + (newEmpLastName ? " " + newEmpLastName : "")).trim();
+
+    // Parse prefix, first name, and last name from full name
+    let pfx = newEmpPrefix || "นาย";
+    let fName = "";
+    let lName = "";
+
+    const trimmed = newEmpName.trim();
+    const prefixes = ["นางสาว", "นาง", "นาย"];
+    let nameWithoutPrefix = trimmed;
+    for (const p of prefixes) {
+      if (trimmed.startsWith(p)) {
+        pfx = p;
+        nameWithoutPrefix = trimmed.substring(p.length).trim();
+        break;
+      }
+    }
+    const parts = nameWithoutPrefix.split(/\s+/);
+    fName = parts[0] || "";
+    lName = parts.slice(1).join(" ") || "";
+
+    const fullName = (pfx + fName + (lName ? " " + lName : "")).trim();
+
     try {
       const res = await fetch("/api/add-employee", {
         method: "POST",
@@ -1375,11 +1396,32 @@ export default function App() {
           const id = values[idIdx]?.trim();
           if (!id) continue;
 
-          const prefix      = prefixIdx !== -1 ? (values[prefixIdx]?.trim() || "นาย") : "นาย";
-          const firstName   = firstNameIdx !== -1 ? (values[firstNameIdx]?.trim() || "") : "";
+          let prefix      = prefixIdx !== -1 ? (values[prefixIdx]?.trim() || "") : "";
+          let firstName   = firstNameIdx !== -1 ? (values[firstNameIdx]?.trim() || "") : "";
           const lastName    = lastNameIdx !== -1 ? (values[lastNameIdx]?.trim() || "") : "";
           const nickname    = nicknameIdx !== -1 ? (values[nicknameIdx]?.trim() || "") : "";
-          const name        = (firstName + (lastName ? " " + lastName : "")).trim() || id;
+
+          // Automatically extract prefix from firstName if prefix column is missing or empty
+          const prefixes = ["นางสาว", "นาง", "นาย"];
+          if (!prefix) {
+            for (const p of prefixes) {
+              if (firstName.startsWith(p)) {
+                prefix = p;
+                break;
+              }
+            }
+            if (!prefix) prefix = "นาย"; // default
+          }
+
+          // Strip the prefix from the first name to avoid duplicate values like "นาย" in prefix and "นายศิระ" in first name
+          for (const p of prefixes) {
+            if (firstName.startsWith(p)) {
+              firstName = firstName.substring(p.length).trim();
+              break;
+            }
+          }
+
+          const name = (prefix + firstName + (lastName ? " " + lastName : "")).trim() || id;
           
           const rawDept     = deptIdIdx !== -1 ? (values[deptIdIdx]?.trim() || "inter2") : "inter2";
           const cleanedDept = rawDept.toLowerCase().replace(/แผนก\s*/, "");
@@ -1538,9 +1580,42 @@ export default function App() {
     setEditEmpGroupName(emp.groupName);
     setEditEmpTargetOt(emp.targetOt);
     
-    setEditEmpPrefix(emp.prefix || "นาย");
-    setEditEmpFirstName(emp.firstName || emp.name.split(" ")[0] || "");
-    setEditEmpLastName(emp.lastName || emp.name.split(" ")[1] || "");
+    let pfx = emp.prefix || "";
+    let fName = emp.firstName || "";
+    let lName = emp.lastName || "";
+
+    const prefixes = ["นางสาว", "นาง", "นาย"];
+
+    // If fName is empty, split from full name
+    if (!fName && emp.name) {
+      let cleanName = emp.name.trim();
+      // See if full name starts with a prefix
+      for (const p of prefixes) {
+        if (cleanName.startsWith(p)) {
+          pfx = p;
+          cleanName = cleanName.substring(p.length).trim();
+          break;
+        }
+      }
+      const parts = cleanName.split(/\s+/);
+      fName = parts[0] || "";
+      lName = parts.slice(1).join(" ") || lName;
+    }
+
+    // Clean prefix from fName if present to avoid duplicate prefixes
+    for (const p of prefixes) {
+      if (fName.startsWith(p)) {
+        if (!pfx) pfx = p;
+        fName = fName.substring(p.length).trim();
+        break;
+      }
+    }
+
+    if (!pfx) pfx = "นาย"; // default fallback
+
+    setEditEmpPrefix(pfx);
+    setEditEmpFirstName(fName);
+    setEditEmpLastName(lName);
     setEditEmpNickname(emp.nickname || "");
     setEditEmpDivision(emp.division || "");
     setEditEmpSalary(emp.salary || 15000);
@@ -4032,11 +4107,11 @@ export default function App() {
       {/* ======================================= */}
       {showAddEmployeeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-bold text-slate-900">เพิ่มพนักงานเข้าสู่แผนภูมิระบบ</h3>
-                <p className="text-xs text-slate-500">กรอกข้อมูลพื้นฐานพนักงานเพื่อจัดสรรกะและนโยบาย OT</p>
+                <p className="text-xs text-slate-500">ระบุรายละเอียดข้อมูลพนักงานเพื่อจัดสรรตารางการทำงานและเป้าหมายโอที</p>
               </div>
               <button 
                 onClick={() => setShowAddEmployeeModal(false)}
@@ -4046,98 +4121,263 @@ export default function App() {
               </button>
             </div>
 
-            <form onSubmit={handleAddEmployee} className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* 1. รหัสพนักงาน */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสพนักงาน (เว้นว่างไว้จะทำการสุ่มรหัสให้อัตโนมัติ)</label>
-                <input 
-                  type="text"
-                  value={newEmpId}
-                  onChange={(e) => setNewEmpId(e.target.value)}
-                  placeholder="เช่น T-1048"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                />
+            <form onSubmit={handleAddEmployee} className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* ส่วนที่ 1: ข้อมูลทั่วไป */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                  1. ข้อมูลทั่วไปของบุคลากร (General Profile)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">รหัสพนักงาน (เว้นว่างเพื่อสุ่ม)</label>
+                    <input 
+                      type="text"
+                      value={newEmpId}
+                      onChange={(e) => setNewEmpId(e.target.value)}
+                      placeholder="สุ่มรหัสอัตโนมัติ"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">คำนำหน้า</label>
+                    <select
+                      value={newEmpPrefix}
+                      onChange={(e) => setNewEmpPrefix(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="นาย">นาย</option>
+                      <option value="นาง">นาง</option>
+                      <option value="นางสาว">นางสาว</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อจริง *</label>
+                    <input
+                      type="text"
+                      value={newEmpFirstName}
+                      onChange={(e) => setNewEmpFirstName(e.target.value)}
+                      placeholder="ชื่อจริง"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">นามสกุล</label>
+                    <input
+                      type="text"
+                      value={newEmpLastName}
+                      onChange={(e) => setNewEmpLastName(e.target.value)}
+                      placeholder="นามสกุล"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อเล่น</label>
+                    <input
+                      type="text"
+                      value={newEmpNickname}
+                      onChange={(e) => setNewEmpNickname(e.target.value)}
+                      placeholder="ชื่อเล่น"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเกิด</label>
+                    <input
+                      type="date"
+                      value={newEmpBirthday}
+                      onChange={(e) => {
+                        setNewEmpBirthday(e.target.value);
+                        if (e.target.value) {
+                          const birthDate = new Date(e.target.value);
+                          const today = new Date();
+                          let ageVal = today.getFullYear() - birthDate.getFullYear();
+                          const m = today.getMonth() - birthDate.getMonth();
+                          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                            ageVal--;
+                          }
+                          setNewEmpAge(ageVal);
+                          setNewEmpCalculatedAge(ageVal);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">อายุตัว (ปี)</label>
+                    <input
+                      type="number"
+                      value={newEmpAge || ""}
+                      onChange={(e) => {
+                        setNewEmpAge(Number(e.target.value));
+                        setNewEmpCalculatedAge(Number(e.target.value));
+                      }}
+                      placeholder="คำนวณอัตโนมัติ"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* 2. ชื่อ - นามสกุล */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล</label>
-                <input 
-                  type="text"
-                  value={newEmpName}
-                  onChange={(e) => setNewEmpName(e.target.value)}
-                  placeholder="เช่น สมศักดิ์ มั่นใจ"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  required
-                />
+              {/* ส่วนที่ 2: สังกัดและตำแหน่งงาน */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                  2. สังกัดและสายงานผลิต (Organization & Roles)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ตำแหน่งงาน *</label>
+                    <input 
+                      type="text"
+                      value={newEmpRole}
+                      onChange={(e) => setNewEmpRole(e.target.value)}
+                      placeholder="เช่น พนักงานขับเครน"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">สังกัดแผนก</label>
+                    <select 
+                      value={newEmpDept}
+                      onChange={(e) => setNewEmpDept(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="inter2">INTER 2</option>
+                      <option value="inter3">INTER 3</option>
+                      <option value="inter5">INTER 5</option>
+                      <option value="inter7">INTER 7</option>
+                      <option value="heavy">Heavy Machine</option>
+                      <option value="ecc">ECC</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ฝ่าย</label>
+                    <input 
+                      type="text"
+                      value={newEmpDivision}
+                      onChange={(e) => setNewEmpDivision(e.target.value)}
+                      placeholder="เช่น ปฏิบัติการ"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">กลุ่มการทำงาน / ทีมย่อย</label>
+                    <input 
+                      type="text"
+                      value={newEmpGroupName}
+                      onChange={(e) => setNewEmpGroupName(e.target.value)}
+                      placeholder="เช่น ทีม ก."
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ปฏิทินทำงาน</label>
+                    <select
+                      value={newEmpCalendarType}
+                      onChange={(e) => setNewEmpCalendarType(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ปฏิทินกะ 4-on-2-off">ปฏิทินกะ 4-on-2-off</option>
+                      <option value="ทำงานวันจันทร์-ศุกร์ (Office)">ทำงานวันจันทร์-ศุกร์ (Office)</option>
+                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์">วันทำงานปกติ 6 วันต่อสัปดาห์</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              {/* 3. ตำแหน่ง */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ตำแหน่ง (พิมพ์ระบุเองหรือเลือกจากรายการ)</label>
-                <input 
-                  type="text"
-                  list="roles-suggestions"
-                  value={newEmpRole}
-                  onChange={(e) => setNewEmpRole(e.target.value)}
-                  placeholder="เช่น Technician"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  required
-                />
-                <datalist id="roles-suggestions">
-                  {uniqueRoles.map((role, idx) => (
-                    <option key={idx} value={role} />
-                  ))}
-                </datalist>
+              {/* ส่วนที่ 3: สัญญาจ้างและเป้าหมายโอที */}
+              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  3. สัญญาจ้างงานและเป้าหมายโอที (Employment & Quota)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ฐานเงินเดือน ปี 2568 (บาท)</label>
+                    <input 
+                      type="number"
+                      value={newEmpSalary || ""}
+                      onChange={(e) => setNewEmpSalary(Number(e.target.value))}
+                      placeholder="เช่น 18000"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเริ่มงาน</label>
+                    <input 
+                      type="date"
+                      value={newEmpStartDate}
+                      onChange={(e) => {
+                        setNewEmpStartDate(e.target.value);
+                        if (e.target.value) {
+                          const start = new Date(e.target.value);
+                          const diff = Date.now() - start.getTime();
+                          const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+                          const months = Math.floor((diff % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.43));
+                          setNewEmpTenure(`${years} ปี ${months} เดือน`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ผ่านทดลองงาน</label>
+                    <input 
+                      type="date"
+                      value={newEmpProbationDate}
+                      onChange={(e) => setNewEmpProbationDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">อายุงาน (คำนวณอัตโนมัติ)</label>
+                    <input 
+                      type="text"
+                      value={newEmpTenure}
+                      onChange={(e) => setNewEmpTenure(e.target.value)}
+                      placeholder="เช่น 1 ปี 4 เดือน"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">โควตาเป้าหมาย OT (ชม./เดือน)</label>
+                    <input 
+                      type="number"
+                      value={newEmpTargetOt}
+                      onChange={(e) => setNewEmpTargetOt(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* 4. แผนก */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนก</label>
-                <select 
-                  value={newEmpDept}
-                  onChange={(e) => setNewEmpDept(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="inter2">INTER 2</option>
-                  <option value="inter3">INTER 3</option>
-                  <option value="inter5">INTER 5</option>
-                  <option value="inter7">INTER 7</option>
-                  <option value="heavy">Heavy Machine</option>
-                  <option value="ecc">ECC</option>
-                </select>
-              </div>
-
-              {/* 5. ฝ่าย */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ฝ่าย (พิมพ์ระบุเองหรือเลือกจากรายการ)</label>
-                <input 
-                  type="text"
-                  list="groups-suggestions"
-                  value={newEmpGroupName}
-                  onChange={(e) => setNewEmpGroupName(e.target.value)}
-                  placeholder="เช่น ทีม ก. (ช่างเทคนิคอาวุโส)"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  required
-                />
-                <datalist id="groups-suggestions">
-                  {uniqueGroups.map((group, idx) => (
-                    <option key={idx} value={group} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
+              <div className="pt-4 border-t border-slate-100 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setShowAddEmployeeModal(false)}
-                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
+                  className="w-24 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
+                  className="w-32 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
                 >
                   เพิ่มพนักงาน
                 </button>
