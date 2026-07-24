@@ -15,13 +15,8 @@ app.use(express.json());
 const isD1Enabled = () =>
   !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_DATABASE_ID);
 
-// Intercept write requests if Cloudflare D1 is not enabled
+// Middleware for request handling
 app.use((req, res, next) => {
-  if (!isD1Enabled() && ["POST", "PUT", "DELETE"].includes(req.method) && !req.path.startsWith("/api/login") && !req.path.startsWith("/api/logout")) {
-    return res.status(403).json({
-      error: "ไม่สามารถทำรายการได้ เนื่องจากเซิร์ฟเวอร์ไม่ได้เชื่อมต่อกับ Cloudflare D1 Database (กรุณาเชื่อมต่อฐานข้อมูลก่อน)"
-    });
-  }
   next();
 });
 
@@ -617,22 +612,32 @@ app.get("/api/portal-state", async (req, res) => {
       res.json({ departments: enrichedDepartments, employees, shiftConfig, otTrendData, requests: [], d1Connected: true });
 
     } else {
-      // Offline mode — do NOT display mock data (return empty)
-      const emptyDepts = appState.departments.map(dept => ({
-        ...dept,
-        employeesCount: 0,
-        otHours: 0,
-        budgetUsed: 0,
-        budgetUtilization: 0,
-        status: "On Track" as const
-      }));
+      // Offline mode — compute from local appState
+      const enrichedEmps = appState.employees.map(emp => {
+        const shifts   = emp.shifts || [];
+        const actualOt = Math.round(shifts.reduce((s: number, c: string) => s + getShiftOt(c), 0) * 10) / 10;
+        const otPct    = emp.targetOt > 0 ? Math.round((actualOt / emp.targetOt) * 100) : 0;
+        const status   = actualOt > emp.targetOt ? "Warning" : "On Track";
+        return { ...emp, actualOt, otPct, status };
+      });
+
+      const enrichedDepts = appState.departments.map(dept => {
+        const deptEmp        = enrichedEmps.filter(e => e.deptId === dept.id);
+        const employeesCount = deptEmp.length;
+        const otHours        = Math.round(deptEmp.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
+        const budgetUsed     = Math.round(otHours * DEFAULT_OT_RATE);
+        const budgetUtilization = Math.min(100, Math.round((budgetUsed / DEFAULT_BUDGET_MAX) * 100));
+        const status         = budgetUtilization > 95 ? "Warning" : "On Track";
+        return { ...dept, employeesCount, otHours, budgetUsed, budgetMax: DEFAULT_BUDGET_MAX, otRatePerHour: DEFAULT_OT_RATE, budgetUtilization, status };
+      });
 
       res.json({
-        departments: emptyDepts,
-        employees: [],
+        departments: enrichedDepts,
+        employees: enrichedEmps,
         shiftConfig: appState.shiftConfig,
-        otTrendData: { months: [], lastYear: [], currentYear: [] },
-        leaveRecords: [],
+        otTrendData: appState.otTrendData || { months: [], lastYear: [], currentYear: [] },
+        leaveRecords: appState.leaveRecords || [],
+        vesselSchedules: appState.vesselSchedules || [],
         requests: [],
         d1Connected: false
       });
@@ -1343,4 +1348,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.CF_WORKER && process.env.LISTEN_PORT !== "false") {
+  startServer();
+}
+
+export default app;
