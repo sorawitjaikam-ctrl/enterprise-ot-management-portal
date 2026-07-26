@@ -9,5 +9,9 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "0009bb3d35da155171abfdc9ec320f45",
+    "CLOUDFLARE_DATABASE_ID": "6a2d2af7-fe57-4021-b2e5-8c9aff50b681"
   }
 }
