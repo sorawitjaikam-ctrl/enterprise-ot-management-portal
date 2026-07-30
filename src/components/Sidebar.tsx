@@ -41,8 +41,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     <aside className="fixed left-0 top-0 h-full w-[260px] bg-slate-900 border-r border-slate-800 flex flex-col py-6 px-4 z-40 shadow-xl text-slate-300">
       {/* Brand Logo */}
       <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 flex-shrink-0">
-          <Ship className="w-5 h-5" />
+        <div className="bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0 w-10 h-10 border border-white/20">
+          <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="w-full h-full object-contain" />
         </div>
         <div>
           <h1 className="font-extrabold text-white leading-tight text-sm tracking-tight">Double A Terminal</h1>

@@ -2653,11 +2653,11 @@ export default function App() {
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl relative z-10 text-white">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/30 mb-4 border border-white/20">
-              <Anchor className="w-8 h-8" />
+            <div className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl inline-block mx-auto mb-4 shadow-lg shadow-black/20 border border-white/40">
+              <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="h-12 object-contain" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight">Double A Terminal</h1>
-            <p className="text-xs text-sky-200 mt-1.5 font-bold uppercase tracking-wider">Port & Berth Operations OT Portal</p>
+            <h1 className="text-2xl font-black tracking-tight text-white">Double A Terminal</h1>
+            <p className="text-xs text-sky-200 mt-1 font-bold uppercase tracking-wider">Port & Berth Operations OT Portal</p>
             <p className="text-[11px] text-slate-300 mt-1 font-medium">เข้าสู่ระบบเพื่อจัดการเวลาการทำงานเทียบเรือและโอทีหน้าท่า</p>
           </div>
 
@@ -2723,8 +2723,7 @@ export default function App() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-[10px] text-slate-500 font-medium">
-            <p>บัญชีผู้ใช้เริ่มต้นคือ: <strong>admin</strong> | รหัสผ่าน: <strong>admin123</strong></p>
+          <div className="mt-8 text-center text-[10px] text-slate-400 font-medium">
             <p className="mt-1">ระบบรักษาความปลอดภัยระดับองค์กร (Enterprise Grade Security)</p>
           </div>
         </div>
