@@ -1625,14 +1625,48 @@ export default function App() {
 
     const pfx = newEmpPrefix || "นาย";
     const fullName = (pfx + " " + fName + (lName ? " " + lName : "")).trim();
+    const finalEmpId = (newEmpId || "").trim() || ("EMP-" + Date.now().toString().slice(-6));
+
+    const newEmpObj: Employee = {
+      id: finalEmpId,
+      name: fullName,
+      deptId: newEmpDept || "inter2",
+      role: newEmpRole || "Operator",
+      groupName: newEmpGroupName || "Group A",
+      targetOt: Number(newEmpTargetOt) || 48,
+      actualOt: 0,
+      otPct: 0,
+      status: "On Track",
+      shifts: [],
+      prefix: newEmpPrefix,
+      firstName: newEmpFirstName,
+      lastName: newEmpLastName,
+      nickname: newEmpNickname,
+      division: newEmpDivision,
+      salary: newEmpSalary,
+      birthday: newEmpBirthday,
+      age: newEmpAge,
+      calculatedAge: newEmpCalculatedAge,
+      startDate: newEmpStartDate,
+      tenure: newEmpTenure,
+      probationDate: newEmpProbationDate,
+      calendarType: newEmpCalendarType
+    };
 
     try {
       setAddEmpLoading(true);
+      // Optimistically add to state.employees and tempEmployees immediately
+      setState(prev => ({
+        ...prev,
+        employees: [newEmpObj, ...prev.employees.filter(e => e.id !== finalEmpId)]
+      }));
+      setTempEmployees(prev => [newEmpObj, ...prev.filter(e => e.id !== finalEmpId)]);
+
       const res = await fetch("/api/add-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: newEmpId || undefined,
+          id: finalEmpId,
           name: fullName,
           deptId: newEmpDept,
           role: newEmpRole,
@@ -1674,9 +1708,10 @@ export default function App() {
         setNewEmpTargetOt(48);
         // Reload state
         await fetchPortalState();
-        alert("เพิ่มพนักงานใหม่สำเร็จ!");
+        alert(`เพิ่มพนักงาน "${fullName}" (รหัส: ${finalEmpId}) สำเร็จ!`);
       } else {
         const errData = await res.json().catch(() => ({}));
+        await fetchPortalState();
         alert(errData.error || "เกิดข้อผิดพลาดในการเพิ่มข้อมูลพนักงาน");
       }
     } catch (err) {

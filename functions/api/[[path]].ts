@@ -354,18 +354,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const salary = Number(body.salary) || 15000;
       const division = body.division || body.groupName || "-";
       if (db) {
-        await db.prepare(`INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-            empId,
-            body.name || (body.firstName + " " + body.lastName),
-            body.deptId || "inter2",
-            body.role || "Operator",
-            Number(body.targetOt) || 48,
-            body.groupName || "Group A",
-            JSON.stringify(body.shifts || []),
-            salary,
-            division
-          ).run();
+        try {
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+              empId,
+              body.name || (body.firstName + " " + body.lastName),
+              body.deptId || "inter2",
+              body.role || "Operator",
+              Number(body.targetOt) || 48,
+              body.groupName || "Group A",
+              JSON.stringify(body.shifts || []),
+              salary,
+              division
+            ).run();
+        } catch (e) {
+          console.error("D1 Add Employee Error:", e);
+        }
       }
       return Response.json({ success: true, message: "เพิ่มพนักงานเรียบร้อยแล้ว", employeeId: empId }, { headers: corsHeaders });
     }
