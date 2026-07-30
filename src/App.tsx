@@ -766,8 +766,10 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
   }, [empId, avatarUrl]);
 
   const initials = empName ? empName.substring(0, 2) : (empId ? empId.substring(0, 2).toUpperCase() : "??");
-  const defaultImgUrl = empId ? `https://intranet.advanceagro.net/employeecard/empimages/${empId}.jpg` : "";
-  const srcUrl = avatarUrl || defaultImgUrl;
+  const cleanId = String(empId || "").trim();
+  const defaultImgUrl = cleanId ? `https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg` : "";
+  // Strictly filter out ui-avatars.com and use intranet.advanceagro.net corporate image URL
+  const srcUrl = (avatarUrl && !avatarUrl.includes("ui-avatars.com")) ? avatarUrl : defaultImgUrl;
 
   return (error || !srcUrl) ? (
     <div className={`${className} rounded-full bg-blue-600 border border-blue-200 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm`}>
@@ -899,8 +901,10 @@ export default function App() {
       String(e.id).trim().toLowerCase().includes(clean)
     );
 
+    const empId = emp ? emp.id : clean;
+    const photoUrl = `https://intranet.advanceagro.net/employeecard/empimages/${empId}.jpg`;
+
     if (emp) {
-      const photoUrl = emp.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=0D8ABC&color=fff&bold=true`;
       if (mode === "edit") {
         setEditAccountUsername(emp.id || editAccountUsername);
         setEditAccountName(emp.name);
@@ -913,7 +917,6 @@ export default function App() {
         if (emp.deptId) setNewAccountDeptId(emp.deptId);
       }
     } else {
-      const photoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(empKey)}&background=0D8ABC&color=fff&bold=true`;
       if (mode === "edit") {
         setEditAccountAvatar(photoUrl);
       } else {
@@ -947,7 +950,7 @@ export default function App() {
           name: acc?.name || targetUsername,
           role,
           deptId,
-          avatar: acc?.avatar || "",
+          avatar: `https://intranet.advanceagro.net/employeecard/empimages/${targetUsername}.jpg`,
           canBackup: acc?.canBackup ? true : false
         })
       });
@@ -1008,7 +1011,7 @@ export default function App() {
           name: newAccountName,
           role: newAccountRole,
           deptId: newAccountDeptId,
-          avatar: newAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName)}&background=0D8ABC&color=fff&bold=true`,
+          avatar: newAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${newAccountUsername}.jpg`,
           canBackup: newAccountCanBackup ? 1 : 0
         })
       });
@@ -1044,7 +1047,7 @@ export default function App() {
     }
     try {
       setEditAccountLoading(true);
-      const finalAvatar = editAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName)}&background=0D8ABC&color=fff&bold=true`;
+      const finalAvatar = editAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${editAccountUsername}.jpg`;
       const res = await fetch("/api/update-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
