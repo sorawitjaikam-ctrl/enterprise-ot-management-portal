@@ -776,6 +776,15 @@ export default function App() {
   const [resetTargetUsername, setResetTargetUsername] = useState<string>("");
   const [newResetPassword, setNewResetPassword] = useState<string>("");
 
+  const [showAddAccountModal, setShowAddAccountModal] = useState<boolean>(false);
+  const [newAccountUsername, setNewAccountUsername] = useState<string>("");
+  const [newAccountPassword, setNewAccountPassword] = useState<string>("");
+  const [newAccountName, setNewAccountName] = useState<string>("");
+  const [newAccountRole, setNewAccountRole] = useState<string>("Section Manager");
+  const [newAccountDeptId, setNewAccountDeptId] = useState<string>("inter2");
+  const [newAccountAvatar, setNewAccountAvatar] = useState<string>("");
+  const [newAccountCanBackup, setNewAccountCanBackup] = useState<boolean>(false);
+
   const [showEditAccountModal, setShowEditAccountModal] = useState<boolean>(false);
   const [editAccountOriginalUsername, setEditAccountOriginalUsername] = useState<string>("");
   const [editAccountUsername, setEditAccountUsername] = useState<string>("");
@@ -784,6 +793,38 @@ export default function App() {
   const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
   const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
   const [editAccountCanBackup, setEditAccountCanBackup] = useState<boolean>(false);
+
+  const handleAutoPullEmployeePhoto = (empKey: string, mode: "edit" | "add") => {
+    if (!empKey) return;
+    const clean = empKey.trim().toLowerCase();
+    const emp = state.employees.find(e => 
+      String(e.id).trim().toLowerCase() === clean || 
+      String(e.name).trim().toLowerCase().includes(clean) ||
+      String(e.id).trim().toLowerCase().includes(clean)
+    );
+
+    if (emp) {
+      const photoUrl = emp.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=0D8ABC&color=fff&bold=true`;
+      if (mode === "edit") {
+        setEditAccountUsername(emp.id || editAccountUsername);
+        setEditAccountName(emp.name);
+        setEditAccountAvatar(photoUrl);
+        if (emp.deptId) setEditAccountDeptId(emp.deptId);
+      } else {
+        setNewAccountUsername(emp.id);
+        setNewAccountName(emp.name);
+        setNewAccountAvatar(photoUrl);
+        if (emp.deptId) setNewAccountDeptId(emp.deptId);
+      }
+    } else {
+      const photoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(empKey)}&background=0D8ABC&color=fff&bold=true`;
+      if (mode === "edit") {
+        setEditAccountAvatar(photoUrl);
+      } else {
+        setNewAccountAvatar(photoUrl);
+      }
+    }
+  };
 
   const fetchAccounts = async () => {
     try {
@@ -851,6 +892,44 @@ export default function App() {
     }
   };
 
+  const handleAddAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAccountUsername || !newAccountName) {
+      alert("กรุณากรอก Username และชื่อผู้ใช้งาน");
+      return;
+    }
+    try {
+      const res = await fetch("/api/add-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: newAccountUsername,
+          password: newAccountPassword || "123456",
+          name: newAccountName,
+          role: newAccountRole,
+          deptId: newAccountDeptId,
+          avatar: newAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName)}&background=0D8ABC&color=fff&bold=true`,
+          canBackup: newAccountCanBackup ? 1 : 0
+        })
+      });
+      if (res.ok) {
+        setShowAddAccountModal(false);
+        setNewAccountUsername("");
+        setNewAccountPassword("");
+        setNewAccountName("");
+        setNewAccountAvatar("");
+        await fetchAccounts();
+        alert("เพิ่มบัญชีผู้ใช้งานใหม่ลง D1 Database สำเร็จ!");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "เกิดข้อผิดพลาดในการเพิ่มบัญชี");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
   const handleEditAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editAccountUsername) {
@@ -862,40 +941,39 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch("/api/edit-account", {
+      const finalAvatar = editAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName)}&background=0D8ABC&color=fff&bold=true`;
+      const res = await fetch("/api/update-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          originalUsername: editAccountOriginalUsername,
           username: editAccountUsername,
           name: editAccountName,
           role: editAccountRole,
           deptId: editAccountDeptId,
-          avatar: editAccountAvatar,
-          canBackup: editAccountCanBackup
+          avatar: finalAvatar,
+          canBackup: editAccountCanBackup ? 1 : 0
         })
       });
       if (res.ok) {
         setShowEditAccountModal(false);
         await fetchAccounts();
-        alert("อัปเดตข้อมูลบัญชีผู้ใช้สำเร็จ!");
+        alert("อัปเดตข้อมูลบัญชีผู้ใช้ใน D1 Database สำเร็จ!");
         
-        // If updating the currently logged-in user, sync their session as well
         if (currentUser?.username === editAccountOriginalUsername) {
           const updatedUser = {
             username: editAccountUsername,
             name: editAccountName,
             role: editAccountRole,
             deptId: editAccountDeptId,
-            avatar: editAccountAvatar,
+            avatar: finalAvatar,
             canBackup: editAccountCanBackup ? 1 : 0
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUser(updatedUser);
         }
       } else {
-        const errData = await res.json();
-        alert(`เกิดข้อผิดพลาด: ${errData.error}`);
+        const errData = await res.json().catch(() => ({}));
+        alert(`เกิดข้อผิดพลาด: ${errData.error || "ไม่สามารถอัปเดตได้"}`);
       }
     } catch (err) {
       console.error(err);
@@ -5546,6 +5624,182 @@ export default function App() {
       )}
 
       {/* ======================================= */}
+      {/* OVERLAY / MODAL: ADD NEW USER ACCOUNT */}
+      {/* ======================================= */}
+      {showAddAccountModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">➕ เพิ่มผู้ใช้งาน / Admin ใหม่</h3>
+                <p className="text-xs text-slate-500">สร้างบัญชีผู้ใช้ใหม่และกำหนดสิทธิ์เข้าถึงระบบ</p>
+              </div>
+              <button 
+                onClick={() => setShowAddAccountModal(false)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddAccountSubmit} className="p-6 space-y-4">
+              <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-2xl space-y-2">
+                <label className="block text-[11px] font-bold text-blue-900 flex items-center justify-between">
+                  <span>📷 ดึงรูป & ข้อมูลอัตโนมัติจากรหัสพนักงาน (D1)</span>
+                  <span className="text-[10px] text-blue-600 font-normal">พบพนักงาน {state.employees.length} รายการ</span>
+                </label>
+                <select
+                  onChange={(e) => handleAutoPullEmployeePhoto(e.target.value, "add")}
+                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                >
+                  <option value="">-- คลิกเลือกรหัสพนักงานเพื่อดึงชื่อและรูปอัตโนมัติ --</option>
+                  {state.employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      [{emp.id}] {emp.name} ({emp.role} - {emp.deptId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username / รหัสพนักงาน) <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  value={newAccountUsername}
+                  onChange={(e) => {
+                    setNewAccountUsername(e.target.value);
+                    handleAutoPullEmployeePhoto(e.target.value, "add");
+                  }}
+                  placeholder="เช่น EMP-1001 หรือ Sorawit"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่านสำหรับเข้าสู่ระบบ <span className="text-red-500">*</span></label>
+                <input 
+                  type="password"
+                  value={newAccountPassword}
+                  onChange={(e) => setNewAccountPassword(e.target.value)}
+                  placeholder="กำหนดรหัสผ่าน (เริ่มต้น: 123456)"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  value={newAccountName}
+                  onChange={(e) => setNewAccountName(e.target.value)}
+                  placeholder="ป้อนชื่อและนามสกุลจริง"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={newAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName || newAccountUsername || "New")}&background=0D8ABC&color=fff&bold=true`}
+                    alt="Preview"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-sm flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName || "New")}&background=0D8ABC&color=fff&bold=true`;
+                    }}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <input 
+                      type="text"
+                      value={newAccountAvatar}
+                      onChange={(e) => setNewAccountAvatar(e.target.value)}
+                      placeholder="วาง URL หรือเลือกรหัสพนักงานเพื่อดึงรูป"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAutoPullEmployeePhoto(newAccountUsername || newAccountName, "add")}
+                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 cursor-pointer"
+                    title="ค้นหารูปพนักงานตรงตามรหัส/ชื่อ"
+                  >
+                    📷 ดึงรูปพนักงาน
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">บทบาท (Role)</label>
+                  <select 
+                    value={newAccountRole}
+                    onChange={(e) => setNewAccountRole(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-medium"
+                  >
+                    <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                    <option value="HR">HR</option>
+                    <option value="HR Section Manager">HR Section Manager</option>
+                    <option value="Operation Dir">Operation Dir</option>
+                    <option value="Operation Depart">Operation Depart</option>
+                    <option value="Section Manager">Section Manager</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกที่รับผิดชอบ</label>
+                  <select 
+                    value={newAccountDeptId}
+                    onChange={(e) => setNewAccountDeptId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-medium"
+                  >
+                    <option value="all">ทุกแผนก (All)</option>
+                    <option value="inter2">INTER 2</option>
+                    <option value="inter3">INTER 3</option>
+                    <option value="inter5">INTER 5</option>
+                    <option value="inter7">INTER 7</option>
+                    <option value="heavy">Heavy Machine</option>
+                    <option value="ecc">ECC</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 py-1">
+                <input 
+                  type="checkbox"
+                  id="newAccountCanBackup"
+                  checked={newAccountCanBackup}
+                  onChange={(e) => setNewAccountCanBackup(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4"
+                />
+                <label htmlFor="newAccountCanBackup" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                  อนุญาตสิทธิ์การสำรอง/นำเข้าข้อมูลพนักงาน (Backup/Import/Export)
+                </label>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddAccountModal(false)}
+                  className="w-1/2 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 cursor-pointer"
+                >
+                  ➕ เพิ่มบัญชีผู้ใช้ใหม่
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
       {/* OVERLAY / MODAL: EDIT ACCOUNT DETAILS */}
       {/* ======================================= */}
       {showEditAccountModal && (
@@ -5565,14 +5819,35 @@ export default function App() {
             </div>
 
             <form onSubmit={handleEditAccountSubmit} className="p-6 space-y-4">
+              <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-2xl space-y-2">
+                <label className="block text-[11px] font-bold text-blue-900 flex items-center justify-between">
+                  <span>📷 ดึงรูป & ข้อมูลอัตโนมัติจากรหัสพนักงาน (D1)</span>
+                  <span className="text-[10px] text-blue-600 font-normal">พบพนักงาน {state.employees.length} รายการ</span>
+                </label>
+                <select
+                  onChange={(e) => handleAutoPullEmployeePhoto(e.target.value, "edit")}
+                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                >
+                  <option value="">-- คลิกเลือกรหัสพนักงานในระบบเพื่อดึงรูปและชื่อทันที --</option>
+                  {state.employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      [{emp.id}] {emp.name} ({emp.role} - {emp.deptId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username) <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username / รหัสพนักงาน) <span className="text-red-500">*</span></label>
                 <input 
                   type="text"
                   value={editAccountUsername}
-                  onChange={(e) => setEditAccountUsername(e.target.value)}
-                  placeholder="เช่น mfg_mgr, somchai"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                  onChange={(e) => {
+                    setEditAccountUsername(e.target.value);
+                    handleAutoPullEmployeePhoto(e.target.value, "edit");
+                  }}
+                  placeholder="เช่น mfg_mgr, somchai หรือรหัสพนักงาน"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono"
                   required
                 />
               </div>
@@ -5591,13 +5866,33 @@ export default function App() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                <input 
-                  type="text"
-                  value={editAccountAvatar}
-                  onChange={(e) => setEditAccountAvatar(e.target.value)}
-                  placeholder="วาง URL ลิงก์รูปภาพโปรไฟล์ของคุณ"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                />
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={editAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName || editAccountUsername || "User")}&background=0D8ABC&color=fff&bold=true`}
+                    alt="Preview"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-sm flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName || "User")}&background=0D8ABC&color=fff&bold=true`;
+                    }}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <input 
+                      type="text"
+                      value={editAccountAvatar}
+                      onChange={(e) => setEditAccountAvatar(e.target.value)}
+                      placeholder="วาง URL หรือเลือกรหัสพนักงานเพื่อดึงรูป"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAutoPullEmployeePhoto(editAccountUsername || editAccountName, "edit")}
+                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 cursor-pointer"
+                    title="ค้นหารูปพนักงานตรงตามรหัส/ชื่อ"
+                  >
+                    📷 ดึงรูปพนักงาน
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
