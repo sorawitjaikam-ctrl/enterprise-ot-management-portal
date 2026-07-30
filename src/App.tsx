@@ -662,27 +662,27 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
   );
 }
 
-function EmployeeAvatar({ empId, empName, className = "w-9 h-9" }: { empId: string; empName: string; className?: string }) {
+function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { empId: string; empName?: string; avatarUrl?: string; className?: string }) {
   const [error, setError] = useState(false);
   
-  // Reset error state if empId changes
   useEffect(() => {
     setError(false);
-  }, [empId]);
+  }, [empId, avatarUrl]);
 
-  const initials = empName ? empName.substring(0, 2) : "??";
-  const imgUrl = `https://intranet.advanceagro.net/employeecard/empimages/${empId}.jpg`;
+  const initials = empName ? empName.substring(0, 2) : (empId ? empId.substring(0, 2).toUpperCase() : "??");
+  const defaultImgUrl = empId ? `https://intranet.advanceagro.net/employeecard/empimages/${empId}.jpg` : "";
+  const srcUrl = avatarUrl || defaultImgUrl;
 
-  return error ? (
-    <div className={`${className} rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs flex-shrink-0`}>
+  return (error || !srcUrl) ? (
+    <div className={`${className} rounded-full bg-blue-600 border border-blue-200 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm`}>
       {initials}
     </div>
   ) : (
     <img 
-      src={imgUrl} 
-      alt={empName}
+      src={srcUrl} 
+      alt={empName || empId}
       onError={() => setError(true)}
-      className={`${className} rounded-full object-cover border border-slate-200 flex-shrink-0`}
+      className={`${className} rounded-full object-cover border border-slate-200 flex-shrink-0 shadow-sm`}
     />
   );
 }
@@ -4267,14 +4267,7 @@ export default function App() {
                         {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
                           <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4 flex items-center gap-3">
-                              <img 
-                                src={acc.avatar} 
-                                className="w-8 h-8 rounded-full object-cover border border-slate-100" 
-                                alt=""
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
-                                }}
-                              />
+                              <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
                               <div>
                                 <div className="font-bold text-slate-800">{acc.name}</div>
                                 <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
@@ -4405,14 +4398,7 @@ export default function App() {
                       {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
                         <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                           <td className="p-4 flex items-center gap-3">
-                            <img 
-                              src={acc.avatar} 
-                              className="w-8 h-8 rounded-full object-cover border border-slate-100" 
-                              alt=""
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
-                              }}
-                            />
+                            <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
                             <div>
                               <div className="font-bold text-slate-800">{acc.name}</div>
                               <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
@@ -5643,26 +5629,17 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAddAccountSubmit} className="p-6 space-y-4">
-              <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-2xl space-y-2">
-                <label className="block text-[11px] font-bold text-blue-900 flex items-center justify-between">
-                  <span>📷 ดึงรูป & ข้อมูลอัตโนมัติจากรหัสพนักงาน (D1)</span>
-                  <span className="text-[10px] text-blue-600 font-normal">พบพนักงาน {state.employees.length} รายการ</span>
-                </label>
-                <select
-                  onChange={(e) => handleAutoPullEmployeePhoto(e.target.value, "add")}
-                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-                >
-                  <option value="">-- คลิกเลือกรหัสพนักงานเพื่อดึงชื่อและรูปอัตโนมัติ --</option>
-                  {state.employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      [{emp.id}] {emp.name} ({emp.role} - {emp.deptId})
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
+                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
+                  <p className="text-[9px] text-slate-500">ระบบจะดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username / รหัสพนักงาน) <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
                 <input 
                   type="text"
                   value={newAccountUsername}
@@ -5670,8 +5647,8 @@ export default function App() {
                     setNewAccountUsername(e.target.value);
                     handleAutoPullEmployeePhoto(e.target.value, "add");
                   }}
-                  placeholder="เช่น EMP-1001 หรือ Sorawit"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono"
+                  placeholder="ป้อนรหัสพนักงาน หรือชื่อผู้ใช้ เช่น 1001"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono font-bold"
                   required
                 />
               </div>
@@ -5702,33 +5679,13 @@ export default function App() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={newAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName || newAccountUsername || "New")}&background=0D8ABC&color=fff&bold=true`}
-                    alt="Preview"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-sm flex-shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newAccountName || "New")}&background=0D8ABC&color=fff&bold=true`;
-                    }}
-                  />
-                  <div className="flex-1 space-y-1">
-                    <input 
-                      type="text"
-                      value={newAccountAvatar}
-                      onChange={(e) => setNewAccountAvatar(e.target.value)}
-                      placeholder="วาง URL หรือเลือกรหัสพนักงานเพื่อดึงรูป"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAutoPullEmployeePhoto(newAccountUsername || newAccountName, "add")}
-                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 cursor-pointer"
-                    title="ค้นหารูปพนักงานตรงตามรหัส/ชื่อ"
-                  >
-                    📷 ดึงรูปพนักงาน
-                  </button>
-                </div>
+                <input 
+                  type="text"
+                  value={newAccountAvatar}
+                  onChange={(e) => setNewAccountAvatar(e.target.value)}
+                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${newAccountUsername || "พนักงาน"} อัตโนมัติ`}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -5819,26 +5776,17 @@ export default function App() {
             </div>
 
             <form onSubmit={handleEditAccountSubmit} className="p-6 space-y-4">
-              <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-2xl space-y-2">
-                <label className="block text-[11px] font-bold text-blue-900 flex items-center justify-between">
-                  <span>📷 ดึงรูป & ข้อมูลอัตโนมัติจากรหัสพนักงาน (D1)</span>
-                  <span className="text-[10px] text-blue-600 font-normal">พบพนักงาน {state.employees.length} รายการ</span>
-                </label>
-                <select
-                  onChange={(e) => handleAutoPullEmployeePhoto(e.target.value, "edit")}
-                  className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-                >
-                  <option value="">-- คลิกเลือกรหัสพนักงานในระบบเพื่อดึงรูปและชื่อทันที --</option>
-                  {state.employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      [{emp.id}] {emp.name} ({emp.role} - {emp.deptId})
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <EmployeeAvatar empId={editAccountUsername} empName={editAccountName} avatarUrl={editAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">{editAccountName || "ชื่อพนักงาน"}</h4>
+                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {editAccountUsername || "-"}</p>
+                  <p className="text-[9px] text-slate-500">ระบบดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username / รหัสพนักงาน) <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
                 <input 
                   type="text"
                   value={editAccountUsername}
@@ -5846,8 +5794,8 @@ export default function App() {
                     setEditAccountUsername(e.target.value);
                     handleAutoPullEmployeePhoto(e.target.value, "edit");
                   }}
-                  placeholder="เช่น mfg_mgr, somchai หรือรหัสพนักงาน"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono"
+                  placeholder="เช่น mfg_mgr, 1001 หรือรหัสพนักงาน"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono font-bold"
                   required
                 />
               </div>
@@ -5866,33 +5814,13 @@ export default function App() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={editAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName || editAccountUsername || "User")}&background=0D8ABC&color=fff&bold=true`}
-                    alt="Preview"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-sm flex-shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName || "User")}&background=0D8ABC&color=fff&bold=true`;
-                    }}
-                  />
-                  <div className="flex-1 space-y-1">
-                    <input 
-                      type="text"
-                      value={editAccountAvatar}
-                      onChange={(e) => setEditAccountAvatar(e.target.value)}
-                      placeholder="วาง URL หรือเลือกรหัสพนักงานเพื่อดึงรูป"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAutoPullEmployeePhoto(editAccountUsername || editAccountName, "edit")}
-                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 cursor-pointer"
-                    title="ค้นหารูปพนักงานตรงตามรหัส/ชื่อ"
-                  >
-                    📷 ดึงรูปพนักงาน
-                  </button>
-                </div>
+                <input 
+                  type="text"
+                  value={editAccountAvatar}
+                  onChange={(e) => setEditAccountAvatar(e.target.value)}
+                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${editAccountUsername || "พนักงาน"} อัตโนมัติ`}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
