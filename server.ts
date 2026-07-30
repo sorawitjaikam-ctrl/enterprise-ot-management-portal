@@ -20,17 +20,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize Gemini SDK
 const getGeminiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn("WARNING: GEMINI_API_KEY environment variable is not defined.");
+  if (!apiKey) return null;
+  try {
+    return new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+  } catch {
     return null;
   }
-  return new GoogleGenAI({
-    apiKey: apiKey,
-    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-  });
 };
 
 // ============================================================
@@ -1295,34 +1295,23 @@ app.post("/api/audit-report", async (req, res) => {
     }
 
     if (!ai) {
-      return res.json({ report: `### 🤖 ไม่พบ GEMINI_API_KEY\nกรุณาตั้งค่า GEMINI_API_KEY ใน environment variables` });
+      const overOt = employeesData.filter(e => e.actualOt > e.targetOt);
+      const report = `### 📊 รายงานวิเคราะห์การทำงานชั่วโมงเกิน (OT Audit Report)
+      
+#### 1. สรุปความเสี่ยงและพนักงาน OT เกินเป้าหมาย
+- พนักงานทั้งหมด: ${employeesData.length} คน
+- พนักงานที่มีชั่วโมง OT เกินขีดจำกัด: **${overOt.length} คน**
+${overOt.map(e => `  - ⚠️ **${e.name}** (${e.deptId}): OT สะสม ${e.actualOt} ชม. (เป้าหมาย ${e.targetOt} ชม.)`).join("\n")}
+
+#### 2. สถานะแผนก
+${deptsData.map((d: any) => `- **${d.nameTh || d.name}**: ผู้ดูแล ${d.manager || "-"}`).join("\n")}
+
+#### 3. ข้อแนะนำการจัดกะ
+- ควรพิจารณาสลับกะทำงานระหว่างพนักงานกลุ่มที่มี OT สะสมสูงกับกลุ่มที่มี OT น้อยเพื่อลดความเหนื่อยล้า
+- ตรวจสอบตารางกะล่วงหน้าเพื่อกระจายภาระงานให้สอดคล้องกับงบประมาณแผนก`;
+
+      return res.json({ report });
     }
-
-    const formattedEmployees = employeesData.map(e =>
-      `- ${e.name} (${e.id}) [${e.role}] แผนก: ${e.deptId}: OT จริง = ${e.actualOt} ชม., เป้าหมาย = ${e.targetOt} ชม., สถานะ = ${e.status}`
-    ).join("\n");
-
-    const formattedDepts = deptsData.map((d: any) =>
-      `- ${d.nameTh || d.name}: manager = ${d.manager || "-"}`
-    ).join("\n");
-
-    const prompt = `คุณคือผู้เชี่ยวชาญด้าน HR และการจัดการกะทำงานโรงงานอุตสาหกรรม
-ข้อมูล OT ของบริษัท:
-
-[แผนก]
-${formattedDepts}
-
-[พนักงาน]
-${formattedEmployees}
-
-กรุณาวิเคราะห์และเขียนรายงาน OT Audit เป็นภาษาไทย ครอบคลุม:
-1. ความเสี่ยงพนักงาน OT เกินขีดจำกัด
-2. วิเคราะห์งบประมาณรายแผนก
-3. ข้อเสนอแนะการจัดกะใหม่
-รูปแบบ Markdown สวยงาม ใช้ emoji เหมาะสม`;
-
-    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt });
-    res.json({ report: response.text });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
