@@ -336,6 +336,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json([], { headers: corsHeaders });
     }
 
+    // 10. POST /api/clear-mock-data
+    if (path === "/api/clear-mock-data" && request.method === "POST") {
+      if (db) {
+        try {
+          await db.prepare("DELETE FROM employees").run();
+          await db.prepare("DELETE FROM ot_daily_records").run();
+          await db.prepare("DELETE FROM leave_records").run();
+        } catch (e) {
+          console.error("D1 Clear Data Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ล้างข้อมูลพนักงานและ OT records ใน Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
     // Default 404 response for unhandled API paths
     return Response.json({ error: "Endpoint not found" }, { status: 404, headers: corsHeaders });
 
