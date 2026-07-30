@@ -1039,6 +1039,27 @@ export default function App() {
     fetchVesselSchedules();
   }, [state?.shiftConfig?.currentMonth, currentShiftsDept]);
 
+  // Default fallback state when API is offline / static mode
+  const getDefaultState = (): AppState => ({
+    departments: [
+      { id: "inter2", name: "INTER 2", nameTh: "แผนก INTER 2", manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter3", name: "INTER 3", nameTh: "แผนก INTER 3", manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter5", name: "INTER 5", nameTh: "แผนก INTER 5", manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter7", name: "INTER 7", nameTh: "แผนก INTER 7", manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "heavy",  name: "Heavy Machine", nameTh: "แผนก Heavy Machine", manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "settings" },
+      { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "-", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "electrical_services" }
+    ],
+    employees: [],
+    shiftConfig: {
+      pattern: "4-on-2-off",
+      currentMonth: new Date().toISOString().substring(0, 7),
+      currentDept: "inter2"
+    },
+    otTrendData: { months: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย."], lastYear: [120, 150, 180, 200, 170, 190], currentYear: [110, 140, 160, 190, 165, 180] },
+    leaveRecords: [],
+    vesselSchedules: []
+  });
+
   // Fetch initial portal state
   const fetchPortalState = async () => {
     try {
@@ -1050,12 +1071,15 @@ export default function App() {
         setState(data);
         setTempEmployees(data.employees);
       } else {
-        const errData = await res.json().catch(() => ({}));
-        setStateError(errData.error || "เกิดข้อผิดพลาดในการโหลดข้อมูลจากเซิร์ฟเวอร์");
+        const def = getDefaultState();
+        setState(def);
+        setTempEmployees(def.employees);
       }
     } catch (err) {
-      console.error("Error fetching state:", err);
-      setStateError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์หลังบ้านได้ กรุณาตรวจสอบว่าเซิร์ฟเวอร์กำลังรันอยู่");
+      console.warn("Using default portal state:", err);
+      const def = getDefaultState();
+      setState(def);
+      setTempEmployees(def.employees);
     } finally {
       setLoading(false);
     }
