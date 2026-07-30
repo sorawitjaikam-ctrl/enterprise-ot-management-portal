@@ -1447,6 +1447,65 @@ export default function App() {
     return matchesSearch && matchesDept && matchesRole;
   });
 
+  // Bulk Shift Setter Action Handler
+  const handleApplyBulkShift = () => {
+    const listToUpdate = isEditingShifts ? tempEmployees : state.employees;
+    if (!listToUpdate || listToUpdate.length === 0) {
+      alert("ไม่พบข้อมูลพนักงานในตาราง");
+      return;
+    }
+    const updated = listToUpdate.map(emp => {
+      if (emp.deptId === currentShiftsDept && (bulkGroupName === "all" || emp.groupName === bulkGroupName)) {
+        const newShifts = [...(emp.shifts || [])];
+        const sDay = Math.max(1, bulkStartDay) - 1;
+        const eDay = Math.min(31, bulkEndDay);
+        for (let d = sDay; d < eDay; d++) {
+          newShifts[d] = bulkShiftCode;
+        }
+        return { ...emp, shifts: newShifts };
+      }
+      return emp;
+    });
+    setTempEmployees(updated);
+    setIsEditingShifts(true);
+    setShowBulkShiftModal(false);
+    alert(`กำหนดกะงาน ${bulkShiftCode} ให้กลุ่ม ${bulkGroupName === "all" ? "ทุกกลุ่ม" : bulkGroupName} เรียบร้อยแล้ว!\n(กรุณากดปุ่ม "บันทึกการจัดกะ" สีเขียว เพื่อบันทึกลง Cloudflare D1)`);
+  };
+
+  // OT Request Action Handlers
+  const handleApproveOtRequest = (id: string) => {
+    setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r));
+    alert("อนุมัติคำขอทำ OT เรียบร้อยแล้ว");
+  };
+
+  const handleRejectOtRequest = (id: string) => {
+    setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
+    alert("ปฏิเสธคำขอทำ OT เรียบร้อยแล้ว");
+  };
+
+  const handleSubmitOtRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const emp = state.employees.find(e => e.id === newOtReqEmpId) || state.employees[0];
+    if (!emp) {
+      alert("กรุณาเลือกพนักงาน");
+      return;
+    }
+    const newReq = {
+      id: "REQ-" + Date.now().toString().slice(-4),
+      employeeId: emp.id,
+      employeeName: emp.name,
+      deptId: emp.deptId || currentShiftsDept || "inter2",
+      date: newOtReqDate || new Date().toISOString().substring(0, 10),
+      hours: Number(newOtReqHours) || 4,
+      reason: newOtReqReason || "ปฏิบัติงานล่วงเวลาพิเศษ",
+      status: "pending",
+      requestedAt: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
+    };
+    setOtRequests(prev => [newReq, ...prev]);
+    setNewOtReqReason("");
+    alert("ยื่นใบคำขอทำ OT เรียบร้อยแล้ว! ส่งเรื่องรอผู้บังคับบัญชาพิจารณาอนุมัติ");
+  };
+
   // Handle adding new employee
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
