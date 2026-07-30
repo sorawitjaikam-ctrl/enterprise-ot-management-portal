@@ -3283,76 +3283,112 @@ export default function App() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
+                  <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">พนักงาน / รหัส</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">สังกัดแผนก</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">บทบาทหน้าที่ / ทีมย่อย</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">OT ที่ทำจริง</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">โควตาเป้าหมายสูงสุด</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">สัดส่วนที่ใช้ไป</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">สถานะความเสี่ยง</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">การจัดการ</th>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-3.5 font-mono">รหัสพนักงาน</th>
+                        <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
+                        <th className="px-4 py-3.5">ตำแหน่ง</th>
+                        <th className="px-4 py-3.5">แผนก</th>
+                        <th className="px-4 py-3.5">ฝ่าย</th>
+                        <th className="px-4 py-3.5 text-right text-blue-700">OT วันทำงาน (x1.5)</th>
+                        <th className="px-4 py-3.5 text-right text-amber-700">OT ทำงานในวันหยุด (x1)</th>
+                        <th className="px-4 py-3.5 text-right text-red-700">OT ในวันหยุด (x3)</th>
+                        <th className="px-4 py-3.5 text-right text-slate-900">ผลรวมค่าล่วงเวลา</th>
+                        <th className="px-4 py-3.5 text-right text-purple-700">% ค่าล่วงเวลา (เทียบจากฐานเงินเดือน)</th>
+                        <th className="px-4 py-3.5 text-center">การจัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
                       {filteredEmployees.map((emp) => {
-                        const isOver = emp.actualOt > emp.targetOt;
                         const dept = state.departments.find(d => d.id === emp.deptId);
+                        
+                        // Calculate OT Multipliers
+                        const shifts: string[] = emp.shifts || [];
+                        let ot1_5 = 0;
+                        let ot1_0 = 0;
+                        let ot3_0 = 0;
+
+                        shifts.forEach((code: string) => {
+                          if (code === "OND") {
+                            ot1_0 += 8;
+                          } else if (code === "M12" || code === "A12" || code === "N12") {
+                            ot1_5 += 4;
+                          } else if (code === "M16" || code === "N16") {
+                            ot1_5 += 8;
+                          } else if (code.endsWith("12")) {
+                            ot1_5 += 4;
+                          } else if (code.endsWith("16")) {
+                            ot1_5 += 8;
+                          }
+                        });
+
+                        if (ot1_5 === 0 && ot1_0 === 0 && ot3_0 === 0 && emp.actualOt > 0) {
+                          ot1_5 = emp.actualOt;
+                        }
+
+                        const salary = emp.salary || 15000;
+                        const hourlyRate = salary > 0 ? (salary / 240) : 100;
+                        const totalOtPay = Math.round((ot1_5 * 1.5 + ot1_0 * 1.0 + ot3_0 * 3.0) * hourlyRate);
+                        const otPctSalary = salary > 0 ? Math.round((totalOtPay / salary) * 100) : 0;
+
                         return (
                           <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => setViewingEmployeeDetails(emp)}>
-                              <div className="flex items-center gap-3">
-                                <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-9 h-9" />
-                                <div>
-                                  <p className="font-bold text-slate-800 hover:text-blue-600 transition-colors">{emp.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-mono">{emp.id}</p>
-                                </div>
+                            {/* 1. รหัสพนักงาน */}
+                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500">
+                              {emp.id}
+                            </td>
+                            {/* 2. ชื่อ-นามสกุล */}
+                            <td className="px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setViewingEmployeeDetails(emp)}>
+                              <div className="flex items-center gap-2.5">
+                                <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-8 h-8 flex-shrink-0" />
+                                <span>{emp.name}</span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 font-bold text-slate-600">
-                              {dept ? dept.nameTh : "ไม่ระบุ"}
+                            {/* 3. ตำแหน่ง */}
+                            <td className="px-4 py-3.5 font-medium text-slate-700">
+                              {emp.role}
                             </td>
-                            <td className="px-6 py-4">
-                              <p className="font-semibold text-slate-700">{emp.role}</p>
-                              <p className="text-[10px] text-slate-400">{emp.groupName}</p>
+                            {/* 4. แผนก */}
+                            <td className="px-4 py-3.5 font-bold text-slate-700">
+                              {dept ? dept.nameTh : emp.deptId}
                             </td>
-                            <td className="px-6 py-4 text-right font-extrabold text-slate-900 font-mono">
-                              {emp.actualOt} ชม.
+                            {/* 5. ฝ่าย */}
+                            <td className="px-4 py-3.5 text-slate-600 font-medium">
+                              {emp.division || emp.groupName || "-"}
                             </td>
-                            <td className="px-6 py-4 text-right font-bold text-slate-500 font-mono">
-                              {emp.targetOt} ชม.
+                            {/* 6. OT วันทำงาน (x1.5) */}
+                            <td className="px-4 py-3.5 text-right font-extrabold text-blue-700 font-mono">
+                              {ot1_5} ชม.
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="flex-grow bg-slate-100 h-2 rounded-full overflow-hidden max-w-[120px]">
-                                  <div 
-                                    style={{ width: `${Math.min(100, emp.otPct)}%` }}
-                                    className={`h-full rounded-full ${isOver ? 'bg-red-500' : 'bg-blue-600'}`}
-                                  ></div>
-                                </div>
-                                <span className={`font-bold font-mono ${isOver ? 'text-red-500' : 'text-slate-700'}`}>{emp.otPct}%</span>
-                              </div>
+                            {/* 7. OT ทำงานในวันหยุด (x1) */}
+                            <td className="px-4 py-3.5 text-right font-bold text-amber-700 font-mono">
+                              {ot1_0} ชม.
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                                isOver 
-                                  ? "bg-red-50 text-red-700 border-red-100 animate-pulse" 
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                              }`}>
-                                {isOver ? "Over Limit ⚠️" : "Safe Zone ✅"}
+                            {/* 8. OT ในวันหยุด (x3) */}
+                            <td className="px-4 py-3.5 text-right font-bold text-red-700 font-mono">
+                              {ot3_0} ชม.
+                            </td>
+                            {/* 9. ผลรวมค่าล่วงเวลา */}
+                            <td className="px-4 py-3.5 text-right font-black text-slate-900 font-mono">
+                              ฿{totalOtPay.toLocaleString()}
+                            </td>
+                            {/* 10. % ค่าล่วงเวลา (เทียบจากฐานเงินเดือน) */}
+                            <td className="px-4 py-3.5 text-right font-black font-mono">
+                              <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
+                                {otPctSalary}%
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
+                            {/* 11. การจัดการ */}
+                            <td className="px-4 py-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setViewingEmployeeDetails(emp)}
-                                  className="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
-                                  title="ดูประวัติและรายละเอียดพนักงาน"
+                                  className="p-1.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                                  title="ดูรายละเอียดพนักงาน"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                   </svg>
@@ -3360,10 +3396,10 @@ export default function App() {
                                 <button
                                   type="button"
                                   onClick={() => startEditEmployee(emp)}
-                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
                                   title="แก้ไขข้อมูลพนักงาน"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                   </svg>
                                 </button>
@@ -3371,10 +3407,10 @@ export default function App() {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteEmployee(emp.id)}
-                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
-                                    title="ลบพนักงานออกจากระบบ"
+                                    className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                    title="ลบพนักงาน"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                     </svg>
                                   </button>
