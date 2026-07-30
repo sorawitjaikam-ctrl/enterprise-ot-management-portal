@@ -1450,31 +1450,15 @@ export default function App() {
   // Handle adding new employee
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmpName) {
-      alert("กรุณากรอกชื่อพนักงาน");
+    const fName = (newEmpFirstName || newEmpName || "").trim();
+    const lName = (newEmpLastName || "").trim();
+    if (!fName) {
+      alert("กรุณากรอกชื่อพนักงาน (ชื่อจริง)");
       return;
     }
 
-    // Parse prefix, first name, and last name from full name
-    let pfx = newEmpPrefix || "นาย";
-    let fName = "";
-    let lName = "";
-
-    const trimmed = newEmpName.trim();
-    const prefixes = ["นางสาว", "นาง", "นาย"];
-    let nameWithoutPrefix = trimmed;
-    for (const p of prefixes) {
-      if (trimmed.startsWith(p)) {
-        pfx = p;
-        nameWithoutPrefix = trimmed.substring(p.length).trim();
-        break;
-      }
-    }
-    const parts = nameWithoutPrefix.split(/\s+/);
-    fName = parts[0] || "";
-    lName = parts.slice(1).join(" ") || "";
-
-    const fullName = (pfx + fName + (lName ? " " + lName : "")).trim();
+    const pfx = newEmpPrefix || "นาย";
+    const fullName = (pfx + " " + fName + (lName ? " " + lName : "")).trim();
 
     try {
       const res = await fetch("/api/add-employee", {
