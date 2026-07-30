@@ -46,12 +46,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       let deptsRes: any = { results: [] };
       let empsRes: any = { results: [] };
       let accountsRes: any = { results: [] };
+      let vesselSchedulesRes: any = { results: [] };
 
       if (db) {
         try {
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           empsRes = await db.prepare("SELECT * FROM employees").all();
           accountsRes = await db.prepare("SELECT * FROM accounts").all();
+          vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
         } catch (e) {
           console.error("D1 Fetch Error:", e);
         }
@@ -159,6 +161,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         departments,
         employees: enrichedEmployees,
         accounts: accountsRes.results && accountsRes.results.length > 0 ? accountsRes.results : defaultAccounts,
+        vesselSchedules: vesselSchedulesRes.results || [],
         shiftConfig: {
           pattern: "4-on-2-off",
           currentMonth: new Date().toISOString().substring(0, 7),
@@ -348,6 +351,70 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "ล้างข้อมูลพนักงานและ OT records ใน Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 11. GET /api/vessel-schedules
+    if (path === "/api/vessel-schedules" && request.method === "GET") {
+      if (db) {
+        try {
+          const deptId = url.searchParams.get("deptId");
+          let sql = "SELECT * FROM vessel_schedules WHERE 1=1";
+          const params: any[] = [];
+          if (deptId && deptId !== "all") {
+            sql += " AND deptId = ?";
+            params.push(deptId);
+          }
+          sql += " ORDER BY startDate ASC";
+          const stmt = db.prepare(sql);
+          const rows = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
+          return Response.json(rows.results || [], { headers: corsHeaders });
+        } catch (e) {
+          console.error("D1 Vessel Fetch Error:", e);
+        }
+      }
+      return Response.json([], { headers: corsHeaders });
+    }
+
+    // 12. POST /api/save-vessel-schedule
+    if (path === "/api/save-vessel-schedule" && request.method === "POST") {
+      const body = await getBody();
+      if (!body.name || !body.startDate || !body.endDate) {
+        return Response.json({ error: "กรุณากรอกข้อมูลให้ครบถ้วน" }, { status: 400, headers: corsHeaders });
+      }
+      const id = body.id || "VS-" + Date.now();
+      if (db) {
+        try {
+          await db.prepare(`INSERT OR REPLACE INTO vessel_schedules (id, type, planType, name, startDate, endDate, deptId, color)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+              id,
+              body.type || "vessel",
+              body.planType || "plan",
+              body.name,
+              body.startDate,
+              body.endDate,
+              body.deptId || "inter2",
+              body.color || "#fef08a"
+            ).run();
+        } catch (e) {
+          console.error("D1 Save Vessel Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "บันทึกตารางเรือเรียบร้อยแล้ว", id }, { headers: corsHeaders });
+    }
+
+    // 13. DELETE / POST /api/delete-vessel-schedule
+    if (path.startsWith("/api/delete-vessel-schedule")) {
+      const idFromPath = path.replace("/api/delete-vessel-schedule/", "").replace("/api/delete-vessel-schedule", "");
+      const body = await getBody();
+      const id = idFromPath || body.id;
+      if (db && id) {
+        try {
+          await db.prepare("DELETE FROM vessel_schedules WHERE id = ?").bind(id).run();
+        } catch (e) {
+          console.error("D1 Delete Vessel Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ลบตารางเรือเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
     // Default 404 response for unhandled API paths
