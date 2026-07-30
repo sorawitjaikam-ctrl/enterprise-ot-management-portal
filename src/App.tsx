@@ -1333,13 +1333,16 @@ export default function App() {
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
-        const data: AppState & { accounts?: any[] } = await res.json();
+        const data: AppState & { accounts?: any[]; otRequests?: any[] } = await res.json();
         setState(data);
         setTempEmployees(data.employees);
         if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
           setAccounts(data.accounts);
         } else {
           setAccounts(DEFAULT_ACCOUNTS);
+        }
+        if (data.otRequests && Array.isArray(data.otRequests)) {
+          setOtRequests(data.otRequests);
         }
       } else {
         const def = getDefaultState();
@@ -1473,17 +1476,37 @@ export default function App() {
   };
 
   // OT Request Action Handlers
-  const handleApproveOtRequest = (id: string) => {
-    setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r));
-    alert("อนุมัติคำขอทำ OT เรียบร้อยแล้ว");
+  const handleApproveOtRequest = async (id: string) => {
+    try {
+      await fetch("/api/update-ot-request-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "approved" })
+      });
+      setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r));
+      alert("อนุมัติคำขอทำ OT เรียบร้อยแล้ว (บันทึกลง D1 Database)");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการบันทึกสถานะ");
+    }
   };
 
-  const handleRejectOtRequest = (id: string) => {
-    setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
-    alert("ปฏิเสธคำขอทำ OT เรียบร้อยแล้ว");
+  const handleRejectOtRequest = async (id: string) => {
+    try {
+      await fetch("/api/update-ot-request-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "rejected" })
+      });
+      setOtRequests(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r));
+      alert("ปฏิเสธคำขอทำ OT เรียบร้อยแล้ว (บันทึกลง D1 Database)");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการบันทึกสถานะ");
+    }
   };
 
-  const handleSubmitOtRequest = (e: React.FormEvent) => {
+  const handleSubmitOtRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     const emp = state.employees.find(e => e.id === newOtReqEmpId) || state.employees[0];
     if (!emp) {
@@ -1491,7 +1514,7 @@ export default function App() {
       return;
     }
     const newReq = {
-      id: "REQ-" + Date.now().toString().slice(-4),
+      id: "REQ-" + Date.now().toString().slice(-6),
       employeeId: emp.id,
       employeeName: emp.name,
       deptId: emp.deptId || currentShiftsDept || "inter2",
@@ -1501,9 +1524,20 @@ export default function App() {
       status: "pending",
       requestedAt: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
     };
-    setOtRequests(prev => [newReq, ...prev]);
-    setNewOtReqReason("");
-    alert("ยื่นใบคำขอทำ OT เรียบร้อยแล้ว! ส่งเรื่องรอผู้บังคับบัญชาพิจารณาอนุมัติ");
+
+    try {
+      await fetch("/api/save-ot-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReq)
+      });
+      setOtRequests(prev => [newReq, ...prev]);
+      setNewOtReqReason("");
+      alert("ยื่นใบคำขอทำ OT ลง Cloudflare D1 Database เรียบร้อยแล้ว! ส่งเรื่องรอผู้บังคับบัญชาพิจารณาอนุมัติ");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการส่งคำขอ");
+    }
   };
 
   // Handle adding new employee

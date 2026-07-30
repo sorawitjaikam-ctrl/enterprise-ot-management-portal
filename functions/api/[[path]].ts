@@ -162,6 +162,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         employees: enrichedEmployees,
         accounts: accountsRes.results && accountsRes.results.length > 0 ? accountsRes.results : defaultAccounts,
         vesselSchedules: vesselSchedulesRes.results || [],
+        otRequests: otRequestsRes.results || [],
         shiftConfig: {
           pattern: "4-on-2-off",
           currentMonth: new Date().toISOString().substring(0, 7),
@@ -423,6 +424,45 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "ลบตารางเรือเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 14. POST /api/save-ot-request
+    if (path === "/api/save-ot-request" && request.method === "POST") {
+      const body = await getBody();
+      const id = body.id || "REQ-" + Date.now();
+      if (db) {
+        try {
+          await db.prepare(`INSERT OR REPLACE INTO ot_requests (id, employeeId, employeeName, deptId, date, hours, reason, status, requestedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+              id,
+              body.employeeId || "",
+              body.employeeName || "",
+              body.deptId || "inter2",
+              body.date || new Date().toISOString().substring(0, 10),
+              Number(body.hours) || 4,
+              body.reason || "",
+              body.status || "pending",
+              body.requestedAt || new Date().toLocaleString("th-TH")
+            ).run();
+        } catch (e) {
+          console.error("D1 Save OT Request Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ยื่นใบคำขอทำ OT เรียบร้อยแล้ว", id }, { headers: corsHeaders });
+    }
+
+    // 15. POST /api/update-ot-request-status
+    if (path === "/api/update-ot-request-status" && request.method === "POST") {
+      const body = await getBody();
+      const { id, status } = body;
+      if (db && id && status) {
+        try {
+          await db.prepare("UPDATE ot_requests SET status = ? WHERE id = ?").bind(status, id).run();
+        } catch (e) {
+          console.error("D1 Update OT Request Status Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "อัปเดตสถานะใบคำขอเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
     // Default 404 response for unhandled API paths
