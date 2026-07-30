@@ -787,41 +787,36 @@ export default function App() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch("/api/accounts");
+      const res = await fetch("/api/portal-state");
       if (res.ok) {
         const data = await res.json();
-        setAccounts(data);
+        if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+          setAccounts(data.accounts);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
     }
   };
 
-  const updatePlannerMonth = async (newMonthStr: string) => {
-    try {
-      const res = await fetch("/api/update-shift-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentMonth: newMonthStr })
-      });
-      if (res.ok) {
-        await fetchPortalState();
-      }
-    } catch (err) {
-      console.error("Failed to update planner month:", err);
-    }
-  };
-
   const handleUpdateAccountPermission = async (targetUsername: string, role: string, deptId: string) => {
     try {
-      const res = await fetch("/api/update-account-permission", {
+      const acc = accounts.find(a => a.username === targetUsername);
+      const res = await fetch("/api/update-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUsername, role, deptId })
+        body: JSON.stringify({
+          username: targetUsername,
+          name: acc?.name || targetUsername,
+          role,
+          deptId,
+          avatar: acc?.avatar || "",
+          canBackup: acc?.canBackup ? true : false
+        })
       });
       if (res.ok) {
         await fetchAccounts();
-        alert("อัปเดตสิทธิ์การเข้าถึงและความรับผิดชอบของบัญชีสำเร็จ!");
+        alert("อัปเดตสิทธิ์การเข้าถึงและความรับผิดชอบของบัญชีใน D1 Database สำเร็จ!");
       }
     } catch (err) {
       console.error(err);
@@ -836,18 +831,23 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch("/api/reset-account-password", {
+      const res = await fetch("/api/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUsername: resetTargetUsername, newPassword: newResetPassword })
+        body: JSON.stringify({ username: resetTargetUsername, password: newResetPassword })
       });
       if (res.ok) {
         setNewResetPassword("");
         setShowResetPasswordModal(false);
-        alert(`รีเซ็ตรหัสผ่านของบัญชี "${resetTargetUsername}" เรียบร้อยแล้ว!`);
+        await fetchAccounts();
+        alert(`รีเซ็ตรหัสผ่านของบัญชี "${resetTargetUsername}" ใน D1 Database เรียบร้อยแล้ว!`);
+      } else {
+        const err = await res.json();
+        alert(`เกิดข้อผิดพลาด: ${err.error}`);
       }
     } catch (err) {
       console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -1140,19 +1140,26 @@ export default function App() {
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
-        const data: AppState = await res.json();
+        const data: AppState & { accounts?: any[] } = await res.json();
         setState(data);
         setTempEmployees(data.employees);
+        if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+          setAccounts(data.accounts);
+        } else {
+          setAccounts(DEFAULT_ACCOUNTS);
+        }
       } else {
         const def = getDefaultState();
         setState(def);
         setTempEmployees(def.employees);
+        setAccounts(DEFAULT_ACCOUNTS);
       }
     } catch (err) {
       console.warn("Using default portal state:", err);
       const def = getDefaultState();
       setState(def);
       setTempEmployees(def.employees);
+      setAccounts(DEFAULT_ACCOUNTS);
     } finally {
       setLoading(false);
     }
@@ -4179,7 +4186,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {accounts.map((acc) => (
+                        {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
                           <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4 flex items-center gap-3">
                               <img 
@@ -4317,7 +4324,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {accounts.map((acc) => (
+                      {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
                         <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                           <td className="p-4 flex items-center gap-3">
                             <img 

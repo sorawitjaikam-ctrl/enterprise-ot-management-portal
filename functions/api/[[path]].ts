@@ -45,11 +45,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (path === "/api/portal-state" && request.method === "GET") {
       let deptsRes: any = { results: [] };
       let empsRes: any = { results: [] };
+      let accountsRes: any = { results: [] };
 
       if (db) {
         try {
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           empsRes = await db.prepare("SELECT * FROM employees").all();
+          accountsRes = await db.prepare("SELECT * FROM accounts").all();
         } catch (e) {
           console.error("D1 Fetch Error:", e);
         }
@@ -146,9 +148,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         };
       });
 
+      const defaultAccounts = [
+        { username: "admin", password: "admin123", name: "ผู้ดูแลระบบ", role: "ผู้ดูแลระบบ", deptId: "all", avatar: "", canBackup: 1 },
+        { username: "hr", password: "hr1234", name: "HR Manager", role: "HR", deptId: "all", avatar: "", canBackup: 1 },
+        { username: "hr_sec", password: "hrsec1234", name: "HR Section Manager", role: "HR Section Manager", deptId: "all", avatar: "", canBackup: 1 },
+        { username: "inter2_mgr", password: "i2mgr1234", name: "Section Manager INTER2", role: "Section Manager", deptId: "inter2", avatar: "", canBackup: 0 }
+      ];
+
       return Response.json({
         departments,
         employees: enrichedEmployees,
+        accounts: accountsRes.results && accountsRes.results.length > 0 ? accountsRes.results : defaultAccounts,
         shiftConfig: {
           pattern: "4-on-2-off",
           currentMonth: new Date().toISOString().substring(0, 7),
@@ -172,7 +182,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       if (db) {
         try {
-          const acc = await db.prepare("SELECT * FROM app_accounts WHERE username = ? AND password = ?").bind(username, password).first();
+          const acc = await db.prepare("SELECT * FROM accounts WHERE username = ? AND password = ?").bind(username, password).first();
           if (acc) {
             return Response.json({
               success: true,
@@ -184,7 +194,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
 
-      // Default accounts fallback
       const defaultAccounts = [
         { username: "admin", password: "admin123", name: "ผู้ดูแลระบบ", role: "ผู้ดูแลระบบ", deptId: "all", canBackup: 1 },
         { username: "hr", password: "hr1234", name: "HR Manager", role: "HR", deptId: "all", canBackup: 1 },
@@ -203,15 +212,76 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" }, { status: 401, headers: corsHeaders });
     }
 
-    // 3. POST /api/save-shifts
+    // 3. POST /api/add-account
+    if (path === "/api/add-account" && request.method === "POST") {
+      const body = await getBody();
+      if (!body.username || !body.name) {
+        return Response.json({ error: "กรุณากรอก Username และชื่อผู้ใช้งาน" }, { status: 400, headers: corsHeaders });
+      }
+
+      if (db) {
+        await db.prepare(`INSERT OR REPLACE INTO accounts (username, password, name, role, deptId, avatar, canBackup)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(
+            body.username,
+            body.password || "123456",
+            body.name,
+            body.role || "Section Manager",
+            body.deptId || "all",
+            body.avatar || "",
+            body.canBackup ? 1 : 0
+          ).run();
+      }
+      return Response.json({ success: true, message: "เพิ่มบัญชีผู้ใช้ใหม่ใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 4. POST /api/update-account
+    if (path === "/api/update-account" && request.method === "POST") {
+      const body = await getBody();
+      if (!body.username) {
+        return Response.json({ error: "ไม่พบ Username" }, { status: 400, headers: corsHeaders });
+      }
+
+      if (db) {
+        await db.prepare(`UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ?, canBackup = ? WHERE username = ?`).bind(
+          body.name,
+          body.role,
+          body.deptId || "all",
+          body.avatar || "",
+          body.canBackup ? 1 : 0,
+          body.username
+        ).run();
+      }
+      return Response.json({ success: true, message: "อัปเดตข้อมูลสิทธิ์ผู้ใช้ใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 5. POST /api/delete-account
+    if (path === "/api/delete-account" && request.method === "POST") {
+      const { username } = await getBody();
+      if (db && username) {
+        await db.prepare("DELETE FROM accounts WHERE username = ?").bind(username).run();
+      }
+      return Response.json({ success: true, message: "ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 6. POST /api/reset-password
+    if (path === "/api/reset-password" && request.method === "POST") {
+      const { username, password } = await getBody();
+      if (!username || !password) {
+        return Response.json({ error: "กรุณากรอกรหัสผ่านใหม่" }, { status: 400, headers: corsHeaders });
+      }
+
+      if (db) {
+        await db.prepare("UPDATE accounts SET password = ? WHERE username = ?").bind(password, username).run();
+      }
+      return Response.json({ success: true, message: "รีเซ็ตรหัสผ่านใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 7. POST /api/save-shifts
     if (path === "/api/save-shifts" && request.method === "POST") {
       const { year, month, employees } = await getBody();
       if (db && employees && Array.isArray(employees)) {
         for (const emp of employees) {
-          // Update employees table shifts
           await db.prepare("UPDATE employees SET shifts = ? WHERE id = ?").bind(JSON.stringify(emp.shifts || []), emp.id).run();
-
-          // Insert into ot_daily_records
           const shifts: string[] = emp.shifts || [];
           for (let dayIdx = 0; dayIdx < shifts.length; dayIdx++) {
             const shiftCode = shifts[dayIdx];
@@ -229,7 +299,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "บันทึกตารางกะลง Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
-    // 4. POST /api/add-employee
+    // 8. POST /api/add-employee
     if (path === "/api/add-employee" && request.method === "POST") {
       const body = await getBody();
       const empId = body.id || "EMP-" + Date.now();
@@ -248,7 +318,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "เพิ่มพนักงานเรียบร้อยแล้ว", employeeId: empId }, { headers: corsHeaders });
     }
 
-    // 5. GET /api/ot-records
+    // 9. GET /api/ot-records
     if (path === "/api/ot-records" && request.method === "GET") {
       if (db) {
         const year = url.searchParams.get("year");
