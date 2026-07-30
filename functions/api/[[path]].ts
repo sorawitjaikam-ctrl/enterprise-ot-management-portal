@@ -382,10 +382,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         return Response.json({ error: "กรุณากรอกข้อมูลให้ครบถ้วน" }, { status: 400, headers: corsHeaders });
       }
       const id = body.id || "VS-" + Date.now();
+      const tonnage = Number(body.tonnage) || 0;
       if (db) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO vessel_schedules (id, type, planType, name, startDate, endDate, deptId, color)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO vessel_schedules (id, type, planType, name, startDate, endDate, deptId, color, tonnage)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               id,
               body.type || "vessel",
               body.planType || "plan",
@@ -393,7 +394,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.startDate,
               body.endDate,
               body.deptId || "inter2",
-              body.color || "#fef08a"
+              body.color || "#fef08a",
+              tonnage
             ).run();
         } catch (e) {
           console.error("D1 Save Vessel Error:", e);
