@@ -63,19 +63,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const rawEmployees = empsRes.results || [];
       const enrichedEmployees = [];
 
-      const generateDefaultShifts = (id: string, index: number) => {
-        const patterns = [
-          ["M12", "M12", "O", "O", "A12", "A12", "N12", "N12", "O", "O"],
-          ["M8", "M12", "O", "O", "A8", "A12", "N8", "N12", "O", "O"],
-          ["M16", "M12", "O", "O", "A12", "A16", "N12", "N12", "O", "O"],
-          ["M12", "M8", "O", "O", "A12", "A8", "N12", "N8", "O", "O"],
-          ["M16", "M16", "O", "O", "A16", "A12", "N16", "N12", "O", "O"],
-          ["M8", "M8", "O", "O", "A8", "A8", "N8", "N8", "O", "O"]
-        ];
-        const numId = parseInt(String(id).replace(/\D/g, "") || "0", 10);
-        return patterns[(numId + index) % patterns.length];
-      };
-
       for (let idx = 0; idx < rawEmployees.length; idx++) {
         const emp = rawEmployees[idx];
         let actualOt = 0;
@@ -86,26 +73,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           shifts = [];
         }
 
-        if (!shifts || shifts.length === 0) {
-          shifts = generateDefaultShifts(emp.id, idx);
-        }
-
         if (db) {
           try {
             const otRows = await db.prepare("SELECT SUM(otHours) as total FROM ot_daily_records WHERE employeeId = ?").bind(emp.id).all();
-            actualOt = otRows.results[0]?.total || 0;
+            actualOt = Number(otRows.results[0]?.total) || 0;
           } catch {
             actualOt = 0;
           }
         }
 
-        if (actualOt === 0) {
+        if (actualOt === 0 && shifts && shifts.length > 0) {
           actualOt = Math.round(shifts.reduce((s: number, code: string) => s + getShiftOt(code), 0) * 10) / 10;
-        }
-
-        if (actualOt === 0) {
-          const numId = parseInt(String(emp.id).replace(/\D/g, "") || "0", 10);
-          actualOt = 24 + ((numId % 8) * 4);
         }
 
         const targetOt = Number(emp.targetOt) || 48;

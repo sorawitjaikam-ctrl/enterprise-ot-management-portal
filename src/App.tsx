@@ -1298,27 +1298,20 @@ export default function App() {
   const getDefaultState = (): AppState => ({
     d1Connected: true,
     departments: [
-      { id: "inter2", name: "INTER 2", nameTh: "แผนก INTER 2", manager: "คุณสมชาย", managerRole: "Section Manager", managerImg: "", employeesCount: 5, otHours: 42, budgetUsed: 12600, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 28, status: "On Track", icon: "precision_manufacturing" },
-      { id: "inter3", name: "INTER 3", nameTh: "แผนก INTER 3", manager: "คุณวิภา", managerRole: "Section Manager", managerImg: "", employeesCount: 4, otHours: 36, budgetUsed: 10800, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 24, status: "On Track", icon: "precision_manufacturing" },
-      { id: "inter5", name: "INTER 5", nameTh: "แผนก INTER 5", manager: "คุณอนันต์", managerRole: "Section Manager", managerImg: "", employeesCount: 6, otHours: 58, budgetUsed: 17400, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 38, status: "Warning", icon: "precision_manufacturing" },
-      { id: "inter7", name: "INTER 7", nameTh: "แผนก INTER 7", manager: "คุณสมศักดิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 4, otHours: 24, budgetUsed: 7200, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 16, status: "On Track", icon: "precision_manufacturing" },
-      { id: "heavy",  name: "Heavy Machine", nameTh: "แผนก Heavy Machine", manager: "คุณศักดิ์ชัย", managerRole: "Section Manager", managerImg: "", employeesCount: 5, otHours: 48, budgetUsed: 14400, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 32, status: "On Track", icon: "settings" },
-      { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "คุณประสิทธิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 3, otHours: 18, budgetUsed: 5400, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 12, status: "On Track", icon: "electrical_services" }
+      { id: "inter2", name: "INTER 2", nameTh: "แผนก INTER 2", manager: "คุณสมชาย", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter3", name: "INTER 3", nameTh: "แผนก INTER 3", manager: "คุณวิภา", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter5", name: "INTER 5", nameTh: "แผนก INTER 5", manager: "คุณอนันต์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "inter7", name: "INTER 7", nameTh: "แผนก INTER 7", manager: "คุณสมศักดิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
+      { id: "heavy",  name: "Heavy Machine", nameTh: "แผนก Heavy Machine", manager: "คุณศักดิ์ชัย", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "settings" },
+      { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "คุณประสิทธิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "electrical_services" }
     ],
-    employees: [
-      { id: "EMP-101", name: "นายสมชาย ใจดี", deptId: "inter2", role: "Operator", targetOt: 48, actualOt: 24, otPct: 50, status: "On Track", groupName: "Group A", shifts: ["M12", "M12", "O", "O", "A12", "A12", "N12", "N12", "O", "O"] },
-      { id: "EMP-102", name: "นายวิชัย สุขใจ", deptId: "inter2", role: "Technician", targetOt: 48, actualOt: 40, otPct: 83, status: "On Track", groupName: "Group A", shifts: ["M8", "M12", "O", "O", "A8", "A12", "N8", "N12", "O", "O"] },
-      { id: "EMP-103", name: "นางสาววิภา รักงาน", deptId: "inter3", role: "Operator", targetOt: 48, actualOt: 52, otPct: 108, status: "Warning", groupName: "Group B", shifts: ["M16", "M12", "O", "O", "A12", "A16", "N12", "N12", "O", "O"] },
-      { id: "EMP-104", name: "นายสมศักดิ์ มั่นคง", deptId: "inter5", role: "Senior Operator", targetOt: 48, actualOt: 58, otPct: 120, status: "Warning", groupName: "Group C", shifts: ["M16", "M16", "O", "O", "A16", "A12", "N16", "N12", "O", "O"] },
-      { id: "EMP-105", name: "นายอนันต์ ขยันยิ่ง", deptId: "heavy", role: "Mechanic", targetOt: 48, actualOt: 32, otPct: 67, status: "On Track", groupName: "Group A", shifts: ["M12", "M8", "O", "O", "A12", "A8", "N12", "N8", "O", "O"] },
-      { id: "EMP-106", name: "นายประสิทธิ์ ดีเลิศ", deptId: "ecc", role: "Electrician", targetOt: 48, actualOt: 18, otPct: 38, status: "On Track", groupName: "Group B", shifts: ["M8", "M8", "O", "O", "A8", "A8", "N8", "N8", "O", "O"] }
-    ],
+    employees: [],
     shiftConfig: {
       pattern: "4-on-2-off",
       currentMonth: new Date().toISOString().substring(0, 7),
       currentDept: "inter2"
     },
-    otTrendData: { months: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย."], lastYear: [120, 150, 180, 200, 170, 190], currentYear: [110, 140, 160, 190, 165, 180] },
+    otTrendData: { months: [], lastYear: [], currentYear: [] },
     leaveRecords: [],
     vesselSchedules: []
   });
@@ -2673,7 +2666,7 @@ export default function App() {
         {!isFullScreen && (
           <Navbar 
             title={
-              activeTab === "dashboard" ? "แดชบอร์ดจัดการ OT อัจฉริยะ" : 
+              activeTab === "dashboard" ? "Dashboard" : 
               activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
               activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
               activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
