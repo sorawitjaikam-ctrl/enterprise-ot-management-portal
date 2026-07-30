@@ -968,6 +968,7 @@ export default function App() {
       return;
     }
     try {
+      setResetPasswordLoading(true);
       const res = await fetch("/api/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -985,6 +986,8 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -995,6 +998,7 @@ export default function App() {
       return;
     }
     try {
+      setAddAccountLoading(true);
       const res = await fetch("/api/add-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1023,6 +1027,8 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setAddAccountLoading(false);
     }
   };
 
@@ -1037,6 +1043,7 @@ export default function App() {
       return;
     }
     try {
+      setEditAccountLoading(true);
       const finalAvatar = editAccountAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(editAccountName)}&background=0D8ABC&color=fff&bold=true`;
       const res = await fetch("/api/update-account", {
         method: "POST",
@@ -1074,6 +1081,8 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setEditAccountLoading(false);
     }
   };
 
@@ -1161,11 +1170,16 @@ export default function App() {
     }
   }, [currentUser]);
   
-  // Modals / Overlays
+  // Modals / Overlays & Submitting Loading States
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState<boolean>(false);
   const [showAiAuditModal, setShowAiAuditModal] = useState<boolean>(false);
   const [aiReportText, setAiReportText] = useState<string>("");
   const [generatingAiReport, setGeneratingAiReport] = useState<boolean>(false);
+
+  const [resetPasswordLoading, setResetPasswordLoading] = useState<boolean>(false);
+  const [addAccountLoading, setAddAccountLoading] = useState<boolean>(false);
+  const [editAccountLoading, setEditAccountLoading] = useState<boolean>(false);
+  const [addEmpLoading, setAddEmpLoading] = useState<boolean>(false);
 
   // OT Request & Approval State
   const [otRequests, setOtRequests] = useState<any[]>([]);
@@ -1544,6 +1558,7 @@ export default function App() {
     const fullName = (pfx + " " + fName + (lName ? " " + lName : "")).trim();
 
     try {
+      setAddEmpLoading(true);
       const res = await fetch("/api/add-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1598,6 +1613,8 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setAddEmpLoading(false);
     }
   };
 
@@ -5422,9 +5439,17 @@ export default function App() {
                 </button>
                 <button
                   type="submit"
-                  className="w-32 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10"
+                  disabled={addEmpLoading}
+                  className="w-36 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-md shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  เพิ่มพนักงาน
+                  {addEmpLoading ? (
+                    <>
+                      <span className="text-sm animate-spin inline-block">🌐</span>
+                      <span>กำลังบันทึก...</span>
+                    </>
+                  ) : (
+                    <span>เพิ่มพนักงาน</span>
+                  )}
                 </button>
               </div>
             </form>
