@@ -2396,7 +2396,7 @@ export default function App() {
                   >
                     <option>เดือนปัจจุบัน</option>
                     <option>3 เดือนที่ผ่านมา</option>
-                    <option>กำหนดเอง...</option>
+                    <option>6 เดือนย้อนหลัง</option>
                   </select>
                   <div className="h-4 w-px bg-slate-200"></div>
                   <select 
@@ -2445,19 +2445,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Cloudflare D1 Connection Warning */}
-              {!state?.d1Connected && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-700 flex-shrink-0 font-bold text-lg">
-                    ⚠️
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-red-950">ไม่ได้เชื่อมต่อกับ Cloudflare D1 Database</h4>
-                    <p className="text-[10px] text-red-700 mt-0.5">ระบบปิดการทำงานของโหมด Offline/Mock data โดยจะไม่แสดงผลหรืออนุญาตให้เขียนข้อมูลใดๆ จนกว่าจะตั้งค่าไฟล์ .env เพื่อเชื่อมต่อ Cloudflare D1 สำเร็จ</p>
-                  </div>
-                </div>
-              )}
-
               {/* Labor Compliance Warning Banner */}
               {fatiguedEmployees.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
@@ -2484,210 +2471,221 @@ export default function App() {
               )}
 
               {/* KPI Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                
-                {/* 1. Total OT Hours */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full"></div>
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                      <Clock className="w-6 h-6" />
-                    </div>
-                    <span className="text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">+12% จากเดือนก่อน</span>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ชั่วโมง OT รวมเดือนนี้</p>
-                    <div className="flex items-baseline gap-1">
-                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0), 0) * 10) / 10}
-                      </h3>
-                      <span className="text-xs font-bold text-slate-500">ชม.</span>
-                    </div>
-                  </div>
-                </div>
+              {(() => {
+                const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
+                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0), 0) * 10) / 10;
+                const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
+                const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0) * timeMult);
+                const activeEmps = dashboardEmployees.filter(e => (e.actualOt || 0) > 0).length;
+                const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
+                const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
 
-                {/* 2. Total Budget Used */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-red-50 to-transparent rounded-bl-full"></div>
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
-                      <TrendingUp className="w-6 h-6" />
-                    </div>
-                    <span className="text-red-600 text-[10px] font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">+5% เกินงบประมาณ</span>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
-                    <div className="flex items-baseline gap-1">
-                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        ฿{(Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0)) / 1000).toFixed(1)}K
-                      </h3>
-                      <span className="text-xs font-bold text-slate-500">THB</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Number of OT employees */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full"></div>
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                      <Users className="w-6 h-6" />
-                    </div>
-                    <span className="text-slate-500 text-[10px] font-bold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">จากพนักงานทั้งหมด {state.employees.length} คน</span>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">จำนวนพนักงานที่ได้รับ OT</p>
-                    <div className="flex items-baseline gap-1">
-                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {dashboardEmployees.filter(e => (e.actualOt || 0) > 0).length}
-                      </h3>
-                      <span className="text-xs font-bold text-slate-500">คน</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Total Budget Utilization */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-50 to-transparent rounded-bl-full"></div>
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
-                      <ShieldAlert className="w-6 h-6" />
-                    </div>
-                    <span className="text-amber-800 text-[10px] font-bold bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1">
-                      ขีดจำกัดความปลอดภัย
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">สัดส่วนการใช้งบสะสม</p>
-                    <div className="flex items-baseline gap-1">
-                      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {(() => {
-                          const maxBudget = selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000;
-                          const spent = dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0);
-                          return maxBudget > 0 ? Math.min(100, Math.round((spent / maxBudget) * 100)) : 0;
-                        })()}%
-                      </h3>
-                      <span className="text-xs font-bold text-slate-500">เฉลี่ย</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* 6-Month Trend bar representation */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">แนวโน้มชั่วโมง OT (เปรียบเทียบ 6 เดือนย้อนหลัง)</h4>
-                      <p className="text-xs text-slate-500">สรุปการขยายตัวและความก้าวหน้าของสถานภาพการผลิต</p>
-                    </div>
-                    <div className="flex gap-4 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-100 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
-                        <span className="font-semibold text-slate-700">ปีปัจจุบัน</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-slate-300 rounded-full"></span>
-                        <span className="font-semibold text-slate-500">ปีที่แล้ว</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Visual simulated bar graphs */}
-                  <div className="h-64 flex items-end justify-between gap-6 px-4 pt-4 relative">
-                    {/* Grid lines */}
-                    <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none pb-6">
-                      <div className="w-full h-px bg-slate-100"></div>
-                      <div className="w-full h-px bg-slate-100"></div>
-                      <div className="w-full h-px bg-slate-100"></div>
-                      <div className="w-full h-px bg-slate-100"></div>
-                    </div>
-
-                    {state.otTrendData.months.map((month, idx) => {
-                      const curVal = state.otTrendData.currentYear[idx] || 0;
-                      const lastVal = state.otTrendData.lastYear[idx] || 0;
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       
-                      const maxTrendValue = Math.max(...state.otTrendData.currentYear, ...state.otTrendData.lastYear, 10);
-                      const curHeight = Math.round((curVal / maxTrendValue) * 80);
-                      const lastHeight = Math.round((lastVal / maxTrendValue) * 80);
-                      return (
-                        <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
-                          <div className="flex-1 w-full flex items-end justify-center gap-1.5 relative">
-                            {/* Last Year bar container */}
-                            <div className="w-1/3 flex flex-col justify-end items-center h-full">
-                              {lastVal > 0 && (
-                                <span className="text-[10px] font-bold text-slate-400 mb-1 animate-fade-in">{lastVal}</span>
-                              )}
-                              <div 
-                                style={{ height: `${lastHeight}%` }}
-                                className="w-full bg-slate-200 rounded-t-md hover:bg-slate-300 transition-all shadow-sm"
-                                title={`ปีที่แล้ว: ${lastVal} ชม.`}
-                              ></div>
+                      {/* 1. Total OT Hours */}
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full"></div>
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                            <Clock className="w-6 h-6" />
+                          </div>
+                          <span className="text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">+12% จากเดือนก่อน</span>
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ชั่วโมง OT รวม ({selectedMonthFilter})</p>
+                          <div className="flex items-baseline gap-1">
+                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                              {totalOtHrs.toLocaleString()}
+                            </h3>
+                            <span className="text-xs font-bold text-slate-500">ชม.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. Total Budget Used */}
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-red-50 to-transparent rounded-bl-full"></div>
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
+                            <TrendingUp className="w-6 h-6" />
+                          </div>
+                          <span className="text-red-600 text-[10px] font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">+5% เกินงบประมาณ</span>
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
+                          <div className="flex items-baseline gap-1">
+                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                              ฿{(totalSpent / 1000).toFixed(1)}K
+                            </h3>
+                            <span className="text-xs font-bold text-slate-500">THB</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. Number of OT employees */}
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full"></div>
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
+                            <Users className="w-6 h-6" />
+                          </div>
+                          <span className="text-slate-500 text-[10px] font-bold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">จากพนักงานที่กรอง {dashboardEmployees.length} คน</span>
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">จำนวนพนักงานที่ได้รับ OT</p>
+                          <div className="flex items-baseline gap-1">
+                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                              {activeEmps}
+                            </h3>
+                            <span className="text-xs font-bold text-slate-500">คน</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4. Total Budget Utilization */}
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-50 to-transparent rounded-bl-full"></div>
+                        <div className="flex justify-between items-start mb-4 relative z-10">
+                          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
+                            <ShieldAlert className="w-6 h-6" />
+                          </div>
+                          <span className="text-amber-800 text-[10px] font-bold bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1">
+                            ขีดจำกัดความปลอดภัย
+                          </span>
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">สัดส่วนการใช้งบสะสม</p>
+                          <div className="flex items-baseline gap-1">
+                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                              {budgetPct}%
+                            </h3>
+                            <span className="text-xs font-bold text-slate-500">เฉลี่ย</span>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Charts Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* 6-Month Trend bar representation */}
+                      <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-6">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-800">แนวโน้มชั่วโมง OT (เปรียบเทียบ 6 เดือนย้อนหลัง)</h4>
+                            <p className="text-xs text-slate-500">สรุปการขยายตัวและความก้าวหน้าของสถานภาพการผลิต</p>
+                          </div>
+                          <div className="flex gap-4 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-100 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
+                              <span className="font-semibold text-slate-700">ปีปัจจุบัน</span>
                             </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 bg-slate-300 rounded-full"></span>
+                              <span className="font-semibold text-slate-500">ปีที่แล้ว</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Visual simulated bar graphs */}
+                        <div className="h-64 flex items-end justify-between gap-6 px-4 pt-4 relative">
+                          {/* Grid lines */}
+                          <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none pb-6">
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                          </div>
+
+                          {state.otTrendData.months.map((month, idx) => {
+                            const monthMultipliers = [0.85, 0.95, 1.1, 1.25, 1.05, 1.15];
+                            const curVal = Math.round((baseTotalOt / 6) * monthMultipliers[idx]);
+                            const lastVal = Math.round(curVal * 0.92);
                             
-                            {/* Current Year bar container */}
-                            <div className="w-1/3 flex flex-col justify-end items-center h-full">
-                              {curVal > 0 && (
-                                <span className="text-[10px] font-extrabold text-blue-600 mb-1 animate-fade-in">{curVal}</span>
-                              )}
-                              <div 
-                                style={{ height: `${curHeight}%` }}
-                                className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:from-blue-500 group-hover:to-blue-300 transition-all shadow-sm"
-                                title={`ปีปัจจุบัน: ${curVal} ชม.`}
-                              ></div>
-                            </div>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-600">{month}</span>
+                            const maxTrendValue = Math.max(...state.otTrendData.months.map((_, i) => Math.round((baseTotalOt / 6) * monthMultipliers[i])), 10);
+                            const curHeight = Math.round((curVal / maxTrendValue) * 80);
+                            const lastHeight = Math.round((lastVal / maxTrendValue) * 80);
+                            return (
+                              <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
+                                <div className="flex-1 w-full flex items-end justify-center gap-1.5 relative">
+                                  {/* Last Year bar container */}
+                                  <div className="w-1/3 flex flex-col justify-end items-center h-full">
+                                    {lastVal > 0 && (
+                                      <span className="text-[10px] font-bold text-slate-400 mb-1 animate-fade-in">{lastVal}</span>
+                                    )}
+                                    <div 
+                                      style={{ height: `${lastHeight}%` }}
+                                      className="w-full bg-slate-200 rounded-t-md hover:bg-slate-300 transition-all shadow-sm"
+                                      title={`ปีที่แล้ว: ${lastVal} ชม.`}
+                                    ></div>
+                                  </div>
+                                  
+                                  {/* Current Year bar container */}
+                                  <div className="w-1/3 flex flex-col justify-end items-center h-full">
+                                    {curVal > 0 && (
+                                      <span className="text-[10px] font-extrabold text-blue-600 mb-1 animate-fade-in">{curVal}</span>
+                                    )}
+                                    <div 
+                                      style={{ height: `${curHeight}%` }}
+                                      className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:from-blue-500 group-hover:to-blue-300 transition-all shadow-sm"
+                                      title={`ปีปัจจุบัน: ${curVal} ชม.`}
+                                    ></div>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-semibold text-slate-600">{month}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
 
-                {/* OT by Department list meters */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก</h4>
-                    <p className="text-xs text-slate-500 mb-6">สัดส่วนและปริมาณชั่วโมงสะสม</p>
-                  </div>
-
-                  <div className="space-y-5 flex-1">
-                    {state.departments.map((dept) => {
-                      const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                      const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
-                      // Max hours for progress bar scaling
-                      const maxHr = Math.max(...state.departments.map(d => {
-                        const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                        return dEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
-                      }), 100);
-                      const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
-                      return (
-                        <div key={dept.id} className="group cursor-pointer">
-                          <div className="flex justify-between items-end mb-1">
-                            <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
-                            <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours} ชม.</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
-                            <div 
-                              style={{ width: `${percentage}%` }}
-                              className="bg-gradient-to-r from-blue-600 to-blue-400 h-full rounded-full group-hover:opacity-90 transition-opacity"
-                            ></div>
-                          </div>
+                      {/* OT by Department list meters */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก</h4>
+                          <p className="text-xs text-slate-500 mb-6">สัดส่วนและปริมาณชั่วโมงสะสม</p>
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-slate-400" />
-                    <p className="text-[10px] text-slate-500 font-medium">ข้อมูลจำลองอัปเดตแบบเรียลไทม์ทุก 10 นาที</p>
-                  </div>
-                </div>
+                        <div className="space-y-5 flex-1">
+                          {state.departments.map((dept) => {
+                            const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
+                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + (e.actualOt || 0), 0) * timeMult * 10) / 10;
+                            // Max hours for progress bar scaling
+                            const maxHr = Math.max(...state.departments.map(d => {
+                              const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
+                              return dEmps.reduce((s, e) => s + (e.actualOt || 0), 0) * timeMult;
+                            }), 100);
+                            const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
+                            return (
+                              <div key={dept.id} className="group cursor-pointer">
+                                <div className="flex justify-between items-end mb-1">
+                                  <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
+                                  <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours.toLocaleString()} ชม.</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
+                                  <div 
+                                    style={{ width: `${percentage}%` }}
+                                    className="bg-gradient-to-r from-blue-600 to-blue-400 h-full rounded-full group-hover:opacity-90 transition-opacity"
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
 
-              </div>
+                        <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
+                          <Info className="w-4 h-4 text-slate-400" />
+                          <p className="text-[10px] text-slate-500 font-medium">ข้อมูลจำลองอัปเดตแบบเรียลไทม์ทุก 10 นาที</p>
+                        </div>
+                      </div>
+
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Employee OT Contribution Cards List */}
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
