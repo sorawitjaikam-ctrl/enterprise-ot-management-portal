@@ -2598,7 +2598,16 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+        {/* Soft Port Image Background */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center filter blur-sm scale-105 opacity-35 transition-all duration-700" 
+          style={{ backgroundImage: "url('/login-bg.jpg')" }}
+        ></div>
+
+        {/* Dark Glassmorphism Gradient Mask */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-blue-950/80 to-slate-950/90"></div>
+
         {/* Animated background blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
