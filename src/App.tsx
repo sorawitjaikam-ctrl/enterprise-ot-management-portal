@@ -26,7 +26,9 @@ import {
   Lock,
   Eye,
   EyeOff,
-  User
+  User,
+  Anchor,
+  Ship
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
@@ -2616,11 +2618,12 @@ export default function App() {
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl relative z-10 text-white">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/20 mb-4">
-              <Lock className="w-8 h-8" />
+            <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/30 mb-4 border border-white/20">
+              <Anchor className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Enterprise OT Portal</h1>
-            <p className="text-xs text-slate-300 mt-2 font-medium">เข้าสู่ระบบเพื่อจัดการเวลาการทำงานล่วงเวลา (OT)</p>
+            <h1 className="text-2xl font-black tracking-tight">Double A Terminal</h1>
+            <p className="text-xs text-sky-200 mt-1.5 font-bold uppercase tracking-wider">Port & Berth Operations OT Portal</p>
+            <p className="text-[11px] text-slate-300 mt-1 font-medium">เข้าสู่ระบบเพื่อจัดการเวลาการทำงานเทียบเรือและโอทีหน้าท่า</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -2786,6 +2789,32 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
+              {/* Maritime Terminal Header Banner */}
+              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 shadow-xl text-white border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-96 h-full opacity-10 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${loginBg})` }}></div>
+                <div className="relative z-10 space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-500/20 border border-sky-400/30 rounded-full text-xs font-bold text-sky-300">
+                    <Ship className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Double A Terminal & Maritime Logistics System</span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-black tracking-tight text-white">
+                    ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed font-medium">
+                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณลอจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Direct D1 Database
+                  </p>
+                </div>
+                <div className="relative z-10 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setActiveTab("shifts")}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>จัดตารางกะเทียบเรือ</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Header section filters */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex gap-2 items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm">

@@ -25,7 +25,7 @@ export default function Navbar({
       isSidebarHidden ? "left-0" : "left-[260px]"
     }`}>
       {/* Title & Search */}
-      <div className="flex items-center gap-4 w-1/2">
+      <div className="flex items-center gap-4 w-7/12">
         <button
           onClick={() => setIsSidebarHidden(!isSidebarHidden)}
           className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
@@ -33,18 +33,24 @@ export default function Navbar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <h2 className="font-bold text-slate-800 text-lg whitespace-nowrap">{title}</h2>
+        <h2 className="font-extrabold text-slate-800 text-lg whitespace-nowrap">{title}</h2>
         
         {/* Search bar */}
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full max-w-xs">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-inner"
-            placeholder="ค้นหาพนักงาน รหัส หรือแผนก..."
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all shadow-inner"
+            placeholder="ค้นหาเรือสินค้า พนักงาน รหัสกะ..."
           />
+        </div>
+
+        {/* Live Berth Status Badge */}
+        <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-[11px] font-extrabold text-emerald-700 shadow-sm flex-shrink-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>⚓ การเข้าเทียบเรือหน้าท่า: ปกติ (Active)</span>
         </div>
       </div>
 
