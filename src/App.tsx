@@ -1706,9 +1706,15 @@ export default function App() {
         setNewEmpCalendarType("ปฏิทินกะ 4-on-2-off");
         setNewEmpRole("Operator");
         setNewEmpTargetOt(48);
+
+        // Clear search & sync department filter so new employee is 100% visible on screen immediately
+        setSearchQuery("");
+        setSelectedDeptFilter("ทุกแผนก");
+        setShiftsDeptFilter(newEmpDept || "inter2");
+
         // Reload state
         await fetchPortalState();
-        alert(`เพิ่มพนักงาน "${fullName}" (รหัส: ${finalEmpId}) สำเร็จ!`);
+        alert(`เพิ่มพนักงาน "${fullName}" (รหัส: ${finalEmpId}) เข้าสู่แผนก ${newEmpDept.toUpperCase()} เรียบร้อยแล้ว!`);
       } else {
         const errData = await res.json().catch(() => ({}));
         await fetchPortalState();
@@ -1720,6 +1726,12 @@ export default function App() {
     } finally {
       setAddEmpLoading(false);
     }
+  };
+
+  const handleOpenAddEmployeeModal = () => {
+    const defaultDept = currentShiftsDept || (activeDeptId !== "all" ? activeDeptId : "inter2");
+    setNewEmpDept(defaultDept);
+    setShowAddEmployeeModal(true);
   };
 
   // Handle clearing mock data
@@ -3838,7 +3850,7 @@ export default function App() {
                   )}
                   
                   <button 
-                    onClick={() => setShowAddEmployeeModal(true)}
+                    onClick={handleOpenAddEmployeeModal}
                     className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
