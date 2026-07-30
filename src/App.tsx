@@ -114,6 +114,30 @@ export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
   return result;
 };
 
+export const getDeptName = (deptId?: string, departments?: Department[]) => {
+  if (!deptId) return "ไม่ระบุ";
+  const cleanId = String(deptId).trim().toLowerCase().replace(/\s+/g, "");
+  
+  if (departments && Array.isArray(departments)) {
+    const found = departments.find(d => {
+      const dId = String(d.id).trim().toLowerCase().replace(/\s+/g, "");
+      const dName = String(d.name).trim().toLowerCase().replace(/\s+/g, "");
+      const dNameTh = String(d.nameTh).trim().toLowerCase().replace(/\s+/g, "");
+      return dId === cleanId || dName === cleanId || dNameTh === cleanId;
+    });
+    if (found) return found.nameTh || found.name;
+  }
+
+  if (cleanId.includes("inter2")) return "แผนก INTER 2";
+  if (cleanId.includes("inter3")) return "แผนก INTER 3";
+  if (cleanId.includes("inter5")) return "แผนก INTER 5";
+  if (cleanId.includes("inter7")) return "แผนก INTER 7";
+  if (cleanId.includes("heavy"))  return "แผนก Heavy Machine";
+  if (cleanId.includes("ecc"))    return "แผนก ECC";
+
+  return deptId;
+};
+
 const SHIFT_OT_HOURS: Record<string, number> = {
   M12: 4, A12: 4, N12: 4,
   M16: 8, N16: 8, OND: 8
@@ -3351,7 +3375,7 @@ export default function App() {
                             </td>
                             {/* 4. แผนก */}
                             <td className="px-4 py-3.5 font-bold text-slate-700">
-                              {dept ? dept.nameTh : emp.deptId}
+                              {getDeptName(emp.deptId, state.departments)}
                             </td>
                             {/* 5. ฝ่าย */}
                             <td className="px-4 py-3.5 text-slate-600 font-medium">
