@@ -48,24 +48,45 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       let accountsRes: any = { results: [] };
       let vesselSchedulesRes: any = { results: [] };
 
+      let deptsRes: any = { results: [] };
+      let empsRes: any = { results: [] };
+      let accountsRes: any = { results: [] };
+      let vesselSchedulesRes: any = { results: [] };
+      let otRequestsRes: any = { results: [] };
+      let otSummaryMap: Record<string, number> = {};
+
       if (db) {
         try {
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           empsRes = await db.prepare("SELECT * FROM employees").all();
           accountsRes = await db.prepare("SELECT * FROM accounts").all();
           vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
+          otRequestsRes = await db.prepare("SELECT * FROM ot_requests").all();
+
+          // Efficient single aggregation query for OT records
+          try {
+            const otSumRes = await db.prepare("SELECT employeeId, SUM(otHours) as total FROM ot_daily_records GROUP BY employeeId").all();
+            if (otSumRes && otSumRes.results) {
+              for (const row of otSumRes.results as any[]) {
+                if (row.employeeId) {
+                  otSummaryMap[row.employeeId] = Number(row.total) || 0;
+                }
+              }
+            }
+          } catch (e) {
+            console.error("D1 OT Aggregation Error:", e);
+          }
         } catch (e) {
           console.error("D1 Fetch Error:", e);
         }
       }
 
-      // Enrich employees with OT from ot_daily_records
+      // Enrich employees with OT from otSummaryMap
       const rawEmployees = empsRes.results || [];
       const enrichedEmployees = [];
 
       for (let idx = 0; idx < rawEmployees.length; idx++) {
         const emp = rawEmployees[idx];
-        let actualOt = 0;
         let shifts: string[] = [];
         try {
           shifts = typeof emp.shifts === "string" ? JSON.parse(emp.shifts) : (emp.shifts || []);
@@ -73,14 +94,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           shifts = [];
         }
 
-        if (db) {
-          try {
-            const otRows = await db.prepare("SELECT SUM(otHours) as total FROM ot_daily_records WHERE employeeId = ?").bind(emp.id).all();
-            actualOt = Number(otRows.results[0]?.total) || 0;
-          } catch {
-            actualOt = 0;
-          }
-        }
+        let actualOt = otSummaryMap[emp.id] || 0;
 
         if (actualOt === 0 && shifts && shifts.length > 0) {
           actualOt = Math.round(shifts.reduce((s: number, code: string) => s + getShiftOt(code), 0) * 10) / 10;
@@ -355,8 +369,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const division = body.division || body.groupName || "-";
       if (db) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
               body.name || (body.firstName + " " + body.lastName),
               body.deptId || "inter2",
@@ -365,7 +379,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.groupName || "Group A",
               JSON.stringify(body.shifts || []),
               salary,
-              division
+              division,
+              body.prefix || "นาย",
+              body.firstName || "",
+              body.lastName || "",
+              body.nickname || "",
+              body.birthday || "",
+              Number(body.age) || 0,
+              Number(body.calculatedAge) || 0,
+              body.startDate || "",
+              body.tenure || "",
+              body.probationDate || "",
+              body.calendarType || "ปฏิทินกะ 4-on-2-off"
             ).run();
         } catch (e) {
           console.error("D1 Add Employee Error:", e);
