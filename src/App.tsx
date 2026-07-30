@@ -1359,7 +1359,7 @@ export default function App() {
         const data: AppState & { accounts?: any[]; otRequests?: any[] } = await res.json();
         setState(data);
         setTempEmployees(data.employees);
-        if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+        if (data.accounts && Array.isArray(data.accounts)) {
           setAccounts(data.accounts);
           if (currentUser?.username) {
             const currentAcc = data.accounts.find((a: any) => a.username === currentUser.username);
@@ -1376,8 +1376,6 @@ export default function App() {
               localStorage.setItem("currentUser", JSON.stringify(updatedUser));
             }
           }
-        } else {
-          setAccounts(DEFAULT_ACCOUNTS);
         }
         if (data.otRequests && Array.isArray(data.otRequests)) {
           setOtRequests(data.otRequests);
@@ -1386,14 +1384,14 @@ export default function App() {
         const def = getDefaultState();
         setState(def);
         setTempEmployees(def.employees);
-        setAccounts(DEFAULT_ACCOUNTS);
+        setAccounts([]);
       }
     } catch (err) {
       console.warn("Using default portal state:", err);
       const def = getDefaultState();
       setState(def);
       setTempEmployees(def.employees);
-      setAccounts(DEFAULT_ACCOUNTS);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
@@ -4645,7 +4643,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
+                        {accounts.map((acc) => (
                           <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4 flex items-center gap-3">
                               <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
@@ -4776,7 +4774,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {(accounts.length > 0 ? accounts : DEFAULT_ACCOUNTS).map((acc) => (
+                      {accounts.map((acc) => (
                         <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                           <td className="p-4 flex items-center gap-3">
                             <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />

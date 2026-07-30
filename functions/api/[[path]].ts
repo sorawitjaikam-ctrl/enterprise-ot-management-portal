@@ -138,7 +138,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({
         departments,
         employees: enrichedEmployees,
-        accounts: accountsRes.results && accountsRes.results.length > 0 ? accountsRes.results : defaultAccounts,
+        accounts: accountsRes.results || [],
         vesselSchedules: vesselSchedulesRes.results || [],
         otRequests: otRequestsRes.results || [],
         shiftConfig: {
