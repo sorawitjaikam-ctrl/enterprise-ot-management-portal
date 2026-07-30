@@ -28,6 +28,7 @@ import {
   EyeOff,
   User
 } from "lucide-react";
+import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import { AppState, Employee, Department } from "./types";
@@ -2601,12 +2602,12 @@ export default function App() {
       <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
         {/* Soft Port Image Background */}
         <div 
-          className="absolute inset-0 bg-cover bg-center filter blur-sm scale-105 opacity-35 transition-all duration-700" 
-          style={{ backgroundImage: "url('/login-bg.jpg')" }}
+          className="absolute inset-0 bg-cover bg-center filter blur-[2px] scale-105 opacity-65 transition-all duration-700" 
+          style={{ backgroundImage: `url(${loginBg})` }}
         ></div>
 
         {/* Dark Glassmorphism Gradient Mask */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-blue-950/80 to-slate-950/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-blue-950/65 to-slate-900/75"></div>
 
         {/* Animated background blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl animate-pulse"></div>
