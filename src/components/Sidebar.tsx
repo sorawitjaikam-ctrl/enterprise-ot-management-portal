@@ -8,7 +8,8 @@ import {
   LogOut, 
   Factory,
   ClipboardList,
-  FileText
+  FileText,
+  ShieldCheck
 } from "lucide-react";
 
 interface SidebarProps {
@@ -19,7 +20,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser }: SidebarProps) {
-  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"].includes(currentUser?.role || "");
+  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "");
 
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
@@ -31,6 +32,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     { id: "shifts",     label: "จัดการตารางกะ (Shifts)",   icon: Calendar },
     ...(isHrOrFullAccess ? [
       { id: "ot-records", label: "ประวัติ OT จากกะทำงาน",   icon: ClipboardList },
+      { id: "admin-permissions", label: "จัดการสิทธิ์ Admin & ผู้ใช้", icon: ShieldCheck },
     ] : []),
   ];
 

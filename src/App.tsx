@@ -2362,6 +2362,7 @@ export default function App() {
               activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
               activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
               activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
+              activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
               activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
               "การตั้งค่าระบบและกฎเกณฑ์"
             }
@@ -4151,110 +4152,118 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* User & Permissions Management (Visible only to Admin) */}
-                {currentUser?.deptId === "all" && (
-                  <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                {/* User & Permissions Management (Visible to Admin & HR) */}
+                <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Users & Permissions)</h4>
                       <p className="text-xs text-slate-500">ปรับเปลี่ยนสิทธิ์ความรับผิดชอบของหัวหน้างาน หรือรีเซ็ตรหัสผ่านของพนักงานอื่น</p>
                     </div>
-                    <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
-                      <table className="w-full text-left text-xs text-slate-600">
-                        <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
-                          <tr>
-                            <th className="p-4">ผู้ใช้งาน (Username)</th>
-                            <th className="p-4">บทบาทสิทธิ์ (Role)</th>
-                            <th className="p-4">แผนกที่รับผิดชอบ</th>
-                            <th className="p-4 text-center">จัดการการทำงาน</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {accounts.map((acc) => (
-                            <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="p-4 flex items-center gap-3">
-                                <img 
-                                  src={acc.avatar} 
-                                  className="w-8 h-8 rounded-full object-cover border border-slate-100" 
-                                  alt=""
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
-                                  }}
-                                />
-                                <div>
-                                  <div className="font-bold text-slate-800">{acc.name}</div>
-                                  <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <select 
-                                  value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
-                                  onChange={(e) => {
-                                    const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `Section Manager`;
-                                    const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "inter2" : acc.deptId;
-                                    handleUpdateAccountPermission(acc.username, nextRole, nextDept);
-                                  }}
-                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
-                                >
-                                  <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
-                                  <option value="supervisor">หัวหน้าแผนก (Supervisor)</option>
-                                </select>
-                              </td>
-                              <td className="p-4">
-                                <select
-                                  disabled={acc.role === "ผู้ดูแลระบบ"}
-                                  value={acc.deptId}
-                                  onChange={(e) => {
-                                    handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
-                                  }}
-                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
-                                >
-                                  <option value="all">ทุกแผนก (All)</option>
-                                  <option value="inter2">INTER 2</option>
-                                  <option value="inter3">INTER 3</option>
-                                  <option value="inter5">INTER 5</option>
-                                  <option value="inter7">INTER 7</option>
-                                  <option value="heavy">Heavy Machine</option>
-                                  <option value="ecc">ECC</option>
-                                </select>
-                              </td>
-                              <td className="p-4 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditAccountOriginalUsername(acc.username);
-                                      setEditAccountUsername(acc.username);
-                                      setEditAccountName(acc.name);
-                                      setEditAccountRole(acc.role);
-                                      setEditAccountDeptId(acc.deptId);
-                                      setEditAccountAvatar(acc.avatar || "");
-                                      setEditAccountCanBackup(acc.canBackup === 1);
-                                      setShowEditAccountModal(true);
-                                    }}
-                                    className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
-                                  >
-                                    ✏️ แก้ไขข้อมูล
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setResetTargetUsername(acc.username);
-                                      setNewResetPassword("");
-                                      setShowResetPasswordModal(true);
-                                    }}
-                                    className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
-                                  >
-                                    🔑 รีเซ็ตรหัสผ่าน
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddAccountModal(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                    </button>
                   </div>
-                )}
+                  <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
+                    <table className="w-full text-left text-xs text-slate-600">
+                      <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                        <tr>
+                          <th className="p-4">ผู้ใช้งาน (Username)</th>
+                          <th className="p-4">บทบาทสิทธิ์ (Role)</th>
+                          <th className="p-4">แผนกที่รับผิดชอบ</th>
+                          <th className="p-4 text-center">จัดการการทำงาน</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {accounts.map((acc) => (
+                          <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-4 flex items-center gap-3">
+                              <img 
+                                src={acc.avatar} 
+                                className="w-8 h-8 rounded-full object-cover border border-slate-100" 
+                                alt=""
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
+                                }}
+                              />
+                              <div>
+                                <div className="font-bold text-slate-800">{acc.name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <select 
+                                value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
+                                onChange={(e) => {
+                                  const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `Section Manager`;
+                                  const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "inter2" : acc.deptId;
+                                  handleUpdateAccountPermission(acc.username, nextRole, nextDept);
+                                }}
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
+                              >
+                                <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                                <option value="supervisor">หัวหน้าแผนก (Supervisor)</option>
+                              </select>
+                            </td>
+                            <td className="p-4">
+                              <select
+                                disabled={acc.role === "ผู้ดูแลระบบ"}
+                                value={acc.deptId}
+                                onChange={(e) => {
+                                  handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
+                                }}
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
+                              >
+                                <option value="all">ทุกแผนก (All)</option>
+                                <option value="inter2">INTER 2</option>
+                                <option value="inter3">INTER 3</option>
+                                <option value="inter5">INTER 5</option>
+                                <option value="inter7">INTER 7</option>
+                                <option value="heavy">Heavy Machine</option>
+                                <option value="ecc">ECC</option>
+                              </select>
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditAccountOriginalUsername(acc.username);
+                                    setEditAccountUsername(acc.username);
+                                    setEditAccountName(acc.name);
+                                    setEditAccountRole(acc.role);
+                                    setEditAccountDeptId(acc.deptId);
+                                    setEditAccountAvatar(acc.avatar || "");
+                                    setEditAccountCanBackup(acc.canBackup === 1);
+                                    setShowEditAccountModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
+                                >
+                                  ✏️ แก้ไขข้อมูล
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResetTargetUsername(acc.username);
+                                    setNewResetPassword("");
+                                    setShowResetPasswordModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
+                                >
+                                  🔑 รีเซ็ตรหัสผ่าน
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
                 {/* Database Management / Clear data card */}
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
@@ -4272,6 +4281,126 @@ export default function App() {
                   </div>
                 )}
 
+              </div>
+            </div>
+          )}
+
+          {/* ======================================= */}
+          {/* VIEW: ADMIN PERMISSIONS DIRECT TAB */}
+          {/* ======================================= */}
+          {activeTab === "admin-permissions" && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
+                  <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddAccountModal(true)}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                </button>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
+                      <tr>
+                        <th className="p-4">ผู้ใช้งาน (Username)</th>
+                        <th className="p-4">บทบาทสิทธิ์ (Role)</th>
+                        <th className="p-4">แผนกที่รับผิดชอบ</th>
+                        <th className="p-4 text-center">จัดการการทำงาน</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {accounts.map((acc) => (
+                        <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4 flex items-center gap-3">
+                            <img 
+                              src={acc.avatar} 
+                              className="w-8 h-8 rounded-full object-cover border border-slate-100" 
+                              alt=""
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
+                              }}
+                            />
+                            <div>
+                              <div className="font-bold text-slate-800">{acc.name}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <select 
+                              value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
+                              onChange={(e) => {
+                                const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `Section Manager`;
+                                const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "inter2" : acc.deptId;
+                                handleUpdateAccountPermission(acc.username, nextRole, nextDept);
+                              }}
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
+                            >
+                              <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
+                              <option value="supervisor">หัวหน้าแผนก (Supervisor)</option>
+                            </select>
+                          </td>
+                          <td className="p-4">
+                            <select
+                              disabled={acc.role === "ผู้ดูแลระบบ"}
+                              value={acc.deptId}
+                              onChange={(e) => {
+                                handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
+                              }}
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
+                            >
+                              <option value="all">ทุกแผนก (All)</option>
+                              <option value="inter2">INTER 2</option>
+                              <option value="inter3">INTER 3</option>
+                              <option value="inter5">INTER 5</option>
+                              <option value="inter7">INTER 7</option>
+                              <option value="heavy">Heavy Machine</option>
+                              <option value="ecc">ECC</option>
+                            </select>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditAccountOriginalUsername(acc.username);
+                                  setEditAccountUsername(acc.username);
+                                  setEditAccountName(acc.name);
+                                  setEditAccountRole(acc.role);
+                                  setEditAccountDeptId(acc.deptId);
+                                  setEditAccountAvatar(acc.avatar || "");
+                                  setEditAccountCanBackup(acc.canBackup === 1);
+                                  setShowEditAccountModal(true);
+                                }}
+                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
+                              >
+                                ✏️ แก้ไขข้อมูล
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setResetTargetUsername(acc.username);
+                                  setNewResetPassword("");
+                                  setShowResetPasswordModal(true);
+                                }}
+                                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
+                              >
+                                🔑 รีเซ็ตรหัสผ่าน
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
