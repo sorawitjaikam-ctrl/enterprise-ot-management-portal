@@ -4786,21 +4786,28 @@ export default function App() {
                             </td>
                             <td className="p-4">
                               <select 
-                                value={acc.role === "ผู้ดูแลระบบ" ? "admin" : "supervisor"}
+                                value={
+                                  ["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)
+                                    ? "Admin"
+                                    : ["Co-admin", "Co-Admin", "co_admin", "ผู้ช่วยดูแลระบบ"].includes(acc.role)
+                                    ? "Co-admin"
+                                    : "User"
+                                }
                                 onChange={(e) => {
-                                  const nextRole = e.target.value === "admin" ? "ผู้ดูแลระบบ" : `Section Manager`;
-                                  const nextDept = e.target.value === "admin" ? "all" : acc.deptId === "all" ? "inter2" : acc.deptId;
+                                  const nextRole = e.target.value;
+                                  const nextDept = nextRole === "Admin" ? "all" : acc.deptId;
                                   handleUpdateAccountPermission(acc.username, nextRole, nextDept);
                                 }}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 font-medium"
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-bold"
                               >
-                                <option value="admin">ผู้ดูแลระบบสูงสุด (Admin)</option>
-                                <option value="supervisor">หัวหน้าแผนก (Supervisor)</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Co-admin">Co-admin</option>
+                                <option value="User">User</option>
                               </select>
                             </td>
                             <td className="p-4">
                               <select
-                                disabled={acc.role === "ผู้ดูแลระบบ"}
+                                disabled={["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)}
                                 value={acc.deptId}
                                 onChange={(e) => {
                                   handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
@@ -6376,12 +6383,9 @@ export default function App() {
                     onChange={(e) => setEditAccountRole(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   >
-                    <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบสูงสุด (Admin)</option>
-                    <option value="HR">HR</option>
-                    <option value="HR Section Manager">HR Section Manager</option>
-                    <option value="Operation Dir">Operation Dir</option>
-                    <option value="Operation Depart">Operation Depart</option>
-                    <option value="Section Manager">Section Manager</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Co-admin">Co-admin</option>
+                    <option value="User">User</option>
                   </select>
                 </div>
 
