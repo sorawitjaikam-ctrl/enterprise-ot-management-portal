@@ -261,6 +261,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "อัปเดตข้อมูลสิทธิ์ผู้ใช้ใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
     // 4.1 POST /api/update-profile
     if (path === "/api/update-profile" && request.method === "POST") {
       const { username, name, avatar, password } = await getBody();
