@@ -420,7 +420,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
-              body.name || (body.firstName + " " + body.lastName),
+              body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
               body.role || "Operator",
               Number(body.targetOt) || 48,
@@ -445,6 +445,107 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "เพิ่มพนักงานเรียบร้อยแล้ว", employeeId: empId }, { headers: corsHeaders });
+    }
+
+    // 8.1 POST /api/export-employees
+    if (path === "/api/export-employees" && request.method === "POST") {
+      let empsRes: any = { results: [] };
+      if (db) {
+        try {
+          empsRes = await db.prepare("SELECT * FROM employees").all();
+        } catch (e) {
+          console.error("D1 Export Employees Error:", e);
+        }
+      }
+      return Response.json({ success: true, employees: empsRes.results || [] }, { headers: corsHeaders });
+    }
+
+    // 8.2 POST /api/import-employees
+    if (path === "/api/import-employees" && request.method === "POST") {
+      const body = await getBody();
+      const employees = body.employees || [];
+      if (db && Array.isArray(employees)) {
+        for (const emp of employees) {
+          try {
+            await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                emp.id,
+                emp.name || ((emp.firstName || "") + " " + (emp.lastName || "")).trim(),
+                emp.deptId || "inter2",
+                emp.role || "Operator",
+                Number(emp.targetOt) || 48,
+                emp.groupName || "Group A",
+                JSON.stringify(emp.shifts || []),
+                Number(emp.salary) || 15000,
+                emp.division || emp.groupName || "-",
+                emp.prefix || "นาย",
+                emp.firstName || "",
+                emp.lastName || "",
+                emp.nickname || "",
+                emp.birthday || "",
+                Number(emp.age) || 0,
+                Number(emp.calculatedAge) || 0,
+                emp.startDate || "",
+                emp.tenure || "",
+                emp.probationDate || "",
+                emp.calendarType || "ปฏิทินกะ 4-on-2-off"
+              ).run();
+          } catch (e) {
+            console.error("D1 Import Employee Item Error:", e);
+          }
+        }
+      }
+      return Response.json({ success: true, message: `นำเข้าพนักงาน ${employees.length} รายการลง D1 Database เรียบร้อยแล้ว` }, { headers: corsHeaders });
+    }
+
+    // 8.3 POST /api/edit-employee
+    if (path === "/api/edit-employee" && request.method === "POST") {
+      const body = await getBody();
+      const empId = body.id;
+      if (db && empId) {
+        try {
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+              empId,
+              body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
+              body.deptId || "inter2",
+              body.role || "Operator",
+              Number(body.targetOt) || 48,
+              body.groupName || "Group A",
+              JSON.stringify(body.shifts || []),
+              Number(body.salary) || 15000,
+              body.division || body.groupName || "-",
+              body.prefix || "นาย",
+              body.firstName || "",
+              body.lastName || "",
+              body.nickname || "",
+              body.birthday || "",
+              Number(body.age) || 0,
+              Number(body.calculatedAge) || 0,
+              body.startDate || "",
+              body.tenure || "",
+              body.probationDate || "",
+              body.calendarType || "ปฏิทินกะ 4-on-2-off"
+            ).run();
+        } catch (e) {
+          console.error("D1 Edit Employee Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 8.4 POST /api/delete-employee
+    if (path === "/api/delete-employee" && request.method === "POST") {
+      const body = await getBody();
+      const empId = body.id;
+      if (db && empId) {
+        try {
+          await db.prepare("DELETE FROM employees WHERE id = ?").bind(empId).run();
+        } catch (e) {
+          console.error("D1 Delete Employee Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ลบพนักงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
     // 9. GET /api/ot-records

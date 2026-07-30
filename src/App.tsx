@@ -1759,14 +1759,27 @@ export default function App() {
 
   const handleExportEmployees = async () => {
     try {
-      const res = await fetch("/api/export-employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: currentUser?.username })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const employees = data.employees || [];
+      let employees = state?.employees || [];
+      try {
+        const res = await fetch("/api/export-employees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: currentUser?.username })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.employees && Array.isArray(data.employees) && data.employees.length > 0) {
+            employees = data.employees;
+          }
+        }
+      } catch (e) {
+        console.warn("Using local employees state for CSV export fallback:", e);
+      }
+
+      if (!employees || employees.length === 0) {
+        alert("ไม่มีข้อมูลพนักงานสำหรับส่งออก");
+        return;
+      }
         
         // Define CSV headers
         const headers = [
@@ -1828,13 +1841,9 @@ export default function App() {
         downloadAnchor.click();
         downloadAnchor.remove();
         URL.revokeObjectURL(url);
-      } else {
-        const errData = await res.json();
-        alert(errData.error || "เกิดข้อผิดพลาดในการส่งออกข้อมูล");
-      }
     } catch (err) {
       console.error(err);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      alert("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
     }
   };
 
