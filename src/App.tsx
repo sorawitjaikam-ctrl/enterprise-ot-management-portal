@@ -3924,7 +3924,7 @@ export default function App() {
                         }
 
                         const salary = emp.salary || 15000;
-                        const hourlyRate = salary > 0 ? (salary / 240) : 100;
+                        const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
                         const totalOtPay = Math.round((ot1_5 * 1.5 + ot1_0 * 1.0 + ot3_0 * 3.0) * hourlyRate);
                         const otPctSalary = salary > 0 ? Math.round((totalOtPay / salary) * 100) : 0;
 
