@@ -350,7 +350,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`).bind(recId, year, month, dateStr, emp.id, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
             }
           }
-          await db.prepare("UPDATE employees SET shifts = ?, actualOt = ? WHERE id = ?").bind(JSON.stringify(shifts), totalOt, emp.id).run();
+          try {
+            await db.prepare("UPDATE employees SET shifts = ? WHERE id = ?").bind(JSON.stringify(shifts), emp.id).run();
+          } catch (e) {
+            console.error("D1 Update Shifts Error:", e);
+          }
         }
       }
       return Response.json({ success: true, message: "บันทึกตารางกะลง Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
