@@ -864,6 +864,20 @@ export default function App() {
     }
   };
 
+  const DEFAULT_ACCOUNTS = [
+    { username: "admin",      password: "admin123",       name: "ผู้ดูแลระบบ",           role: "ผู้ดูแลระบบ",        deptId: "all", avatar: "", canBackup: 1 },
+    { username: "hr",         password: "hr1234",         name: "HR Manager",             role: "HR",                 deptId: "all", avatar: "", canBackup: 1 },
+    { username: "hr_sec",     password: "hrsec1234",      name: "HR Section Manager",     role: "HR Section Manager", deptId: "all", avatar: "", canBackup: 1 },
+    { username: "op_dir",     password: "opdir1234",      name: "Operation Director",     role: "Operation Dir",      deptId: "all", avatar: "", canBackup: 0 },
+    { username: "op_dept",    password: "opdept1234",     name: "Operation Department",   role: "Operation Depart",   deptId: "all", avatar: "", canBackup: 0 },
+    { username: "inter2_mgr", password: "i2mgr1234",      name: "Section Manager INTER2", role: "Section Manager",    deptId: "inter2", avatar: "", canBackup: 0 },
+    { username: "inter3_mgr", password: "i3mgr1234",      name: "Section Manager INTER3", role: "Section Manager",    deptId: "inter3", avatar: "", canBackup: 0 },
+    { username: "inter5_mgr", password: "i5mgr1234",      name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "", canBackup: 0 },
+    { username: "inter7_mgr", password: "i7mgr1234",      name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "", canBackup: 0 },
+    { username: "heavy_mgr",  password: "hvmgr1234",      name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "", canBackup: 0 },
+    { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "", canBackup: 0 },
+  ];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -884,10 +898,22 @@ export default function App() {
         setLoginPassword("");
       } else {
         const data = await res.json();
-        setLoginError(data.error || "ล็อกอินไม่สำเร็จ");
+        setLoginError(data.error || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
       }
     } catch (err) {
-      setLoginError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      // Offline / Static deployment fallback
+      const found = DEFAULT_ACCOUNTS.find(a => a.username === loginUsername && a.password === loginPassword);
+      if (found) {
+        const user = { username: found.username, name: found.name, role: found.role, deptId: found.deptId, avatar: found.avatar, canBackup: found.canBackup };
+        localStorage.setItem("adminLoggedIn", "true");
+        localStorage.setItem("currentUser", JSON.stringify(user));
+        setIsLoggedIn(true);
+        setCurrentUser(user);
+        setLoginUsername("");
+        setLoginPassword("");
+      } else {
+        setLoginError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+      }
     } finally {
       setLoginLoading(false);
     }
