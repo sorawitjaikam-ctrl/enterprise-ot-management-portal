@@ -1000,20 +1000,29 @@ export default function App() {
       alert("กรุณากรอก Username และชื่อผู้ใช้งาน");
       return;
     }
+
+    const newAcc = {
+      username: newAccountUsername,
+      password: newAccountPassword || "123456",
+      name: newAccountName,
+      role: newAccountRole,
+      deptId: newAccountDeptId,
+      avatar: newAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${newAccountUsername}.jpg`,
+      canBackup: newAccountCanBackup ? 1 : 0
+    };
+
     try {
       setAddAccountLoading(true);
+      // Optimistically add to state immediately
+      setAccounts(prev => {
+        const filtered = prev.filter(a => a.username !== newAccountUsername);
+        return [newAcc, ...filtered];
+      });
+
       const res = await fetch("/api/add-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: newAccountUsername,
-          password: newAccountPassword || "123456",
-          name: newAccountName,
-          role: newAccountRole,
-          deptId: newAccountDeptId,
-          avatar: newAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${newAccountUsername}.jpg`,
-          canBackup: newAccountCanBackup ? 1 : 0
-        })
+        body: JSON.stringify(newAcc)
       });
       if (res.ok) {
         setShowAddAccountModal(false);
@@ -1025,6 +1034,7 @@ export default function App() {
         alert("เพิ่มบัญชีผู้ใช้งานใหม่ลง D1 Database สำเร็จ!");
       } else {
         const err = await res.json().catch(() => ({}));
+        await fetchAccounts();
         alert(err.error || "เกิดข้อผิดพลาดในการเพิ่มบัญชี");
       }
     } catch (err) {
@@ -1032,6 +1042,30 @@ export default function App() {
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     } finally {
       setAddAccountLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async (targetUsername: string) => {
+    if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี "${targetUsername}" ออกจากระบบ?`)) {
+      return;
+    }
+    try {
+      setAccounts(prev => prev.filter(a => a.username !== targetUsername));
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: targetUsername })
+      });
+      if (res.ok) {
+        await fetchAccounts();
+        alert(`ลบบัญชี "${targetUsername}" ใน D1 Database เรียบร้อยแล้ว`);
+      } else {
+        await fetchAccounts();
+        alert("เกิดข้อผิดพลาดในการลบบัญชี");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     }
   };
 
@@ -4712,6 +4746,13 @@ export default function App() {
                                   className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
                                 >
                                   🔑 รีเซ็ตรหัสผ่าน
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAccount(acc.username)}
+                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-[10px] font-bold text-red-600 transition-all cursor-pointer"
+                                >
+                                  🗑️ ลบ
                                 </button>
                               </div>
                             </td>
