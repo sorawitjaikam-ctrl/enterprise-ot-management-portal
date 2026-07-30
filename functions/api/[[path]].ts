@@ -353,6 +353,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           await db.prepare("DELETE FROM employees").run();
           await db.prepare("DELETE FROM ot_daily_records").run();
           await db.prepare("DELETE FROM leave_records").run();
+          await db.prepare("DELETE FROM ot_requests").run();
         } catch (e) {
           console.error("D1 Clear Data Error:", e);
         }

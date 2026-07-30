@@ -1168,10 +1168,7 @@ export default function App() {
   const [generatingAiReport, setGeneratingAiReport] = useState<boolean>(false);
 
   // OT Request & Approval State
-  const [otRequests, setOtRequests] = useState<any[]>([
-    { id: "REQ-101", employeeId: "1001", employeeName: "นายสมชาย ใจดี", deptId: "inter2", date: "2026-07-31", hours: 4, reason: "รองรับการเข้าเทียบเรือ MV Golden Friend", status: "pending", requestedAt: "2026-07-30 10:15" },
-    { id: "REQ-102", employeeId: "1002", employeeName: "นายวิชัย สุขใจ", deptId: "inter2", date: "2026-07-31", hours: 4, reason: "การซ่อมบำรุงเชิงป้องกันเครนตักสินค้า #2", status: "pending", requestedAt: "2026-07-30 11:30" }
-  ]);
+  const [otRequests, setOtRequests] = useState<any[]>([]);
   const [showOtRequestModal, setShowOtRequestModal] = useState<boolean>(false);
   const [newOtReqEmpId, setNewOtReqEmpId] = useState<string>("");
   const [newOtReqDate, setNewOtReqDate] = useState<string>("");
