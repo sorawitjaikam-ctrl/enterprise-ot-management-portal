@@ -270,6 +270,26 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
   const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
   const departments = state.departments;
 
+  // Compute leave analytics summary
+  const totalLeaveCount = filteredRecords.length;
+  const leaveTypeCounts = filteredRecords.reduce((acc, r) => {
+    acc[r.leaveType] = (acc[r.leaveType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topLeaveTypeEntry = Object.entries(leaveTypeCounts).sort((a, b) => b[1] - a[1])[0];
+  const topLeaveTypeName = topLeaveTypeEntry ? (LEAVE_TYPES[topLeaveTypeEntry[0]] || topLeaveTypeEntry[0]) : "ไม่มี";
+
+  // Top absentees calculation
+  const empLeaveCounts = filteredRecords.reduce((acc, r) => {
+    acc[r.employeeId] = acc[r.employeeId] || { id: r.employeeId, name: r.employeeName, count: 0, deptId: r.deptId };
+    acc[r.employeeId].count += 1;
+    return acc;
+  }, {} as Record<string, { id: string; name: string; count: number; deptId: string }>);
+
+  const topAbsentees = Object.values(empLeaveCounts).sort((a, b) => b.count - a.count).slice(0, 5);
+  const topAbsenteeUser = topAbsentees[0];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,8 +299,8 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
             <span className="text-white text-lg">📝</span>
           </div>
           <div>
-            <h3 className="text-lg font-extrabold text-slate-800">ประวัติการลางานพนักงาน (Leave Records)</h3>
-            <p className="text-xs text-slate-500 mt-0.5">ระบบจัดการประวัติการลา ลาป่วย ลากิจ และพักร้อนของบุคลากร</p>
+            <h3 className="text-lg font-extrabold text-slate-800">ประวัติและการวิเคราะห์การลางานพนักงาน (Leave Analytics)</h3>
+            <p className="text-xs text-slate-500 mt-0.5">ระบบจัดการและวิเคราะห์สถิติการลาป่วย ลากิจ และพักร้อนของบุคลากรในองค์กร</p>
           </div>
         </div>
         <button
@@ -294,6 +314,82 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
         >
           <span>+ บันทึกการลาใหม่</span>
         </button>
+      </div>
+
+      {/* Leave Analytics Summary Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* KPI Cards */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">📊 สถิติรวมการลางาน</h4>
+          <div className="space-y-2">
+            <div className="flex justify-between items-baseline">
+              <span className="text-xs text-slate-600 font-medium">จำนวนครั้งการลาทั้งหมด:</span>
+              <span className="text-2xl font-black text-indigo-600 font-mono">{totalLeaveCount} <span className="text-xs font-bold text-slate-400">ครั้ง</span></span>
+            </div>
+            <div className="flex justify-between items-baseline pt-2 border-t border-slate-100">
+              <span className="text-xs text-slate-600 font-medium">ประเภทการลาสูงสุด:</span>
+              <span className="text-xs font-extrabold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">{topLeaveTypeName} ({topLeaveTypeEntry ? topLeaveTypeEntry[1] : 0} ครั้ง)</span>
+            </div>
+            <div className="flex justify-between items-baseline pt-2 border-t border-slate-100">
+              <span className="text-xs text-slate-600 font-medium">พนักงานที่ลาสูงสุด:</span>
+              <span className="text-xs font-bold text-slate-800">{topAbsenteeUser ? `${topAbsenteeUser.name} (${topAbsenteeUser.count} ครั้ง)` : "-"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Leave Types Breakdown Bar Chart */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">📈 สัดส่วนประเภทการลา (Leave Types)</h4>
+          <div className="space-y-2.5 pt-1">
+            {[
+              { type: "sick", label: "ลาป่วย (Sick Leave)", color: "bg-red-500", count: leaveTypeCounts["sick"] || 0 },
+              { type: "personal", label: "ลากิจ (Personal Leave)", color: "bg-amber-500", count: leaveTypeCounts["personal"] || 0 },
+              { type: "vacation", label: "พักร้อน (Vacation)", color: "bg-emerald-500", count: leaveTypeCounts["vacation"] || 0 },
+              { type: "other", label: "อื่นๆ (Other)", color: "bg-indigo-500", count: leaveTypeCounts["other"] || 0 }
+            ].map(item => {
+              const pct = totalLeaveCount > 0 ? Math.round((item.count / totalLeaveCount) * 100) : 0;
+              return (
+                <div key={item.type} className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold text-slate-700">
+                    <span>{item.label}</span>
+                    <span className="font-mono">{item.count} ครั้ง ({pct}%)</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div style={{ width: `${pct}%` }} className={`h-full ${item.color} rounded-full transition-all`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Top Absentees Leaderboard */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">🏆 พนักงานที่มีสถิติการลางานสูงสุด (Top Absentees)</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {topAbsentees.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">ไม่มีประวัติการลางาน</p>
+            ) : topAbsentees.map((emp, idx) => (
+              <div key={emp.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center ${idx === 0 ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-600"}`}>
+                    {idx + 1}
+                  </span>
+                  <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">{emp.name}</p>
+                    <p className="text-[9px] text-slate-400 font-mono">{emp.id}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-red-600 font-mono bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">
+                  {emp.count} ครั้ง
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
 
       {/* Filters */}
@@ -2047,19 +2143,31 @@ export default function App() {
   };
 
   const getDeptManagerInfo = (deptId: string) => {
-    const mgr = accounts.find(acc => acc.deptId === deptId && acc.role !== "ผู้ดูแลระบบ");
+    const mgr = accounts.find(acc => acc.deptId === deptId) || accounts.find(acc => acc.role === "ผู้ดูแลระบบ");
+    const empMgr = state.employees.find(e => e.deptId === deptId && (e.role.includes("Manager") || e.role.includes("หัวหน้า") || e.role.includes("Supervisor")));
+    
     if (mgr) {
       return {
+        username: mgr.username,
         name: mgr.name,
         role: mgr.role,
         avatar: mgr.avatar
       };
     }
+    if (empMgr) {
+      return {
+        username: empMgr.id,
+        name: empMgr.name,
+        role: empMgr.role,
+        avatar: empMgr.avatar
+      };
+    }
     const dept = state.departments.find(d => d.id === deptId);
     return {
-      name: dept ? dept.manager : "ไม่มีข้อมูลหัวหน้าแผนก",
-      role: dept ? dept.managerRole : "Supervisor",
-      avatar: dept ? dept.managerImg : "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ"
+      username: deptId + "_mgr",
+      name: dept ? dept.manager : "ผู้จัดการแผนก",
+      role: dept ? dept.managerRole : "Section Manager",
+      avatar: ""
     };
   };
 
@@ -3068,14 +3176,10 @@ export default function App() {
                       return (
                         <div key={dept.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
                           <div className="flex items-center gap-3">
-                            <img 
-                              className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                              src={managerInfo.avatar} 
-                              alt={managerInfo.name}
-                            />
+                            <EmployeeAvatar empId={managerInfo.username} empName={managerInfo.name} avatarUrl={managerInfo.avatar} className="w-9 h-9 flex-shrink-0" />
                             <div>
                               <p className="text-xs font-bold text-slate-800">{managerInfo.name}</p>
-                              <p className="text-[9px] text-slate-500 uppercase tracking-wider">{managerInfo.role}</p>
+                              <p className="text-[9px] text-blue-600 font-mono font-bold uppercase tracking-wider">{managerInfo.role}</p>
                             </div>
                           </div>
                           <div className="text-right">
@@ -3255,6 +3359,77 @@ export default function App() {
                   </div>
                 </div>
 
+              </div>
+
+              {/* Row: Cargo Tonnage vs OT Analytics Card */}
+              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
+                      <span>🚢</span> การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)
+                    </h4>
+                    <p className="text-xs text-amber-800/80 mt-0.5">
+                      วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2.5 rounded-2xl border border-amber-200 shadow-sm">
+                    <div className="text-right">
+                      <span className="block text-[10px] font-bold text-slate-500">ปริมาณงานสินค้ารวม</span>
+                      <span className="text-base font-black text-amber-600 font-mono">
+                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0).toLocaleString()} <span className="text-xs font-bold">ตัน</span>
+                      </span>
+                    </div>
+                    <div className="h-8 w-px bg-amber-200" />
+                    <div className="text-right">
+                      <span className="block text-[10px] font-bold text-slate-500">อัตราเฉลี่ย OT / 1,000 ตัน</span>
+                      <span className="text-base font-black text-blue-600 font-mono">
+                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) > 0 
+                          ? (state.employees.reduce((s, e) => s + (e.actualOt || 0), 0) / (vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) / 1000)).toFixed(1)
+                          : "0.0"} <span className="text-xs font-bold">ชม.</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vessel Tonnage vs OT Comparison Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                  {vesselSchedules.length === 0 ? (
+                    <div className="col-span-full py-8 text-center bg-white/60 rounded-2xl border border-dashed border-amber-200 text-xs font-bold text-amber-700">
+                      ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
+                    </div>
+                  ) : vesselSchedules.map((vs) => {
+                    const ton = Number(vs.tonnage) || 0;
+                    const dept = state.departments.find(d => d.id === vs.deptId);
+                    const deptEmps = state.employees.filter(e => e.deptId === vs.deptId);
+                    const deptOt = deptEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
+                    return (
+                      <div key={vs.id} className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-between space-y-3">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 font-mono uppercase">
+                              {vs.type === "vessel" ? "เรือ Vessel" : "Ship Crane"} ({vs.planType})
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400">{vs.startDate}</span>
+                          </div>
+                          <h5 className="text-xs font-black text-slate-800 mt-2 truncate" title={vs.name}>{vs.name}</h5>
+                          <p className="text-[10px] text-slate-500">แผนกรับผิดชอบ: {dept?.nameTh || vs.deptId}</p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-600">📦 ปริมาณงาน:</span>
+                            <span className="text-amber-600 font-mono">{ton.toLocaleString()} ตัน</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-600">⏱️ OT สะสมแผนก:</span>
+                            <span className="text-blue-600 font-mono">{deptOt} ชม.</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Comprehensive Statistics Table */}
