@@ -2728,7 +2728,7 @@ export default function App() {
                     title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
                   >
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-                    <span>🔴 คำขอ OT ({otRequests.filter(r => r.status === "pending").length})</span>
+                    <span>🔴 คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
                   </button>
 
                   <button 
@@ -6393,7 +6393,7 @@ export default function App() {
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
                     >
                       <option value="">-- เลือกพนักงาน --</option>
-                      {state.employees.map(e => (
+                      {(state?.employees || []).map(e => (
                         <option key={e.id} value={e.id}>[{e.id}] {e.name}</option>
                       ))}
                     </select>
@@ -6443,14 +6443,14 @@ export default function App() {
               {/* Requests List & Pipeline */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex justify-between items-center">
-                  <span>รายการคำขอในระบบ ({otRequests.length} รายการ)</span>
+                  <span>รายการคำขอในระบบ ({(otRequests || []).length} รายการ)</span>
                   <span className="text-[10px] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                    รออนุมัติ: {otRequests.filter(r => r.status === "pending").length} รายการ
+                    รออนุมัติ: {(otRequests || []).filter(r => r?.status === "pending").length} รายการ
                   </span>
                 </h4>
 
                 <div className="space-y-2">
-                  {otRequests.map((req) => (
+                  {(otRequests || []).map((req) => (
                     <div key={req.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div className="flex items-center gap-3">
                         <EmployeeAvatar empId={req.employeeId} empName={req.employeeName} className="w-9 h-9 flex-shrink-0" />
