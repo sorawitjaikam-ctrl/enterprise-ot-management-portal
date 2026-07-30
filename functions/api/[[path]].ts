@@ -47,11 +47,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       let empsRes: any = { results: [] };
       let accountsRes: any = { results: [] };
       let vesselSchedulesRes: any = { results: [] };
-
-      let deptsRes: any = { results: [] };
-      let empsRes: any = { results: [] };
-      let accountsRes: any = { results: [] };
-      let vesselSchedulesRes: any = { results: [] };
       let otRequestsRes: any = { results: [] };
       let otSummaryMap: Record<string, number> = {};
 
