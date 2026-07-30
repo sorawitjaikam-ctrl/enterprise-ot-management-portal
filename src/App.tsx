@@ -1167,6 +1167,24 @@ export default function App() {
   const [aiReportText, setAiReportText] = useState<string>("");
   const [generatingAiReport, setGeneratingAiReport] = useState<boolean>(false);
 
+  // OT Request & Approval State
+  const [otRequests, setOtRequests] = useState<any[]>([
+    { id: "REQ-101", employeeId: "1001", employeeName: "นายสมชาย ใจดี", deptId: "inter2", date: "2026-07-31", hours: 4, reason: "รองรับการเข้าเทียบเรือ MV Golden Friend", status: "pending", requestedAt: "2026-07-30 10:15" },
+    { id: "REQ-102", employeeId: "1002", employeeName: "นายวิชัย สุขใจ", deptId: "inter2", date: "2026-07-31", hours: 4, reason: "การซ่อมบำรุงเชิงป้องกันเครนตักสินค้า #2", status: "pending", requestedAt: "2026-07-30 11:30" }
+  ]);
+  const [showOtRequestModal, setShowOtRequestModal] = useState<boolean>(false);
+  const [newOtReqEmpId, setNewOtReqEmpId] = useState<string>("");
+  const [newOtReqDate, setNewOtReqDate] = useState<string>("");
+  const [newOtReqHours, setNewOtReqHours] = useState<number>(4);
+  const [newOtReqReason, setNewOtReqReason] = useState<string>("");
+
+  // Bulk Shift Setter State
+  const [showBulkShiftModal, setShowBulkShiftModal] = useState<boolean>(false);
+  const [bulkGroupName, setBulkGroupName] = useState<string>("Group A");
+  const [bulkShiftCode, setBulkShiftCode] = useState<string>("M12");
+  const [bulkStartDay, setBulkStartDay] = useState<number>(1);
+  const [bulkEndDay, setBulkEndDay] = useState<number>(30);
+
   // New Employee Form State
   const [newEmpName, setNewEmpName] = useState<string>("");
   const [newEmpDept, setNewEmpDept] = useState<string>("inter2");
@@ -2660,10 +2678,19 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setShowOtRequestModal(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition-all shadow-sm cursor-pointer relative"
+                    title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>🔴 คำขอ OT ({otRequests.filter(r => r.status === "pending").length})</span>
+                  </button>
+
                   <button 
                     onClick={handleExportCsvReport}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-slate-500" />
                     <span>ส่งออกรายงานรวม</span>
@@ -3860,6 +3887,14 @@ export default function App() {
 
                   <div className="flex items-center gap-2">
                     <button 
+                      onClick={() => setShowBulkShiftModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 transition-colors shadow-sm cursor-pointer"
+                      title="กำหนดกะงานให้พนักงานทั้งกลุ่มพร้อมกัน"
+                    >
+                      <span>⚡</span>
+                      <span className="hidden sm:inline">กำหนดกะยกกลุ่ม</span>
+                    </button>
+                    <button 
                       onClick={() => setShowShiftLegend(!showShiftLegend)}
                       className="flex items-center gap-1 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                     >
@@ -4108,7 +4143,28 @@ export default function App() {
                             <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-slate-50 flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
                               <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-800 truncate">{emp.name}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs font-bold text-slate-800 truncate" title={emp.name}>{emp.name}</p>
+                                  {(() => {
+                                    const shifts: string[] = emp.shifts || [];
+                                    let maxWeekOt = 0;
+                                    for (let i = 0; i < shifts.length; i += 7) {
+                                      const weekShifts = shifts.slice(i, i + 7);
+                                      let weekOt = 0;
+                                      weekShifts.forEach(code => {
+                                        if (code === "OND") weekOt += 8;
+                                        else if (code.endsWith("12") || code === "M12" || code === "A12" || code === "N12") weekOt += 4;
+                                        else if (code.endsWith("16") || code === "M16" || code === "N16") weekOt += 8;
+                                      });
+                                      if (weekOt > maxWeekOt) maxWeekOt = weekOt;
+                                    }
+                                    return maxWeekOt > 36 ? (
+                                      <span className="px-1 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[8px] font-extrabold flex-shrink-0" title="คำเตือน: มีสัปดาห์ที่ทำ OT เกิน 36 ชม. (ขีดจำกัดสูงสุดตามกฎหมายแรงงาน)">
+                                        ⚠️&gt;36h
+                                      </span>
+                                    ) : null;
+                                  })()}
+                                </div>
                                 <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
                               </div>
                             </div>
@@ -6169,7 +6225,235 @@ export default function App() {
         </div>
       )}
 
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: BULK SHIFT SETTER */}
+      {/* ======================================= */}
+      {showBulkShiftModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-indigo-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">⚡</span>
+                <div>
+                  <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม (Bulk Shift Setter)</h3>
+                  <p className="text-[10px] text-indigo-300">กำหนดกะงานให้พนักงานทั้งกลุ่มพร้อมกันในคลิกเดียว</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkShiftModal(false)} className="text-white hover:opacity-80 font-bold">✕</button>
+            </div>
 
+            <div className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">เลือกกลุ่มพนักงานเป้าหมาย</label>
+                <select
+                  value={bulkGroupName}
+                  onChange={(e) => setBulkGroupName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                >
+                  <option value="all">ทุกกลุ่มในแผนก</option>
+                  <option value="Group A">Group A (ทีม ก.)</option>
+                  <option value="Group B">Group B (ทีม ข.)</option>
+                  <option value="Group C">Group C (ทีม ค.)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">เลือกรหัสกะที่จะกำหนด</label>
+                <select
+                  value={bulkShiftCode}
+                  onChange={(e) => setBulkShiftCode(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 font-mono"
+                >
+                  <option value="M12">M12 (กะเช้า 12 ชม. / OT 4 ชม.)</option>
+                  <option value="A12">A12 (กะบ่าย 12 ชม. / OT 4 ชม.)</option>
+                  <option value="N12">N12 (กะดึก 12 ชม. / OT 4 ชม.)</option>
+                  <option value="M16">M16 (กะควบเช้า 16 ชม. / OT 8 ชม.)</option>
+                  <option value="N16">N16 (กะควบดึก 16 ชม. / OT 8 ชม.)</option>
+                  <option value="OND">OND (ทำงานวันหยุด / OT 8 ชม.)</option>
+                  <option value="M8">M8 (กะปกติ 8 ชม. / ไม่มี OT)</option>
+                  <option value="O">O (วันหยุด Off)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ตั้งแต่วันที่</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={bulkStartDay}
+                    onChange={(e) => setBulkStartDay(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ถึงวันที่</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={bulkEndDay}
+                    onChange={(e) => setBulkEndDay(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex gap-2">
+                <button onClick={() => setShowBulkShiftModal(false)} className="w-1/2 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">
+                  ยกเลิก
+                </button>
+                <button onClick={handleApplyBulkShift} className="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-500/10">
+                  ⚡ ปรับกะยกกลุ่ม
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: OT REQUEST & APPROVAL */}
+      {/* ======================================= */}
+      {showOtRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-100 bg-slate-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                  🔴
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">รายการใบคำขอทำล่วงเวลา (OT Request & Approval Pipeline)</h3>
+                  <p className="text-[10px] text-slate-400">ยื่นขอทำ OT และอนุมัติใบคำขอออนไลน์ก่อนการปฏิบัติงานจริง</p>
+                </div>
+              </div>
+              <button onClick={() => setShowOtRequestModal(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 text-white font-bold">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 bg-slate-50">
+              
+              {/* Form to submit OT request */}
+              <form onSubmit={handleSubmitOtRequest} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>➕</span> ยื่นใบคำขอทำ OT ออนไลน์ใหม่
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">เลือกพนักงาน</label>
+                    <select
+                      value={newOtReqEmpId}
+                      onChange={(e) => setNewOtReqEmpId(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                    >
+                      <option value="">-- เลือกพนักงาน --</option>
+                      {state.employees.map(e => (
+                        <option key={e.id} value={e.id}>[{e.id}] {e.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ปฏิบัติงาน OT</label>
+                    <input
+                      type="date"
+                      required
+                      value={newOtReqDate}
+                      onChange={(e) => setNewOtReqDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">จำนวนชั่วโมง OT (ชม.)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={newOtReqHours}
+                      onChange={(e) => setNewOtReqHours(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1">เหตุผลในการขอทำ OT</label>
+                  <input
+                    type="text"
+                    required
+                    value={newOtReqReason}
+                    onChange={(e) => setNewOtReqReason(e.target.value)}
+                    placeholder="ระบุเหตุผลความจำเป็น เช่น รองรับการเข้าเทียบเรือ..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 cursor-pointer">
+                    📤 ยื่นคำขอทำ OT
+                  </button>
+                </div>
+              </form>
+
+              {/* Requests List & Pipeline */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex justify-between items-center">
+                  <span>รายการคำขอในระบบ ({otRequests.length} รายการ)</span>
+                  <span className="text-[10px] font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    รออนุมัติ: {otRequests.filter(r => r.status === "pending").length} รายการ
+                  </span>
+                </h4>
+
+                <div className="space-y-2">
+                  {otRequests.map((req) => (
+                    <div key={req.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <EmployeeAvatar empId={req.employeeId} empName={req.employeeName} className="w-9 h-9 flex-shrink-0" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-xs font-bold text-slate-800">{req.employeeName}</h5>
+                            <span className="text-[10px] font-mono font-bold text-blue-600">[{req.employeeId}]</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                              req.status === "approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                              req.status === "rejected" ? "bg-red-50 text-red-700 border border-red-200" :
+                              "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}>
+                              {req.status === "approved" ? "✅ อนุมัติแล้ว" : req.status === "rejected" ? "❌ ไม่อนุมัติ" : "⏳ รอพิจารณา"}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            วันที่: <strong className="font-mono text-slate-700">{req.date}</strong> ({req.hours} ชม.) | เหตุผล: {req.reason}
+                          </p>
+                        </div>
+                      </div>
+
+                      {req.status === "pending" && (
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                          <button
+                            onClick={() => handleApproveOtRequest(req.id)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm cursor-pointer"
+                          >
+                            ✅ อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleRejectOtRequest(req.id)}
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-[11px] font-bold cursor-pointer"
+                          >
+                            ❌ ปฏิเสธ
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

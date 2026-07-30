@@ -284,11 +284,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const { year, month, employees } = await getBody();
       if (db && employees && Array.isArray(employees)) {
         for (const emp of employees) {
-          await db.prepare("UPDATE employees SET shifts = ? WHERE id = ?").bind(JSON.stringify(emp.shifts || []), emp.id).run();
           const shifts: string[] = emp.shifts || [];
+          let totalOt = 0;
           for (let dayIdx = 0; dayIdx < shifts.length; dayIdx++) {
             const shiftCode = shifts[dayIdx];
             const otHrs = getShiftOt(shiftCode);
+            totalOt += otHrs;
             if (otHrs > 0) {
               const dayNum = dayIdx + 1;
               const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
@@ -297,6 +298,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`).bind(recId, year, month, dateStr, emp.id, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
             }
           }
+          await db.prepare("UPDATE employees SET shifts = ?, actualOt = ? WHERE id = ?").bind(JSON.stringify(shifts), totalOt, emp.id).run();
         }
       }
       return Response.json({ success: true, message: "บันทึกตารางกะลง Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
@@ -306,16 +308,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (path === "/api/add-employee" && request.method === "POST") {
       const body = await getBody();
       const empId = body.id || "EMP-" + Date.now();
+      const salary = Number(body.salary) || 15000;
+      const division = body.division || body.groupName || "-";
       if (db) {
-        await db.prepare(`INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(
+        await db.prepare(`INSERT INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
             empId,
             body.name || (body.firstName + " " + body.lastName),
             body.deptId || "inter2",
             body.role || "Operator",
             Number(body.targetOt) || 48,
             body.groupName || "Group A",
-            JSON.stringify(body.shifts || [])
+            JSON.stringify(body.shifts || []),
+            salary,
+            division
           ).run();
       }
       return Response.json({ success: true, message: "เพิ่มพนักงานเรียบร้อยแล้ว", employeeId: empId }, { headers: corsHeaders });
