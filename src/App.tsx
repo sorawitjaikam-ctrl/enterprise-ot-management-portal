@@ -114,28 +114,43 @@ export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
   return result;
 };
 
+export const normalizeDeptId = (deptId?: string) => {
+  if (!deptId) return "";
+  const clean = String(deptId).trim().toLowerCase().replace(/\s+/g, "");
+  if (clean.includes("inter2")) return "inter2";
+  if (clean.includes("inter3")) return "inter3";
+  if (clean.includes("inter5")) return "inter5";
+  if (clean.includes("inter7")) return "inter7";
+  if (clean.includes("heavy"))  return "heavy";
+  if (clean.includes("ecc"))    return "ecc";
+  return clean;
+};
+
 export const getDeptName = (deptId?: string, departments?: Department[]) => {
-  if (!deptId) return "ไม่ระบุ";
-  const cleanId = String(deptId).trim().toLowerCase().replace(/\s+/g, "");
+  if (!deptId) return "-";
+  const cleanId = normalizeDeptId(deptId);
   
   if (departments && Array.isArray(departments)) {
     const found = departments.find(d => {
-      const dId = String(d.id).trim().toLowerCase().replace(/\s+/g, "");
-      const dName = String(d.name).trim().toLowerCase().replace(/\s+/g, "");
-      const dNameTh = String(d.nameTh).trim().toLowerCase().replace(/\s+/g, "");
+      const dId = normalizeDeptId(d.id);
+      const dName = normalizeDeptId(d.name);
+      const dNameTh = normalizeDeptId(d.nameTh);
       return dId === cleanId || dName === cleanId || dNameTh === cleanId;
     });
-    if (found) return found.nameTh || found.name;
+    if (found) {
+      const nameStr = found.name || found.nameTh;
+      return nameStr.replace(/^แผนก\s*/i, "");
+    }
   }
 
-  if (cleanId.includes("inter2")) return "แผนก INTER 2";
-  if (cleanId.includes("inter3")) return "แผนก INTER 3";
-  if (cleanId.includes("inter5")) return "แผนก INTER 5";
-  if (cleanId.includes("inter7")) return "แผนก INTER 7";
-  if (cleanId.includes("heavy"))  return "แผนก Heavy Machine";
-  if (cleanId.includes("ecc"))    return "แผนก ECC";
+  if (cleanId === "inter2") return "INTER 2";
+  if (cleanId === "inter3") return "INTER 3";
+  if (cleanId === "inter5") return "INTER 5";
+  if (cleanId === "inter7") return "INTER 7";
+  if (cleanId === "heavy")  return "Heavy Machine";
+  if (cleanId === "ecc")    return "ECC";
 
-  return deptId;
+  return String(deptId).replace(/^แผนก\s*/i, "");
 };
 
 const SHIFT_OT_HOURS: Record<string, number> = {
@@ -2074,16 +2089,7 @@ export default function App() {
   const dashboardEmployees = state.employees.filter(emp => {
     let matchesDept = true;
     if (selectedDeptFilter !== "ทุกแผนก") {
-      const deptMap: { [key: string]: string } = {
-        "INTER 2": "inter2",
-        "INTER 3": "inter3",
-        "INTER 5": "inter5",
-        "INTER 7": "inter7",
-        "Heavy Machine": "heavy",
-        "ECC": "ecc"
-      };
-      const filterDeptId = deptMap[selectedDeptFilter];
-      matchesDept = emp.deptId === filterDeptId;
+      matchesDept = normalizeDeptId(emp.deptId) === normalizeDeptId(selectedDeptFilter);
     }
     const matchesRole = matchesRoleFilter(emp.role);
     return matchesDept && matchesRole;
@@ -2650,18 +2656,18 @@ export default function App() {
 
                   <div className="space-y-5 flex-1">
                     {state.departments.map((dept) => {
-                      const deptEmployees = dashboardEmployees.filter(e => e.deptId === dept.id);
+                      const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
                       const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
                       // Max hours for progress bar scaling
                       const maxHr = Math.max(...state.departments.map(d => {
-                        const dEmps = dashboardEmployees.filter(e => e.deptId === d.id);
+                        const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
                         return dEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
                       }), 100);
                       const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
                       return (
                         <div key={dept.id} className="group cursor-pointer">
                           <div className="flex justify-between items-end mb-1">
-                            <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{dept.nameTh}</span>
+                            <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
                             <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours} ชม.</span>
                           </div>
                           <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
