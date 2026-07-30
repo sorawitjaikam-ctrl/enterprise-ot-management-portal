@@ -1052,6 +1052,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          originalUsername: editAccountOriginalUsername || editAccountUsername,
           username: editAccountUsername,
           name: editAccountName,
           role: editAccountRole,
@@ -1061,6 +1062,21 @@ export default function App() {
         })
       });
       if (res.ok) {
+        setAccounts(prev => prev.map(acc => {
+          if (acc.username === (editAccountOriginalUsername || editAccountUsername)) {
+            return {
+              ...acc,
+              username: editAccountUsername,
+              name: editAccountName,
+              role: editAccountRole,
+              deptId: editAccountDeptId,
+              avatar: finalAvatar,
+              canBackup: editAccountCanBackup ? 1 : 0
+            };
+          }
+          return acc;
+        }));
+
         setShowEditAccountModal(false);
         await fetchAccounts();
         alert("อัปเดตข้อมูลบัญชีผู้ใช้ใน D1 Database สำเร็จ!");

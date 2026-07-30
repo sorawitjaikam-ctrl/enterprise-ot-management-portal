@@ -219,19 +219,46 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // 4. POST /api/update-account
     if (path === "/api/update-account" && request.method === "POST") {
       const body = await getBody();
-      if (!body.username) {
+      const targetUsername = body.originalUsername || body.username;
+      const newUsername = body.username || targetUsername;
+
+      if (!targetUsername) {
         return Response.json({ error: "ไม่พบ Username" }, { status: 400, headers: corsHeaders });
       }
 
       if (db) {
-        await db.prepare(`UPDATE accounts SET name = ?, role = ?, deptId = ?, avatar = ?, canBackup = ? WHERE username = ?`).bind(
-          body.name,
-          body.role,
-          body.deptId || "all",
-          body.avatar || "",
-          body.canBackup ? 1 : 0,
-          body.username
-        ).run();
+        try {
+          // Check if targetUsername exists
+          const existing = await db.prepare("SELECT * FROM accounts WHERE username = ?").bind(targetUsername).first();
+          if (existing) {
+            const pwd = existing.password || "123456";
+            if (targetUsername !== newUsername) {
+              await db.prepare("DELETE FROM accounts WHERE username = ?").bind(targetUsername).run();
+            }
+            await db.prepare(`INSERT OR REPLACE INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(
+              newUsername,
+              pwd,
+              body.name || existing.name,
+              body.role || existing.role,
+              body.deptId || existing.deptId || "all",
+              body.avatar !== undefined ? body.avatar : existing.avatar,
+              body.canBackup ? 1 : 0
+            ).run();
+          } else {
+            // Insert new account record into D1
+            await db.prepare(`INSERT OR REPLACE INTO accounts (username, password, name, role, deptId, avatar, canBackup) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(
+              newUsername,
+              "123456",
+              body.name || newUsername,
+              body.role || "ผู้ดูแลระบบ",
+              body.deptId || "all",
+              body.avatar || "",
+              body.canBackup ? 1 : 0
+            ).run();
+          }
+        } catch (e) {
+          console.error("D1 Update Account Error:", e);
+        }
       }
       return Response.json({ success: true, message: "อัปเดตข้อมูลสิทธิ์ผู้ใช้ใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
