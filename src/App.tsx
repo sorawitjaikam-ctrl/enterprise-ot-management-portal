@@ -1361,6 +1361,21 @@ export default function App() {
         setTempEmployees(data.employees);
         if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
           setAccounts(data.accounts);
+          if (currentUser?.username) {
+            const currentAcc = data.accounts.find((a: any) => a.username === currentUser.username);
+            if (currentAcc) {
+              const updatedUser = { 
+                ...currentUser, 
+                name: currentAcc.name, 
+                role: currentAcc.role, 
+                deptId: currentAcc.deptId, 
+                avatar: currentAcc.avatar || currentUser.avatar, 
+                canBackup: currentAcc.canBackup 
+              };
+              setCurrentUser(updatedUser);
+              localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+            }
+          }
         } else {
           setAccounts(DEFAULT_ACCOUNTS);
         }

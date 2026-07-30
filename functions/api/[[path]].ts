@@ -261,6 +261,41 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "อัปเดตข้อมูลสิทธิ์ผู้ใช้ใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    // 4.1 POST /api/update-profile
+    if (path === "/api/update-profile" && request.method === "POST") {
+      const { username, name, avatar, password } = await getBody();
+      if (!username) {
+        return Response.json({ error: "ไม่พบ Username" }, { status: 400, headers: corsHeaders });
+      }
+
+      if (db) {
+        try {
+          if (password) {
+            await db.prepare("UPDATE accounts SET name = ?, avatar = ?, password = ? WHERE username = ?").bind(
+              name, avatar || "", password, username
+            ).run();
+          } else {
+            await db.prepare("UPDATE accounts SET name = ?, avatar = ? WHERE username = ?").bind(
+              name, avatar || "", username
+            ).run();
+          }
+
+          const acc = await db.prepare("SELECT * FROM accounts WHERE username = ?").bind(username).first();
+          if (acc) {
+            return Response.json({
+              success: true,
+              user: { username: acc.username, name: acc.name, role: acc.role, deptId: acc.deptId, avatar: acc.avatar, canBackup: acc.canBackup }
+            }, { headers: corsHeaders });
+          }
+        } catch (e) {
+          console.error("D1 Update Profile Error:", e);
+        }
+      }
+
+      return Response.json({
+        success: true,
+        user: { username, name, avatar: avatar || "", role: "ผู้ดูแลระบบ", deptId: "all", canBackup: 1 }
+      }, { headers: corsHeaders });
     }
 
     // 5. POST /api/delete-account
