@@ -2963,7 +2963,11 @@ export default function App() {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
                 const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0), 0) * 10) / 10;
                 const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
-                const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0) * 300, 0) * timeMult);
+                const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
+                  const salary = Number(curr.salary) || 15000;
+                  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+                  return acc + ((curr.actualOt || 0) * 1.5 * hourlyRate);
+                }, 0) * timeMult);
                 const activeEmps = dashboardEmployees.filter(e => (e.actualOt || 0) > 0).length;
                 const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
                 const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
@@ -2999,13 +3003,21 @@ export default function App() {
                           <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
                             <TrendingUp className="w-6 h-6" />
                           </div>
-                          <span className="text-red-600 text-[10px] font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">+5% เกินงบประมาณ</span>
+                          {totalSpent > maxBudget ? (
+                            <span className="text-red-600 text-[10px] font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+                              +{Math.round(((totalSpent - maxBudget) / maxBudget) * 100)}% เกินงบประมาณ
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                              อยู่ในงบประมาณ (ปกติ)
+                            </span>
+                          )}
                         </div>
                         <div className="relative z-10">
                           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
                           <div className="flex items-baseline gap-1">
                             <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              ฿{(totalSpent / 1000).toFixed(1)}K
+                              {totalSpent >= 1000 ? `฿${(totalSpent / 1000).toFixed(1)}K` : `฿${totalSpent.toLocaleString()}`}
                             </h3>
                             <span className="text-xs font-bold text-slate-500">THB</span>
                           </div>
@@ -3078,7 +3090,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Visual simulated bar graphs */}
+                        {/* Visual bar graphs from D1 Database real monthly trend data */}
                         <div className="h-64 flex items-end justify-between gap-6 px-4 pt-4 relative">
                           {/* Grid lines */}
                           <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none pb-6">
@@ -3088,14 +3100,15 @@ export default function App() {
                             <div className="w-full h-px bg-slate-100"></div>
                           </div>
 
-                          {state.otTrendData.months.map((month, idx) => {
-                            const monthMultipliers = [0.85, 0.95, 1.1, 1.25, 1.05, 1.15];
-                            const curVal = Math.round((baseTotalOt / 6) * monthMultipliers[idx]);
-                            const lastVal = Math.round(curVal * 0.92);
+                          {(state?.otTrendData?.months || []).map((month, idx) => {
+                            const curVal = state?.otTrendData?.currentYear?.[idx] ?? 0;
+                            const lastVal = state?.otTrendData?.lastYear?.[idx] ?? 0;
                             
-                            const maxTrendValue = Math.max(...state.otTrendData.months.map((_, i) => Math.round((baseTotalOt / 6) * monthMultipliers[i])), 10);
-                            const curHeight = Math.round((curVal / maxTrendValue) * 80);
-                            const lastHeight = Math.round((lastVal / maxTrendValue) * 80);
+                            const allVals = [...(state?.otTrendData?.currentYear || []), ...(state?.otTrendData?.lastYear || [])];
+                            const maxTrendValue = Math.max(...allVals, 10);
+
+                            const curHeight = curVal > 0 ? Math.max(10, Math.round((curVal / maxTrendValue) * 85)) : 0;
+                            const lastHeight = lastVal > 0 ? Math.max(10, Math.round((lastVal / maxTrendValue) * 85)) : 0;
                             return (
                               <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
                                 <div className="flex-1 w-full flex items-end justify-center gap-1.5 relative">
@@ -3107,7 +3120,7 @@ export default function App() {
                                     <div 
                                       style={{ height: `${lastHeight}%` }}
                                       className="w-full bg-slate-200 rounded-t-md hover:bg-slate-300 transition-all shadow-sm"
-                                      title={`ปีที่แล้ว: ${lastVal} ชม.`}
+                                      title={`ปีที่แล้ว (${month}): ${lastVal} ชม.`}
                                     ></div>
                                   </div>
                                   
@@ -3119,7 +3132,7 @@ export default function App() {
                                     <div 
                                       style={{ height: `${curHeight}%` }}
                                       className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:from-blue-500 group-hover:to-blue-300 transition-all shadow-sm"
-                                      title={`ปีปัจจุบัน: ${curVal} ชม.`}
+                                      title={`ปีปัจจุบัน (${month}): ${curVal} ชม.`}
                                     ></div>
                                   </div>
                                 </div>

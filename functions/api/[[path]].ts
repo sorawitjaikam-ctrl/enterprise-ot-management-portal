@@ -108,6 +108,58 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         });
       }
 
+      // Compute actual monthly OT totals from D1 ot_daily_records table
+      const monthNamesTh = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      const now = new Date();
+      const currentYearNum = now.getFullYear();
+      const currentMonthNum = now.getMonth() + 1; // 1-indexed
+
+      // Build last 6 months array info
+      const last6MonthsInfo: { year: number; month: number; label: string }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = currentMonthNum - i;
+        let y = currentYearNum;
+        if (m <= 0) {
+          m += 12;
+          y -= 1;
+        }
+        last6MonthsInfo.push({ year: y, month: m, label: monthNamesTh[m - 1] });
+      }
+
+      const trendMonths = last6MonthsInfo.map(m => m.label);
+      const trendCurrentYear = last6MonthsInfo.map(() => 0);
+      const trendLastYear = last6MonthsInfo.map(() => 0);
+
+      if (db) {
+        try {
+          const otMonthlyQuery = await db.prepare("SELECT year, month, SUM(otHours) as total FROM ot_daily_records GROUP BY year, month").all();
+          if (otMonthlyQuery && otMonthlyQuery.results) {
+            for (const row of otMonthlyQuery.results as any[]) {
+              const rYear = Number(row.year);
+              const rMonth = Number(row.month);
+              const rTotal = Number(row.total) || 0;
+              
+              const idxCurrent = last6MonthsInfo.findIndex(m => m.year === rYear && m.month === rMonth);
+              if (idxCurrent !== -1) {
+                trendCurrentYear[idxCurrent] += rTotal;
+              }
+
+              const idxLast = last6MonthsInfo.findIndex(m => m.year === (rYear + 1) && m.month === rMonth);
+              if (idxLast !== -1) {
+                trendLastYear[idxLast] += rTotal;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("D1 Monthly Trend Query Error:", e);
+        }
+      }
+
+      const totalEnrichedOt = enrichedEmployees.reduce((s, e) => s + (e.actualOt || 0), 0);
+      if (trendCurrentYear[5] === 0 && totalEnrichedOt > 0) {
+        trendCurrentYear[5] = Math.round(totalEnrichedOt * 10) / 10;
+      }
+
       const normalizeDeptId = (deptId: string) => {
         if (!deptId) return "";
         const clean = String(deptId).trim().toLowerCase().replace(/\s+/g, "");
@@ -123,7 +175,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const departments = (deptsRes.results || []).map((d: any) => {
         const deptEmps = enrichedEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
         const totalOt = deptEmps.reduce((s, e) => s + e.actualOt, 0);
-        const budgetUsed = totalOt * 300;
+        const budgetUsed = Math.round(deptEmps.reduce((s, e) => {
+          const sal = Number(e.salary) || 15000;
+          const rate = sal / 240;
+          return s + (e.actualOt * 1.5 * rate);
+        }, 0));
         const budgetUtilization = Math.round((budgetUsed / 150000) * 100);
         return {
           ...d,
@@ -137,13 +193,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         };
       });
 
-      const defaultAccounts = [
-        { username: "admin", password: "admin123", name: "ผู้ดูแลระบบ", role: "ผู้ดูแลระบบ", deptId: "all", avatar: "", canBackup: 1 },
-        { username: "hr", password: "hr1234", name: "HR Manager", role: "HR", deptId: "all", avatar: "", canBackup: 1 },
-        { username: "hr_sec", password: "hrsec1234", name: "HR Section Manager", role: "HR Section Manager", deptId: "all", avatar: "", canBackup: 1 },
-        { username: "inter2_mgr", password: "i2mgr1234", name: "Section Manager INTER2", role: "Section Manager", deptId: "inter2", avatar: "", canBackup: 0 }
-      ];
-
       return Response.json({
         departments,
         employees: enrichedEmployees,
@@ -156,9 +205,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           currentDept: "inter2"
         },
         otTrendData: {
-          months: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย."],
-          lastYear: [120, 150, 180, 200, 170, 190],
-          currentYear: [110, 140, 160, 190, 165, 180]
+          months: trendMonths,
+          lastYear: trendLastYear,
+          currentYear: trendCurrentYear
         },
         d1Connected: !!db
       }, { headers: corsHeaders });
