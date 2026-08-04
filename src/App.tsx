@@ -1745,39 +1745,9 @@ export default function App() {
     (state?.employees || []).filter(Boolean).map(emp => emp?.role).filter(Boolean)
   )).sort();
 
-  const defaultJobValueRecords: JobValueRecord[] = (state?.employees || []).filter(Boolean).map(emp => {
-    const empId = emp?.id || "EMP";
-    const empName = emp?.name || ((emp?.firstName || "") + " " + (emp?.lastName || "")).trim() || "พนักงาน";
-    const salary = Number(emp?.salary) || 15000;
-    const avgCost = Math.round(salary * 1.35);
-    const avgRevenue = Math.round(avgCost * 1.85);
-    const monthlyProfitVal = avgRevenue - avgCost;
-    const monthlyRevenue = Array(12).fill(avgRevenue);
-    const monthlyCost = Array(12).fill(avgCost);
-    const monthlyProfit = Array(12).fill(monthlyProfitVal);
-    const profit2026 = monthlyProfitVal * 12;
-    const profit2025 = Math.round(profit2026 * 0.92);
-
-    return {
-      id: `jv-${empId}`,
-      empId: empId,
-      empName: empName,
-      department: getDeptName(emp?.deptId, state?.departments),
-      position: emp?.role || "Operator",
-      status: emp?.employmentStatus || "Active",
-      avgRevenue,
-      avgCost,
-      profit2026,
-      profit2025,
-      monthlyRevenue,
-      monthlyCost,
-      monthlyProfit
-    };
-  });
-
-  const safeJobValueRecords = (jobValueRecords && Array.isArray(jobValueRecords) && jobValueRecords.length > 0)
+  const safeJobValueRecords = (jobValueRecords && Array.isArray(jobValueRecords))
     ? jobValueRecords.filter(Boolean)
-    : defaultJobValueRecords;
+    : [];
 
   const handleRosterSort = (field: string) => {
     if (empSortField === field) {
