@@ -4013,17 +4013,13 @@ export default function App() {
                             </td>
                             {/* 9. ผลรวมค่าล่วงเวลา */}
                             <td className="px-4 py-3.5 text-right font-black text-slate-900 font-mono">
-                              {canAccessSalary ? `฿${totalOtPay.toLocaleString()}` : <span className="text-slate-400 text-[10px] font-bold">🔒 เฉพาะ HR</span>}
+                              ฿{totalOtPay.toLocaleString()}
                             </td>
                             {/* 10. % ค่าล่วงเวลา (เทียบจากฐานเงินเดือน) */}
                             <td className="px-4 py-3.5 text-right font-black font-mono">
-                              {canAccessSalary ? (
-                                <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
-                                  {otPctSalary}%
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 text-[10px] font-bold">🔒 เฉพาะ HR</span>
-                              )}
+                              <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
+                                {otPctSalary}%
+                              </span>
                             </td>
                             {/* 11. การจัดการ */}
                             <td className="px-4 py-3.5 text-center">
@@ -4039,16 +4035,18 @@ export default function App() {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                   </svg>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => startEditEmployee(emp)}
-                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
-                                  title="แก้ไขข้อมูลพนักงาน"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                                  </svg>
-                                </button>
+                                {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditEmployee(emp)}
+                                    className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                                    title="แก้ไขข้อมูลพนักงาน"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                  </button>
+                                )}
                                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                                   <button
                                     type="button"
