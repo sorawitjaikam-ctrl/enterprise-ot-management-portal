@@ -1271,7 +1271,8 @@ export default function App() {
   const [newEmpStartDate, setNewEmpStartDate] = useState<string>("");
   const [newEmpTenure, setNewEmpTenure] = useState<string>("");
   const [newEmpProbationDate, setNewEmpProbationDate] = useState<string>("");
-  const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+  const [newEmpResignationDate, setNewEmpResignationDate] = useState<string>("");
+  const [newEmpStatus, setNewEmpStatus] = useState<string>("Active");
 
   // Edit Employee Form State
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState<boolean>(false);
@@ -1294,6 +1295,11 @@ export default function App() {
   const [editEmpTenure, setEditEmpTenure] = useState<string>("");
   const [editEmpProbationDate, setEditEmpProbationDate] = useState<string>("");
   const [editEmpCalendarType, setEditEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+  const [editEmpResignationDate, setEditEmpResignationDate] = useState<string>("");
+  const [editEmpStatus, setEditEmpStatus] = useState<string>("Active");
+
+  // Status Tab State (Active vs Resigned Archive)
+  const [selectedEmpStatusTab, setSelectedEmpStatusTab] = useState<"Active" | "Resigned">("Active");
 
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
@@ -1521,7 +1527,10 @@ export default function App() {
     }
     
     const matchesRole = matchesRoleFilter(emp.role);
-    return matchesSearch && matchesDept && matchesRole;
+    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "ลาออก";
+    const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
+
+    return matchesSearch && matchesDept && matchesRole && matchesStatus;
   });
 
   // Bulk Shift Setter Action Handler
@@ -1651,7 +1660,9 @@ export default function App() {
       startDate: newEmpStartDate,
       tenure: newEmpTenure,
       probationDate: newEmpProbationDate,
-      calendarType: newEmpCalendarType
+      calendarType: newEmpCalendarType,
+      resignationDate: newEmpResignationDate,
+      employmentStatus: (newEmpStatus as any) || (newEmpResignationDate ? "Resigned" : "Active")
     };
 
     try {
@@ -2072,6 +2083,8 @@ export default function App() {
           tenure: editEmpTenure,
           probationDate: editEmpProbationDate,
           calendarType: editEmpCalendarType,
+          resignationDate: editEmpResignationDate,
+          employmentStatus: editEmpStatus || (editEmpResignationDate ? "Resigned" : "Active"),
           username: currentUser?.username
         })
       });
@@ -2168,6 +2181,8 @@ export default function App() {
     setEditEmpTenure(emp.tenure || "");
     setEditEmpProbationDate(emp.probationDate || "");
     setEditEmpCalendarType(emp.calendarType || "ปฏิทินกะ 4-on-2-off");
+    setEditEmpResignationDate(emp.resignationDate || "");
+    setEditEmpStatus(emp.employmentStatus || (emp.resignationDate ? "Resigned" : "Active"));
     
     setShowEditEmployeeModal(true);
   };
@@ -3856,6 +3871,39 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Status Tabs: Active Employees vs Resigned Archive (HR Only) */}
+              <div className="flex items-center gap-2 border-b border-slate-200 px-2">
+                <button
+                  onClick={() => setSelectedEmpStatusTab("Active")}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                    selectedEmpStatusTab === "Active"
+                      ? "border-blue-600 text-blue-600 bg-white shadow-sm"
+                      : "border-transparent text-slate-500 hover:text-slate-800 bg-slate-100/50"
+                  }`}
+                >
+                  <span>🟢 พนักงานปัจจุบัน (Active)</span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+                    {state.employees.filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length} คน
+                  </span>
+                </button>
+
+                {isHrOrFullAccess && (
+                  <button
+                    onClick={() => setSelectedEmpStatusTab("Resigned")}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                      selectedEmpStatusTab === "Resigned"
+                        ? "border-rose-600 text-rose-600 bg-white shadow-sm"
+                        : "border-transparent text-slate-500 hover:text-rose-700 bg-slate-100/50"
+                    }`}
+                  >
+                    <span>🔴 คลังข้อมูลพนักงานลาออก (Resigned Archive)</span>
+                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                      {state.employees.filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก").length} คน
+                    </span>
+                  </button>
+                )}
+              </div>
+
               {/* Employee roster list */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                 <div className="p-6 border-b border-slate-100">
@@ -4374,6 +4422,7 @@ export default function App() {
                       {(() => {
                         const filtered = (isEditingShifts ? tempEmployees : state.employees)
                           .filter(emp => emp.deptId === currentShiftsDept)
+                          .filter(emp => emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก")
                           .filter(emp => selectedShiftRoleFilter === "ทุกตำแหน่ง" || (emp.role || "Operator") === selectedShiftRoleFilter);
 
                         const grouped: Record<string, typeof filtered> = {};
@@ -5649,6 +5698,49 @@ export default function App() {
                 </div>
               </div>
 
+              {/* ส่วนที่ 4: สถานะการทำงานและวันที่ลาออก */}
+              <div className="bg-rose-50/40 p-4 rounded-2xl border border-rose-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-600"></span>
+                  4. สถานะการทำงานและวันที่ลาออก (Employment & Resignation Status)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">สถานะพนักงาน *</label>
+                    <select
+                      value={newEmpStatus}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewEmpStatus(val);
+                        if (val === "Active") {
+                          setNewEmpResignationDate("");
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    >
+                      <option value="Active">🟢 ทำงานปกติ (Active)</option>
+                      <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">วันที่ลาออก (ถ้าระบุ)</label>
+                    <input
+                      type="date"
+                      value={newEmpResignationDate}
+                      onChange={(e) => {
+                        setNewEmpResignationDate(e.target.value);
+                        if (e.target.value) {
+                          setNewEmpStatus("Resigned");
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-slate-100 flex gap-2 justify-end">
                 <button
                   type="button"
@@ -5925,6 +6017,49 @@ export default function App() {
                       onChange={(e) => setEditEmpTargetOt(Number(e.target.value))}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ส่วนที่ 4: สถานะการทำงานและวันที่ลาออก */}
+              <div className="bg-rose-50/40 p-4 rounded-2xl border border-rose-100 space-y-3">
+                <h4 className="text-xs font-extrabold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-600"></span>
+                  4. สถานะการทำงานและวันที่ลาออก (Employment & Resignation Status)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">สถานะพนักงาน *</label>
+                    <select
+                      value={editEmpStatus}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditEmpStatus(val);
+                        if (val === "Active") {
+                          setEditEmpResignationDate("");
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    >
+                      <option value="Active">🟢 ทำงานปกติ (Active)</option>
+                      <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">วันที่ลาออก (ถ้าระบุ)</label>
+                    <input
+                      type="date"
+                      value={editEmpResignationDate}
+                      onChange={(e) => {
+                        setEditEmpResignationDate(e.target.value);
+                        if (e.target.value) {
+                          setEditEmpStatus("Resigned");
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     />
                   </div>
                 </div>

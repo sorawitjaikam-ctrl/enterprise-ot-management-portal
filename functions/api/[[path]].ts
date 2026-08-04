@@ -53,6 +53,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (db) {
         try {
           deptsRes = await db.prepare("SELECT * FROM departments").all();
+          try { await db.prepare("ALTER TABLE employees ADD COLUMN resignationDate TEXT DEFAULT ''").run(); } catch (e) {}
+          try { await db.prepare("ALTER TABLE employees ADD COLUMN employmentStatus TEXT DEFAULT 'Active'").run(); } catch (e) {}
           empsRes = await db.prepare("SELECT * FROM employees").all();
           accountsRes = await db.prepare("SELECT * FROM accounts").all();
           vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
@@ -417,8 +419,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const division = body.division || body.groupName || "-";
       if (db) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
@@ -438,7 +440,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.startDate || "",
               body.tenure || "",
               body.probationDate || "",
-              body.calendarType || "ปฏิทินกะ 4-on-2-off"
+              body.calendarType || "ปฏิทินกะ 4-on-2-off",
+              body.resignationDate || "",
+              body.employmentStatus || (body.resignationDate ? "Resigned" : "Active")
             ).run();
         } catch (e) {
           console.error("D1 Add Employee Error:", e);
@@ -467,8 +471,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (db && Array.isArray(employees)) {
         for (const emp of employees) {
           try {
-            await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+            await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
                 emp.id,
                 emp.name || ((emp.firstName || "") + " " + (emp.lastName || "")).trim(),
                 emp.deptId || "inter2",
@@ -488,7 +492,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 emp.startDate || "",
                 emp.tenure || "",
                 emp.probationDate || "",
-                emp.calendarType || "ปฏิทินกะ 4-on-2-off"
+                emp.calendarType || "ปฏิทินกะ 4-on-2-off",
+                emp.resignationDate || "",
+                emp.employmentStatus || (emp.resignationDate ? "Resigned" : "Active")
               ).run();
           } catch (e) {
             console.error("D1 Import Employee Item Error:", e);
@@ -504,8 +510,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const empId = body.id;
       if (db && empId) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",

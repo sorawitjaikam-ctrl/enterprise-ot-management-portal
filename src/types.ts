@@ -41,6 +41,8 @@ export interface Employee {
   tenure?: string;
   probationDate?: string;
   calendarType?: string;
+  resignationDate?: string;
+  employmentStatus?: "Active" | "Resigned" | "ทำงานปกติ" | "ลาออก";
 }
 
 export interface ShiftConfig {
