@@ -86,7 +86,57 @@ let appState = {
   },
   otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] },
   leaveRecords: [] as any[],
-  vesselSchedules: [] as any[]
+  vesselSchedules: [] as any[],
+  jobValueRecords: [
+    {
+      id: "JV-EMP-101", empId: "EMP-101", empName: "นายสมชาย ใจดี", department: "INTER 2", position: "Operator", status: "Active",
+      avgRevenue: 185000, avgCost: 110000, profit2026: 900000, profit2025: 820000,
+      monthlyRevenue: [180000,182000,185000,188000,190000,185000,187000,186000,184000,189000,191000,188000],
+      monthlyCost: [108000,109000,110000,112000,111000,110000,112000,110000,109000,111000,113000,110000],
+      monthlyProfit: [72000,73000,75000,76000,79000,75000,75000,76000,75000,78000,78000,78000],
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "JV-EMP-102", empId: "EMP-102", empName: "นายวิชัย สุขใจ", department: "INTER 2", position: "Technician", status: "Active",
+      avgRevenue: 210000, avgCost: 125000, profit2026: 1020000, profit2025: 940000,
+      monthlyRevenue: [205000,208000,210000,215000,212000,210000,214000,211000,209000,216000,218000,213000],
+      monthlyCost: [123000,124000,125000,128000,126000,125000,127000,125000,124000,127000,129000,126000],
+      monthlyProfit: [82000,84000,85000,87000,86000,85000,87000,86000,85000,89000,89000,87000],
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "JV-EMP-103", empId: "EMP-103", empName: "นางสาววิภา รักงาน", department: "INTER 3", position: "Operator", status: "Active",
+      avgRevenue: 175000, avgCost: 105000, profit2026: 840000, profit2025: 780000,
+      monthlyRevenue: [170000,172000,175000,178000,176000,175000,177000,174000,173000,179000,180000,176000],
+      monthlyCost: [103000,104000,105000,107000,106000,105000,106000,104000,103000,107000,108000,105000],
+      monthlyProfit: [67000,68000,70000,71000,70000,70000,71000,70000,70000,72000,72000,71000],
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "JV-EMP-104", empId: "EMP-104", empName: "นายสมศักดิ์ มั่นคง", department: "INTER 5", position: "Senior Operator", status: "Active",
+      avgRevenue: 240000, avgCost: 140000, profit2026: 1200000, profit2025: 1100000,
+      monthlyRevenue: [235000,238000,240000,245000,242000,240000,244000,241000,239000,246000,248000,243000],
+      monthlyCost: [138000,139000,140000,143000,141000,140000,142000,140000,139000,143000,145000,142000],
+      monthlyProfit: [97000,99000,100000,102000,101000,100000,102000,101000,100000,103000,103000,101000],
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "JV-EMP-105", empId: "EMP-105", empName: "นายอนันต์ ขยันยิ่ง", department: "Heavy Machine", position: "Mechanic", status: "Active",
+      avgRevenue: 220000, avgCost: 130000, profit2026: 1080000, profit2025: 1000000,
+      monthlyRevenue: [215000,218000,220000,225000,222000,220000,224000,221000,219000,226000,228000,223000],
+      monthlyCost: [128000,129000,130000,133000,131000,130000,132000,130000,129000,133000,135000,132000],
+      monthlyProfit: [87000,89000,90000,92000,91000,90000,92000,91000,90000,93000,93000,91000],
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "JV-EMP-106", empId: "EMP-106", empName: "นายประสิทธิ์ ดีเลิศ", department: "ECC", position: "Electrician", status: "Active",
+      avgRevenue: 195000, avgCost: 115000, profit2026: 960000, profit2025: 890000,
+      monthlyRevenue: [190000,192000,195000,198000,196000,195000,197000,194000,193000,199000,200000,196000],
+      monthlyCost: [113000,114000,115000,117000,116000,115000,116000,114000,113000,117000,118000,115000],
+      monthlyProfit: [77000,78000,80000,81000,80000,80000,81000,80000,80000,82000,82000,81000],
+      updatedAt: new Date().toISOString()
+    }
+  ]
 };
 
 let appAccounts: any[] = [
@@ -1207,6 +1257,78 @@ app.delete("/api/delete-vessel-schedule/:id", async (req, res) => {
 });
 
 // ============================================================
+// ============================================================
+// Job Value API Routes (Executive Financials & Performance)
+// ============================================================
+app.get("/api/job-value", async (req, res) => {
+  try {
+    if (isD1Enabled()) {
+      const rows = await queryD1("SELECT * FROM job_value_records ORDER BY empId ASC");
+      const parsed = rows.map((r: any) => ({
+        ...r,
+        monthlyRevenue: typeof r.monthlyRevenue === "string" ? JSON.parse(r.monthlyRevenue || "[]") : (r.monthlyRevenue || []),
+        monthlyCost: typeof r.monthlyCost === "string" ? JSON.parse(r.monthlyCost || "[]") : (r.monthlyCost || []),
+        monthlyProfit: typeof r.monthlyProfit === "string" ? JSON.parse(r.monthlyProfit || "[]") : (r.monthlyProfit || [])
+      }));
+      res.json(parsed);
+    } else {
+      res.json(appState.jobValueRecords || []);
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/job-value/import", async (req, res) => {
+  const { records, role, username } = req.body;
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  if (!isHrOrAdmin) {
+    return res.status(403).json({ error: "เฉพาะ HR และผู้ดูแลระบบเท่านั้นที่มีสิทธิ์นำเข้าข้อมูล Job Value" });
+  }
+  if (!Array.isArray(records) || records.length === 0) {
+    return res.status(400).json({ error: "ข้อมูลไม่ถูกต้องหรือไม่มีรายการ" });
+  }
+  try {
+    const formattedRecords = records.map((r: any) => ({
+      id: r.id || `JV-${r.empId || Date.now()}`,
+      empId: String(r.empId || r.id || "").trim(),
+      empName: String(r.empName || r.name || "").trim(),
+      department: String(r.department || r.deptId || "ไม่ระบุแผนก").trim(),
+      position: String(r.position || r.role || "").trim(),
+      status: String(r.status || "Active").trim(),
+      avgRevenue: Number(r.avgRevenue) || 0,
+      avgCost: Number(r.avgCost) || 0,
+      profit2026: Number(r.profit2026 || r.totalProfit) || 0,
+      profit2025: Number(r.profit2025) || 0,
+      monthlyRevenue: Array.isArray(r.monthlyRevenue) ? r.monthlyRevenue : (r.monthlyRevenue ? JSON.parse(r.monthlyRevenue) : []),
+      monthlyCost: Array.isArray(r.monthlyCost) ? r.monthlyCost : (r.monthlyCost ? JSON.parse(r.monthlyCost) : []),
+      monthlyProfit: Array.isArray(r.monthlyProfit) ? r.monthlyProfit : (r.monthlyProfit ? JSON.parse(r.monthlyProfit) : []),
+      updatedAt: new Date().toISOString()
+    }));
+
+    if (isD1Enabled()) {
+      for (const rec of formattedRecords) {
+        await queryD1(
+          `INSERT OR REPLACE INTO job_value_records (id, empId, empName, department, position, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            rec.id, rec.empId, rec.empName, rec.department, rec.position, rec.status,
+            rec.avgRevenue, rec.avgCost, rec.profit2026, rec.profit2025,
+            JSON.stringify(rec.monthlyRevenue), JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit),
+            rec.updatedAt
+          ]
+        );
+      }
+      await writeAuditLog(username || "system", "import_job_value", "job_value", "bulk", { count: formattedRecords.length });
+    } else {
+      appState.jobValueRecords = formattedRecords;
+      saveLocalDb();
+    }
+    res.json({ success: true, count: formattedRecords.length, records: formattedRecords });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Audit Logs (NEW)
 // ============================================================
 app.get("/api/audit-logs", async (req, res) => {

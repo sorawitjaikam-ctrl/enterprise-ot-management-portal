@@ -57,6 +57,23 @@ export interface OtTrendData {
   currentYear: number[];
 }
 
+export interface JobValueRecord {
+  id: string;
+  empId: string;
+  empName: string;
+  department: string;
+  position: string;
+  status?: string;
+  avgRevenue: number;
+  avgCost: number;
+  profit2026: number;
+  profit2025: number;
+  monthlyRevenue: number[];
+  monthlyCost: number[];
+  monthlyProfit: number[];
+  updatedAt?: string;
+}
+
 export interface LeaveRecord {
   id: string;
   employeeId: string;

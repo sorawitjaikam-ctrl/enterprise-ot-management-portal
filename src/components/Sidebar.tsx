@@ -11,7 +11,8 @@ import {
   ClipboardList,
   FileText,
   ShieldCheck,
-  ChevronLeft
+  ChevronLeft,
+  TrendingUp
 } from "lucide-react";
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
 
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
+    { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
     ...(isHrOrFullAccess ? [
       { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },

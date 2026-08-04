@@ -28,12 +28,26 @@ import {
   EyeOff,
   User,
   Anchor,
-  Ship
+  Ship,
+  Search,
+  RotateCcw,
+  Building2,
+  Briefcase,
+  UserCheck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  DollarSign,
+  Copy,
+  Check,
+  Award,
+  FileSpreadsheet
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
-import { AppState, Employee, Department } from "./types";
+import { AppState, Employee, Department, JobValueRecord } from "./types";
 
 export const SHIFT_OPTIONS = [
   { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#dce6f1]", border: "border-[#b4c6e7]", text: "text-black" },
@@ -1301,8 +1315,53 @@ export default function App() {
   // Status Tab State (Active vs Resigned Archive)
   const [selectedEmpStatusTab, setSelectedEmpStatusTab] = useState<"Active" | "Resigned">("Active");
 
+  // Dedicated HR Employee Roster Filters & Sort
+  const [empSearchQuery, setEmpSearchQuery] = useState<string>("");
+  const [empDeptFilter, setEmpDeptFilter] = useState<string>("ทุกแผนก");
+  const [empDivisionFilter, setEmpDivisionFilter] = useState<string>("ทุกฝ่าย");
+  const [empRoleFilter, setEmpRoleFilter] = useState<string>("ทุกตำแหน่ง");
+  const [empSortField, setEmpSortField] = useState<string>("id");
+  const [empSortOrder, setEmpSortOrder] = useState<"asc" | "desc">("asc");
+
+  const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+
+  const updatePlannerMonth = (newMonthStr: string) => {
+    setState((prev: any) => prev ? ({
+      ...prev,
+      shiftConfig: {
+        ...(prev.shiftConfig || {}),
+        currentMonth: newMonthStr
+      }
+    }) : prev);
+  };
+
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
+
+  // Dedicated Job Value State & Controls
+  const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>([]);
+  const [jobValueDeptFilter, setJobValueDeptFilter] = useState<string>("ทุกแผนก");
+  const [jobValueSearchQuery, setJobValueSearchQuery] = useState<string>("");
+  const [showImportJobValueModal, setShowImportJobValueModal] = useState<boolean>(false);
+  const [viewingJobValueModal, setViewingJobValueModal] = useState<JobValueRecord | null>(null);
+  const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
+  const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
+
+  const fetchJobValueRecords = async () => {
+    try {
+      const res = await fetch("/api/job-value");
+      if (res.ok) {
+        const data = await res.json();
+        setJobValueRecords(data);
+      }
+    } catch (err) {
+      console.error("Error fetching Job Value records:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobValueRecords();
+  }, []);
 
   // Active shift management edit state
   const [isEditingShifts, setIsEditingShifts] = useState<boolean>(false);
@@ -1470,6 +1529,116 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Job Value CSV Export & Import Handlers
+  const handleExportJobValueCsv = () => {
+    if (!jobValueRecords || jobValueRecords.length === 0) {
+      alert("ไม่มีข้อมูล Job Value ในการส่งออก");
+      return;
+    }
+    const headers = [
+      "empId", "empName", "Department", "Position", "Status",
+      "Avg_Revenue", "Avg_Cost", "Profit_2026", "Profit_2025",
+      "Revenue_Jan","Revenue_Feb","Revenue_Mar","Revenue_Apr","Revenue_May","Revenue_Jun","Revenue_Jul","Revenue_Aug","Revenue_Sep","Revenue_Oct","Revenue_Nov","Revenue_Dec",
+      "Cost_Jan","Cost_Feb","Cost_Mar","Cost_Apr","Cost_May","Cost_Jun","Cost_Jul","Cost_Aug","Cost_Sep","Cost_Oct","Cost_Nov","Cost_Dec",
+      "Profit_Jan","Profit_Feb","Profit_Mar","Profit_Apr","Profit_May","Profit_Jun","Profit_Jul","Profit_Aug","Profit_Sep","Profit_Oct","Profit_Nov","Profit_Dec"
+    ];
+
+    const rows = jobValueRecords.map(r => {
+      const revs = r.monthlyRevenue || [];
+      const costs = r.monthlyCost || [];
+      const profs = r.monthlyProfit || [];
+      return [
+        r.empId, `"${r.empName}"`, `"${r.department}"`, `"${r.position}"`, r.status || "Active",
+        r.avgRevenue, r.avgCost, r.profit2026, r.profit2025,
+        ...Array.from({ length: 12 }, (_, i) => revs[i] || 0),
+        ...Array.from({ length: 12 }, (_, i) => costs[i] || 0),
+        ...Array.from({ length: 12 }, (_, i) => profs[i] || 0)
+      ].join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `JobValue_Export_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportJobValueCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      if (lines.length <= 1) return alert("ไฟล์ CSV ไม่มีข้อมูล");
+
+      const parsedRecords: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map(c => c.trim().replace(/^"/, '').replace(/"$/, ''));
+        if (!cols[0]) continue;
+        const empId = cols[0];
+        const empName = cols[1] || "";
+        const department = cols[2] || "ไม่ระบุแผนก";
+        const position = cols[3] || "";
+        const status = cols[4] || "Active";
+        const avgRevenue = parseFloat(cols[5]) || 0;
+        const avgCost = parseFloat(cols[6]) || 0;
+        const profit2026 = parseFloat(cols[7]) || 0;
+        const profit2025 = parseFloat(cols[8]) || 0;
+
+        const monthlyRevenue = cols.slice(9, 21).map(v => parseFloat(v) || 0);
+        const monthlyCost = cols.slice(21, 33).map(v => parseFloat(v) || 0);
+        const monthlyProfit = cols.slice(33, 45).map(v => parseFloat(v) || 0);
+
+        parsedRecords.push({
+          id: `JV-${empId}`,
+          empId,
+          empName,
+          department,
+          position,
+          status,
+          avgRevenue,
+          avgCost,
+          profit2026,
+          profit2025,
+          monthlyRevenue,
+          monthlyCost,
+          monthlyProfit
+        });
+      }
+
+      try {
+        setImportJvLoading(true);
+        const res = await fetch("/api/job-value/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            records: parsedRecords,
+            role: currentUser?.role,
+            username: currentUser?.name
+          })
+        });
+        if (res.ok) {
+          const result = await res.json();
+          alert(`นำเข้าข้อมูล Job Value สำเร็จเรียบร้อย (${result.count} รายการ)`);
+          fetchJobValueRecords();
+        } else {
+          const errData = await res.json();
+          alert(`เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ${errData.error || "ไม่ทราบสาเหตุ"}`);
+        }
+      } catch (err: any) {
+        alert(`เกิดข้อผิดพลาด: ${err.message}`);
+      } finally {
+        setImportJvLoading(false);
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+
   if (stateError) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -1504,19 +1673,59 @@ export default function App() {
   const deptEmpsCount = (state?.employees || []).filter(emp => emp.deptId === currentShiftsDept).length;
   const currentDeptObj = (state?.departments || []).find(d => d.id === currentShiftsDept);
 
-  // Dynamically extract unique roles and groups for auto-suggestions
+  // Dynamically extract unique roles and groups for auto-suggestions & HR dropdowns
   const uniqueRoles = Array.from(new Set((state?.employees || []).map(emp => emp.role))).filter(Boolean);
   const uniqueGroups = Array.from(new Set((state?.employees || []).map(emp => emp.groupName))).filter(Boolean);
 
-  // Filter logic based on search and dropdowns
+  const uniqueRosterDepts = Array.from(new Set(
+    (state?.employees || []).map(emp => getDeptName(emp.deptId, state?.departments))
+  )).filter(Boolean).sort();
+
+  const uniqueRosterDivisions = Array.from(new Set(
+    (state?.employees || []).map(emp => emp.division || emp.groupName || "").filter(Boolean)
+  )).sort();
+
+  const uniqueRosterRoles = Array.from(new Set(
+    (state?.employees || []).map(emp => emp.role).filter(Boolean)
+  )).sort();
+
+  const handleRosterSort = (field: string) => {
+    if (empSortField === field) {
+      setEmpSortOrder(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setEmpSortField(field);
+      setEmpSortOrder("asc");
+    }
+  };
+
+  // Comprehensive HR Filter & Sort logic for Roster List
   const filteredEmployees = (state?.employees || []).filter((emp) => {
-    const matchesSearch = 
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.role.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesDept = true;
-    if (selectedDeptFilter !== "ทุกแผนก") {
+    // 1. Employment Status Tab (Active vs Resigned)
+    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "ลาออก";
+    const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
+    if (!matchesStatus) return false;
+
+    // 2. Search Query (Combine local empSearchQuery and global searchQuery)
+    const q = (empSearchQuery || searchQuery || "").trim().toLowerCase();
+    if (q) {
+      const deptName = getDeptName(emp.deptId, state?.departments).toLowerCase();
+      const divName = (emp.division || emp.groupName || "").toLowerCase();
+      const matchesSearch = 
+        emp.name.toLowerCase().includes(q) || 
+        emp.id.toLowerCase().includes(q) ||
+        emp.role.toLowerCase().includes(q) ||
+        deptName.includes(q) ||
+        divName.includes(q);
+      if (!matchesSearch) return false;
+    }
+
+    // 3. Department Filter
+    if (empDeptFilter !== "ทุกแผนก") {
+      const empDeptName = getDeptName(emp.deptId, state?.departments);
+      const matchesDept = empDeptName === empDeptFilter || 
+        normalizeDeptId(emp.deptId) === normalizeDeptId(empDeptFilter);
+      if (!matchesDept) return false;
+    } else if (selectedDeptFilter !== "ทุกแผนก") {
       const deptMap: { [key: string]: string } = {
         "INTER 2": "inter2",
         "INTER 3": "inter3",
@@ -1526,14 +1735,107 @@ export default function App() {
         "ECC": "ecc"
       };
       const filterDeptId = deptMap[selectedDeptFilter];
-      matchesDept = emp.deptId === filterDeptId;
+      if (emp.deptId !== filterDeptId) return false;
     }
-    
-    const matchesRole = matchesRoleFilter(emp.role);
-    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "ลาออก";
-    const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
 
-    return matchesSearch && matchesDept && matchesRole && matchesStatus;
+    // 4. Division Filter (ฝ่าย)
+    if (empDivisionFilter !== "ทุกฝ่าย") {
+      const div = emp.division || emp.groupName || "-";
+      if (div !== empDivisionFilter) return false;
+    }
+
+    // 5. Role Filter (ตำแหน่ง)
+    if (empRoleFilter !== "ทุกตำแหน่ง") {
+      if (emp.role !== empRoleFilter) return false;
+    } else if (!matchesRoleFilter(emp.role)) {
+      return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    // Helper to calculate OT multiplier values for sorting
+    const getOtMetrics = (emp: Employee) => {
+      const shifts: string[] = emp.shifts || [];
+      let ot1_5 = 0;
+      let ot1_0 = 0;
+      let ot3_0 = 0;
+      shifts.forEach((code: string) => {
+        if (code === "OND") {
+          ot1_0 += 8;
+        } else if (code === "M12" || code === "A12" || code === "N12" || code.endsWith("12")) {
+          ot1_5 += 4;
+        } else if (code === "M16" || code === "N16" || code.endsWith("16")) {
+          ot1_5 += 8;
+        }
+      });
+      if (ot1_5 === 0 && ot1_0 === 0 && ot3_0 === 0 && emp.actualOt > 0) {
+        ot1_5 = emp.actualOt;
+      }
+      const salary = emp.salary || 15000;
+      const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+      const totalOtPay = Math.round((ot1_5 * 1.5 + ot1_0 * 1.0 + ot3_0 * 3.0) * hourlyRate);
+      const otPctSalary = salary > 0 ? Math.round((totalOtPay / salary) * 100) : 0;
+      return { ot1_5, ot1_0, ot3_0, totalOtPay, otPctSalary };
+    };
+
+    let valA: any = "";
+    let valB: any = "";
+
+    switch (empSortField) {
+      case "id":
+        valA = a.id;
+        valB = b.id;
+        break;
+      case "name":
+        valA = a.name;
+        valB = b.name;
+        break;
+      case "role":
+        valA = a.role;
+        valB = b.role;
+        break;
+      case "dept":
+        valA = getDeptName(a.deptId, state?.departments);
+        valB = getDeptName(b.deptId, state?.departments);
+        break;
+      case "division":
+        valA = a.division || a.groupName || "-";
+        valB = b.division || b.groupName || "-";
+        break;
+      case "ot1_5":
+        valA = getOtMetrics(a).ot1_5;
+        valB = getOtMetrics(b).ot1_5;
+        break;
+      case "ot1_0":
+        valA = getOtMetrics(a).ot1_0;
+        valB = getOtMetrics(b).ot1_0;
+        break;
+      case "ot3_0":
+        valA = getOtMetrics(a).ot3_0;
+        valB = getOtMetrics(b).ot3_0;
+        break;
+      case "totalOtPay":
+        valA = getOtMetrics(a).totalOtPay;
+        valB = getOtMetrics(b).totalOtPay;
+        break;
+      case "otPctSalary":
+        valA = getOtMetrics(a).otPctSalary;
+        valB = getOtMetrics(b).otPctSalary;
+        break;
+      default:
+        valA = a.id;
+        valB = b.id;
+    }
+
+    if (typeof valA === "number" && typeof valB === "number") {
+      return empSortOrder === "asc" ? valA - valB : valB - valA;
+    }
+
+    const strA = String(valA || "");
+    const strB = String(valB || "");
+    return empSortOrder === "asc" 
+      ? strA.localeCompare(strB, 'th') 
+      : strB.localeCompare(strA, 'th');
   });
 
   // Bulk Shift Setter Action Handler
@@ -2853,6 +3155,7 @@ export default function App() {
         <Navbar 
           title={
             activeTab === "dashboard" ? "Dashboard" : 
+            activeTab === "job_value" ? "Executive Operational Dashboard (คุณค่าตำแหน่งงาน & ผลตอบแทน)" :
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
@@ -3300,6 +3603,417 @@ export default function App() {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* ======================================= */}
+          {/* VIEW: JOB VALUE & EXECUTIVE DASHBOARD */}
+          {/* ======================================= */}
+          {activeTab === "job_value" && (
+            <div className="space-y-6">
+              {/* Header card with database & import/export controls */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="text-lg font-extrabold text-slate-800">Executive Operational Dashboard (Job Value & Financials)</h3>
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>ปี 2026</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ (Revenue) ต้นทุน (Cost) กำไร (Profit) รายบุคคลและแผนก พร้อมแม่แบบ Checklist สำหรับ Google Calendar
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {isHrOrFullAccess && (
+                    <>
+                      {/* Export CSV */}
+                      <button
+                        type="button"
+                        onClick={handleExportJobValueCsv}
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
+                      >
+                        <Download className="w-3.5 h-3.5 text-blue-600" />
+                        <span>ส่งออกข้อมูล (Export CSV)</span>
+                      </button>
+
+                      {/* Import CSV */}
+                      <label 
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                        title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-white" />
+                        <span>{importJvLoading ? "กำลังอัพโหลด..." : "อัพโหลดข้อมูล (Import CSV)"}</span>
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleImportJobValueCsv}
+                          className="hidden"
+                          disabled={importJvLoading}
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* KPI Stat Cards (4 Cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Total Revenue */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">รายได้รวมสะสม (Total Revenue)</span>
+                    <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-2xl font-black text-slate-900 font-mono">
+                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.avgRevenue * 12), 0).toLocaleString()}
+                    </h4>
+                    <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>ประมาณการจาก {jobValueRecords.length} บุคลากร</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* 2. Total Cost */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">ต้นทุนรวมการดำเนินงาน (Total Cost)</span>
+                    <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-2xl font-black text-rose-700 font-mono">
+                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.avgCost * 12), 0).toLocaleString()}
+                    </h4>
+                    <p className="text-[11px] font-semibold text-slate-500 mt-1">
+                      เฉลี่ย ฿{Math.round(jobValueRecords.reduce((sum, r) => sum + r.avgCost, 0) / (jobValueRecords.length || 1)).toLocaleString()} / คน / เดือน
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Total Profit 2026 */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">กำไรสุทธิสะสมปี 2026</span>
+                    <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                      <Award className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-2xl font-black text-blue-700 font-mono">
+                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0).toLocaleString()}
+                    </h4>
+                    {(() => {
+                      const p25 = jobValueRecords.reduce((sum, r) => sum + (r.profit2025 || 0), 0);
+                      const p26 = jobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0);
+                      const diffPct = p25 > 0 ? Math.round(((p26 - p25) / p25) * 100) : 0;
+                      return (
+                        <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span>{diffPct >= 0 ? `▲ +${diffPct}%` : `▼ ${diffPct}%`}</span>
+                          <span className="text-slate-400 font-normal">เทียบปี 2025</span>
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* 4. Coverage Ratio */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">พนักงานที่มีข้อมูล Job Value</span>
+                    <div className="p-2 bg-purple-50 rounded-xl text-purple-600">
+                      <Users className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <h4 className="text-2xl font-black text-slate-900 font-mono">
+                      {jobValueRecords.length} <span className="text-sm font-normal text-slate-500">/ {(state?.employees || []).length} คน</span>
+                    </h4>
+                    <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+                      <div 
+                        className="bg-purple-600 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.min(100, Math.round((jobValueRecords.length / Math.max(1, (state?.employees || []).length)) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Performance Trend Bar Chart */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-800">เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">รวมผลประกอบการ รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) รวมทั้ง 12 เดือน</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-2 pt-4 border-t border-slate-100">
+                  {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
+                    const monthRev = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[idx] || 0), 0);
+                    const monthCost = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyCost || [])[idx] || 0), 0);
+                    const monthProf = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyProfit || [])[idx] || 0), 0);
+                    const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => jobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[i] || 0), 0)));
+                    const revPct = Math.round((monthRev / maxVal) * 100);
+
+                    return (
+                      <div key={m} className="flex flex-col items-center gap-2 group">
+                        <div className="h-32 w-full bg-slate-50 rounded-xl flex items-end justify-center p-1 gap-1 relative overflow-hidden">
+                          {/* Revenue Bar */}
+                          <div 
+                            className="w-1/3 bg-emerald-500 rounded-t-sm transition-all duration-300 group-hover:bg-emerald-600" 
+                            style={{ height: `${Math.max(10, revPct)}%` }}
+                            title={`Revenue: ฿${monthRev.toLocaleString()}`}
+                          />
+                          {/* Cost Bar */}
+                          <div 
+                            className="w-1/3 bg-rose-400 rounded-t-sm transition-all duration-300 group-hover:bg-rose-500" 
+                            style={{ height: `${Math.max(8, Math.round((monthCost / maxVal) * 100))}%` }}
+                            title={`Cost: ฿${monthCost.toLocaleString()}`}
+                          />
+                          {/* Profit Bar */}
+                          <div 
+                            className="w-1/3 bg-blue-600 rounded-t-sm transition-all duration-300 group-hover:bg-blue-700" 
+                            style={{ height: `${Math.max(5, Math.round((monthProf / maxVal) * 100))}%` }}
+                            title={`Profit: ฿${monthProf.toLocaleString()}`}
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-600">{m}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="text-slate-600">Revenue (รายได้)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-400" />
+                    <span className="text-slate-600">Cost (ต้นทุน)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-blue-600" />
+                    <span className="text-slate-600">Profit (กำไรสุทธิ)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Roster Table of Job Value Records */}
+              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-slate-100 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
+                          {jobValueRecords.length} รายการ
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">ใช้ช่องค้นหาหรือตัวกรองเพื่อค้นหารายพนักงาน และกดดูรายละเอียดเพื่อดูสถิติรายเดือน</p>
+                    </div>
+
+                    {(jobValueSearchQuery || jobValueDeptFilter !== "ทุกแผนก") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setJobValueSearchQuery("");
+                          setJobValueDeptFilter("ทุกแผนก");
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>ล้างตัวกรอง</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Toolbar */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={jobValueSearchQuery}
+                        onChange={(e) => setJobValueSearchQuery(e.target.value)}
+                        placeholder="ค้นหารหัสพนักงาน, ชื่อ-นามสกุล, ตำแหน่ง..."
+                        className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                      {jobValueSearchQuery && (
+                        <button onClick={() => setJobValueSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Department Dropdown */}
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={jobValueDeptFilter}
+                        onChange={(e) => setJobValueDeptFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
+                      >
+                        <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>
+                        {uniqueRosterDepts.map(d => (
+                          <option key={d} value={d}>แผนก {d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[900px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-3.5 font-mono">รหัสพนักงาน</th>
+                        <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
+                        <th className="px-4 py-3.5">ตำแหน่ง</th>
+                        <th className="px-4 py-3.5">แผนก</th>
+                        <th className="px-4 py-3.5 text-right text-emerald-700">รายได้เฉลี่ย/เดือน (Avg Revenue)</th>
+                        <th className="px-4 py-3.5 text-right text-rose-700">ต้นทุนเฉลี่ย/เดือน (Avg Cost)</th>
+                        <th className="px-4 py-3.5 text-right text-slate-600">กำไรสะสม 2025</th>
+                        <th className="px-4 py-3.5 text-right text-blue-700 font-extrabold">กำไรสะสม 2026</th>
+                        <th className="px-4 py-3.5 text-center">รายละเอียด</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                      {jobValueRecords
+                        .filter(jv => {
+                          const q = jobValueSearchQuery.toLowerCase().trim();
+                          const matchesSearch = !q || jv.empId.toLowerCase().includes(q) || jv.empName.toLowerCase().includes(q) || jv.position.toLowerCase().includes(q);
+                          const matchesDept = jobValueDeptFilter === "ทุกแผนก" || jv.department === jobValueDeptFilter || normalizeDeptId(jv.department) === normalizeDeptId(jobValueDeptFilter);
+                          return matchesSearch && matchesDept;
+                        })
+                        .map(jv => (
+                          <tr key={jv.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500">{jv.empId}</td>
+                            <td className="px-4 py-3.5 font-bold text-slate-800">
+                              <div className="flex items-center gap-2.5">
+                                <EmployeeAvatar empId={jv.empId} empName={jv.empName} className="w-8 h-8 flex-shrink-0" />
+                                <span>{jv.empName}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 font-medium text-slate-700">{jv.position}</td>
+                            <td className="px-4 py-3.5 font-bold text-slate-700">
+                              <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
+                                {jv.department}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{jv.avgRevenue.toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{jv.avgCost.toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{jv.profit2025.toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{jv.profit2026.toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setViewingJobValueModal(jv)}
+                                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer"
+                              >
+                                รายเดือน
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                      {jobValueRecords.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                            <div className="flex flex-col items-center justify-center space-y-3">
+                              <FileSpreadsheet className="w-10 h-10 text-slate-300" />
+                              <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูล Job Value ในระบบ</p>
+                              <p className="text-xs text-slate-400">HR สามารถกดปุ่ม "อัพโหลดข้อมูล (Import CSV)" เพื่อนำเข้าข้อมูลรายชื่อและผลตอบแทนพนักงานได้ทันที</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Google Calendar Checklist Templates Widget (9 Category Cards) */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h4 className="text-base font-black text-slate-800">Google Calendar Checklist Templates</h4>
+                    <span className="px-2.5 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 rounded-full text-xs font-bold">
+                      9 หมวดหมู่
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    คลิกปุ่ม "คัดลอก (Copy)" เพื่อนำแม่แบบข้อความไปวางในช่อง Description ของ Google Calendar หรือโน้ตงานได้ทันที
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  {[
+                    { id: "strategy", title: "[Strategy] งานวางแผน", badge: "ม่วงลาเวนเดอร์", theme: "border-purple-400 bg-purple-50/40 text-purple-950", badgeTheme: "bg-purple-100 text-purple-800 border-purple-200", text: `[Strategy] งานวางแผน\n1. เป้าหมายหลัก (Objectives / Target)\n2. กลยุทธ์และแนวทาง (Key Strategies)\n3. ทรัพยากรและงบประมาณที่ต้องใช้ (Resources & Budget)\n4. ความเสี่ยงและข้อควรระวัง (Risks & Mitigations)\n5. ตัววัดผลความสำเร็จ (KPIs / OKRs)` },
+                    { id: "analyze", title: "[Analyze] งานตรวจสอบ / วิเคราะห์ / สรุปข้อมูล", badge: "เขียวกระเพรา", theme: "border-emerald-500 bg-emerald-50/40 text-emerald-950", badgeTheme: "bg-emerald-100 text-emerald-800 border-emerald-200", text: `[Analyze] งานตรวจสอบ / วิเคราะห์ / สรุปข้อมูล\n1. สมมติฐานหรือโจทย์ที่ต้องหาคำตอบ (Key Questions)\n2. ชุดข้อมูลและแหล่งที่มา (Data Sources)\n3. สรุปผลการวิเคราะห์ / Insights ที่พบ (Key Findings)\n4. ข้อจำกัดของข้อมูล (Data Limitations)\n5. ข้อเสนอแนะและ Next Step (Recommendations)` },
+                    { id: "project", title: "[Project] งานโปรเจกต์", badge: "ม่วงองุ่น", theme: "border-fuchsia-500 bg-fuchsia-50/40 text-fuchsia-950", badgeTheme: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200", text: `[Project] งานโปรเจกต์\n1. ความคืบหน้าภาพรวม (% Progress / Milestone)\n2. งานที่เสร็จแล้ว (Completed Tasks)\n3. งานที่กำลังทำอยู่ (In-Progress Tasks)\n4. ปัญหา / อุปสรรคที่เจอ (Blockers / Issues)\n5. ผู้รับผิดชอบในขั้นตอนถัดไป (Next Action & Owner)` },
+                    { id: "routine", title: "[Routine] งานประจำวัน / สัปดาห์", badge: "ส้มจีน", theme: "border-amber-500 bg-amber-50/40 text-amber-950", badgeTheme: "bg-amber-100 text-amber-800 border-amber-200", text: `[Routine] งานประจำวัน / สัปดาห์\n1. รายการงานที่ต้องทำประจำวัน/รอบ (Routine Task List)\n2. สถานะการดำเนินการ (Done / Pending)\n3. งานค้างสะสม / เอกสารที่รออนุมัติ (Backlog)\n4. ข้อสังเกต / สิ่งที่ผิดปกติจากเดิม (Anomalies / Remarks)` },
+                    { id: "followup", title: "[Follow up] งานติดตามผล", badge: "เขียวเซจ", theme: "border-teal-500 bg-teal-50/40 text-teal-950", badgeTheme: "bg-teal-100 text-teal-800 border-teal-200", text: `[Follow up] งานติดตามผล\n1. ผลการติดตาม (Follow-up Result)\n2. สิ่งที่ดำเนินการไปแล้ว (Completed Actions)\n3. สิ่งที่กำลังดำเนินการ (In-Progress Actions)\n4. ปัญหา / ข้อติดขัด (Pain Points / Blockers)\n5. วันนัดติดตามครั้งถัดไป (Next Follow-up Date)` },
+                    { id: "develop", title: "[Develop] พัฒนา / Coaching / อบรม", badge: "ชมพูฟลามิงโก้", theme: "border-pink-400 bg-pink-50/40 text-pink-950", badgeTheme: "bg-pink-100 text-pink-800 border-pink-200", text: `[Develop] พัฒนา / Coaching / อบรม\n1. หัวข้อ / ทักษะที่เน้นย้ำ (Focus Topic / Skill)\n2. จุดแข็งที่ทำได้ดี (Strengths / Positive Points)\n3. สิ่งที่ต้องพัฒนาปรับปรุง (Areas for Improvement)\n4. ข้อตกลงร่วมกันและ Action Plan (Agreed Action Items)\n5. กำหนดเวลาประเมินผลรอบถัดไป (Review Date)` },
+                    { id: "important", title: "[Important] งานสำคัญ / ความลับ", badge: "เหลืองกล้วย", theme: "border-yellow-400 bg-yellow-50/40 text-yellow-950", badgeTheme: "bg-yellow-100 text-yellow-800 border-yellow-200", text: `[Important] งานสำคัญ / ความลับ\n1. วัตถุประสงค์และระดับความสำคัญ (Objective & Priority Level)\n2. รายชื่อผู้มีสิทธิ์เข้าถึงข้อมูล (Authorized Persons)\n3. ลำดับขั้นตอนการดำเนินการอย่างละเอียด (Step-by-Step Procedure)\n4. ข้อสรุป / มติสำคัญ (Critical Decisions)\n5. แหล่งจัดเก็บไฟล์ลับ / อ้างอิง (Secure Location / Link)` },
+                    { id: "out", title: "[OUT] Work Outside / งานนอกสถานที่", badge: "สีเทา", theme: "border-slate-400 bg-slate-50 text-slate-900", badgeTheme: "bg-slate-200 text-slate-700 border-slate-300", text: `[OUT] Work Outside / งานนอกสถานที่\n1. สถานที่ / พิกัด และ ผู้ติดต่อ (Location & Contact Person)\n2. วัตถุประสงค์ในการเข้าพบ/ลงพื้นที่ (Visit Purpose)\n3. สรุปผลการพูดคุย / การทำงานหน้างาน (Summary of Site Visit)\n4. ค่าใช้จ่าย / เอกสารเบิกจ่ายที่ต้องใช้ (Expenses & Receipts)\n5. งานที่ต้องตามต่อหลังกลับออฟฟิศ (Post-visit Tasks)` },
+                    { id: "meeting", title: "[Meeting] งานประชุม", badge: "สีฟ้าปฏิทิน", theme: "border-sky-400 bg-sky-50/40 text-sky-950", badgeTheme: "bg-sky-100 text-sky-800 border-sky-200", text: `[Meeting] งานประชุม\n1. วาระการประชุม (Agenda)\n2. สรุปประเด็นสำคัญและมติที่ประชุม (Key Discussion & Decisions)\n3. สิ่งที่ต้องไปทำต่อ + ผู้รับผิดชอบ + กำหนดส่ง (Action Items: Who/What/When)\n4. เอกสาร / ลิงก์บันทึกการประชุม (MoM Link / Recording)` }
+                  ].map(tmpl => (
+                    <div key={tmpl.id} className={`rounded-2xl border-l-4 p-4 flex flex-col justify-between shadow-xs ${tmpl.theme}`}>
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="font-extrabold text-xs tracking-tight">{tmpl.title}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tmpl.badgeTheme}`}>
+                            {tmpl.badge}
+                          </span>
+                        </div>
+                        <textarea
+                          readOnly
+                          value={tmpl.text}
+                          className="w-full h-32 text-xs font-mono p-2.5 rounded-xl border border-slate-200/80 bg-white/80 focus:outline-none resize-none text-slate-700 leading-relaxed shadow-inner"
+                        />
+                      </div>
+                      <div className="mt-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tmpl.text);
+                            setCopiedChecklistId(tmpl.id);
+                            setTimeout(() => setCopiedChecklistId(null), 2000);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                            copiedChecklistId === tmpl.id
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-800 text-white hover:bg-slate-900"
+                          }`}
+                        >
+                          {copiedChecklistId === tmpl.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>คัดลอกแล้ว!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>คัดลอก</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -3956,24 +4670,250 @@ export default function App() {
 
               {/* Employee roster list */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-100">
-                  <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
+                <div className="p-6 border-b border-slate-100 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
+                          แสดง {filteredEmployees.length} จาก {(state?.employees || []).filter(e => selectedEmpStatusTab === "Resigned" ? (e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก") : (e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก")).length} คน
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
+                    </div>
+
+                    {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmpSearchQuery("");
+                          setEmpDeptFilter("ทุกแผนก");
+                          setEmpDivisionFilter("ทุกฝ่าย");
+                          setEmpRoleFilter("ทุกตำแหน่ง");
+                          setSearchQuery("");
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>ล้างตัวกรองทั้งหมด</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Toolbar Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    {/* 1. Quick Search Box */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={empSearchQuery}
+                        onChange={(e) => setEmpSearchQuery(e.target.value)}
+                        placeholder="ค้นหารหัส, ชื่อ-นามสกุล..."
+                        className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                      {empSearchQuery && (
+                        <button 
+                          type="button"
+                          onClick={() => setEmpSearchQuery("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 2. Department Dropdown */}
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={empDeptFilter}
+                        onChange={(e) => setEmpDeptFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
+                      >
+                        <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>
+                        {uniqueRosterDepts.map(d => (
+                          <option key={d} value={d}>แผนก {d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 3. Division Dropdown */}
+                    <div className="relative">
+                      <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={empDivisionFilter}
+                        onChange={(e) => setEmpDivisionFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
+                      >
+                        <option value="ทุกฝ่าย">💼 ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
+                        {uniqueRosterDivisions.map(div => (
+                          <option key={div} value={div}>ฝ่าย {div}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 4. Position / Role Dropdown */}
+                    <div className="relative">
+                      <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={empRoleFilter}
+                        onChange={(e) => setEmpRoleFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
+                      >
+                        <option value="ทุกตำแหน่ง">👤 ตำแหน่งทั้งหมด (ทุกตำแหน่ง)</option>
+                        {uniqueRosterRoles.map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th className="px-4 py-3.5 font-mono">รหัสพนักงาน</th>
-                        <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
-                        <th className="px-4 py-3.5">ตำแหน่ง</th>
-                        <th className="px-4 py-3.5">แผนก</th>
-                        <th className="px-4 py-3.5">ฝ่าย</th>
-                        <th className="px-4 py-3.5 text-right text-blue-700">OT วันทำงาน (x1.5)</th>
-                        <th className="px-4 py-3.5 text-right text-amber-700">OT ทำงานในวันหยุด (x1)</th>
-                        <th className="px-4 py-3.5 text-right text-red-700">OT ในวันหยุด (x3)</th>
-                        <th className="px-4 py-3.5 text-right text-slate-900">ผลรวมค่าล่วงเวลา</th>
-                        <th className="px-4 py-3.5 text-right text-purple-700">% ค่าล่วงเวลา (เทียบจากฐานเงินเดือน)</th>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">
+                        <th 
+                          onClick={() => handleRosterSort("id")}
+                          className="px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามรหัสพนักงาน"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>รหัสพนักงาน</span>
+                            {empSortField === "id" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("name")}
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามชื่อ-นามสกุล"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>ชื่อ-นามสกุล</span>
+                            {empSortField === "name" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("role")}
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามตำแหน่ง"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>ตำแหน่ง</span>
+                            {empSortField === "role" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("dept")}
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามแผนก"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>แผนก</span>
+                            {empSortField === "dept" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("division")}
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามฝ่าย"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span>ฝ่าย</span>
+                            {empSortField === "division" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("ot1_5")}
+                          className="px-4 py-3.5 text-right text-blue-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตาม OT วันทำงาน"
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>OT วันทำงาน (x1.5)</span>
+                            {empSortField === "ot1_5" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("ot1_0")}
+                          className="px-4 py-3.5 text-right text-amber-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตาม OT ในวันหยุด x1"
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>OT ทำงานในวันหยุด (x1)</span>
+                            {empSortField === "ot1_0" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-amber-600" /> : <ArrowDown className="w-3 h-3 text-amber-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("ot3_0")}
+                          className="px-4 py-3.5 text-right text-red-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตาม OT ในวันหยุด x3"
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>OT ในวันหยุด (x3)</span>
+                            {empSortField === "ot3_0" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-red-600" /> : <ArrowDown className="w-3 h-3 text-red-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("totalOtPay")}
+                          className="px-4 py-3.5 text-right text-slate-900 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตามผลรวมค่าล่วงเวลา"
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>ผลรวมค่าล่วงเวลา</span>
+                            {empSortField === "totalOtPay" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-slate-900" /> : <ArrowDown className="w-3 h-3 text-slate-900" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => handleRosterSort("otPctSalary")}
+                          className="px-4 py-3.5 text-right text-purple-700 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="คลิกเพื่อเรียงตาม % ค่าล่วงเวลา"
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span>% ค่าล่วงเวลา (เทียบจากฐานเงินเดือน)</span>
+                            {empSortField === "otPctSalary" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-purple-600" /> : <ArrowDown className="w-3 h-3 text-purple-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                            )}
+                          </div>
+                        </th>
                         <th className="px-4 py-3.5 text-center">การจัดการ</th>
                       </tr>
                     </thead>
@@ -4100,6 +5040,33 @@ export default function App() {
                           </tr>
                         );
                       })}
+
+                      {filteredEmployees.length === 0 && (
+                        <tr>
+                          <td colSpan={11} className="px-6 py-12 text-center text-slate-500">
+                            <div className="flex flex-col items-center justify-center space-y-3">
+                              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                <Search className="w-6 h-6" />
+                              </div>
+                              <p className="text-sm font-bold text-slate-700">ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไขตัวกรอง</p>
+                              <p className="text-xs text-slate-400">ลองปรับเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อแสดงข้อมูลทั้งหมด</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEmpSearchQuery("");
+                                  setEmpDeptFilter("ทุกแผนก");
+                                  setEmpDivisionFilter("ทุกฝ่าย");
+                                  setEmpRoleFilter("ทุกตำแหน่ง");
+                                  setSearchQuery("");
+                                }}
+                                className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer"
+                              >
+                                ล้างตัวกรอง
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -6960,6 +7927,93 @@ export default function App() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: VIEW JOB VALUE MONTHLY BREAKDOWN */}
+      {/* ======================================= */}
+      {viewingJobValueModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <EmployeeAvatar empId={viewingJobValueModal.empId} empName={viewingJobValueModal.empName} className="w-10 h-10 flex-shrink-0" />
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">{viewingJobValueModal.empName}</h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    รหัส: {viewingJobValueModal.empId} | แผนก: {viewingJobValueModal.department} | ตำแหน่ง: {viewingJobValueModal.position}
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setViewingJobValueModal(null)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                  <span className="text-[10px] font-bold text-emerald-700 block">รายได้เฉลี่ย/เดือน</span>
+                  <span className="text-lg font-black text-emerald-800 font-mono">฿{viewingJobValueModal.avgRevenue.toLocaleString()}</span>
+                </div>
+                <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                  <span className="text-[10px] font-bold text-rose-700 block">ต้นทุนเฉลี่ย/เดือน</span>
+                  <span className="text-lg font-black text-rose-800 font-mono">฿{viewingJobValueModal.avgCost.toLocaleString()}</span>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                  <span className="text-[10px] font-bold text-blue-700 block">กำไรสะสมปี 2026</span>
+                  <span className="text-lg font-black text-blue-800 font-mono">฿{viewingJobValueModal.profit2026.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Monthly Breakdown Table */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                <div className="p-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-slate-800">ตารางรายได้-ต้นทุน-กำไร รายเดือน 12 เดือน (Jan - Dec)</h4>
+                </div>
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-white border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase">
+                      <th className="px-3 py-2">เดือน</th>
+                      <th className="px-3 py-2 text-right text-emerald-700">Revenue (รายได้)</th>
+                      <th className="px-3 py-2 text-right text-rose-700">Cost (ต้นทุน)</th>
+                      <th className="px-3 py-2 text-right text-blue-700">Profit (กำไร)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200/60 font-mono">
+                    {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
+                      const rev = (viewingJobValueModal.monthlyRevenue || [])[idx] || 0;
+                      const cost = (viewingJobValueModal.monthlyCost || [])[idx] || 0;
+                      const prof = (viewingJobValueModal.monthlyProfit || [])[idx] || 0;
+                      return (
+                        <tr key={m} className="hover:bg-white/60">
+                          <td className="px-3 py-2 font-sans font-bold text-slate-700">{m}</td>
+                          <td className="px-3 py-2 text-right text-emerald-600 font-bold">฿{rev.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-rose-600 font-bold">฿{cost.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-blue-700 font-extrabold">฿{prof.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingJobValueModal(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                ปิดหน้าต่าง
+              </button>
             </div>
           </div>
         </div>
