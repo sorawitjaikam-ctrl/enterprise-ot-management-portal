@@ -10,7 +10,8 @@ import {
   Anchor,
   ClipboardList,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  ChevronLeft
 } from "lucide-react";
 
 interface SidebarProps {
@@ -18,9 +19,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
   currentUser: any;
+  onToggleSidebar?: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar }: SidebarProps) {
   const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
 
   const menuItems = [
@@ -39,15 +41,28 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
 
   return (
     <aside className="fixed left-0 top-0 h-full w-[260px] bg-slate-900 border-r border-slate-800 flex flex-col py-6 px-4 z-40 shadow-xl text-slate-300">
-      {/* Brand Logo */}
-      <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0 w-10 h-10 border border-white/20">
-          <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="w-full h-full object-contain" />
+      {/* Brand Logo & Manual Close Button */}
+      <div className="mb-8 flex items-center justify-between px-2">
+        <div className="flex items-center gap-3">
+          <div className="bg-white rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0 w-10 h-10 border border-white/20">
+            <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 className="font-extrabold text-white leading-tight text-sm tracking-tight">Double A Terminal</h1>
+            <p className="text-[10px] font-bold text-sky-400 tracking-wider uppercase">Port & Logistics OT</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-extrabold text-white leading-tight text-sm tracking-tight">Double A Terminal</h1>
-          <p className="text-[10px] font-bold text-sky-400 tracking-wider uppercase">Port & Logistics OT</p>
-        </div>
+
+        {/* Manual Close Button */}
+        {onToggleSidebar && (
+          <button 
+            onClick={onToggleSidebar}
+            className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="ซ่อนเมนูแถบข้าง (Manual Hide)"
+          >
+            <ChevronLeft className="w-5 h-5 text-sky-400" />
+          </button>
+        )}
       </div>
 
       {/* Main Navigation */}

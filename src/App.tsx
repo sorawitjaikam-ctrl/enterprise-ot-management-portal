@@ -2785,19 +2785,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      {/* Left-edge hover trigger strip */}
-      {!isFullScreen && isSidebarHidden && (
-        <div 
-          onMouseEnter={() => setIsSidebarHidden(false)}
-          className="fixed left-0 top-0 h-full w-3.5 z-50 bg-transparent cursor-pointer"
-        />
-      )}
-
       {/* Sidebar navigation component */}
       {!isFullScreen && (
         <div 
-          onMouseEnter={() => setIsSidebarHidden(false)}
-          onMouseLeave={() => setIsSidebarHidden(true)}
           className={`fixed left-0 top-0 h-full w-[260px] z-40 transition-transform duration-300 ${
             isSidebarHidden ? "-translate-x-full" : "translate-x-0"
           }`}
@@ -2807,6 +2797,7 @@ export default function App() {
             setActiveTab={setActiveTab} 
             onLogout={handleLogout}
             currentUser={currentUser}
+            onToggleSidebar={() => setIsSidebarHidden(!isSidebarHidden)}
           />
         </div>
       )}
@@ -2834,11 +2825,13 @@ export default function App() {
             setIsSidebarHidden={setIsSidebarHidden}
             currentUser={currentUser}
             onOpenProfile={() => setActiveTab("profile")}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
           />
         )}
 
         {/* Dynamic page container */}
-        <main className={`flex-1 overflow-y-auto ${isFullScreen ? "p-4" : "mt-16 p-8"}`}>
+        <main className={`flex-1 overflow-y-auto ${isFullScreen ? "p-4" : "mt-28 p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
