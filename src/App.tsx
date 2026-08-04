@@ -42,7 +42,10 @@ import {
   Copy,
   Check,
   Award,
-  FileSpreadsheet
+  FileSpreadsheet,
+  BarChart3,
+  ShieldCheck,
+  ClipboardList
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
