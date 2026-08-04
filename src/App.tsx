@@ -1352,10 +1352,18 @@ export default function App() {
       const res = await fetch("/api/job-value");
       if (res.ok) {
         const data = await res.json();
-        setJobValueRecords(data);
+        if (Array.isArray(data)) {
+          setJobValueRecords(data);
+        } else {
+          console.warn("Job value API did not return an array:", data);
+          setJobValueRecords([]);
+        }
+      } else {
+        setJobValueRecords([]);
       }
     } catch (err) {
       console.error("Error fetching Job Value records:", err);
+      setJobValueRecords([]);
     }
   };
 
@@ -1688,6 +1696,8 @@ export default function App() {
   const uniqueRosterRoles = Array.from(new Set(
     (state?.employees || []).map(emp => emp.role).filter(Boolean)
   )).sort();
+
+  const safeJobValueRecords = Array.isArray(jobValueRecords) ? jobValueRecords : [];
 
   const handleRosterSort = (field: string) => {
     if (empSortField === field) {
@@ -3672,11 +3682,11 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-slate-900 font-mono">
-                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.avgRevenue * 12), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((r.avgRevenue || 0) * 12), 0).toLocaleString()}
                     </h4>
                     <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
                       <TrendingUp className="w-3 h-3" />
-                      <span>ประมาณการจาก {jobValueRecords.length} บุคลากร</span>
+                      <span>ประมาณการจาก {safeJobValueRecords.length} บุคลากร</span>
                     </p>
                   </div>
                 </div>
@@ -3691,10 +3701,10 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-rose-700 font-mono">
-                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.avgCost * 12), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((r.avgCost || 0) * 12), 0).toLocaleString()}
                     </h4>
                     <p className="text-[11px] font-semibold text-slate-500 mt-1">
-                      เฉลี่ย ฿{Math.round(jobValueRecords.reduce((sum, r) => sum + r.avgCost, 0) / (jobValueRecords.length || 1)).toLocaleString()} / คน / เดือน
+                      เฉลี่ย ฿{Math.round(safeJobValueRecords.reduce((sum, r) => sum + (r.avgCost || 0), 0) / (safeJobValueRecords.length || 1)).toLocaleString()} / คน / เดือน
                     </p>
                   </div>
                 </div>
@@ -3709,11 +3719,11 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-blue-700 font-mono">
-                      ฿{jobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0).toLocaleString()}
                     </h4>
                     {(() => {
-                      const p25 = jobValueRecords.reduce((sum, r) => sum + (r.profit2025 || 0), 0);
-                      const p26 = jobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0);
+                      const p25 = safeJobValueRecords.reduce((sum, r) => sum + (r.profit2025 || 0), 0);
+                      const p26 = safeJobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0);
                       const diffPct = p25 > 0 ? Math.round(((p26 - p25) / p25) * 100) : 0;
                       return (
                         <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -3735,12 +3745,12 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-slate-900 font-mono">
-                      {jobValueRecords.length} <span className="text-sm font-normal text-slate-500">/ {(state?.employees || []).length} คน</span>
+                      {safeJobValueRecords.length} <span className="text-sm font-normal text-slate-500">/ {(state?.employees || []).length} คน</span>
                     </h4>
                     <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
                       <div 
                         className="bg-purple-600 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.min(100, Math.round((jobValueRecords.length / Math.max(1, (state?.employees || []).length)) * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.round((safeJobValueRecords.length / Math.max(1, (state?.employees || []).length)) * 100))}%` }}
                       />
                     </div>
                   </div>
@@ -3758,10 +3768,10 @@ export default function App() {
 
                 <div className="grid grid-cols-12 gap-2 pt-4 border-t border-slate-100">
                   {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
-                    const monthRev = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[idx] || 0), 0);
-                    const monthCost = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyCost || [])[idx] || 0), 0);
-                    const monthProf = jobValueRecords.reduce((sum, r) => sum + ((r.monthlyProfit || [])[idx] || 0), 0);
-                    const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => jobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[i] || 0), 0)));
+                    const monthRev = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[idx] || 0), 0);
+                    const monthCost = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyCost || [])[idx] || 0), 0);
+                    const monthProf = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyProfit || [])[idx] || 0), 0);
+                    const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[i] || 0), 0)));
                     const revPct = Math.round((monthRev / maxVal) * 100);
 
                     return (
@@ -3816,7 +3826,7 @@ export default function App() {
                       <div className="flex items-center gap-2.5">
                         <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
                         <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                          {jobValueRecords.length} รายการ
+                          {safeJobValueRecords.length} รายการ
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">ใช้ช่องค้นหาหรือตัวกรองเพื่อค้นหารายพนักงาน และกดดูรายละเอียดเพื่อดูสถิติรายเดือน</p>
@@ -3889,10 +3899,10 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
-                      {jobValueRecords
+                      {safeJobValueRecords
                         .filter(jv => {
                           const q = jobValueSearchQuery.toLowerCase().trim();
-                          const matchesSearch = !q || jv.empId.toLowerCase().includes(q) || jv.empName.toLowerCase().includes(q) || jv.position.toLowerCase().includes(q);
+                          const matchesSearch = !q || (jv.empId || "").toLowerCase().includes(q) || (jv.empName || "").toLowerCase().includes(q) || (jv.position || "").toLowerCase().includes(q);
                           const matchesDept = jobValueDeptFilter === "ทุกแผนก" || jv.department === jobValueDeptFilter || normalizeDeptId(jv.department) === normalizeDeptId(jobValueDeptFilter);
                           return matchesSearch && matchesDept;
                         })
@@ -3911,10 +3921,10 @@ export default function App() {
                                 {jv.department}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{jv.avgRevenue.toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{jv.avgCost.toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{jv.profit2025.toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{jv.profit2026.toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{(jv.avgRevenue || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{(jv.avgCost || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{(jv.profit2025 || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{(jv.profit2026 || 0).toLocaleString()}</td>
                             <td className="px-4 py-3.5 text-center">
                               <button
                                 type="button"
@@ -3927,7 +3937,7 @@ export default function App() {
                           </tr>
                         ))}
 
-                      {jobValueRecords.length === 0 && (
+                      {safeJobValueRecords.length === 0 && (
                         <tr>
                           <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
                             <div className="flex flex-col items-center justify-center space-y-3">
