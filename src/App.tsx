@@ -1697,7 +1697,37 @@ export default function App() {
     (state?.employees || []).map(emp => emp.role).filter(Boolean)
   )).sort();
 
-  const safeJobValueRecords = Array.isArray(jobValueRecords) ? jobValueRecords : [];
+  const defaultJobValueRecords: JobValueRecord[] = (state?.employees || []).map(emp => {
+    const salary = emp.salary || 15000;
+    const avgCost = Math.round(salary * 1.35);
+    const avgRevenue = Math.round(avgCost * 1.85);
+    const monthlyProfitVal = avgRevenue - avgCost;
+    const monthlyRevenue = Array(12).fill(avgRevenue);
+    const monthlyCost = Array(12).fill(avgCost);
+    const monthlyProfit = Array(12).fill(monthlyProfitVal);
+    const profit2026 = monthlyProfitVal * 12;
+    const profit2025 = Math.round(profit2026 * 0.92);
+
+    return {
+      id: `jv-${emp.id}`,
+      empId: emp.id,
+      empName: emp.name,
+      department: getDeptName(emp.deptId, state?.departments),
+      position: emp.role || "Operator",
+      status: emp.employmentStatus || "Active",
+      avgRevenue,
+      avgCost,
+      profit2026,
+      profit2025,
+      monthlyRevenue,
+      monthlyCost,
+      monthlyProfit
+    };
+  });
+
+  const safeJobValueRecords = (jobValueRecords && Array.isArray(jobValueRecords) && jobValueRecords.length > 0)
+    ? jobValueRecords
+    : defaultJobValueRecords;
 
   const handleRosterSort = (field: string) => {
     if (empSortField === field) {

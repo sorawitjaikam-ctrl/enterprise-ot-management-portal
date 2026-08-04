@@ -556,6 +556,92 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "ลบพนักงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
+    // 8.5 GET /api/job-value
+    if (path === "/api/job-value" && request.method === "GET") {
+      let records: any[] = [];
+      if (db) {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS job_value_records (
+            id TEXT PRIMARY KEY,
+            empId TEXT,
+            empName TEXT,
+            department TEXT,
+            position TEXT,
+            status TEXT,
+            avgRevenue REAL,
+            avgCost REAL,
+            profit2026 REAL,
+            profit2025 REAL,
+            monthlyRevenue TEXT,
+            monthlyCost TEXT,
+            monthlyProfit TEXT
+          )`).run();
+          const res = await db.prepare("SELECT * FROM job_value_records").all();
+          if (res && res.results) {
+            records = res.results.map((r: any) => ({
+              ...r,
+              monthlyRevenue: typeof r.monthlyRevenue === "string" ? JSON.parse(r.monthlyRevenue) : (r.monthlyRevenue || []),
+              monthlyCost: typeof r.monthlyCost === "string" ? JSON.parse(r.monthlyCost) : (r.monthlyCost || []),
+              monthlyProfit: typeof r.monthlyProfit === "string" ? JSON.parse(r.monthlyProfit) : (r.monthlyProfit || [])
+            }));
+          }
+        } catch (e) {
+          console.error("D1 Fetch Job Value Error:", e);
+        }
+      }
+      return Response.json(records, { headers: corsHeaders });
+    }
+
+    // 8.6 POST /api/job-value/import OR /api/import-job-value
+    if ((path === "/api/job-value/import" || path === "/api/import-job-value") && request.method === "POST") {
+      const body = await getBody();
+      const records = body.records || [];
+      if (db && Array.isArray(records)) {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS job_value_records (
+            id TEXT PRIMARY KEY,
+            empId TEXT,
+            empName TEXT,
+            department TEXT,
+            position TEXT,
+            status TEXT,
+            avgRevenue REAL,
+            avgCost REAL,
+            profit2026 REAL,
+            profit2025 REAL,
+            monthlyRevenue TEXT,
+            monthlyCost TEXT,
+            monthlyProfit TEXT
+          )`).run();
+
+          for (const item of records) {
+            if (item.empId) {
+              const id = item.id || `jv-${item.empId}`;
+              await db.prepare(`INSERT OR REPLACE INTO job_value_records (id, empId, empName, department, position, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                id,
+                item.empId,
+                item.empName || "",
+                item.department || "",
+                item.position || "",
+                item.status || "Active",
+                Number(item.avgRevenue) || 0,
+                Number(item.avgCost) || 0,
+                Number(item.profit2026) || 0,
+                Number(item.profit2025) || 0,
+                JSON.stringify(item.monthlyRevenue || []),
+                JSON.stringify(item.monthlyCost || []),
+                JSON.stringify(item.monthlyProfit || [])
+              ).run();
+            }
+          }
+        } catch (e) {
+          console.error("D1 Import Job Value Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: `นำเข้าข้อมูล Job Value ${records.length} รายการเรียบร้อยแล้ว`, count: records.length }, { headers: corsHeaders });
+    }
+
     // 9. GET /api/ot-records
     if (path === "/api/ot-records" && request.method === "GET") {
       if (db) {
