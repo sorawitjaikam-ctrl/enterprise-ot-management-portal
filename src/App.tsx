@@ -1727,23 +1727,25 @@ export default function App() {
   const currentDeptObj = (state?.departments || []).find(d => d.id === currentShiftsDept);
 
   // Dynamically extract unique roles and groups for auto-suggestions & HR dropdowns
-  const uniqueRoles = Array.from(new Set((state?.employees || []).map(emp => emp.role))).filter(Boolean);
-  const uniqueGroups = Array.from(new Set((state?.employees || []).map(emp => emp.groupName))).filter(Boolean);
+  const uniqueRoles = Array.from(new Set((state?.employees || []).filter(Boolean).map(emp => emp?.role))).filter(Boolean);
+  const uniqueGroups = Array.from(new Set((state?.employees || []).filter(Boolean).map(emp => emp?.groupName))).filter(Boolean);
 
   const uniqueRosterDepts = Array.from(new Set(
-    (state?.employees || []).map(emp => getDeptName(emp.deptId, state?.departments))
+    (state?.employees || []).filter(Boolean).map(emp => getDeptName(emp?.deptId, state?.departments))
   )).filter(Boolean).sort();
 
   const uniqueRosterDivisions = Array.from(new Set(
-    (state?.employees || []).map(emp => emp.division || emp.groupName || "").filter(Boolean)
+    (state?.employees || []).filter(Boolean).map(emp => emp?.division || emp?.groupName || "").filter(Boolean)
   )).sort();
 
   const uniqueRosterRoles = Array.from(new Set(
-    (state?.employees || []).map(emp => emp.role).filter(Boolean)
+    (state?.employees || []).filter(Boolean).map(emp => emp?.role).filter(Boolean)
   )).sort();
 
-  const defaultJobValueRecords: JobValueRecord[] = (state?.employees || []).map(emp => {
-    const salary = emp.salary || 15000;
+  const defaultJobValueRecords: JobValueRecord[] = (state?.employees || []).filter(Boolean).map(emp => {
+    const empId = emp?.id || "EMP";
+    const empName = emp?.name || ((emp?.firstName || "") + " " + (emp?.lastName || "")).trim() || "พนักงาน";
+    const salary = Number(emp?.salary) || 15000;
     const avgCost = Math.round(salary * 1.35);
     const avgRevenue = Math.round(avgCost * 1.85);
     const monthlyProfitVal = avgRevenue - avgCost;
@@ -1754,12 +1756,12 @@ export default function App() {
     const profit2025 = Math.round(profit2026 * 0.92);
 
     return {
-      id: `jv-${emp.id}`,
-      empId: emp.id,
-      empName: emp.name,
-      department: getDeptName(emp.deptId, state?.departments),
-      position: emp.role || "Operator",
-      status: emp.employmentStatus || "Active",
+      id: `jv-${empId}`,
+      empId: empId,
+      empName: empName,
+      department: getDeptName(emp?.deptId, state?.departments),
+      position: emp?.role || "Operator",
+      status: emp?.employmentStatus || "Active",
       avgRevenue,
       avgCost,
       profit2026,
@@ -1771,7 +1773,7 @@ export default function App() {
   });
 
   const safeJobValueRecords = (jobValueRecords && Array.isArray(jobValueRecords) && jobValueRecords.length > 0)
-    ? jobValueRecords
+    ? jobValueRecords.filter(Boolean)
     : defaultJobValueRecords;
 
   const handleRosterSort = (field: string) => {
@@ -7956,11 +7958,11 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <EmployeeAvatar empId={viewingJobValueModal.empId} empName={viewingJobValueModal.empName} className="w-10 h-10 flex-shrink-0" />
+                <EmployeeAvatar empId={viewingJobValueModal?.empId || ""} empName={viewingJobValueModal?.empName || ""} className="w-10 h-10 flex-shrink-0" />
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900">{viewingJobValueModal.empName}</h3>
+                  <h3 className="text-base font-extrabold text-slate-900">{viewingJobValueModal?.empName || "-"}</h3>
                   <p className="text-xs text-slate-500 font-mono">
-                    รหัส: {viewingJobValueModal.empId} | แผนก: {viewingJobValueModal.department} | ตำแหน่ง: {viewingJobValueModal.position}
+                    รหัส: {viewingJobValueModal?.empId || "-"} | แผนก: {viewingJobValueModal?.department || "-"} | ตำแหน่ง: {viewingJobValueModal?.position || "-"}
                   </p>
                 </div>
               </div>
@@ -7977,15 +7979,15 @@ export default function App() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                   <span className="text-[10px] font-bold text-emerald-700 block">รายได้เฉลี่ย/เดือน</span>
-                  <span className="text-lg font-black text-emerald-800 font-mono">฿{viewingJobValueModal.avgRevenue.toLocaleString()}</span>
+                  <span className="text-lg font-black text-emerald-800 font-mono">฿{(Number(viewingJobValueModal?.avgRevenue) || 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                   <span className="text-[10px] font-bold text-rose-700 block">ต้นทุนเฉลี่ย/เดือน</span>
-                  <span className="text-lg font-black text-rose-800 font-mono">฿{viewingJobValueModal.avgCost.toLocaleString()}</span>
+                  <span className="text-lg font-black text-rose-800 font-mono">฿{(Number(viewingJobValueModal?.avgCost) || 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                   <span className="text-[10px] font-bold text-blue-700 block">กำไรสะสมปี 2026</span>
-                  <span className="text-lg font-black text-blue-800 font-mono">฿{viewingJobValueModal.profit2026.toLocaleString()}</span>
+                  <span className="text-lg font-black text-blue-800 font-mono">฿{(Number(viewingJobValueModal?.profit2026) || 0).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -8005,9 +8007,9 @@ export default function App() {
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 font-mono">
                     {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
-                      const rev = (viewingJobValueModal.monthlyRevenue || [])[idx] || 0;
-                      const cost = (viewingJobValueModal.monthlyCost || [])[idx] || 0;
-                      const prof = (viewingJobValueModal.monthlyProfit || [])[idx] || 0;
+                      const rev = Number((viewingJobValueModal?.monthlyRevenue || [])[idx]) || 0;
+                      const cost = Number((viewingJobValueModal?.monthlyCost || [])[idx]) || 0;
+                      const prof = Number((viewingJobValueModal?.monthlyProfit || [])[idx]) || 0;
                       return (
                         <tr key={m} className="hover:bg-white/60">
                           <td className="px-3 py-2 font-sans font-bold text-slate-700">{m}</td>
