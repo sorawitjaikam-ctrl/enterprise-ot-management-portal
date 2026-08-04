@@ -3712,7 +3712,7 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-slate-900 font-mono">
-                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((r.avgRevenue || 0) * 12), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((Number(r?.avgRevenue) || 0) * 12), 0).toLocaleString()}
                     </h4>
                     <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
                       <TrendingUp className="w-3 h-3" />
@@ -3731,10 +3731,10 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-rose-700 font-mono">
-                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((r.avgCost || 0) * 12), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + ((Number(r?.avgCost) || 0) * 12), 0).toLocaleString()}
                     </h4>
                     <p className="text-[11px] font-semibold text-slate-500 mt-1">
-                      เฉลี่ย ฿{Math.round(safeJobValueRecords.reduce((sum, r) => sum + (r.avgCost || 0), 0) / (safeJobValueRecords.length || 1)).toLocaleString()} / คน / เดือน
+                      เฉลี่ย ฿{Math.round(safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.avgCost) || 0), 0) / Math.max(1, safeJobValueRecords.length)).toLocaleString()} / คน / เดือน
                     </p>
                   </div>
                 </div>
@@ -3749,11 +3749,11 @@ export default function App() {
                   </div>
                   <div className="mt-3">
                     <h4 className="text-2xl font-black text-blue-700 font-mono">
-                      ฿{safeJobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0).toLocaleString()}
+                      ฿{safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0).toLocaleString()}
                     </h4>
                     {(() => {
-                      const p25 = safeJobValueRecords.reduce((sum, r) => sum + (r.profit2025 || 0), 0);
-                      const p26 = safeJobValueRecords.reduce((sum, r) => sum + (r.profit2026 || 0), 0);
+                      const p25 = safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2025) || 0), 0);
+                      const p26 = safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0);
                       const diffPct = p25 > 0 ? Math.round(((p26 - p25) / p25) * 100) : 0;
                       return (
                         <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -3798,10 +3798,10 @@ export default function App() {
 
                 <div className="grid grid-cols-12 gap-2 pt-4 border-t border-slate-100">
                   {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
-                    const monthRev = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[idx] || 0), 0);
-                    const monthCost = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyCost || [])[idx] || 0), 0);
-                    const monthProf = safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyProfit || [])[idx] || 0), 0);
-                    const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => safeJobValueRecords.reduce((sum, r) => sum + ((r.monthlyRevenue || [])[i] || 0), 0)));
+                    const monthRev = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[idx]) || 0), 0);
+                    const monthCost = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyCost || [])[idx]) || 0), 0);
+                    const monthProf = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyProfit || [])[idx]) || 0), 0);
+                    const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[i]) || 0), 0)));
                     const revPct = Math.round((monthRev / maxVal) * 100);
 
                     return (
@@ -3810,19 +3810,19 @@ export default function App() {
                           {/* Revenue Bar */}
                           <div 
                             className="w-1/3 bg-emerald-500 rounded-t-sm transition-all duration-300 group-hover:bg-emerald-600" 
-                            style={{ height: `${Math.max(10, revPct)}%` }}
+                            style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
                             title={`Revenue: ฿${monthRev.toLocaleString()}`}
                           />
                           {/* Cost Bar */}
                           <div 
                             className="w-1/3 bg-rose-400 rounded-t-sm transition-all duration-300 group-hover:bg-rose-500" 
-                            style={{ height: `${Math.max(8, Math.round((monthCost / maxVal) * 100))}%` }}
+                            style={{ height: `${Math.max(8, Math.min(100, Math.round((monthCost / maxVal) * 100)))}%` }}
                             title={`Cost: ฿${monthCost.toLocaleString()}`}
                           />
                           {/* Profit Bar */}
                           <div 
                             className="w-1/3 bg-blue-600 rounded-t-sm transition-all duration-300 group-hover:bg-blue-700" 
-                            style={{ height: `${Math.max(5, Math.round((monthProf / maxVal) * 100))}%` }}
+                            style={{ height: `${Math.max(5, Math.min(100, Math.round((monthProf / maxVal) * 100)))}%` }}
                             title={`Profit: ฿${monthProf.toLocaleString()}`}
                           />
                         </div>
@@ -3905,7 +3905,7 @@ export default function App() {
                         className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
                       >
                         <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>
-                        {uniqueRosterDepts.map(d => (
+                        {(uniqueRosterDepts || []).map(d => (
                           <option key={d} value={d}>แผนก {d}</option>
                         ))}
                       </select>
@@ -3931,30 +3931,31 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
                       {safeJobValueRecords
                         .filter(jv => {
-                          const q = jobValueSearchQuery.toLowerCase().trim();
+                          if (!jv) return false;
+                          const q = (jobValueSearchQuery || "").toLowerCase().trim();
                           const matchesSearch = !q || (jv.empId || "").toLowerCase().includes(q) || (jv.empName || "").toLowerCase().includes(q) || (jv.position || "").toLowerCase().includes(q);
-                          const matchesDept = jobValueDeptFilter === "ทุกแผนก" || jv.department === jobValueDeptFilter || normalizeDeptId(jv.department) === normalizeDeptId(jobValueDeptFilter);
+                          const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || jv.department === jobValueDeptFilter || normalizeDeptId(jv.department) === normalizeDeptId(jobValueDeptFilter);
                           return matchesSearch && matchesDept;
                         })
                         .map(jv => (
-                          <tr key={jv.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500">{jv.empId}</td>
+                          <tr key={jv?.id || jv?.empId || Math.random()} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500">{jv?.empId || "-"}</td>
                             <td className="px-4 py-3.5 font-bold text-slate-800">
                               <div className="flex items-center gap-2.5">
-                                <EmployeeAvatar empId={jv.empId} empName={jv.empName} className="w-8 h-8 flex-shrink-0" />
-                                <span>{jv.empName}</span>
+                                <EmployeeAvatar empId={jv?.empId || ""} empName={jv?.empName || ""} className="w-8 h-8 flex-shrink-0" />
+                                <span>{jv?.empName || "-"}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3.5 font-medium text-slate-700">{jv.position}</td>
+                            <td className="px-4 py-3.5 font-medium text-slate-700">{jv?.position || "-"}</td>
                             <td className="px-4 py-3.5 font-bold text-slate-700">
                               <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
-                                {jv.department}
+                                {jv?.department || "-"}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{(jv.avgRevenue || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{(jv.avgCost || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{(jv.profit2025 || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{(jv.profit2026 || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{(Number(jv?.profit2025) || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{(Number(jv?.profit2026) || 0).toLocaleString()}</td>
                             <td className="px-4 py-3.5 text-center">
                               <button
                                 type="button"
