@@ -1498,6 +1498,7 @@ export default function App() {
   }
 
   const canAccessSalary = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "");
+  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
 
   const filteredDeptsForStats = (state?.departments || []).filter(d => activeDeptId === "all" || d.id === activeDeptId);
   const deptEmpsCount = (state?.employees || []).filter(emp => emp.deptId === currentShiftsDept).length;
@@ -3896,7 +3897,7 @@ export default function App() {
                 >
                   <span>🟢 พนักงานปัจจุบัน (Active)</span>
                   <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-                    {state.employees.filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length} คน
+                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length} คน
                   </span>
                 </button>
 
@@ -3911,7 +3912,7 @@ export default function App() {
                   >
                     <span>🔴 คลังข้อมูลพนักงานลาออก (Resigned Archive)</span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      {state.employees.filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก").length} คน
+                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก").length} คน
                     </span>
                   </button>
                 )}
