@@ -2784,52 +2784,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      {/* Sidebar navigation component */}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Top Navbar */}
       {!isFullScreen && (
-        <div 
-          className={`fixed left-0 top-0 h-full w-[260px] z-40 transition-transform duration-300 ${
-            isSidebarHidden ? "-translate-x-full" : "translate-x-0"
-          }`}
-        >
-          <Sidebar 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-            onLogout={handleLogout}
-            currentUser={currentUser}
-            onToggleSidebar={() => setIsSidebarHidden(!isSidebarHidden)}
-          />
-        </div>
+        <Navbar 
+          title={
+            activeTab === "dashboard" ? "Dashboard" : 
+            activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
+            activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
+            activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
+            activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
+            activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
+            activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
+            activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
+            "การตั้งค่าระบบและกฎเกณฑ์"
+          }
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          currentUser={currentUser}
+          onOpenProfile={() => setActiveTab("profile")}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onLogout={handleLogout}
+        />
       )}
 
       {/* Main container area */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
-        isSidebarHidden || isFullScreen ? "ml-0" : "ml-[260px]"
-      }`}>
-        {!isFullScreen && (
-          <Navbar 
-            title={
-              activeTab === "dashboard" ? "Dashboard" : 
-              activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
-              activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
-              activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
-              activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
-              activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
-              activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
-              activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
-              "การตั้งค่าระบบและกฎเกณฑ์"
-            }
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            isSidebarHidden={isSidebarHidden}
-            setIsSidebarHidden={setIsSidebarHidden}
-            currentUser={currentUser}
-            onOpenProfile={() => setActiveTab("profile")}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        )}
-
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Dynamic page container */}
         <main className={`flex-1 overflow-y-auto ${isFullScreen ? "p-4" : "mt-28 p-8"}`}>
           
