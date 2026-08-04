@@ -2062,6 +2062,7 @@ export default function App() {
       return;
     }
     const fullName = (editEmpFirstName + (editEmpLastName ? " " + editEmpLastName : "")).trim();
+    const finalStatus = editEmpStatus || (editEmpResignationDate ? "Resigned" : "Active");
     try {
       const res = await fetch("/api/edit-employee", {
         method: "POST",
@@ -2087,10 +2088,45 @@ export default function App() {
           probationDate: editEmpProbationDate,
           calendarType: editEmpCalendarType,
           resignationDate: editEmpResignationDate,
-          employmentStatus: editEmpStatus || (editEmpResignationDate ? "Resigned" : "Active"),
+          employmentStatus: finalStatus,
           username: currentUser?.username
         })
       });
+
+      // Optimistically update local React state
+      setState(prev => {
+        if (!prev) return prev;
+        const updatedEmps = prev.employees.map(emp => {
+          if (emp.id === editingEmployee.id) {
+            return {
+              ...emp,
+              name: fullName,
+              deptId: editEmpDept,
+              role: editEmpRole,
+              groupName: editEmpGroupName,
+              targetOt: editEmpTargetOt,
+              prefix: editEmpPrefix,
+              firstName: editEmpFirstName,
+              lastName: editEmpLastName,
+              nickname: editEmpNickname,
+              division: editEmpDivision,
+              salary: canAccessSalary ? editEmpSalary : (editingEmployee.salary || 15000),
+              birthday: editEmpBirthday,
+              age: editEmpAge,
+              calculatedAge: editEmpCalculatedAge,
+              startDate: editEmpStartDate,
+              tenure: editEmpTenure,
+              probationDate: editEmpProbationDate,
+              calendarType: editEmpCalendarType,
+              resignationDate: editEmpResignationDate,
+              employmentStatus: finalStatus as any
+            };
+          }
+          return emp;
+        });
+        return { ...prev, employees: updatedEmps };
+      });
+
       if (res.ok) {
         setShowEditEmployeeModal(false);
         setEditingEmployee(null);

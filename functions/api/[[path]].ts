@@ -531,7 +531,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.startDate || "",
               body.tenure || "",
               body.probationDate || "",
-              body.calendarType || "ปฏิทินกะ 4-on-2-off"
+              body.calendarType || "ปฏิทินกะ 4-on-2-off",
+              body.resignationDate || "",
+              body.employmentStatus || (body.resignationDate ? "Resigned" : "Active")
             ).run();
         } catch (e) {
           console.error("D1 Edit Employee Error:", e);
