@@ -1497,16 +1497,18 @@ export default function App() {
     );
   }
 
-  const filteredDeptsForStats = state.departments.filter(d => activeDeptId === "all" || d.id === activeDeptId);
-  const deptEmpsCount = state.employees.filter(emp => emp.deptId === currentShiftsDept).length;
-  const currentDeptObj = state.departments.find(d => d.id === currentShiftsDept);
+  const canAccessSalary = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "");
+
+  const filteredDeptsForStats = (state?.departments || []).filter(d => activeDeptId === "all" || d.id === activeDeptId);
+  const deptEmpsCount = (state?.employees || []).filter(emp => emp.deptId === currentShiftsDept).length;
+  const currentDeptObj = (state?.departments || []).find(d => d.id === currentShiftsDept);
 
   // Dynamically extract unique roles and groups for auto-suggestions
-  const uniqueRoles = Array.from(new Set(state.employees.map(emp => emp.role))).filter(Boolean);
-  const uniqueGroups = Array.from(new Set(state.employees.map(emp => emp.groupName))).filter(Boolean);
+  const uniqueRoles = Array.from(new Set((state?.employees || []).map(emp => emp.role))).filter(Boolean);
+  const uniqueGroups = Array.from(new Set((state?.employees || []).map(emp => emp.groupName))).filter(Boolean);
 
   // Filter logic based on search and dropdowns
-  const filteredEmployees = state.employees.filter((emp) => {
+  const filteredEmployees = (state?.employees || []).filter((emp) => {
     const matchesSearch = 
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -2075,7 +2077,7 @@ export default function App() {
           lastName: editEmpLastName,
           nickname: editEmpNickname,
           division: editEmpDivision,
-          salary: editEmpSalary,
+          salary: canAccessSalary ? editEmpSalary : (editingEmployee.salary || 15000),
           birthday: editEmpBirthday,
           age: editEmpAge,
           calculatedAge: editEmpCalculatedAge,
@@ -3999,13 +4001,17 @@ export default function App() {
                             </td>
                             {/* 9. ผลรวมค่าล่วงเวลา */}
                             <td className="px-4 py-3.5 text-right font-black text-slate-900 font-mono">
-                              ฿{totalOtPay.toLocaleString()}
+                              {canAccessSalary ? `฿${totalOtPay.toLocaleString()}` : <span className="text-slate-400 text-[10px] font-bold">🔒 เฉพาะ HR</span>}
                             </td>
                             {/* 10. % ค่าล่วงเวลา (เทียบจากฐานเงินเดือน) */}
                             <td className="px-4 py-3.5 text-right font-black font-mono">
-                              <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
-                                {otPctSalary}%
-                              </span>
+                              {canAccessSalary ? (
+                                <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
+                                  {otPctSalary}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[10px] font-bold">🔒 เฉพาะ HR</span>
+                              )}
                             </td>
                             {/* 11. การจัดการ */}
                             <td className="px-4 py-3.5 text-center">
@@ -5637,13 +5643,19 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ฐานเงินเดือน ปี 2568 (บาท)</label>
-                    <input 
-                      type="number"
-                      value={newEmpSalary || ""}
-                      onChange={(e) => setNewEmpSalary(Number(e.target.value))}
-                      placeholder="เช่น 18000"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    {canAccessSalary ? (
+                      <input 
+                        type="number"
+                        value={newEmpSalary || ""}
+                        onChange={(e) => setNewEmpSalary(Number(e.target.value))}
+                        placeholder="เช่น 18000"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    ) : (
+                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400">
+                        🔒 เฉพาะสิทธิ์กลุ่ม HR
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเริ่มงาน</label>
@@ -5961,13 +5973,19 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ฐานเงินเดือน ปี 2568 (บาท)</label>
-                    <input 
-                      type="number"
-                      value={editEmpSalary || ""}
-                      onChange={(e) => setEditEmpSalary(Number(e.target.value))}
-                      placeholder="เช่น 18000"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    {canAccessSalary ? (
+                      <input 
+                        type="number"
+                        value={editEmpSalary || ""}
+                        onChange={(e) => setEditEmpSalary(Number(e.target.value))}
+                        placeholder="เช่น 18000"
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    ) : (
+                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400">
+                        🔒 เฉพาะสิทธิ์กลุ่ม HR
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">วันเริ่มงาน</label>
@@ -6217,7 +6235,9 @@ export default function App() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
                   <div>
                     <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
-                    <span className="font-bold text-slate-800 font-mono">฿{viewingEmployeeDetails.salary?.toLocaleString() || "0"}</span>
+                    <span className="font-bold text-slate-800 font-mono">
+                      {canAccessSalary ? `฿${viewingEmployeeDetails.salary?.toLocaleString() || "0"}` : "🔒 เฉพาะสิทธิ์ HR"}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-[10px] text-slate-400 font-medium">วันเริ่มงาน</span>

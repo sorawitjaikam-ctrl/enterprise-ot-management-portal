@@ -42,8 +42,8 @@ export default function Navbar({
   const topMenuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard", icon: LayoutDashboard },
     { id: "reports",    label: "รายงานรายแผนก",     icon: BarChart3 },
+    { id: "employees",  label: "รายชื่อพนักงาน",      icon: Users },
     ...(isHrOrFullAccess ? [
-      { id: "employees",  label: "รายชื่อพนักงาน",      icon: Users },
       { id: "leave-records", label: "บันทึกวันลา",      icon: FileText },
     ] : []),
     { id: "shifts",     label: "ตารางกะเทียบเรือ",    icon: Calendar },
