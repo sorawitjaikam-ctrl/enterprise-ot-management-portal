@@ -13,7 +13,8 @@ import {
   ClipboardList, 
   FileText, 
   ShieldCheck,
-  LogOut
+  LogOut,
+  TrendingUp
 } from "lucide-react";
 
 interface NavbarProps {
@@ -41,6 +42,7 @@ export default function Navbar({
 
   const topMenuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard", icon: LayoutDashboard },
+    { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
     { id: "reports",    label: "รายงานรายแผนก",     icon: BarChart3 },
     { id: "employees",  label: "รายชื่อพนักงาน",      icon: Users },
     ...(isHrOrFullAccess ? [
