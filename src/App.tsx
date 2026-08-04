@@ -2800,6 +2800,15 @@ export default function App() {
     }
   };
 
+  const handleNavigateToEmployees = () => {
+    setActiveTab("employees");
+    setTimeout(() => {
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Top Navbar */}
@@ -3197,11 +3206,13 @@ export default function App() {
                     <p className="text-xs text-slate-500">รายชื่อผู้ที่ทำ OT สูงสุดและพนักงานที่มีความเสี่ยงสะสมชั่วโมงทำงานเกินกฎเกณฑ์ความปลอดภัย</p>
                   </div>
                   <button 
-                    onClick={() => setActiveTab("employees")}
-                    className="text-blue-600 font-semibold text-xs hover:text-blue-700 hover:underline flex items-center gap-1 transition-colors"
+                    type="button"
+                    onClick={handleNavigateToEmployees}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-50/80 hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="คลิกเพื่อเปิดตารางรายชื่อพนักงานทั้งหมด"
                   >
                     <span>ดูตารางรายชื่อทั้งหมด</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 text-blue-600" />
                   </button>
                 </div>
 
