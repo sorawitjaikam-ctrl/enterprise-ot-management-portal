@@ -136,6 +136,12 @@ export const getEmpShiftsArray = (shifts: any): string[] => {
   return [];
 };
 
+export const isJvDepartment = (deptNameOrId: string): boolean => {
+  if (!deptNameOrId) return false;
+  const n = normalizeDeptId(deptNameOrId);
+  return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
+};
+
 export const getEmpCalculatedOt = (emp: any): number => {
   if (!emp) return 0;
   const shiftsArray = getEmpShiftsArray(emp.shifts);
@@ -4381,6 +4387,7 @@ export default function App() {
                     : financialChartDeptFilter;
 
                   const scopedJvRecords = safeJobValueRecords.filter(r => {
+                    if (!isJvDepartment(r.department || r.deptId)) return false;
                     if (!isHrOrFullAccess && currentUser?.deptId) {
                       const managerDeptId = normalizeDeptId(currentUser.deptId);
                       const recDeptId = normalizeDeptId(r.deptId || r.department);
@@ -4395,6 +4402,7 @@ export default function App() {
                   });
 
                   const scopedEmpList = (state?.employees || []).filter(e => {
+                    if (!isJvDepartment(e.department || e.deptId)) return false;
                     if (!isHrOrFullAccess && currentUser?.deptId) {
                       if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
                     }
@@ -4506,7 +4514,7 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(deptName => {
+                    {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(deptName => {
                       if (isHrOrFullAccess) return true;
                       return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
                     }).map(deptName => {
@@ -4603,7 +4611,7 @@ export default function App() {
                           className="bg-white text-blue-800 border border-slate-200 rounded-lg py-1 px-2.5 text-xs font-extrabold shadow-sm focus:ring-0 cursor-pointer disabled:opacity-80"
                         >
                           {isHrOrFullAccess && <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>}
-                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(dept => {
+                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(dept => {
                             if (isHrOrFullAccess) return true;
                             return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(dept);
                           }).map(dept => (
@@ -4670,6 +4678,7 @@ export default function App() {
 
                   {(() => {
                     const filteredJvByDept = safeJobValueRecords.filter(r => {
+                      if (!isJvDepartment(r.department || r.deptId)) return false;
                       if (financialChartDeptFilter === "ทุกแผนก") return true;
                       const targetDeptId = normalizeDeptId(financialChartDeptFilter);
                       return r.department === financialChartDeptFilter || 
@@ -4947,7 +4956,7 @@ export default function App() {
                           className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
                         >
                           {isHrOrFullAccess && <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>}
-                          {(uniqueRosterDepts || []).filter(d => {
+                          {(["INTER 2", "INTER 3", "INTER 5", "INTER 7"] || []).filter(d => {
                             if (isHrOrFullAccess) return true;
                             return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
                           }).map(d => (
@@ -4993,6 +5002,8 @@ export default function App() {
                                 return false;
                               }
                             }
+
+                            if (!isJvDepartment(deptName) && !isJvDepartment(jv.deptId)) return false;
 
                             // Filter out inactive/resigned/retired employees from active list
                             const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
