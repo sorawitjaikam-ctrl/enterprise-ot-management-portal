@@ -1850,6 +1850,7 @@ export default function App() {
   const [isEditingShifts, setIsEditingShifts] = useState<boolean>(false);
   const [tempEmployees, setTempEmployees] = useState<Employee[]>([]);
   const [activeEditingCell, setActiveEditingCell] = useState<{ employeeId: string; dayIndex: number } | null>(null);
+  const [editingEmployeeShiftsModal, setEditingEmployeeShiftsModal] = useState<Employee | null>(null);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
   // Sort and display filters for report
@@ -6122,12 +6123,12 @@ export default function App() {
                                 return (
                                   <div 
                                     key={emp.id} 
-                                    className={`flex hover:bg-slate-50/50 transition-colors group ${
-                                      activeEditingCell && activeEditingCell.employeeId === emp.id ? "relative z-30" : ""
-                                    }`}
+                                    onClick={() => setEditingEmployeeShiftsModal(emp)}
+                                    className="flex hover:bg-blue-50/40 transition-colors group cursor-pointer"
+                                    title="คลิกเพื่อจัดการตารางกะรายวันของพนักงานคนนี้"
                                   >
                                     {/* Employee ID & Name head */}
-                                    <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-slate-50 flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
+                                    <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-blue-50/50 flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1">
@@ -6147,7 +6148,7 @@ export default function App() {
                                             }
                                             return maxWeekOt > 36 ? (
                                               <span className="px-1 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[8px] font-extrabold flex-shrink-0" title="คำเตือน: มีสัปดาห์ที่ทำ OT เกิน 36 ชม. (ขีดจำกัดสูงสุดตามกฎหมายแรงงาน)">
-                                                ⚠️&gt;36h
+                                                &gt;36h
                                               </span>
                                             ) : null;
                                           })()}
@@ -6162,102 +6163,27 @@ export default function App() {
                                         const dayIdx = day.n - 1;
                                         const shift = emp.shifts[dayIdx] || "O";
                                         const styleClass = getShiftStyle(shift);
-                                        const isActiveCell = activeEditingCell && activeEditingCell.employeeId === emp.id && activeEditingCell.dayIndex === dayIdx;
 
                                         return (
                                           <div 
                                             key={dayIdx} 
-                                            onClick={() => handleShiftCellClick(emp.id, dayIdx)}
                                             style={{ 
                                               width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
                                               height: daysLimit === 30 ? "40px" : daysLimit === 14 ? "48px" : "56px"
                                             }}
-                                            className={`flex-shrink-0 p-1 border-r border-slate-200 flex items-center justify-center cursor-pointer select-none transition-all relative ${
-                                              isEditingShifts ? "hover:scale-95 hover:shadow-inner bg-slate-50/50" : ""
-                                            } ${
-                                              isActiveCell ? "z-[100]" : ""
-                                            }`}
+                                            className="flex-shrink-0 p-1 border-r border-slate-200 flex items-center justify-center cursor-pointer select-none transition-all"
                                           >
                                             <div className={`w-full h-full border rounded-lg flex items-center justify-center font-extrabold ${
                                               daysLimit === 30 ? "text-[9px]" : "text-xs"
                                             } ${styleClass}`}>
                                               {shift === "⚠" ? (
-                                                <div className="flex items-center justify-center text-red-600" title="กำลังพลทำงานต่อเนื่อง เกินขีดปลอดภัย!">
-                                                  ⚠️
+                                                <div className="flex items-center justify-center text-red-600 font-mono text-[10px]" title="กำลังพลทำงานต่อเนื่อง เกินขีดปลอดภัย!">
+                                                  [เกินขีด]
                                                 </div>
                                               ) : (
                                                 shift
                                               )}
                                             </div>
-
-                                            {/* Interactive Dropdown Popover Picker */}
-                                            {isEditingShifts && activeEditingCell && activeEditingCell.employeeId === emp.id && activeEditingCell.dayIndex === dayIdx && (
-                                              <div 
-                                                className="absolute top-12 left-0 z-[200] bg-white border border-slate-200 rounded-2xl shadow-2xl p-2.5 min-w-[280px] text-left"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                <div className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">เลือกกะการทำงาน:</div>
-                                                <div className="grid grid-cols-2 gap-1.5 max-h-[220px] overflow-y-auto pr-1">
-                                                  {SHIFT_OPTIONS.map((opt) => (
-                                                    <button
-                                                      key={opt.code}
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleSelectShiftValue(emp.id, dayIdx, opt.code);
-                                                      }}
-                                                      className={`flex flex-col items-center justify-center p-1.5 border rounded-lg hover:opacity-90 active:scale-95 transition-all text-center ${getShiftStyle(opt.code)}`}
-                                                    >
-                                                      <span className="text-[11px] font-extrabold leading-none">{opt.code}</span>
-                                                      <span className="text-[8px] opacity-75 font-medium mt-0.5">{opt.desc}</span>
-                                                    </button>
-                                                  ))}
-                                                </div>
-
-                                                {/* Custom Shift Manual Input */}
-                                                <div className="mt-2 pt-2 border-t border-slate-100 flex gap-1.5 items-center">
-                                                  <input
-                                                    type="text"
-                                                    maxLength={5}
-                                                    placeholder="กะกำหนดเอง (เช่น M7, N9)"
-                                                    id={`custom-shift-input-${emp.id}-${dayIdx}`}
-                                                    className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                    onKeyDown={(e) => {
-                                                      if (e.key === "Enter") {
-                                                        const val = (e.target as HTMLInputElement).value.trim().toUpperCase();
-                                                        if (val) {
-                                                          handleSelectShiftValue(emp.id, dayIdx, val);
-                                                        }
-                                                      }
-                                                    }}
-                                                  />
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      const input = document.getElementById(`custom-shift-input-${emp.id}-${dayIdx}`) as HTMLInputElement;
-                                                      const val = input?.value.trim().toUpperCase();
-                                                      if (val) {
-                                                        handleSelectShiftValue(emp.id, dayIdx, val);
-                                                      }
-                                                    }}
-                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
-                                                  >
-                                                    ตกลง
-                                                  </button>
-                                                </div>
-
-                                                <button 
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveEditingCell(null);
-                                                  }}
-                                                  className="mt-2 w-full py-1.5 text-center bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold transition-colors"
-                                                >
-                                                  ปิดเมนู
-                                                </button>
-                                              </div>
-                                            )}
                                           </div>
                                         );
                                       })}
@@ -8899,6 +8825,195 @@ export default function App() {
           </div>
         );
       })()}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: EMPLOYEE DAILY SHIFT EDITOR */}
+      {/* ======================================= */}
+      {editingEmployeeShiftsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <EmployeeAvatar empId={editingEmployeeShiftsModal.id} empName={editingEmployeeShiftsModal.name} className="w-12 h-12 border-2 border-white shadow-md" />
+                <div>
+                  <h3 className="text-base font-black text-slate-900">{editingEmployeeShiftsModal.name} ({editingEmployeeShiftsModal.id})</h3>
+                  <p className="text-xs text-blue-700 font-bold mt-0.5">
+                    ตำแหน่ง: {editingEmployeeShiftsModal.role || "Operator"} • แผนก: {getDeptName(editingEmployeeShiftsModal.deptId, state?.departments)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingEmployeeShiftsModal(null)}
+                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                ✕ ปิดหน้าต่าง
+              </button>
+            </div>
+
+            {/* Modal Body: Days Grid */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                <span className="text-xs font-extrabold text-slate-700">จัดตารางกะรายวันประจำเดือน ({state?.shiftConfig?.currentMonth || "2026-07"}):</span>
+                <span className="text-xs text-slate-500 font-medium">เลือกเวลาทำงาน (เริ่ม-เลิก) หรือเลือกกะมาตรฐาน</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                {Array.from({ length: totalDays }, (_, i) => {
+                  const dayNum = i + 1;
+                  const currentShiftCode = (editingEmployeeShiftsModal.shifts || [])[i] || "O";
+                  const dateObj = new Date(yr, mn - 1, dayNum);
+                  const dayOfWeek = dateObj.getDay();
+                  const dayName = dayNames[dayOfWeek];
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                  return (
+                    <div 
+                      key={dayNum}
+                      className={`p-2.5 rounded-2xl border transition-all flex flex-col justify-between space-y-2 ${
+                        isWeekend ? "bg-amber-50/40 border-amber-200/80" : "bg-slate-50/80 border-slate-200/80"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center border-b border-slate-200/60 pb-1">
+                        <span className={`text-[11px] font-extrabold ${isWeekend ? "text-amber-800" : "text-slate-800"}`}>
+                          วันที่ {dayNum} ({dayName})
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${getShiftStyle(currentShiftCode)}`}>
+                          {currentShiftCode}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-400 mb-0.5">เลือกกะมาตรฐาน:</label>
+                          <select
+                            value={currentShiftCode}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const newShifts = [...(editingEmployeeShiftsModal.shifts || [])];
+                              while (newShifts.length <= i) newShifts.push("O");
+                              newShifts[i] = val;
+                              setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
+                            }}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer"
+                          >
+                            {SHIFT_OPTIONS.map(opt => (
+                              <option key={opt.code} value={opt.code}>{opt.code} - {opt.desc}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="pt-1 border-t border-slate-200/60">
+                          <label className="block text-[9px] font-bold text-slate-400 mb-0.5">คำนวณตามเวลา:</label>
+                          <div className="grid grid-cols-2 gap-1 text-[10px]">
+                            <select
+                              id={`modal-start-${dayNum}`}
+                              defaultValue="08:00"
+                              className="px-1 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-bold"
+                            >
+                              <option value="08:00">08:00 (M)</option>
+                              <option value="16:00">16:00 (A)</option>
+                              <option value="20:00">20:00 (N)</option>
+                            </select>
+                            <select
+                              id={`modal-end-${dayNum}`}
+                              defaultValue="20:00"
+                              className="px-1 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-bold"
+                            >
+                              <option value="16:00">16:00 (8h)</option>
+                              <option value="20:00">20:00 (12h)</option>
+                              <option value="00:00">00:00 (16h)</option>
+                              <option value="04:00">04:00</option>
+                              <option value="08:00">08:00</option>
+                              <option value="12:00">12:00</option>
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sElem = document.getElementById(`modal-start-${dayNum}`) as HTMLSelectElement;
+                              const eElem = document.getElementById(`modal-end-${dayNum}`) as HTMLSelectElement;
+                              const sVal = sElem?.value || "08:00";
+                              const eVal = eElem?.value || "20:00";
+
+                              let prefix = "M";
+                              if (sVal === "16:00") prefix = "A";
+                              if (sVal === "20:00") prefix = "N";
+
+                              const timeToMin = (tStr: string) => {
+                                const [h, m] = tStr.split(":").map(Number);
+                                return h * 60 + m;
+                              };
+
+                              let startMin = timeToMin(sVal);
+                              let endMin = timeToMin(eVal);
+                              if (endMin <= startMin) endMin += 24 * 60;
+
+                              const totalHours = Math.round((endMin - startMin) / 60);
+                              const otHours = Math.max(0, totalHours - 8);
+
+                              const generatedCode = otHours > 0 ? `${prefix}${otHours}` : `${prefix}8`;
+                              const newShifts = [...(editingEmployeeShiftsModal.shifts || [])];
+                              while (newShifts.length <= i) newShifts.push("O");
+                              newShifts[i] = generatedCode;
+                              setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
+                            }}
+                            className="w-full mt-1 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[9px] font-bold cursor-pointer"
+                          >
+                            คำนวณรหัส
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingEmployeeShiftsModal(null)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!editingEmployeeShiftsModal) return;
+                  const updatedEmps = state.employees.map(e => 
+                    e.id === editingEmployeeShiftsModal.id ? editingEmployeeShiftsModal : e
+                  );
+                  setState(prev => ({ ...prev, employees: updatedEmps }));
+                  setEditingEmployeeShiftsModal(null);
+
+                  try {
+                    const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
+                    await fetch("/api/save-shifts", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        employees: updatedEmps,
+                        year: y ? Number(y) : undefined,
+                        month: m ? Number(m) : undefined
+                      })
+                    });
+                    alert("บันทึกตารางกะรายวันของพนักงานเรียบร้อยแล้ว!");
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold cursor-pointer shadow-md"
+              >
+                บันทึกตารางกะพนักงาน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: CSV TEMPLATE HUB */}
