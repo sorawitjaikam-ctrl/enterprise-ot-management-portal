@@ -4008,19 +4008,18 @@ export default function App() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <table className="w-full text-left border-collapse min-w-[950px]">
                       <thead>
                         <tr className="bg-slate-100/90 border-b border-slate-200 text-xs font-black text-slate-700 uppercase tracking-wider">
-                          <th className="px-3.5 py-3 font-mono w-28">รหัสพนักงาน</th>
+                          <th className="px-3.5 py-3 font-mono w-24">รหัสพนักงาน</th>
                           <th className="px-3.5 py-3 min-w-[170px]">ชื่อ-นามสกุล</th>
                           <th className="px-3.5 py-3 min-w-[130px]">ตำแหน่ง</th>
-                          <th className="px-3.5 py-3 w-28">แผนก</th>
+                          <th className="px-3.5 py-3 w-28 text-center">แผนก</th>
                           <th className="px-3.5 py-3 text-center w-28">สถานะ</th>
-                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[140px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
-                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[140px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
-                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[120px]">กำไรสะสม 2025</th>
-                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[120px]">กำไรสะสม 2026</th>
-                          <th className="px-3.5 py-3 text-center w-24">รายละเอียด</th>
+                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[130px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
+                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[130px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
+                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2025</th>
+                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">กำไรสะสม 2026</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
@@ -4052,16 +4051,31 @@ export default function App() {
                             const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "ลาออก";
 
                             return (
-                              <tr key={jv?.id || jv?.empId || Math.random()} className="hover:bg-slate-50/80 transition-colors">
+                              <tr 
+                                key={jv?.id || jv?.empId || Math.random()} 
+                                onClick={() => {
+                                  const found = empMaster || {
+                                    id: jv?.empId || "EMP",
+                                    name: jv?.empName || "พนักงาน",
+                                    role: jv?.position || "Operator",
+                                    deptId: jv?.department || "inter2",
+                                    employmentStatus: jv?.status || "Active",
+                                    salary: jv?.avgCost ? Math.round(jv.avgCost / 1.35) : 15000
+                                  };
+                                  setViewingEmployeeDetails(found as any);
+                                }}
+                                className="hover:bg-blue-50/60 transition-colors cursor-pointer group"
+                                title="คลิกเพื่อดูบัตรประจำตัวพนักงานและข้อมูลโปรไฟล์ (Employee Profile Card)"
+                              >
                                 <td className="px-3.5 py-3 font-mono font-bold text-slate-600 text-xs">{jv?.empId || "-"}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs">
+                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
                                   <div className="flex items-center gap-2">
                                     <EmployeeAvatar empId={jv?.empId || ""} empName={empName} className="w-7 h-7 flex-shrink-0" />
-                                    <span>{empName}</span>
+                                    <span className="underline-offset-2 group-hover:underline">{empName}</span>
                                   </div>
                                 </td>
                                 <td className="px-3.5 py-3 font-medium text-slate-700 text-xs">{position}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-700">
+                                <td className="px-3.5 py-3 font-bold text-slate-700 text-center">
                                   <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
                                     {deptName}
                                   </span>
@@ -4081,22 +4095,13 @@ export default function App() {
                                 <td className="px-3.5 py-3 text-right font-black text-rose-700 font-mono text-sm">{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{(Number(jv?.profit2025) || 0).toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-right font-black text-blue-700 font-mono text-sm">{(Number(jv?.profit2026) || 0).toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewingJobValueModal(jv)}
-                                    className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer shadow-sm"
-                                  >
-                                    รายเดือน
-                                  </button>
-                                </td>
                               </tr>
                             );
                           })}
 
                         {safeJobValueRecords.length === 0 && (
                           <tr>
-                            <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
+                            <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
                               <div className="flex flex-col items-center justify-center space-y-3">
                                 <FileSpreadsheet className="w-10 h-10 text-slate-300" />
                                 <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูล Job Value ในระบบ</p>
@@ -7410,6 +7415,41 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+                {/* Category 3: สถิติคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance) */}
+                {(() => {
+                  const matchJv = (jobValueRecords || []).find(r => 
+                    String(r?.empId || "").toLowerCase() === String(viewingEmployeeDetails.id || "").toLowerCase() ||
+                    String(r?.empName || "").toLowerCase() === String(viewingEmployeeDetails.name || "").toLowerCase()
+                  );
+                  if (!matchJv) return null;
+
+                  return (
+                    <div className="space-y-2.5 pt-2">
+                      <h4 className="font-extrabold text-blue-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
+                        📈 สรุปคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance)
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
+                        <div>
+                          <span className="block text-[10px] text-emerald-700 font-bold">รายได้เฉลี่ย/เดือน</span>
+                          <span className="font-black text-emerald-800 font-mono text-sm">{(Number(matchJv.avgRevenue) || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-rose-700 font-bold">ต้นทุนเฉลี่ย/เดือน</span>
+                          <span className="font-black text-rose-800 font-mono text-sm">{(Number(matchJv.avgCost) || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-600 font-bold">กำไรสะสมปี 2025</span>
+                          <span className="font-bold text-slate-800 font-mono text-sm">{(Number(matchJv.profit2025) || 0).toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-blue-700 font-bold">กำไรสะสมปี 2026</span>
+                          <span className="font-black text-blue-800 font-mono text-sm">{(Number(matchJv.profit2026) || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
 
             {/* Footer buttons */}
