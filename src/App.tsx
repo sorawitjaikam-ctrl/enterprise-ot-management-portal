@@ -4018,8 +4018,9 @@ export default function App() {
                           <th className="px-3.5 py-3 text-center w-28">สถานะ</th>
                           <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[130px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
                           <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[130px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
-                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2025</th>
-                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">กำไรสะสม 2026</th>
+                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2568</th>
+                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">กำไรสะสม 2569</th>
+                          <th className="px-3.5 py-3 text-center min-w-[130px]">ผลงาน 68 ➔ 69</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
@@ -4049,6 +4050,10 @@ export default function App() {
                             const position = empMaster?.role || jv?.position || "-";
                             const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
                             const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "ลาออก";
+                            const p25 = Number(jv?.profit2025) || 0;
+                            const p26 = Number(jv?.profit2026) || 0;
+                            const diff = p26 - p25;
+                            const isGrowth = diff >= 0;
 
                             return (
                               <tr 
@@ -4093,15 +4098,26 @@ export default function App() {
                                 </td>
                                 <td className="px-3.5 py-3 text-right font-black text-emerald-700 font-mono text-sm">{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-right font-black text-rose-700 font-mono text-sm">{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{(Number(jv?.profit2025) || 0).toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-black text-blue-700 font-mono text-sm">{(Number(jv?.profit2026) || 0).toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{p25.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-black text-blue-700 font-mono text-sm">{p26.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-center font-bold">
+                                  {isGrowth ? (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black" title={`กำไรเพิ่มขึ้น +${diff.toLocaleString()}`}>
+                                      🟢 ต่อยอด (+{diff.toLocaleString()})
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black" title={`กำไรลดลง -${Math.abs(diff).toLocaleString()}`}>
+                                      🔴 ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
+                                    </span>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
 
                         {safeJobValueRecords.length === 0 && (
                           <tr>
-                            <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                            <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
                               <div className="flex flex-col items-center justify-center space-y-3">
                                 <FileSpreadsheet className="w-10 h-10 text-slate-300" />
                                 <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูล Job Value ในระบบ</p>
@@ -7262,25 +7278,25 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
             {/* Header / Avatar Banner */}
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-start">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-5">
                 <EmployeeAvatar 
                   empId={viewingEmployeeDetails.id} 
                   empName={viewingEmployeeDetails.name} 
-                  className="w-16 h-16 text-lg border-2 border-white shadow-md" 
+                  className="w-24 h-24 sm:w-28 sm:h-28 text-2xl border-4 border-white shadow-xl rounded-2xl flex-shrink-0 object-cover" 
                 />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-extrabold text-slate-900">
+                    <h3 className="text-xl font-black text-slate-900">
                       {viewingEmployeeDetails.prefix || ""}{viewingEmployeeDetails.name}
                     </h3>
                     {viewingEmployeeDetails.nickname && (
-                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg text-[10px] font-extrabold">
+                      <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-xl text-xs font-extrabold">
                         ({viewingEmployeeDetails.nickname})
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 font-mono mt-0.5">รหัสพนักงาน: <span className="text-slate-800 font-bold">{viewingEmployeeDetails.id}</span></p>
-                  <p className="text-[11px] text-indigo-600 font-bold mt-1">
+                  <p className="text-xs text-slate-500 font-mono mt-1">รหัสพนักงาน: <span className="text-slate-800 font-bold">{viewingEmployeeDetails.id}</span></p>
+                  <p className="text-xs text-indigo-600 font-bold mt-1">
                     {viewingEmployeeDetails.role} • แผนก {
                       state.departments.find(d => d.id === viewingEmployeeDetails.deptId)?.nameTh || viewingEmployeeDetails.deptId
                     }
@@ -7289,7 +7305,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setViewingEmployeeDetails(null)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
                 ✕
               </button>
@@ -7371,12 +7387,14 @@ export default function App() {
                   💰 ข้อมูลสัญญาการจ้างงานและข้อจำกัดโอที (Compensation & Policy)
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
-                    <span className="font-bold text-slate-800 font-mono">
-                      {canAccessSalary ? `฿${viewingEmployeeDetails.salary?.toLocaleString() || "0"}` : "🔒 เฉพาะสิทธิ์ HR"}
-                    </span>
-                  </div>
+                  {canAccessSalary && (
+                    <div>
+                      <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
+                      <span className="font-bold text-slate-800 font-mono">
+                        ฿{viewingEmployeeDetails.salary?.toLocaleString() || "0"}
+                      </span>
+                    </div>
+                  )}
                   <div>
                     <span className="block text-[10px] text-slate-400 font-medium">วันเริ่มงาน</span>
                     <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.startDate || "-"}</span>
@@ -7416,7 +7434,7 @@ export default function App() {
                 </div>
               </div>
 
-                {/* Category 3: สถิติคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance) */}
+                {/* Category 4: สถิติคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance Growth) */}
                 {(() => {
                   const matchJv = (jobValueRecords || []).find(r => 
                     String(r?.empId || "").toLowerCase() === String(viewingEmployeeDetails.id || "").toLowerCase() ||
@@ -7424,11 +7442,28 @@ export default function App() {
                   );
                   if (!matchJv) return null;
 
+                  const p25 = Number(matchJv.profit2025) || 0;
+                  const p26 = Number(matchJv.profit2026) || 0;
+                  const diff = p26 - p25;
+                  const isGrowth = diff >= 0;
+
                   return (
                     <div className="space-y-2.5 pt-2">
-                      <h4 className="font-extrabold text-blue-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                        📈 สรุปคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance)
-                      </h4>
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                        <h4 className="font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
+                          📈 สรุปคุณค่าตำแหน่งงานและการเงิน (Job Value & Growth 68/69)
+                        </h4>
+                        {isGrowth ? (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black border border-emerald-300 shadow-sm">
+                            🟢 ต่อยอด (+{diff.toLocaleString()})
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black border border-rose-300 shadow-sm">
+                            🔴 ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
+                          </span>
+                        )}
+                      </div>
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
                         <div>
                           <span className="block text-[10px] text-emerald-700 font-bold">รายได้เฉลี่ย/เดือน</span>
@@ -7439,12 +7474,34 @@ export default function App() {
                           <span className="font-black text-rose-800 font-mono text-sm">{(Number(matchJv.avgCost) || 0).toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-slate-600 font-bold">กำไรสะสมปี 2025</span>
-                          <span className="font-bold text-slate-800 font-mono text-sm">{(Number(matchJv.profit2025) || 0).toLocaleString()}</span>
+                          <span className="block text-[10px] text-slate-600 font-bold">กำไรสะสมปี 2568 (2025)</span>
+                          <span className="font-bold text-slate-800 font-mono text-sm">{p25.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-blue-700 font-bold">กำไรสะสมปี 2026</span>
-                          <span className="font-black text-blue-800 font-mono text-sm">{(Number(matchJv.profit2026) || 0).toLocaleString()}</span>
+                          <span className="block text-[10px] text-blue-700 font-bold">กำไรสะสมปี 2569 (2026)</span>
+                          <span className="font-black text-blue-800 font-mono text-sm">{p26.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Comparison Growth Banner */}
+                      <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        isGrowth ? "bg-emerald-50/90 border-emerald-200 text-emerald-950" : "bg-rose-50/90 border-rose-200 text-rose-950"
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{isGrowth ? "🚀" : "📉"}</span>
+                          <div>
+                            <div className="text-xs font-black">
+                              ผลการเปรียบเทียบกำไรปี 2568 ➔ 2569: {isGrowth ? "เติบโตต่อยอด (Positive Growth)" : "ลดลงไม่ต่อยอด (Performance Decline)"}
+                            </div>
+                            <div className="text-[11px] font-semibold opacity-85 mt-0.5">
+                              ส่วนต่างผลงานสะสม: {isGrowth ? `เพิ่มขึ้น +${diff.toLocaleString()}` : `ลดลง -${Math.abs(diff).toLocaleString()}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1.5 rounded-xl font-mono font-black text-xs self-start sm:self-auto ${
+                          isGrowth ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
+                        }`}>
+                          {isGrowth ? `🟢 ต่อยอด (+${diff.toLocaleString()})` : `🔴 ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
                         </div>
                       </div>
                     </div>
