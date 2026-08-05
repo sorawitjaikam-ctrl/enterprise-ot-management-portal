@@ -228,8 +228,15 @@ const writeAuditLog = async (username: string, action: string, targetType: strin
 // ============================================================
 // Helper: compute employee OT from ot_daily_records (D1)
 // ============================================================
-const computeEmployeeOtStats = async (employeeId: string, targetOt: number) => {
-  const rows = await queryD1("SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE employeeId = ?", [employeeId]);
+// Helper: compute employee OT from ot_daily_records (D1)
+const computeEmployeeOtStats = async (employeeId: string, targetOt: number, reqYear?: number, reqMonth?: number) => {
+  let sql = "SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE employeeId = ?";
+  const params: any[] = [employeeId];
+  if (reqYear && reqMonth) {
+    sql += " AND year = ? AND month = ?";
+    params.push(reqYear, reqMonth);
+  }
+  const rows = await queryD1(sql, params);
   const actualOt = Math.round((rows[0]?.total || 0) * 10) / 10;
   const otPct    = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
   const status   = actualOt > targetOt ? "Warning" : "On Track";
@@ -237,10 +244,26 @@ const computeEmployeeOtStats = async (employeeId: string, targetOt: number) => {
 };
 
 // Helper: enrich employees array with computed OT stats & sync shifts (D1)
-const enrichEmployeesWithOt = async (employees: any[]): Promise<any[]> => {
+const enrichEmployeesWithOt = async (employees: any[], customYear?: number, customMonth?: number): Promise<any[]> => {
+  let year = customYear;
+  let month = customMonth;
+
+  if (!year || !month) {
+    try {
+      const cfgRows = await queryD1("SELECT currentMonth FROM shift_config LIMIT 1");
+      const cm = cfgRows[0]?.currentMonth || "";
+      if (cm.includes("-")) {
+        const [yStr, mStr] = cm.split("-");
+        year = Number(yStr);
+        month = Number(mStr);
+      }
+    } catch (_) {}
+  }
+
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  if (!year || isNaN(year)) year = now.getFullYear();
+  if (!month || isNaN(month)) month = now.getMonth() + 1;
+
   const daysInMonth = new Date(year, month, 0).getDate();
 
   // Fetch daily OT records for current month
@@ -271,10 +294,14 @@ const enrichEmployeesWithOt = async (employees: any[]): Promise<any[]> => {
   ];
 
   return Promise.all(employees.map(async (e: any, idx: number) => {
-    const { actualOt, otPct, status } = await computeEmployeeOtStats(e.id, e.targetOt || 48);
+    const { actualOt, otPct, status } = await computeEmployeeOtStats(e.id, e.targetOt || 48, year, month);
     let shifts: string[] = [];
     try {
-      shifts = JSON.parse(e.shifts || "[]");
+      if (typeof e.shifts === "string") {
+        shifts = JSON.parse(e.shifts || "[]");
+      } else if (Array.isArray(e.shifts)) {
+        shifts = [...e.shifts];
+      }
     } catch (_) {
       shifts = [];
     }

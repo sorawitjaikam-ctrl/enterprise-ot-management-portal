@@ -125,8 +125,20 @@ export const getShiftOtHours = (shift: string) => {
   return 0;
 };
 
-export const getEmployeeShiftsForView = (shifts: string[], limit: number) => {
-  const result = [...shifts];
+export const getEmpShiftsArray = (shifts: any): string[] => {
+  if (Array.isArray(shifts)) return shifts;
+  if (typeof shifts === "string") {
+    try {
+      const parsed = JSON.parse(shifts);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_) {}
+  }
+  return [];
+};
+
+export const getEmployeeShiftsForView = (shifts: any, limit: number) => {
+  const arr = getEmpShiftsArray(shifts);
+  const result = [...arr];
   if (result.length >= limit) {
     return result.slice(0, limit);
   }
@@ -6159,41 +6171,45 @@ export default function App() {
 
                                     {/* Shift Cells */}
                                     <div className="flex">
-                                      {currentDays.map((day) => {
-                                        const dayIdx = day.n - 1;
-                                        const shift = emp.shifts[dayIdx] || "O";
-                                        const styleClass = getShiftStyle(shift);
+                                      {(() => {
+                                        const empShifts = getEmpShiftsArray(emp.shifts);
+                                        return currentDays.map((day) => {
+                                          const dayIdx = day.n - 1;
+                                          const shift = empShifts[dayIdx] || "O";
+                                          const styleClass = getShiftStyle(shift);
 
-                                        return (
-                                          <div 
-                                            key={dayIdx} 
-                                            style={{ 
-                                              width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
-                                              height: daysLimit === 30 ? "40px" : daysLimit === 14 ? "48px" : "56px"
-                                            }}
-                                            className="flex-shrink-0 p-1 border-r border-slate-200 flex items-center justify-center cursor-pointer select-none transition-all"
-                                          >
-                                            <div className={`w-full h-full border rounded-lg flex items-center justify-center font-extrabold ${
-                                              daysLimit === 30 ? "text-[9px]" : "text-xs"
-                                            } ${styleClass}`}>
-                                              {shift === "⚠" ? (
-                                                <div className="flex items-center justify-center text-red-600 font-mono text-[10px]" title="กำลังพลทำงานต่อเนื่อง เกินขีดปลอดภัย!">
-                                                  [เกินขีด]
-                                                </div>
-                                              ) : (
-                                                shift
-                                              )}
+                                          return (
+                                            <div 
+                                              key={dayIdx} 
+                                              style={{ 
+                                                width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                                height: daysLimit === 30 ? "40px" : daysLimit === 14 ? "48px" : "56px"
+                                              }}
+                                              className="flex-shrink-0 p-1 border-r border-slate-200 flex items-center justify-center cursor-pointer select-none transition-all"
+                                            >
+                                              <div className={`w-full h-full border rounded-lg flex items-center justify-center font-extrabold ${
+                                                daysLimit === 30 ? "text-[9px]" : "text-xs"
+                                              } ${styleClass}`}>
+                                                {shift === "⚠" ? (
+                                                  <div className="flex items-center justify-center text-red-600 font-mono text-[10px]" title="กำลังพลทำงานต่อเนื่อง เกินขีดปลอดภัย!">
+                                                    [เกินขีด]
+                                                  </div>
+                                                ) : (
+                                                  shift
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-                                        );
-                                      })}
+                                          );
+                                        });
+                                      })()}
                                     </div>
 
                                     {/* OT Column Cell */}
                                     <div className={`flex-shrink-0 flex items-center justify-center border-l border-slate-200 bg-blue-50/20 font-mono text-xs font-bold ${daysLimit === 30 ? "w-20" : "w-24"}`}>
                                       {(() => {
+                                        const empShifts = getEmpShiftsArray(emp.shifts);
                                         const periodOtHours = currentDays.reduce((acc, day) => {
-                                          const shift = emp.shifts[day.n - 1] || "O";
+                                          const shift = empShifts[day.n - 1] || "O";
                                           return acc + getShiftOtHours(shift);
                                         }, 0);
                                         const periodTargetOt = selectedWeek === "all" ? emp.targetOt : emp.targetOt / 4;
