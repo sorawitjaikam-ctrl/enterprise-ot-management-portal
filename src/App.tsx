@@ -1832,6 +1832,8 @@ export default function App() {
   const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
   const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
   const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
+  const [financialChartOnlyActiveMonths, setFinancialChartOnlyActiveMonths] = useState<boolean>(true);
+  const [financialChartViewType, setFinancialChartViewType] = useState<"bar" | "trend">("trend");
   const currentMonthKey = new Date().toISOString().substring(0, 7);
   const [dismissedBirthdayPopup, setDismissedBirthdayPopup] = useState<boolean>(() => {
     return localStorage.getItem("dismissedBirthdayMonth") === currentMonthKey;
@@ -4435,65 +4437,287 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Monthly Performance Trend Bar Chart */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
+                {/* Monthly Performance Trend & Financial Chart */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  {/* Chart Header & Filter Controls */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
-                      <h4 className="text-sm font-extrabold text-slate-800">เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">รวมผลประกอบการ รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) รวมทั้ง 12 เดือน</p>
+                      <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                        <span>เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</span>
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        เปรียบเทียบแนวโน้ม รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) สุภาพการเงินรายเดือน
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Active Months vs 12 Months Filter */}
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60">
+                        <button
+                          type="button"
+                          onClick={() => setFinancialChartOnlyActiveMonths(true)}
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                            financialChartOnlyActiveMonths 
+                              ? "bg-white text-blue-700 shadow-sm font-extrabold" 
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          เฉพาะเดือนที่มีข้อมูล
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFinancialChartOnlyActiveMonths(false)}
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                            !financialChartOnlyActiveMonths 
+                              ? "bg-white text-blue-700 shadow-sm font-extrabold" 
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          แสดงทั้ง 12 เดือน
+                        </button>
+                      </div>
+
+                      {/* Trend Line vs Bar Chart Toggle */}
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60">
+                        <button
+                          type="button"
+                          onClick={() => setFinancialChartViewType("trend")}
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            financialChartViewType === "trend" 
+                              ? "bg-blue-600 text-white shadow-sm font-extrabold" 
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>กราฟแนวโน้ม (Trend Line)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFinancialChartViewType("bar")}
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                            financialChartViewType === "bar" 
+                              ? "bg-blue-600 text-white shadow-sm font-extrabold" 
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          <BarChart3 className="w-3.5 h-3.5" />
+                          <span>กราฟแท่ง (Bar)</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-12 gap-2 pt-4 border-t border-slate-100">
-                    {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
+                  {(() => {
+                    const allMonthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const allMonthData = allMonthLabels.map((m, idx) => {
                       const monthRev = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[idx]) || 0), 0);
                       const monthCost = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyCost || [])[idx]) || 0), 0);
                       const monthProf = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyProfit || [])[idx]) || 0), 0);
-                      const maxVal = Math.max(1, ...[...Array(12)].map((_, i) => safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[i]) || 0), 0)));
-                      const revPct = Math.round((monthRev / maxVal) * 100);
+                      return { month: m, idx, rev: monthRev, cost: monthCost, prof: monthProf, hasData: monthRev > 0 || monthCost > 0 || monthProf > 0 };
+                    });
 
-                      return (
-                        <div key={m} className="flex flex-col items-center gap-2 group">
-                          <div className="h-32 w-full bg-slate-50 rounded-xl flex items-end justify-center p-1 gap-1 relative overflow-hidden">
-                            {/* Revenue Bar */}
-                            <div 
-                              className="w-1/3 bg-emerald-500 rounded-t-sm transition-all duration-300 group-hover:bg-emerald-600" 
-                              style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
-                              title={`Revenue: ฿${monthRev.toLocaleString()}`}
-                            />
-                            {/* Cost Bar */}
-                            <div 
-                              className="w-1/3 bg-rose-400 rounded-t-sm transition-all duration-300 group-hover:bg-rose-500" 
-                              style={{ height: `${Math.max(8, Math.min(100, Math.round((monthCost / maxVal) * 100)))}%` }}
-                              title={`Cost: ฿${monthCost.toLocaleString()}`}
-                            />
-                            {/* Profit Bar */}
-                            <div 
-                              className="w-1/3 bg-blue-600 rounded-t-sm transition-all duration-300 group-hover:bg-blue-700" 
-                              style={{ height: `${Math.max(5, Math.min(100, Math.round((monthProf / maxVal) * 100)))}%` }}
-                              title={`Profit: ฿${monthProf.toLocaleString()}`}
-                            />
+                    // Filter active months
+                    const filteredData = financialChartOnlyActiveMonths 
+                      ? allMonthData.filter(d => d.hasData)
+                      : allMonthData;
+
+                    const displayData = filteredData.length > 0 ? filteredData : allMonthData.slice(0, 6);
+                    const maxVal = Math.max(1, ...displayData.map(d => Math.max(d.rev, d.cost, d.prof)));
+
+                    return (
+                      <div className="space-y-4 pt-2 border-t border-slate-100">
+                        {/* CHART CANVAS */}
+                        {financialChartViewType === "trend" ? (
+                          /* SVG TREND LINE CHART */
+                          <div className="w-full bg-slate-50/70 rounded-2xl p-4 border border-slate-200/70 overflow-x-auto">
+                            <div className="min-w-[600px] h-[260px] relative flex flex-col justify-between">
+                              <svg className="w-full h-[220px] overflow-visible" viewBox="0 0 800 220" preserveAspectRatio="none">
+                                <defs>
+                                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                                  </linearGradient>
+                                  <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.2" />
+                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
+                                  </linearGradient>
+                                  <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+                                  </linearGradient>
+                                </defs>
+
+                                {/* Y-Axis Grid Lines */}
+                                {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+                                  const y = 180 - ratio * 150;
+                                  const val = Math.round(maxVal * ratio);
+                                  return (
+                                    <g key={i}>
+                                      <line x1="50" y1={y} x2="780" y2={y} stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
+                                      <text x="45" y={y + 4} textAnchor="end" className="text-[10px] font-mono fill-slate-400">
+                                        ฿{val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+
+                                {(() => {
+                                  const n = displayData.length;
+                                  const getX = (index: number) => 70 + (index / Math.max(1, n - 1)) * 690;
+                                  const getY = (val: number) => 180 - (val / maxVal) * 150;
+
+                                  const revPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.rev) }));
+                                  const costPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.cost) }));
+                                  const profPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.prof) }));
+
+                                  const makePath = (pts: { x: number; y: number }[]) => {
+                                    if (pts.length === 0) return "";
+                                    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+                                    let path = `M ${pts[0].x} ${pts[0].y}`;
+                                    for (let i = 0; i < pts.length - 1; i++) {
+                                      const p0 = pts[i];
+                                      const p1 = pts[i + 1];
+                                      const cpX1 = p0.x + (p1.x - p0.x) / 2;
+                                      const cpX2 = p0.x + (p1.x - p0.x) / 2;
+                                      path += ` C ${cpX1} ${p0.y}, ${cpX2} ${p1.y}, ${p1.x} ${p1.y}`;
+                                    }
+                                    return path;
+                                  };
+
+                                  const revPath = makePath(revPts);
+                                  const costPath = makePath(costPts);
+                                  const profPath = makePath(profPts);
+
+                                  const revArea = revPts.length > 0 ? `${revPath} L ${revPts[revPts.length - 1].x} 180 L ${revPts[0].x} 180 Z` : "";
+                                  const costArea = costPts.length > 0 ? `${costPath} L ${costPts[costPts.length - 1].x} 180 L ${costPts[0].x} 180 Z` : "";
+                                  const profArea = profPts.length > 0 ? `${profPath} L ${profPts[profPts.length - 1].x} 180 L ${profPts[0].x} 180 Z` : "";
+
+                                  return (
+                                    <>
+                                      {/* Area fills */}
+                                      <path d={revArea} fill="url(#revGrad)" />
+                                      <path d={costArea} fill="url(#costGrad)" />
+                                      <path d={profArea} fill="url(#profGrad)" />
+
+                                      {/* Trend Lines */}
+                                      <path d={revPath} fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" />
+                                      <path d={costPath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 5" />
+                                      <path d={profPath} fill="none" stroke="#2563eb" strokeWidth="3.5" strokeLinecap="round" />
+
+                                      {/* Data Dots & Interactive Circles */}
+                                      {displayData.map((d, i) => {
+                                        const px = getX(i);
+                                        const ry = getY(d.rev);
+                                        const cy = getY(d.cost);
+                                        const py = getY(d.prof);
+
+                                        return (
+                                          <g key={d.month} className="group/dot cursor-pointer">
+                                            {/* Vertical hover line */}
+                                            <line x1={px} y1="30" x2={px} y2="180" stroke="#cbd5e1" strokeDasharray="3 3" strokeWidth="1.5" className="opacity-0 group-hover/dot:opacity-100 transition-opacity" />
+
+                                            {/* Revenue Dot */}
+                                            <circle cx={px} cy={ry} r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
+                                            {/* Cost Dot */}
+                                            <circle cx={px} cy={cy} r="4" fill="#f43f5e" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-6" />
+                                            {/* Profit Dot */}
+                                            <circle cx={px} cy={py} r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
+                                          </g>
+                                        );
+                                      })}
+                                    </>
+                                  );
+                                })()}
+                              </svg>
+
+                              {/* X-Axis Month Labels */}
+                              <div className="flex justify-between px-[50px] text-xs font-black text-slate-700 pt-2 border-t border-slate-200/80">
+                                {displayData.map(d => (
+                                  <div key={d.month} className="text-center">
+                                    <span>{d.month}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-[11px] font-bold text-slate-600">{m}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        ) : (
+                          /* BAR CHART VIEW */
+                          <div className="grid gap-3 pt-2" style={{ gridTemplateColumns: `repeat(${displayData.length}, minmax(0, 1fr))` }}>
+                            {displayData.map((d) => {
+                              const revPct = Math.round((d.rev / maxVal) * 100);
+                              const costPct = Math.round((d.cost / maxVal) * 100);
+                              const profPct = Math.round((d.prof / maxVal) * 100);
 
-                  <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                      <span className="text-slate-600">Revenue (รายได้)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-rose-400" />
-                      <span className="text-slate-600">Cost (ต้นทุน)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-blue-600" />
-                      <span className="text-slate-600">Profit (กำไรสุทธิ)</span>
-                    </div>
-                  </div>
+                              return (
+                                <div key={d.month} className="flex flex-col items-center gap-2 group">
+                                  <div className="h-36 w-full bg-slate-50 rounded-2xl flex items-end justify-center p-1.5 gap-1 relative overflow-hidden border border-slate-100 shadow-inner">
+                                    <div 
+                                      className="w-1/3 bg-emerald-500 rounded-t-md transition-all duration-300 group-hover:bg-emerald-600 shadow-sm" 
+                                      style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
+                                      title={`Revenue (${d.month}): ฿${d.rev.toLocaleString()}`}
+                                    />
+                                    <div 
+                                      className="w-1/3 bg-rose-400 rounded-t-md transition-all duration-300 group-hover:bg-rose-500 shadow-sm" 
+                                      style={{ height: `${Math.max(8, Math.min(100, costPct))}%` }}
+                                      title={`Cost (${d.month}): ฿${d.cost.toLocaleString()}`}
+                                    />
+                                    <div 
+                                      className="w-1/3 bg-blue-600 rounded-t-md transition-all duration-300 group-hover:bg-blue-700 shadow-sm" 
+                                      style={{ height: `${Math.max(5, Math.min(100, profPct))}%` }}
+                                      title={`Profit (${d.month}): ฿${d.prof.toLocaleString()}`}
+                                    />
+                                  </div>
+                                  <span className="text-xs font-black text-slate-700">{d.month}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Chart Legend */}
+                        <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-xs font-extrabold border-t border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm" />
+                            <span className="text-slate-700">Revenue (รายได้เฉลี่ยรวม)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm border border-dashed border-rose-600" />
+                            <span className="text-slate-700">Cost (ต้นทุนเฉลี่ยรวม)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 rounded-full bg-blue-600 shadow-sm" />
+                            <span className="text-slate-700">Profit (กำไรสุทธิ)</span>
+                          </div>
+                        </div>
+
+                        {/* Monthly Exact Numbers Pill Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-3">
+                          {displayData.map(d => (
+                            <div key={d.month} className="bg-slate-50/90 rounded-2xl p-3 border border-slate-200/80 space-y-1 text-left font-mono">
+                              <div className="flex justify-between items-center pb-1 border-b border-slate-200/60 font-sans">
+                                <span className="font-black text-slate-900 text-xs">{d.month}</span>
+                                <span className="text-[10px] font-bold text-slate-400">2026</span>
+                              </div>
+                              <div className="text-[11px] space-y-0.5 pt-1">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500 font-sans">รายได้:</span>
+                                  <span className="font-extrabold text-emerald-700">฿{d.rev.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500 font-sans">ต้นทุน:</span>
+                                  <span className="font-extrabold text-rose-700">฿{d.cost.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between pt-0.5 border-t border-slate-200/40">
+                                  <span className="text-slate-500 font-sans">กำไร:</span>
+                                  <span className="font-black text-blue-700">฿{d.prof.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Roster Table of Job Value Records */}
