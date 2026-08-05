@@ -6050,14 +6050,25 @@ export default function App() {
                   <h3 className="text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
                   <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddAccountModal(true)}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCsvTemplateHubOpen(true)}
+                    className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                    title="ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับทุกเมนู"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                    <span>ศูนย์ดาวน์โหลดแม่แบบ CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddAccountModal(true)}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
