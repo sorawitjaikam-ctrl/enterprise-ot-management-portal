@@ -3858,99 +3858,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Department Job Value Summary Section (PROMINENT TOP POSITION) */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                  <div>
-                    <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-blue-600" />
-                      <span>สรุปข้อมูลคุณค่าตำแหน่งงาน (Job Value) และผลตอบแทน แยกรายแผนก</span>
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1">เปรียบเทียบผลประกอบการสะสม 2568 - 2569 รายแผนกย่อย</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("job_value")}
-                    className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer self-start md:self-auto shadow-sm"
-                  >
-                    ดูรายละเอียด JV พนักงานทั้งหมด
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(deptName => {
-                    if (isHrOrFullAccess) return true;
-                    return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
-                  }).map(deptName => {
-                    const targetDeptId = normalizeDeptId(deptName);
-                    const safeJv = jobValueRecords || [];
-                    const deptJvRecords = safeJv.filter(r => 
-                      r.department === deptName || 
-                      normalizeDeptId(r.department) === targetDeptId ||
-                      normalizeDeptId(r.deptId) === targetDeptId
-                    );
-                    const empList = (state.employees || []).filter(e => 
-                      normalizeDeptId(e.deptId) === targetDeptId || 
-                      normalizeDeptId(e.department) === targetDeptId ||
-                      e.deptId === deptName ||
-                      e.department === deptName
-                    );
-
-                    let count = Math.max(deptJvRecords.length, empList.length);
-                    let totalRev = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
-                    let totalCost = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
-                    let p25 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0);
-                    let p26 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2026) || 0), 0);
-
-                    // Fallback to employees if jobValueRecords has no entries for this department
-                    if (deptJvRecords.length === 0 && empList.length > 0) {
-                      totalRev = empList.reduce((sum, e) => sum + (Number((e as any).avgRevenue || (e as any).salary * 4.5 || 98500) || 0), 0);
-                      totalCost = empList.reduce((sum, e) => sum + (Number((e as any).avgCost || (e as any).salary * 1.5 || 145000) || 0), 0);
-                      p25 = empList.reduce((sum, e) => sum + (Number((e as any).profit2025 || (e as any).salary * 1.2 || 88000) || 0), 0);
-                      p26 = empList.reduce((sum, e) => sum + (Number((e as any).profit2026 || (e as any).salary * 2.8 || 520000) || 0), 0);
-                    }
-
-                    const diff = p26 - p25;
-                    const isGrowth = diff >= 0;
-
-                    return (
-                      <div key={deptName} className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 hover:shadow-md transition-all space-y-3">
-                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                          <span className="font-extrabold text-slate-900 text-sm">แผนก {deptName}</span>
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-extrabold">
-                            {count} บุคลากร
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 text-xs font-mono">
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 font-sans">รายได้เฉลี่ย/เดือน:</span>
-                            <span className="font-bold text-emerald-700">{totalRev.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
-                            <span className="font-bold text-rose-700">{totalCost.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between pt-1 border-t border-slate-200/60">
-                            <span className="text-slate-500 font-sans">กำไรสะสม 2568:</span>
-                            <span className="font-bold text-slate-700">{p25.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500 font-sans">กำไรสะสม 2569:</span>
-                            <span className="font-extrabold text-blue-700">{p26.toLocaleString()}</span>
-                          </div>
-                        </div>
-
-                        <div className={`p-2 rounded-xl text-[11px] font-extrabold text-center border ${
-                          isGrowth ? "bg-emerald-100/90 text-emerald-900 border-emerald-300" : "bg-rose-100/90 text-rose-900 border-rose-300"
-                        }`}>
-                          {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Header section filters */}
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -4567,6 +4474,92 @@ export default function App() {
                     </div>
                   );
                 })()}
+
+                {/* Department Job Value Summary Section */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                      <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                        <span>สรุปข้อมูลคุณค่าตำแหน่งงาน (Job Value) และผลตอบแทน แยกรายแผนก</span>
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">เปรียบเทียบผลประกอบการสะสม 2568 - 2569 รายแผนกย่อย</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(deptName => {
+                      if (isHrOrFullAccess) return true;
+                      return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
+                    }).map(deptName => {
+                      const targetDeptId = normalizeDeptId(deptName);
+                      const safeJv = jobValueRecords || [];
+                      const deptJvRecords = safeJv.filter(r => 
+                        r.department === deptName || 
+                        normalizeDeptId(r.department) === targetDeptId ||
+                        normalizeDeptId(r.deptId) === targetDeptId
+                      );
+                      const empList = (state.employees || []).filter(e => 
+                        normalizeDeptId(e.deptId) === targetDeptId || 
+                        normalizeDeptId(e.department) === targetDeptId ||
+                        e.deptId === deptName ||
+                        e.department === deptName
+                      );
+
+                      let count = Math.max(deptJvRecords.length, empList.length);
+                      let totalRev = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
+                      let totalCost = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
+                      let p25 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0);
+                      let p26 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2026) || 0), 0);
+
+                      if (deptJvRecords.length === 0 && empList.length > 0) {
+                        totalRev = empList.reduce((sum, e) => sum + (Number((e as any).avgRevenue || (e as any).salary * 4.5 || 98500) || 0), 0);
+                        totalCost = empList.reduce((sum, e) => sum + (Number((e as any).avgCost || (e as any).salary * 1.5 || 145000) || 0), 0);
+                        p25 = empList.reduce((sum, e) => sum + (Number((e as any).profit2025 || (e as any).salary * 1.2 || 88000) || 0), 0);
+                        p26 = empList.reduce((sum, e) => sum + (Number((e as any).profit2026 || (e as any).salary * 2.8 || 520000) || 0), 0);
+                      }
+
+                      const diff = p26 - p25;
+                      const isGrowth = diff >= 0;
+
+                      return (
+                        <div key={deptName} className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 hover:shadow-md transition-all space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                            <span className="font-extrabold text-slate-900 text-sm">แผนก {deptName}</span>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-extrabold">
+                              {count} บุคลากร
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 text-xs font-mono">
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 font-sans">รายได้เฉลี่ย/เดือน:</span>
+                              <span className="font-bold text-emerald-700">{totalRev.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
+                              <span className="font-bold text-rose-700">{totalCost.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between pt-1 border-t border-slate-200/60">
+                              <span className="text-slate-500 font-sans">กำไรสะสม 2568:</span>
+                              <span className="font-bold text-slate-700">{p25.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500 font-sans">กำไรสะสม 2569:</span>
+                              <span className="font-extrabold text-blue-700">{p26.toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <div className={`p-2 rounded-xl text-[11px] font-extrabold text-center border ${
+                            isGrowth ? "bg-emerald-100/90 text-emerald-900 border-emerald-300" : "bg-rose-100/90 text-rose-900 border-rose-300"
+                          }`}>
+                            {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* Monthly Performance Trend & Financial Chart */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
