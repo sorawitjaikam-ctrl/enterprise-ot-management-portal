@@ -1397,6 +1397,7 @@ export default function App() {
   const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
   const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
   const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
+  const [dismissedBirthdayPopup, setDismissedBirthdayPopup] = useState<boolean>(false);
 
   const fetchJobValueRecords = async () => {
     try {
@@ -7381,10 +7382,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Category 3: การจ้างงานและโควตา */}
+              {/* Category 3: ประวัติพนักงานและการปฏิบัติงาน */}
               <div className="space-y-2.5">
                 <h4 className="font-extrabold text-emerald-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  💰 ข้อมูลสัญญาการจ้างงานและข้อจำกัดโอที (Compensation & Policy)
+                  📜 ประวัติพนักงานและการปฏิบัติงาน (Employee Profile History)
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
                   {canAccessSalary && (
@@ -7408,30 +7409,74 @@ export default function App() {
                     <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.probationDate || "-"}</span>
                   </div>
                 </div>
-                
-                {/* OT Stats inside details */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-emerald-50/40 p-3 rounded-2xl border border-emerald-100/50">
-                  <div>
-                    <span className="block text-[10px] text-emerald-600 font-bold">เป้าหมาย OT สะสมสูงสุด</span>
-                    <span className="font-black text-slate-800 font-mono">{viewingEmployeeDetails.targetOt || 48} ชม.</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-emerald-600 font-bold">OT สะสมจริงเดือนนี้</span>
-                    <span className="font-black text-blue-700 font-mono">{viewingEmployeeDetails.actualOt || 0} ชม.</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="block text-[10px] text-emerald-600 font-bold">สัดส่วนเป้าหมายที่ใช้ไป</span>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <div className="w-24 bg-slate-200 h-2 rounded-full overflow-hidden">
-                        <div 
-                          style={{ width: `${Math.min(100, viewingEmployeeDetails.otPct || 0)}%` }}
-                          className={`h-full rounded-full ${viewingEmployeeDetails.actualOt > viewingEmployeeDetails.targetOt ? 'bg-red-500' : 'bg-blue-600'}`}
-                        ></div>
-                      </div>
-                      <span className="font-black text-slate-800 font-mono">{viewingEmployeeDetails.otPct || 0}%</span>
+
+                {/* Leave Days Summary Card */}
+                <div className="space-y-2 pt-1">
+                  <span className="block text-[11px] font-extrabold text-amber-800">🌴 สรุปจำนวนวันลาพนักงาน (Leave Quota Summary)</span>
+                  <div className="grid grid-cols-3 gap-3 bg-amber-50/40 p-3 rounded-2xl border border-amber-100/60 text-center">
+                    <div className="bg-white p-2.5 rounded-xl border border-amber-200/60 shadow-sm">
+                      <span className="block text-[10px] font-bold text-amber-700">สิทธิวันลาทั้งหมด</span>
+                      <span className="text-sm font-black text-amber-900 font-mono">46 วัน</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-rose-200/60 shadow-sm">
+                      <span className="block text-[10px] font-bold text-rose-700">ใช้ไปแล้วรวม</span>
+                      <span className="text-sm font-black text-rose-700 font-mono">
+                        {((viewingEmployeeDetails.sickLeaveUsed || 0) + (viewingEmployeeDetails.personalLeaveUsed || 0) + (viewingEmployeeDetails.vacationLeaveUsed || 0))} วัน
+                      </span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200/60 shadow-sm">
+                      <span className="block text-[10px] font-bold text-emerald-700">วันลาคงเหลือรวม</span>
+                      <span className="text-sm font-black text-emerald-700 font-mono">
+                        {Math.max(0, 46 - ((viewingEmployeeDetails.sickLeaveUsed || 0) + (viewingEmployeeDetails.personalLeaveUsed || 0) + (viewingEmployeeDetails.vacationLeaveUsed || 0)))} วัน
+                      </span>
                     </div>
                   </div>
                 </div>
+                
+                {/* OT Ratio % vs Base Salary */}
+                {(() => {
+                  const salary = viewingEmployeeDetails.salary || 15000;
+                  const actualOtHours = viewingEmployeeDetails.actualOt || 0;
+                  const hourlyRate = (salary / 240) * 1.5;
+                  const monthlyOtCost = Math.round(actualOtHours * hourlyRate);
+                  const otSalaryPct = Math.round((monthlyOtCost / salary) * 100);
+                  const isMax = otSalaryPct >= 100;
+
+                  return (
+                    <div className="space-y-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold text-slate-800">
+                          สัดส่วนค่า OT สะสมเทียบฐานเงินเดือน
+                        </span>
+                        {isMax ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black shadow-sm animate-pulse">
+                            🚨 MAX ({otSalaryPct}%)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-extrabold">
+                            {otSalaryPct}% ของฐานเงินเดือน
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
+                        <div 
+                          style={{ width: `${Math.min(100, otSalaryPct)}%` }}
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isMax ? "bg-gradient-to-r from-rose-500 via-red-600 to-rose-700" : "bg-gradient-to-r from-blue-500 to-indigo-600"
+                          }`}
+                        ></div>
+                      </div>
+
+                      {isMax && (
+                        <div className="p-2.5 rounded-xl bg-rose-100/90 border border-rose-300 text-rose-950 text-[11px] font-bold flex items-center gap-2 mt-1.5 shadow-sm">
+                          <span className="text-base">⚠️</span>
+                          <span>แจ้งเตือนผู้จัดการ: สัดส่วนค่า OT ของพนักงานเกิน 100% ของฐานเงินเดือนแล้ว! (สถิติปัจจุบัน {otSalaryPct}%)</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
                 {/* Category 4: สถิติคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance Growth) */}
@@ -8235,6 +8280,105 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: BIRTHDAY CELEBRATION POPUP */}
+      {/* ======================================= */}
+      {(() => {
+        const today = new Date();
+        const tMonth = today.getMonth() + 1;
+        const tDay = today.getDate();
+
+        const deptBirthdays = (state?.employees || []).filter(emp => {
+          if (!emp.birthday) return false;
+          const isDeptMatch = isHrOrFullAccess || !currentUser?.deptId || emp.deptId === currentUser.deptId || normalizeDeptId(emp.deptId) === normalizeDeptId(currentUser.deptId);
+          if (!isDeptMatch) return false;
+
+          const bStr = String(emp.birthday).toLowerCase();
+          const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+          let bMonth = 0;
+          let bDay = 0;
+
+          months.forEach((m, idx) => {
+            if (bStr.includes(m)) bMonth = idx + 1;
+          });
+
+          if (bStr.includes("-")) {
+            const parts = bStr.split("-");
+            if (parts.length === 3) {
+              bMonth = parseInt(parts[1], 10) || bMonth;
+              bDay = parseInt(parts[2], 10) || bDay;
+            }
+          } else if (bStr.includes("/")) {
+            const parts = bStr.split("/");
+            if (parts.length === 3) {
+              bMonth = parseInt(parts[1], 10) || bMonth;
+              bDay = parseInt(parts[0], 10) || bDay;
+            }
+          }
+
+          return bMonth === tMonth && (bDay === tDay || bStr.includes(String(tDay)));
+        });
+
+        if (deptBirthdays.length === 0 || dismissedBirthdayPopup) return null;
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-amber-200 flex flex-col animate-in fade-in zoom-in-95 duration-200 text-center">
+              {/* Birthday Header Banner */}
+              <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white relative shadow-md">
+                <div className="text-4xl mb-2">🎉 🎂 🎈</div>
+                <h3 className="text-xl font-black">สุขสันต์วันเกิดพนักงานในทีม!</h3>
+                <p className="text-xs text-amber-100 font-bold mt-1">แจ้งเตือนวันเกิดพนักงานในสังกัดประจำวันนี้</p>
+                <button 
+                  type="button"
+                  onClick={() => setDismissedBirthdayPopup(true)}
+                  className="absolute top-3 right-3 text-white/80 hover:text-white p-1 rounded-full text-lg cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {deptBirthdays.map(bEmp => (
+                  <div key={bEmp.id} className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200 flex items-center gap-4 text-left shadow-sm">
+                    <EmployeeAvatar empId={bEmp.id} empName={bEmp.name} className="w-14 h-14 border-2 border-white shadow-md flex-shrink-0 object-cover" />
+                    <div>
+                      <h4 className="text-base font-black text-slate-900">{bEmp.name}</h4>
+                      <p className="text-xs text-indigo-700 font-bold mt-0.5">
+                        {bEmp.role} • แผนก {getDeptName(bEmp.deptId, state?.departments)}
+                      </p>
+                      <p className="text-[11px] text-amber-800 font-extrabold mt-1">
+                        🎂 ครบรอบอายุ {bEmp.age || bEmp.calculatedAge || 30} ปีในวันนี้!
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("🎉 ส่งคำอวยพรวันเกิดให้พนักงานในสังกัดเรียบร้อยแล้ว!");
+                      setDismissedBirthdayPopup(true);
+                    }}
+                    className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-2xl text-xs font-black shadow-md cursor-pointer transition-all"
+                  >
+                    🎉 ร่วมส่งคำอวยพรวันเกิด!
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedBirthdayPopup(true)}
+                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    ปิด
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: CSV TEMPLATE HUB */}
