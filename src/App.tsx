@@ -9285,17 +9285,27 @@ export default function App() {
                 <select
                   id="bulk-modal-shift-select"
                   defaultValue="M12"
-                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-800"
+                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-xs shadow-sm cursor-pointer"
                 >
-                  <option value="M8">M8 (กะเช้า 8 ชม.)</option>
-                  <option value="M12">M12 (กะเช้า 12 ชม. / OT 4 ชม.)</option>
-                  <option value="M16">M16 (กะเช้า 16 ชม. / OT 8 ชม.)</option>
-                  <option value="A8">A8 (กะบ่าย 8 ชม.)</option>
-                  <option value="A12">A12 (กะบ่าย 12 ชม. / OT 4 ชม.)</option>
-                  <option value="N8">N8 (กะดึก 8 ชม.)</option>
-                  <option value="N12">N12 (กะดึก 12 ชม. / OT 4 ชม.)</option>
-                  <option value="OND">OND (ทำงานวันหยุด / OT 8 ชม.)</option>
-                  <option value="O">O (วันหยุด Off)</option>
+                  <optgroup label="☀️ กะเช้า (Morning)">
+                    <option value="M8">M8 - กะเช้า 8 ชม. (08:00 - 16:00)</option>
+                    <option value="M12">M12 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
+                    <option value="M16">M16 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
+                  </optgroup>
+                  <optgroup label="⛅ กะบ่าย (Afternoon)">
+                    <option value="A8">A8 - กะบ่าย 8 ชม. (16:00 - 00:00)</option>
+                    <option value="A12">A12 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
+                    <option value="A16">A16 - กะบ่าย 16 ชม. (OT 8 ชม.)</option>
+                  </optgroup>
+                  <optgroup label="🌙 กะดึก (Night)">
+                    <option value="N8">N8 - กะดึก 8 ชม. (20:00 - 04:00)</option>
+                    <option value="N12">N12 - กะดึก 12 ชม. (OT 4 ชม.)</option>
+                    <option value="N16">N16 - กะดึก 16 ชม. (OT 8 ชม.)</option>
+                  </optgroup>
+                  <optgroup label="🏖️ วันหยุด (Off / Holiday)">
+                    <option value="O">O - วันหยุด (Off / Day Off)</option>
+                    <option value="OND">OND - ทำงานวันหยุด (OT 8 ชม.)</option>
+                  </optgroup>
                 </select>
                 <button
                   type="button"
@@ -9305,7 +9315,7 @@ export default function App() {
                     const newShifts = Array(totalDays).fill(val);
                     setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
                   }}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold cursor-pointer transition-colors"
+                  className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold cursor-pointer transition-colors shadow-sm"
                 >
                   ปรับใช้กับทั้งเดือน
                 </button>
@@ -9314,7 +9324,7 @@ export default function App() {
 
             {/* Clean Monthly List View */}
             <div className="p-6 overflow-y-auto space-y-2 flex-1 bg-slate-100/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {Array.from({ length: totalDays }, (_, i) => {
                   const dayNum = i + 1;
                   const currentShiftCode = (editingEmployeeShiftsModal.shifts || [])[i] || "O";
@@ -9326,54 +9336,60 @@ export default function App() {
                   return (
                     <div 
                       key={dayNum}
-                      className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-sm ${
-                        isWeekend ? "bg-amber-50/70 border-amber-200" : "bg-white border-slate-200"
+                      className={`p-3.5 rounded-2xl border transition-all space-y-2 shadow-sm ${
+                        isWeekend ? "bg-amber-50/70 border-amber-200" : "bg-white border-slate-200 hover:border-blue-200"
                       }`}
                     >
-                      <div className="w-24 flex-shrink-0">
-                        <span className={`block text-xs font-extrabold ${isWeekend ? "text-amber-900" : "text-slate-900"}`}>
-                          วันที่ {dayNum} ({dayName})
-                        </span>
-                        <span className="block text-[10px] text-slate-400 font-semibold font-mono">
-                          {yr}-{(mn < 10 ? "0" : "") + mn}-{(dayNum < 10 ? "0" : "") + dayNum}
-                        </span>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`block text-xs font-black ${isWeekend ? "text-amber-900" : "text-slate-900"}`}>
+                            วันที่ {dayNum} ({dayName})
+                          </span>
+                          <span className="block text-[10px] text-slate-400 font-semibold font-mono">
+                            {yr}-{(mn < 10 ? "0" : "") + mn}-{(dayNum < 10 ? "0" : "") + dayNum}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`inline-block px-2 py-0.5 rounded-lg text-[10px] font-black border ${getShiftStyle(currentShiftCode)}`}>
+                            {currentShiftCode}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200 font-mono">
+                            {getShiftOtHours(currentShiftCode)} ชม.
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex-1">
-                        <select
-                          value={currentShiftCode}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const newShifts = [...(editingEmployeeShiftsModal.shifts || [])];
-                            while (newShifts.length <= i) newShifts.push("O");
-                            newShifts[i] = val;
-                            setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 cursor-pointer focus:bg-white focus:outline-none"
-                        >
-                          <option value="M8">M8 - กะเช้า 8 ชม. (08.00-16.00)</option>
+                      <select
+                        value={currentShiftCode}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const newShifts = [...(editingEmployeeShiftsModal.shifts || [])];
+                          while (newShifts.length <= i) newShifts.push("O");
+                          newShifts[i] = val;
+                          setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <optgroup label="☀️ กะเช้า (Morning Shift: 08:00 - 16:00)">
+                          <option value="M8">M8 - กะเช้า 8 ชม. (08:00 - 16:00)</option>
                           <option value="M12">M12 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
-                          <option value="M4">M4 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
                           <option value="M16">M16 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
-                          <option value="M8_OT">M8 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
-                          <option value="A8">A8 - กะบ่าย 8 ชม. (16.00-00.00)</option>
+                        </optgroup>
+                        <optgroup label="⛅ กะบ่าย (Afternoon Shift: 16:00 - 00:00)">
+                          <option value="A8">A8 - กะบ่าย 8 ชม. (16:00 - 00:00)</option>
                           <option value="A12">A12 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
-                          <option value="A4">A4 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
                           <option value="A16">A16 - กะบ่าย 16 ชม. (OT 8 ชม.)</option>
-                          <option value="N8">N8 - กะดึก 8 ชม. (20.00-04.00)</option>
+                        </optgroup>
+                        <optgroup label="🌙 กะดึก (Night Shift: 20:00 - 04:00)">
+                          <option value="N8">N8 - กะดึก 8 ชม. (20:00 - 04:00)</option>
                           <option value="N12">N12 - กะดึก 12 ชม. (OT 4 ชม.)</option>
-                          <option value="N4">N4 - กะดึก 12 ชม. (OT 4 ชม.)</option>
                           <option value="N16">N16 - กะดึก 16 ชม. (OT 8 ชม.)</option>
+                        </optgroup>
+                        <optgroup label="🏖️ วันหยุด & พิเศษ (Off / Holiday)">
+                          <option value="O">O - วันหยุด (Off / Day Off)</option>
                           <option value="OND">OND - ทำงานวันหยุด (OT 8 ชม.)</option>
-                          <option value="O">O - วันหยุด Off</option>
-                        </select>
-                      </div>
-
-                      <div className="w-16 flex-shrink-0 text-center">
-                        <span className={`inline-block px-2.5 py-1 rounded-xl text-xs font-black border shadow-sm ${getShiftStyle(currentShiftCode)}`}>
-                          {currentShiftCode}
-                        </span>
-                      </div>
+                        </optgroup>
+                      </select>
                     </div>
                   );
                 })}
