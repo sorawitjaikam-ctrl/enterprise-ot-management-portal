@@ -877,8 +877,11 @@ function HrDirectEditorView({
   setJobValueRecords: React.Dispatch<React.SetStateAction<JobValueRecord[]>>; 
   fetchJobValueRecords: () => void; 
 }) {
+  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
+  const userDeptName = !isHrOrFullAccess && currentUser?.deptId ? getDeptName(currentUser.deptId, state?.departments) : "all";
+
   const [editingRecords, setEditingRecords] = useState<any[]>([]);
-  const [filterDept, setFilterDept] = useState("all");
+  const [filterDept, setFilterDept] = useState<string>(userDeptName);
   const [search, setSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -886,7 +889,7 @@ function HrDirectEditorView({
     empId: "",
     empName: "",
     position: "",
-    department: "INTER 2",
+    department: !isHrOrFullAccess && currentUser?.deptId ? getDeptName(currentUser.deptId, state?.departments) : "INTER 2",
     status: "Active",
     avgRevenue: 0,
     avgCost: 0,
@@ -900,10 +903,8 @@ function HrDirectEditorView({
     }
   }, [jobValueRecords]);
 
-  const handleCellChange = (index: number, field: string, value: any) => {
-    const updated = [...editingRecords];
-    updated[index] = { ...updated[index], [field]: value };
-    setEditingRecords(updated);
+  const handleCellChange = (empId: string, field: string, value: any) => {
+    setEditingRecords(prev => prev.map(r => r.empId === empId ? { ...r, [field]: value } : r));
   };
 
   const handleSaveAll = async () => {
@@ -918,14 +919,14 @@ function HrDirectEditorView({
         })
       });
       if (res.ok) {
-        alert("✅ บันทึกข้อมูลพนักงานและผลตอบแทนออนไลน์สำเร็จ!");
+        alert("บันทึกข้อมูลพนักงานและผลตอบแทนออนไลน์สำเร็จ!");
         fetchJobValueRecords();
       } else {
-        alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
       }
     } catch (e) {
       console.error(e);
-      alert("❌ ไม่สามารถเชื่อมต่อระบบได้");
+      alert("ไม่สามารถเชื่อมต่อระบบได้");
     } finally {
       setIsSaving(false);
     }
@@ -959,7 +960,7 @@ function HrDirectEditorView({
         })
       });
       if (res.ok) {
-        alert("✅ เพิ่มและบันทึกพนักงานใหม่เรียบร้อยแล้ว!");
+        alert("เพิ่มและบันทึกพนักงานใหม่เรียบร้อยแล้ว!");
         fetchJobValueRecords();
       }
     } catch (e) {
@@ -974,6 +975,37 @@ function HrDirectEditorView({
     const updated = editingRecords.filter(r => r.empId !== empId);
     setEditingRecords(updated);
   };
+
+  const filteredRecords = editingRecords.filter(r => {
+    // 1. Department Permission Scoping for Section Manager
+    if (!isHrOrFullAccess && currentUser?.deptId) {
+      const userDeptId = normalizeDeptId(currentUser.deptId);
+      const recDeptId = normalizeDeptId(r.deptId || r.department);
+      if (recDeptId !== userDeptId && r.department !== getDeptName(currentUser.deptId, state?.departments)) {
+        return false;
+      }
+    }
+
+    // 2. Department Tab Filter
+    if (filterDept !== "all") {
+      const targetDeptId = normalizeDeptId(filterDept);
+      const recDeptId = normalizeDeptId(r.deptId || r.department);
+      if (r.department !== filterDept && recDeptId !== targetDeptId) {
+        return false;
+      }
+    }
+
+    // 3. Search Filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchId = String(r.empId || "").toLowerCase().includes(q);
+      const matchName = String(r.empName || "").toLowerCase().includes(q);
+      const matchPos = String(r.position || "").toLowerCase().includes(q);
+      if (!matchId && !matchName && !matchPos) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -995,7 +1027,7 @@ function HrDirectEditorView({
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
-            <span>➕ เพิ่มพนักงานใหม่</span>
+            <span>เพิ่มพนักงานใหม่</span>
           </button>
           <button
             type="button"
@@ -1003,35 +1035,73 @@ function HrDirectEditorView({
             disabled={isSaving}
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>💾 {isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไขไปยัง D1 Database"}</span>
+            <span>{isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไขไปยัง D1 Database"}</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex items-center gap-3 flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ค้นหารหัสพนักงาน, ชื่อ, ตำแหน่ง..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-          />
+      {/* Filter & Department Selector Tabs Toolbar */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Department Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60">
+            {isHrOrFullAccess && (
+              <button
+                type="button"
+                onClick={() => setFilterDept("all")}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  filterDept === "all"
+                    ? "bg-white text-blue-700 shadow-sm font-extrabold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                ทุกแผนก (ทั้งหมด)
+              </button>
+            )}
+
+            {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].map(dept => {
+              const deptIdVal = normalizeDeptId(dept);
+              const managerDeptId = normalizeDeptId(currentUser?.deptId);
+              const isAllowed = isHrOrFullAccess || managerDeptId === deptIdVal;
+
+              if (!isHrOrFullAccess && managerDeptId !== deptIdVal) return null;
+
+              return (
+                <button
+                  key={dept}
+                  type="button"
+                  onClick={() => isAllowed && setFilterDept(dept)}
+                  disabled={!isAllowed}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    filterDept === dept
+                      ? "bg-blue-600 text-white shadow-sm font-extrabold"
+                      : "bg-transparent text-slate-600 hover:bg-white/60"
+                  }`}
+                >
+                  แผนก {dept}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Box */}
+          <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 border border-slate-200 rounded-2xl w-full md:w-72 shadow-inner">
+            <Search className="w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="ค้นหารหัส, ชื่อ, ตำแหน่ง..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+            />
+          </div>
         </div>
 
-        <select
-          value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
-          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
-        >
-          <option value="all">🏢 ทุกแผนก</option>
-          <option value="INTER 2">แผนก INTER 2</option>
-          <option value="INTER 3">แผนก INTER 3</option>
-          <option value="INTER 5">แผนก INTER 5</option>
-          <option value="INTER 7">แผนก INTER 7</option>
-        </select>
+        {!isHrOrFullAccess && (
+          <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
+            <span>🔒 สิทธิ์ผู้จัดการแผนก: ระบบแสดงผลและอนุญาตให้แก้ไขเฉพาะพนักงานในสังกัด {getDeptName(currentUser?.deptId, state?.departments)} เท่านั้น</span>
+          </div>
+        )}
       </div>
 
       {/* Interactive Spreadsheet Table */}
@@ -1043,7 +1113,7 @@ function HrDirectEditorView({
                 <th className="p-3 w-28 font-mono">รหัสพนักงาน</th>
                 <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
                 <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
-                <th className="p-3 w-32">แผนก</th>
+                <th className="p-3 w-36">แผนก</th>
                 <th className="p-3 w-28 text-center">สถานะ</th>
                 <th className="p-3 text-right text-emerald-700 font-extrabold w-36">รายได้เฉลี่ย/เดือน</th>
                 <th className="p-3 text-right text-rose-700 font-extrabold w-36">ต้นทุนเฉลี่ย/เดือน</th>
@@ -1053,51 +1123,47 @@ function HrDirectEditorView({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-mono">
-              {editingRecords
-                .filter((r) => {
-                  const q = search.toLowerCase().trim();
-                  const matchesSearch = !q || (r.empId || "").toLowerCase().includes(q) || (r.empName || "").toLowerCase().includes(q) || (r.position || "").toLowerCase().includes(q);
-                  const matchesDept = filterDept === "all" || r.department === filterDept;
-                  return matchesSearch && matchesDept;
-                })
-                .map((r, idx) => (
-                  <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={r.empId || ""}
-                        onChange={(e) => handleCellChange(idx, "empId", e.target.value)}
-                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={r.empName || ""}
-                        onChange={(e) => handleCellChange(idx, "empName", e.target.value)}
-                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 font-sans"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={r.position || ""}
-                        onChange={(e) => handleCellChange(idx, "position", e.target.value)}
-                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 font-sans"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <select
-                        value={r.department || "INTER 2"}
-                        onChange={(e) => handleCellChange(idx, "department", e.target.value)}
-                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-sans"
-                      >
-                        <option value="INTER 2">INTER 2</option>
-                        <option value="INTER 3">INTER 3</option>
-                        <option value="INTER 5">INTER 5</option>
-                        <option value="INTER 7">INTER 7</option>
-                      </select>
-                    </td>
+              {filteredRecords.map((r, idx) => (
+                <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={r.empId || ""}
+                      onChange={(e) => handleCellChange(r.empId, "empId", e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={r.empName || ""}
+                      onChange={(e) => handleCellChange(r.empId, "empName", e.target.value)}
+                      className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 font-sans"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={r.position || ""}
+                      onChange={(e) => handleCellChange(r.empId, "position", e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 font-sans"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <select
+                      value={r.department || "INTER 2"}
+                      disabled={!isHrOrFullAccess}
+                      onChange={(e) => handleCellChange(r.empId, "department", e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-sans disabled:opacity-75"
+                    >
+                      <option value="INTER 2">INTER 2</option>
+                      <option value="INTER 3">INTER 3</option>
+                      <option value="INTER 5">INTER 5</option>
+                      <option value="INTER 7">INTER 7</option>
+                      <option value="Heavy Machine">Heavy Machine</option>
+                      <option value="ECC">ECC</option>
+                    </select>
+                  </td>
                     <td className="p-2 text-center">
                       <select
                         value={r.status || "Active"}
@@ -2255,6 +2321,13 @@ export default function App() {
 
   // Comprehensive HR Filter & Sort logic for Roster List
   const filteredEmployees = (state?.employees || []).filter((emp) => {
+    // 0. Section Manager Department Permission Isolation
+    if (!isHrOrFullAccess && currentUser?.deptId) {
+      const managerDeptId = normalizeDeptId(currentUser.deptId);
+      const empDeptId = normalizeDeptId(emp.deptId);
+      if (empDeptId !== managerDeptId) return false;
+    }
+
     // 1. Employment Status Tab (Active vs Resigned / Inactive)
     const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "Inactive" || emp.employmentStatus === "ลาออก";
     const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
@@ -3805,7 +3878,10 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].map(deptName => {
+                  {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(deptName => {
+                    if (isHrOrFullAccess) return true;
+                    return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
+                  }).map(deptName => {
                     const targetDeptId = normalizeDeptId(deptName);
                     const safeJv = jobValueRecords || [];
                     const deptJvRecords = safeJv.filter(r => 
@@ -4457,16 +4533,17 @@ export default function App() {
                         <span className="text-slate-500 pl-2 font-sans">แผนก:</span>
                         <select
                           value={financialChartDeptFilter}
+                          disabled={!isHrOrFullAccess}
                           onChange={(e) => setFinancialChartDeptFilter(e.target.value)}
-                          className="bg-white text-blue-800 border border-slate-200 rounded-lg py-1 px-2.5 text-xs font-extrabold shadow-sm focus:ring-0 cursor-pointer"
+                          className="bg-white text-blue-800 border border-slate-200 rounded-lg py-1 px-2.5 text-xs font-extrabold shadow-sm focus:ring-0 cursor-pointer disabled:opacity-80"
                         >
-                          <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>
-                          <option value="INTER 2">แผนก INTER 2</option>
-                          <option value="INTER 3">แผนก INTER 3</option>
-                          <option value="INTER 5">แผนก INTER 5</option>
-                          <option value="INTER 7">แผนก INTER 7</option>
-                          <option value="Heavy Machine">แผนก Heavy Machine</option>
-                          <option value="ECC">แผนก ECC</option>
+                          {isHrOrFullAccess && <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>}
+                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].filter(dept => {
+                            if (isHrOrFullAccess) return true;
+                            return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(dept);
+                          }).map(dept => (
+                            <option key={dept} value={dept}>แผนก {dept}</option>
+                          ))}
                         </select>
                       </div>
 
