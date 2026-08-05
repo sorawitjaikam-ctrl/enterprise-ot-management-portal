@@ -1635,23 +1635,49 @@ export default function App() {
       const lines = text.split(/\r?\n/).filter(line => line.trim());
       if (lines.length <= 1) return alert("ไฟล์ CSV ไม่มีข้อมูล");
 
+      const parseNum = (val: any) => {
+        if (val === null || val === undefined) return 0;
+        const cleaned = String(val).replace(/,/g, "").replace(/฿/g, "").replace(/\$/g, "").trim();
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+      };
+
+      const parseCsvLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
+        return result;
+      };
+
       const parsedRecords: any[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(c => c.trim().replace(/^"/, '').replace(/"$/, ''));
+        const cols = parseCsvLine(lines[i]);
         if (!cols[0]) continue;
         const empId = cols[0];
         const empName = cols[1] || "";
         const department = cols[2] || "ไม่ระบุแผนก";
         const position = cols[3] || "";
         const status = cols[4] || "Active";
-        const avgRevenue = parseFloat(cols[5]) || 0;
-        const avgCost = parseFloat(cols[6]) || 0;
-        const profit2026 = parseFloat(cols[7]) || 0;
-        const profit2025 = parseFloat(cols[8]) || 0;
+        const avgRevenue = parseNum(cols[5]);
+        const avgCost = parseNum(cols[6]);
+        const profit2026 = parseNum(cols[7]);
+        const profit2025 = parseNum(cols[8]);
 
-        const monthlyRevenue = cols.slice(9, 21).map(v => parseFloat(v) || 0);
-        const monthlyCost = cols.slice(21, 33).map(v => parseFloat(v) || 0);
-        const monthlyProfit = cols.slice(33, 45).map(v => parseFloat(v) || 0);
+        const monthlyRevenue = cols.slice(9, 21).map(parseNum);
+        const monthlyCost = cols.slice(21, 33).map(parseNum);
+        const monthlyProfit = cols.slice(33, 45).map(parseNum);
 
         parsedRecords.push({
           id: `JV-${empId}`,
@@ -3982,63 +4008,95 @@ export default function App() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[900px]">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          <th className="px-4 py-3.5 font-mono">รหัสพนักงาน</th>
-                          <th className="px-4 py-3.5">ชื่อ-นามสกุล</th>
-                          <th className="px-4 py-3.5">ตำแหน่ง</th>
-                          <th className="px-4 py-3.5">แผนก</th>
-                          <th className="px-4 py-3.5 text-right text-emerald-700">รายได้เฉลี่ย/เดือน (Avg Revenue)</th>
-                          <th className="px-4 py-3.5 text-right text-rose-700">ต้นทุนเฉลี่ย/เดือน (Avg Cost)</th>
-                          <th className="px-4 py-3.5 text-right text-slate-600">กำไรสะสม 2025</th>
-                          <th className="px-4 py-3.5 text-right text-blue-700 font-extrabold">กำไรสะสม 2026</th>
-                          <th className="px-4 py-3.5 text-center">รายละเอียด</th>
+                        <tr className="bg-slate-100/90 border-b border-slate-200 text-xs font-black text-slate-700 uppercase tracking-wider">
+                          <th className="px-3.5 py-3 font-mono w-28">รหัสพนักงาน</th>
+                          <th className="px-3.5 py-3 min-w-[170px]">ชื่อ-นามสกุล</th>
+                          <th className="px-3.5 py-3 min-w-[130px]">ตำแหน่ง</th>
+                          <th className="px-3.5 py-3 w-28">แผนก</th>
+                          <th className="px-3.5 py-3 text-center w-28">สถานะ</th>
+                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[140px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
+                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[140px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
+                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[120px]">กำไรสะสม 2025</th>
+                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[120px]">กำไรสะสม 2026</th>
+                          <th className="px-3.5 py-3 text-center w-24">รายละเอียด</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                      <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
                         {safeJobValueRecords
                           .filter(jv => {
                             if (!jv) return false;
+                            const empMaster = (state?.employees || []).find(e => 
+                              String(e.id || "").toLowerCase() === String(jv.empId || "").toLowerCase() ||
+                              String(e.name || "").toLowerCase() === String(jv.empName || "").toLowerCase()
+                            );
+                            const empName = empMaster?.name || jv.empName || "";
+                            const position = empMaster?.role || jv.position || "";
+                            const deptName = empMaster ? getDeptName(empMaster.deptId, state?.departments) : (jv.department || "");
+                            
                             const q = (jobValueSearchQuery || "").toLowerCase().trim();
-                            const matchesSearch = !q || (jv.empId || "").toLowerCase().includes(q) || (jv.empName || "").toLowerCase().includes(q) || (jv.position || "").toLowerCase().includes(q);
-                            const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || jv.department === jobValueDeptFilter || normalizeDeptId(jv.department) === normalizeDeptId(jobValueDeptFilter);
+                            const matchesSearch = !q || String(jv.empId || "").toLowerCase().includes(q) || empName.toLowerCase().includes(q) || position.toLowerCase().includes(q);
+                            const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || deptName === jobValueDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(jobValueDeptFilter);
                             return matchesSearch && matchesDept;
                           })
-                          .map(jv => (
-                            <tr key={jv?.id || jv?.empId || Math.random()} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-3.5 font-mono font-bold text-slate-500">{jv?.empId || "-"}</td>
-                              <td className="px-4 py-3.5 font-bold text-slate-800">
-                                <div className="flex items-center gap-2.5">
-                                  <EmployeeAvatar empId={jv?.empId || ""} empName={jv?.empName || ""} className="w-8 h-8 flex-shrink-0" />
-                                  <span>{jv?.empName || "-"}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3.5 font-medium text-slate-700">{jv?.position || "-"}</td>
-                              <td className="px-4 py-3.5 font-bold text-slate-700">
-                                <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
-                                  {jv?.department || "-"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 font-mono">฿{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
-                              <td className="px-4 py-3.5 text-right font-bold text-rose-600 font-mono">฿{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
-                              <td className="px-4 py-3.5 text-right font-semibold text-slate-500 font-mono">฿{(Number(jv?.profit2025) || 0).toLocaleString()}</td>
-                              <td className="px-4 py-3.5 text-right font-black text-blue-700 font-mono">฿{(Number(jv?.profit2026) || 0).toLocaleString()}</td>
-                              <td className="px-4 py-3.5 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => setViewingJobValueModal(jv)}
-                                  className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer"
-                                >
-                                  รายเดือน
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                          .map(jv => {
+                            const empMaster = (state?.employees || []).find(e => 
+                              String(e.id || "").toLowerCase() === String(jv.empId || "").toLowerCase() ||
+                              String(e.name || "").toLowerCase() === String(jv.empName || "").toLowerCase()
+                            );
+                            const empName = empMaster?.name || jv?.empName || "-";
+                            const deptName = empMaster ? getDeptName(empMaster.deptId, state?.departments) : (jv?.department || "-");
+                            const position = empMaster?.role || jv?.position || "-";
+                            const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
+                            const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "ลาออก";
+
+                            return (
+                              <tr key={jv?.id || jv?.empId || Math.random()} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="px-3.5 py-3 font-mono font-bold text-slate-600 text-xs">{jv?.empId || "-"}</td>
+                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <EmployeeAvatar empId={jv?.empId || ""} empName={empName} className="w-7 h-7 flex-shrink-0" />
+                                    <span>{empName}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3.5 py-3 font-medium text-slate-700 text-xs">{position}</td>
+                                <td className="px-3.5 py-3 font-bold text-slate-700">
+                                  <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
+                                    {deptName}
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-3 text-center">
+                                  {isInactive ? (
+                                    <span className="inline-block px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold">
+                                      🔴 พ้นสภาพ
+                                    </span>
+                                  ) : (
+                                    <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold">
+                                      🟢 ปฏิบัติงาน
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-3.5 py-3 text-right font-black text-emerald-700 font-mono text-sm">{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-black text-rose-700 font-mono text-sm">{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{(Number(jv?.profit2025) || 0).toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-black text-blue-700 font-mono text-sm">{(Number(jv?.profit2026) || 0).toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingJobValueModal(jv)}
+                                    className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200 cursor-pointer shadow-sm"
+                                  >
+                                    รายเดือน
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
 
                         {safeJobValueRecords.length === 0 && (
                           <tr>
-                            <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                            <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
                               <div className="flex flex-col items-center justify-center space-y-3">
                                 <FileSpreadsheet className="w-10 h-10 text-slate-300" />
                                 <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูล Job Value ในระบบ</p>
