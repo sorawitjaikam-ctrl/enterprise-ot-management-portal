@@ -8996,7 +8996,7 @@ export default function App() {
 
                     try {
                       const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
-                      await fetch("/api/save-shifts", {
+                      const res = await fetch("/api/save-shifts", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -9005,6 +9005,10 @@ export default function App() {
                           month: m ? Number(m) : undefined
                         })
                       });
+                      const data = await res.json();
+                      if (data.employees && Array.isArray(data.employees)) {
+                        setState(prev => ({ ...prev, employees: data.employees }));
+                      }
                       alert("บันทึกตารางกะรายวันของพนักงานเรียบร้อยแล้ว!");
                     } catch (err) {
                       console.error(err);
