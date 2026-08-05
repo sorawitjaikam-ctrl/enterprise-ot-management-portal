@@ -136,6 +136,19 @@ export const getEmpShiftsArray = (shifts: any): string[] => {
   return [];
 };
 
+export const getEmpCalculatedOt = (emp: any): number => {
+  if (!emp) return 0;
+  const shiftsArray = getEmpShiftsArray(emp.shifts);
+  if (shiftsArray && shiftsArray.length > 0) {
+    let total = 0;
+    for (let i = 0; i < shiftsArray.length; i++) {
+      total += getShiftOtHours(shiftsArray[i] || "O");
+    }
+    return total;
+  }
+  return Number(emp.actualOt) || 0;
+};
+
 export const getEmployeeShiftsForView = (shifts: any, limit: number) => {
   const arr = getEmpShiftsArray(shifts);
   const result = [...arr];
@@ -3964,14 +3977,14 @@ export default function App() {
               {/* KPI Cards Grid */}
               {(() => {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + (curr.actualOt || 0), 0) * 10) / 10;
+                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr), 0) * 10) / 10;
                 const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
                 const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
                   const salary = Number(curr.salary) || 15000;
                   const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-                  return acc + ((curr.actualOt || 0) * 1.5 * hourlyRate);
+                  return acc + (getEmpCalculatedOt(curr) * 1.5 * hourlyRate);
                 }, 0) * timeMult);
-                const activeEmps = dashboardEmployees.filter(e => (e.actualOt || 0) > 0).length;
+                const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e) > 0).length;
                 const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
                 const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
 
@@ -4156,11 +4169,11 @@ export default function App() {
                         <div className="space-y-5 flex-1">
                           {state.departments.map((dept) => {
                             const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + (e.actualOt || 0), 0) * timeMult * 10) / 10;
+                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult * 10) / 10;
                             // Max hours for progress bar scaling
                             const maxHr = Math.max(...state.departments.map(d => {
                               const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                              return dEmps.reduce((s, e) => s + (e.actualOt || 0), 0) * timeMult;
+                              return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult;
                             }), 100);
                             const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
                             return (
