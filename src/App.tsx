@@ -8229,10 +8229,6 @@ export default function App() {
                     <span className="block text-[10px] text-slate-400 font-medium">ฝ่ายงาน</span>
                     <span className="font-bold text-slate-800">{viewingEmployeeDetails.division || "-"}</span>
                   </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">ทีมย่อย / กลุ่มทำงาน</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.groupName || "-"}</span>
-                  </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
                   <div className="col-span-2">
