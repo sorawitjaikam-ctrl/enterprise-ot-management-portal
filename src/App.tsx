@@ -4877,11 +4877,15 @@ export default function App() {
                         <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <select
                           value={jobValueDeptFilter}
+                          disabled={!isHrOrFullAccess}
                           onChange={(e) => setJobValueDeptFilter(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
+                          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
                         >
-                          <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>
-                          {(uniqueRosterDepts || []).map(d => (
+                          {isHrOrFullAccess && <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>}
+                          {(uniqueRosterDepts || []).filter(d => {
+                            if (isHrOrFullAccess) return true;
+                            return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
+                          }).map(d => (
                             <option key={d} value={d}>แผนก {d}</option>
                           ))}
                         </select>
@@ -4917,6 +4921,15 @@ export default function App() {
                             const position = empMaster?.role || jv.position || "";
                             const deptName = empMaster ? getDeptName(empMaster.deptId, state?.departments) : (jv.department || "");
                             
+                            // Section Manager Permission Check
+                            if (!isHrOrFullAccess && currentUser?.deptId) {
+                              const managerDeptId = normalizeDeptId(currentUser.deptId);
+                              const empDeptId = normalizeDeptId(empMaster?.deptId || jv.deptId || jv.department);
+                              if (empDeptId !== managerDeptId && deptName !== getDeptName(currentUser.deptId, state?.departments)) {
+                                return false;
+                              }
+                            }
+
                             const q = (jobValueSearchQuery || "").toLowerCase().trim();
                             const matchesSearch = !q || String(jv.empId || "").toLowerCase().includes(q) || empName.toLowerCase().includes(q) || position.toLowerCase().includes(q);
                             const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || deptName === jobValueDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(jobValueDeptFilter);
