@@ -4298,49 +4298,71 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {state.employees.slice(0, 4).map((emp) => {
-                    const isOver = emp.actualOt > emp.targetOt;
-                    return (
-                      <div 
-                        key={emp.id} 
-                        className={`p-4 border rounded-2xl transition-all shadow-sm group ${
-                          isOver ? "bg-red-50/50 border-red-200 hover:border-red-300" : "bg-slate-50/50 border-slate-200 hover:border-blue-200"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="relative">
-                            <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-11 h-11" />
-                            <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
-                              isOver ? "bg-red-500" : "bg-green-500"
-                            }`}></span>
-                          </div>
-                          <div className="flex-1 overflow-hidden">
-                            <h5 className={`text-xs font-bold truncate ${isOver ? "group-hover:text-red-600" : "group-hover:text-blue-600"}`}>{emp.name}</h5>
-                            <p className="text-[10px] text-slate-500 truncate font-medium">{emp.role}</p>
-                          </div>
-                        </div>
+                  {(() => {
+                    const filteredEmpContribution = state.employees.filter(emp => {
+                      if (!isHrOrFullAccess && currentUser?.deptId) {
+                        const managerDeptId = normalizeDeptId(currentUser.deptId);
+                        if (normalizeDeptId(emp.deptId) !== managerDeptId) return false;
+                      }
+                      if (selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน") {
+                        const filterDeptId = normalizeDeptId(selectedDeptFilter);
+                        if (normalizeDeptId(emp.deptId) !== filterDeptId) return false;
+                      }
+                      return true;
+                    });
 
-                        <div className="space-y-2 bg-white p-3 rounded-xl border border-slate-100 shadow-inner">
-                          <div className="flex justify-between items-end">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">สัดส่วนเป้าหมาย</span>
-                            <span className={`text-sm font-bold font-mono ${isOver ? "text-red-600" : "text-blue-600"}`}>
-                              {emp.otPct}%
-                            </span>
+                    if (filteredEmpContribution.length === 0) {
+                      return (
+                        <div className="col-span-full p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                          <p className="text-xs font-bold text-slate-500">ไม่มีข้อมูลสถิติ OT รายบุคคลในแผนกที่เลือก</p>
+                        </div>
+                      );
+                    }
+
+                    return filteredEmpContribution.slice(0, 4).map((emp) => {
+                      const isOver = emp.actualOt > emp.targetOt;
+                      return (
+                        <div 
+                          key={emp.id} 
+                          className={`p-4 border rounded-2xl transition-all shadow-sm group ${
+                            isOver ? "bg-red-50/50 border-red-200 hover:border-red-300" : "bg-slate-50/50 border-slate-200 hover:border-blue-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="relative">
+                              <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-11 h-11" />
+                              <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
+                                isOver ? "bg-red-500" : "bg-green-500"
+                              }`}></span>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                              <h5 className={`text-xs font-bold truncate ${isOver ? "group-hover:text-red-600" : "group-hover:text-blue-600"}`}>{emp.name}</h5>
+                              <p className="text-[10px] text-slate-500 truncate font-medium">{emp.role}</p>
+                            </div>
                           </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              style={{ width: `${Math.min(100, emp.otPct)}%` }}
-                              className={`h-full rounded-full ${isOver ? "bg-red-500" : "bg-blue-600"}`}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500 pt-1 border-t border-slate-100">
-                            <span className={`font-bold ${isOver ? "text-red-600" : "text-slate-800"}`}>{emp.actualOt} ชม.</span>
-                            <span>เป้าหมาย &lt; {emp.targetOt} ชม.</span>
+
+                          <div className="space-y-2 bg-white p-3 rounded-xl border border-slate-100 shadow-inner">
+                            <div className="flex justify-between items-end">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">สัดส่วนเป้าหมาย</span>
+                              <span className={`text-sm font-bold font-mono ${isOver ? "text-red-600" : "text-blue-600"}`}>
+                                {emp.otPct}%
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                style={{ width: `${Math.min(100, emp.otPct)}%` }}
+                                className={`h-full rounded-full ${isOver ? "bg-red-500" : "bg-blue-600"}`}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500 pt-1 border-t border-slate-100">
+                              <span className={`font-bold ${isOver ? "text-red-600" : "text-slate-800"}`}>{emp.actualOt} ชม.</span>
+                              <span>เป้าหมาย &lt; {emp.targetOt} ชม.</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 
@@ -7628,16 +7650,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">กลุ่มการทำงาน / ทีมย่อย</label>
-                    <input 
-                      type="text"
-                      value={newEmpGroupName}
-                      onChange={(e) => setNewEmpGroupName(e.target.value)}
-                      placeholder="เช่น ทีม ก."
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
+                  {/* Hidden Group field per user request */}
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ปฏิทินทำงาน</label>
                     <select
@@ -7959,16 +7972,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">กลุ่มการทำงาน / ทีมย่อย</label>
-                    <input 
-                      type="text"
-                      value={editEmpGroupName}
-                      onChange={(e) => setEditEmpGroupName(e.target.value)}
-                      placeholder="เช่น ทีม ก."
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
+                  {/* Hidden Group field per user request */}
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ปฏิทินทำงาน</label>
                     <select
@@ -8845,19 +8849,7 @@ export default function App() {
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">เลือกกลุ่มพนักงานเป้าหมาย</label>
-                <select
-                  value={bulkGroupName}
-                  onChange={(e) => setBulkGroupName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700"
-                >
-                  <option value="all">ทุกกลุ่มในแผนก</option>
-                  <option value="Group A">Group A (ทีม ก.)</option>
-                  <option value="Group B">Group B (ทีม ข.)</option>
-                  <option value="Group C">Group C (ทีม ค.)</option>
-                </select>
-              </div>
+              {/* Hidden Group selector per user request */}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">เลือกรหัสกะที่จะกำหนด</label>
