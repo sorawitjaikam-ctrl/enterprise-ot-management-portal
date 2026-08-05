@@ -45,7 +45,8 @@ import {
   FileSpreadsheet,
   BarChart3,
   ShieldCheck,
-  ClipboardList
+  ClipboardList,
+  Trash2
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
@@ -1693,6 +1694,24 @@ export default function App() {
       }
     };
     reader.readAsText(file, "UTF-8");
+  };
+
+  const handleClearJobValueData = async () => {
+    if (!confirm("คุณต้องการล้างข้อมูล Job Value ทั้งหมดที่เคยบันทึกไว้ในฐานข้อมูล D1 ใช่หรือไม่?")) return;
+    try {
+      setImportJvLoading(true);
+      const res = await fetch("/api/clear-job-value", { method: "POST" });
+      if (res.ok) {
+        alert("ล้างข้อมูล Job Value ในฐานข้อมูล D1 เรียบร้อยแล้ว");
+        setJobValueRecords([]);
+      } else {
+        alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+      }
+    } catch (err: any) {
+      alert(`เกิดข้อผิดพลาด: ${err.message}`);
+    } finally {
+      setImportJvLoading(false);
+    }
   };
 
   if (stateError) {
@@ -3716,6 +3735,20 @@ export default function App() {
                             disabled={importJvLoading}
                           />
                         </label>
+
+                        {/* Clear D1 Data */}
+                        {safeJobValueRecords.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearJobValueData}
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-rose-200"
+                            title="ล้างข้อมูล Job Value ทั้งหมดในฐานข้อมูล D1"
+                            disabled={importJvLoading}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                            <span>ล้างข้อมูลใน D1 (Clear All)</span>
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

@@ -642,6 +642,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: `นำเข้าข้อมูล Job Value ${records.length} รายการเรียบร้อยแล้ว`, count: records.length }, { headers: corsHeaders });
     }
 
+    // 8.7 POST /api/clear-job-value
+    if (path === "/api/clear-job-value" && request.method === "POST") {
+      if (db) {
+        try {
+          await db.prepare("DELETE FROM job_value_records").run();
+        } catch (e) {
+          console.error("D1 Clear Job Value Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ล้างข้อมูล Job Value ทั้งหมดใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
     // 9. GET /api/ot-records
     if (path === "/api/ot-records" && request.method === "GET") {
       if (db) {
