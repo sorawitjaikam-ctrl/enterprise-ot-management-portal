@@ -294,7 +294,6 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
   ];
 
   return Promise.all(employees.map(async (e: any, idx: number) => {
-    const { actualOt, otPct, status } = await computeEmployeeOtStats(e.id, e.targetOt || 48, year, month);
     let shifts: string[] = [];
     try {
       if (typeof e.shifts === "string") {
@@ -321,10 +320,39 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
       });
     }
 
-    // Pad shifts with 'O' up to daysInMonth if needed without mutating database
+    // Pad shifts with 'O' up to daysInMonth if needed
     while (shifts.length < daysInMonth) {
       shifts.push("O");
     }
+
+    // Calculate OT hours from shifts array
+    const otFromShifts = Math.round(shifts.reduce((sum: number, code: string) => sum + getShiftOt(code), 0) * 10) / 10;
+
+    // Sync to D1 ot_daily_records if otFromShifts > 0 but D1 daily records table was empty for this employee
+    if (!hasDailyRecs && otFromShifts > 0 && isD1Enabled()) {
+      for (let dIdx = 0; dIdx < shifts.length; dIdx++) {
+        const shiftCode = shifts[dIdx];
+        const otHrs = getShiftOt(shiftCode);
+        if (otHrs > 0) {
+          const dayNum = dIdx + 1;
+          const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+          const recId = `OTD-${e.id}-${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+          try {
+            await queryD1(
+              `INSERT OR REPLACE INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`,
+              [recId, year, month, dateStr, e.id, e.name || "", e.deptId || "", shiftCode, otHrs]
+            );
+          } catch (_) {}
+        }
+      }
+    }
+
+    const { actualOt: dbOt } = await computeEmployeeOtStats(e.id, e.targetOt || 48, year, month);
+    const actualOt = Math.max(dbOt, otFromShifts);
+    const targetOt = e.targetOt || 48;
+    const otPct = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
+    const status = actualOt > targetOt ? "Warning" : "On Track";
 
     return { ...e, shifts, actualOt, otPct, status };
   }));
