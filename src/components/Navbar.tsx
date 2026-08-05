@@ -45,14 +45,12 @@ export default function Navbar({
 
   const topMenuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard", icon: LayoutDashboard },
-    { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
-    { id: "reports",    label: "รายงานรายแผนก",     icon: BarChart3 },
+    { id: "shifts",     label: "ตารางจัดกะพนักงาน",  icon: Calendar },
     { id: "employees",  label: "รายชื่อพนักงาน",      icon: Users },
+    { id: "job_value",  label: "คุณค่าตำแหน่งงาน",   icon: TrendingUp },
     ...(isHrOrFullAccess ? [
+      { id: "hr-editor", label: "จัดการข้อมูลพนักงาน & รายได้", icon: FileText },
       { id: "leave-records", label: "บันทึกวันลา",      icon: FileText },
-    ] : []),
-    { id: "shifts",     label: "ตารางกะเทียบเรือ",    icon: Calendar },
-    ...(isHrOrFullAccess ? [
       { id: "ot-records", label: "ประวัติ OT",         icon: ClipboardList },
       { id: "admin-permissions", label: "จัดการสิทธิ์ Admin", icon: ShieldCheck },
       { id: "settings", label: "การตั้งค่าระบบ",      icon: Settings },

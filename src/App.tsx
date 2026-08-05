@@ -852,6 +852,429 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
   );
 }
 
+function HrDirectEditorView({ 
+  currentUser, 
+  state, 
+  jobValueRecords, 
+  setJobValueRecords, 
+  fetchJobValueRecords 
+}: { 
+  currentUser: any; 
+  state: AppState; 
+  jobValueRecords: JobValueRecord[]; 
+  setJobValueRecords: React.Dispatch<React.SetStateAction<JobValueRecord[]>>; 
+  fetchJobValueRecords: () => void; 
+}) {
+  const [editingRecords, setEditingRecords] = useState<any[]>([]);
+  const [filterDept, setFilterDept] = useState("all");
+  const [search, setSearch] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newRec, setNewRec] = useState({
+    empId: "",
+    empName: "",
+    position: "",
+    department: "INTER 2",
+    status: "Active",
+    avgRevenue: 0,
+    avgCost: 0,
+    profit2025: 0,
+    profit2026: 0
+  });
+
+  useEffect(() => {
+    if (jobValueRecords && jobValueRecords.length > 0) {
+      setEditingRecords(JSON.parse(JSON.stringify(jobValueRecords)));
+    }
+  }, [jobValueRecords]);
+
+  const handleCellChange = (index: number, field: string, value: any) => {
+    const updated = [...editingRecords];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditingRecords(updated);
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      setIsSaving(true);
+      const res = await fetch("/api/job-value/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          records: editingRecords,
+          role: currentUser?.role
+        })
+      });
+      if (res.ok) {
+        alert("✅ บันทึกข้อมูลพนักงานและผลตอบแทนออนไลน์สำเร็จ!");
+        fetchJobValueRecords();
+      } else {
+        alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("❌ ไม่สามารถเชื่อมต่อระบบได้");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCreateNewRecord = async () => {
+    if (!newRec.empId || !newRec.empName) {
+      alert("กรุณากรอกรหัสพนักงานและชื่อพนักงาน");
+      return;
+    }
+    const createdObj = {
+      id: `JV-${newRec.empId}`,
+      ...newRec,
+      monthlyRevenue: Array(12).fill(Math.round(newRec.avgRevenue)),
+      monthlyCost: Array(12).fill(Math.round(newRec.avgCost)),
+      monthlyProfit: Array(12).fill(Math.round(newRec.profit2026 / 12))
+    };
+
+    const updated = [createdObj, ...editingRecords];
+    setEditingRecords(updated);
+    setShowAddModal(false);
+
+    try {
+      setIsSaving(true);
+      const res = await fetch("/api/job-value/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          records: updated,
+          role: currentUser?.role
+        })
+      });
+      if (res.ok) {
+        alert("✅ เพิ่มและบันทึกพนักงานใหม่เรียบร้อยแล้ว!");
+        fetchJobValueRecords();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteRow = (empId: string) => {
+    if (!confirm(`คุณต้องการลบข้อมูลพนักงานรหัส ${empId} หรือไม่?`)) return;
+    const updated = editingRecords.filter(r => r.empId !== empId);
+    setEditingRecords(updated);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Card */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <span>ศูนย์จัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            แก้ไขข้อมูล รายได้ ต้นทุน และกำไรของพนักงานบนเว็บได้ทันทีโดยไม่ต้องอัปโหลดไฟล์ CSV ใหม่
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <span>➕ เพิ่มพนักงานใหม่</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span>💾 {isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไขไปยัง D1 Database"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex items-center gap-3 flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="ค้นหารหัสพนักงาน, ชื่อ, ตำแหน่ง..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+          />
+        </div>
+
+        <select
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+        >
+          <option value="all">🏢 ทุกแผนก</option>
+          <option value="INTER 2">แผนก INTER 2</option>
+          <option value="INTER 3">แผนก INTER 3</option>
+          <option value="INTER 5">แผนก INTER 5</option>
+          <option value="INTER 7">แผนก INTER 7</option>
+        </select>
+      </div>
+
+      {/* Interactive Spreadsheet Table */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
+            <thead>
+              <tr className="bg-slate-100/90 border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
+                <th className="p-3 w-28 font-mono">รหัสพนักงาน</th>
+                <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
+                <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
+                <th className="p-3 w-32">แผนก</th>
+                <th className="p-3 w-28 text-center">สถานะ</th>
+                <th className="p-3 text-right text-emerald-700 font-extrabold w-36">รายได้เฉลี่ย/เดือน</th>
+                <th className="p-3 text-right text-rose-700 font-extrabold w-36">ต้นทุนเฉลี่ย/เดือน</th>
+                <th className="p-3 text-right text-slate-600 font-bold w-32">กำไร 2568</th>
+                <th className="p-3 text-right text-blue-700 font-black w-32">กำไร 2569</th>
+                <th className="p-3 text-center w-20">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-mono">
+              {editingRecords
+                .filter((r) => {
+                  const q = search.toLowerCase().trim();
+                  const matchesSearch = !q || (r.empId || "").toLowerCase().includes(q) || (r.empName || "").toLowerCase().includes(q) || (r.position || "").toLowerCase().includes(q);
+                  const matchesDept = filterDept === "all" || r.department === filterDept;
+                  return matchesSearch && matchesDept;
+                })
+                .map((r, idx) => (
+                  <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={r.empId || ""}
+                        onChange={(e) => handleCellChange(idx, "empId", e.target.value)}
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={r.empName || ""}
+                        onChange={(e) => handleCellChange(idx, "empName", e.target.value)}
+                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 font-sans"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={r.position || ""}
+                        onChange={(e) => handleCellChange(idx, "position", e.target.value)}
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 font-sans"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <select
+                        value={r.department || "INTER 2"}
+                        onChange={(e) => handleCellChange(idx, "department", e.target.value)}
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-sans"
+                      >
+                        <option value="INTER 2">INTER 2</option>
+                        <option value="INTER 3">INTER 3</option>
+                        <option value="INTER 5">INTER 5</option>
+                        <option value="INTER 7">INTER 7</option>
+                      </select>
+                    </td>
+                    <td className="p-2 text-center">
+                      <select
+                        value={r.status || "Active"}
+                        onChange={(e) => handleCellChange(idx, "status", e.target.value)}
+                        className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-extrabold text-slate-700 font-sans"
+                      >
+                        <option value="Active">🟢 ปฏิบัติงาน</option>
+                        <option value="Inactive">🔴 พ้นสภาพ</option>
+                      </select>
+                    </td>
+                    <td className="p-2 text-right">
+                      <input
+                        type="number"
+                        value={r.avgRevenue ?? 0}
+                        onChange={(e) => handleCellChange(idx, "avgRevenue", Number(e.target.value))}
+                        className="w-full px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded-lg text-xs font-black text-emerald-700 text-right"
+                      />
+                    </td>
+                    <td className="p-2 text-right">
+                      <input
+                        type="number"
+                        value={r.avgCost ?? 0}
+                        onChange={(e) => handleCellChange(idx, "avgCost", Number(e.target.value))}
+                        className="w-full px-2 py-1 bg-rose-50/50 border border-rose-200 rounded-lg text-xs font-black text-rose-700 text-right"
+                      />
+                    </td>
+                    <td className="p-2 text-right">
+                      <input
+                        type="number"
+                        value={r.profit2025 ?? 0}
+                        onChange={(e) => handleCellChange(idx, "profit2025", Number(e.target.value))}
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 text-right"
+                      />
+                    </td>
+                    <td className="p-2 text-right">
+                      <input
+                        type="number"
+                        value={r.profit2026 ?? 0}
+                        onChange={(e) => handleCellChange(idx, "profit2026", Number(e.target.value))}
+                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-blue-700 text-right"
+                      />
+                    </td>
+                    <td className="p-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRow(r.empId)}
+                        className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                        title="ลบแถวนี้"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add New Employee Record Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <h3 className="text-base font-black text-slate-900">➕ เพิ่มพนักงานและผลตอบแทนใหม่</h3>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs font-sans">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">รหัสพนักงาน *</label>
+                  <input
+                    type="text"
+                    value={newRec.empId}
+                    onChange={(e) => setNewRec({ ...newRec, empId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono"
+                    placeholder="เช่น 535743"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล *</label>
+                  <input
+                    type="text"
+                    value={newRec.empName}
+                    onChange={(e) => setNewRec({ ...newRec, empName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                    placeholder="เช่น นายอาทิตย์ มั่นยืน"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">ตำแหน่งงาน</label>
+                  <input
+                    type="text"
+                    value={newRec.position}
+                    onChange={(e) => setNewRec({ ...newRec, position: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                    placeholder="เช่น O&M Specialist"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">แผนก</label>
+                  <select
+                    value={newRec.department}
+                    onChange={(e) => setNewRec({ ...newRec, department: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                  >
+                    <option value="INTER 2">INTER 2</option>
+                    <option value="INTER 3">INTER 3</option>
+                    <option value="INTER 5">INTER 5</option>
+                    <option value="INTER 7">INTER 7</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">รายได้เฉลี่ย/เดือน</label>
+                  <input
+                    type="number"
+                    value={newRec.avgRevenue}
+                    onChange={(e) => setNewRec({ ...newRec, avgRevenue: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-emerald-50/50 border border-emerald-200 rounded-xl font-bold font-mono text-emerald-700"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">ต้นทุนเฉลี่ย/เดือน</label>
+                  <input
+                    type="number"
+                    value={newRec.avgCost}
+                    onChange={(e) => setNewRec({ ...newRec, avgCost: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-rose-50/50 border border-rose-200 rounded-xl font-bold font-mono text-rose-700"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">กำไรสะสมปี 2568 (2025)</label>
+                  <input
+                    type="number"
+                    value={newRec.profit2025}
+                    onChange={(e) => setNewRec({ ...newRec, profit2025: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">กำไรสะสมปี 2569 (2026)</label>
+                  <input
+                    type="number"
+                    value={newRec.profit2026}
+                    onChange={(e) => setNewRec({ ...newRec, profit2026: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-blue-50/50 border border-blue-200 rounded-xl font-bold font-mono text-blue-700"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateNewRecord}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold cursor-pointer"
+                >
+                  บันทึกสร้างพนักงาน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
@@ -3267,6 +3690,7 @@ export default function App() {
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
+            activeTab === "hr-editor" ? "ระบบจัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)" :
             activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
             activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
             activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
@@ -5864,6 +6288,19 @@ export default function App() {
           )}
 
           {/* ======================================= */}
+          {/* VIEW: HR DIRECT DATA EDITOR */}
+          {/* ======================================= */}
+          {activeTab === "hr-editor" && (
+            <HrDirectEditorView 
+              currentUser={currentUser} 
+              state={state}
+              jobValueRecords={jobValueRecords}
+              setJobValueRecords={setJobValueRecords}
+              fetchJobValueRecords={fetchJobValueRecords}
+            />
+          )}
+
+          {/* ======================================= */}
           {/* VIEW: OT RECORDS FROM SHIFTS */}
           {/* ======================================= */}
           {activeTab === "ot-records" && (
@@ -7339,12 +7776,8 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
                   <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">อายุตัว</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.age || "-"} ปี</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">คำนวณอายุตัว</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.calculatedAge || "-"} ปี</span>
+                    <span className="block text-[10px] text-slate-400 font-medium">อายุ</span>
+                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.age || viewingEmployeeDetails.calculatedAge || "-"} ปี</span>
                   </div>
                 </div>
               </div>
@@ -7479,7 +7912,7 @@ export default function App() {
                 })()}
               </div>
 
-                {/* Category 4: สถิติคุณค่าตำแหน่งงานและการเงิน (Job Value & Financial Performance Growth) */}
+                {/* Category 4: โครงสร้างตำแหน่ง Job Value */}
                 {(() => {
                   const matchJv = (jobValueRecords || []).find(r => 
                     String(r?.empId || "").toLowerCase() === String(viewingEmployeeDetails.id || "").toLowerCase() ||
@@ -7496,7 +7929,7 @@ export default function App() {
                     <div className="space-y-2.5 pt-2">
                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                         <h4 className="font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-                          📈 สรุปคุณค่าตำแหน่งงานและการเงิน (Job Value & Growth 68/69)
+                          📈 โครงสร้างตำแหน่ง Job Value (Job Value Structure & Growth 68/69)
                         </h4>
                         {isGrowth ? (
                           <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black border border-emerald-300 shadow-sm">
