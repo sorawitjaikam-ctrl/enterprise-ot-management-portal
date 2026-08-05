@@ -51,6 +51,7 @@ import {
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
+import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { AppState, Employee, Department, JobValueRecord } from "./types";
 
 export const SHIFT_OPTIONS = [
@@ -1395,6 +1396,7 @@ export default function App() {
   const [viewingJobValueModal, setViewingJobValueModal] = useState<JobValueRecord | null>(null);
   const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
   const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
+  const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
 
   const fetchJobValueRecords = async () => {
     try {
@@ -3251,6 +3253,7 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
+          onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
         />
       )}
 
@@ -3709,6 +3712,17 @@ export default function App() {
                   <div className="flex flex-wrap items-center gap-2.5">
                     {isHrOrFullAccess && (
                       <>
+                        {/* CSV Template Hub */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCsvTemplateHubOpen(true)}
+                          className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200"
+                          title="ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับ Job Value และเมนูอื่น"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                          <span>แม่แบบ CSV</span>
+                        </button>
+
                         {/* Export CSV */}
                         <button
                           type="button"
@@ -4646,6 +4660,17 @@ export default function App() {
                           className="hidden"
                         />
                       </label>
+
+                      {/* CSV Template Hub */}
+                      <button
+                        type="button"
+                        onClick={() => setIsCsvTemplateHubOpen(true)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200"
+                        title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                        <span>แม่แบบ CSV</span>
+                      </button>
                     </>
                   )}
                   
@@ -8042,6 +8067,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: CSV TEMPLATE HUB */}
+      {/* ======================================= */}
+      <CsvTemplateHubModal
+        isOpen={isCsvTemplateHubOpen}
+        onClose={() => setIsCsvTemplateHubOpen(false)}
+      />
 
     </div>
   );
