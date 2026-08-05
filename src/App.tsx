@@ -1781,8 +1781,8 @@ export default function App() {
 
   // Comprehensive HR Filter & Sort logic for Roster List
   const filteredEmployees = (state?.employees || []).filter((emp) => {
-    // 1. Employment Status Tab (Active vs Resigned)
-    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "ลาออก";
+    // 1. Employment Status Tab (Active vs Resigned / Inactive)
+    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "Inactive" || emp.employmentStatus === "ลาออก";
     const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
     if (!matchesStatus) return false;
 
@@ -4696,7 +4696,7 @@ export default function App() {
                 >
                   <span>🟢 พนักงานปัจจุบัน (Active)</span>
                   <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length} คน
+                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "ลาออก").length} คน
                   </span>
                 </button>
 
@@ -4709,9 +4709,9 @@ export default function App() {
                         : "border-transparent text-slate-500 hover:text-rose-700 bg-slate-100/50"
                     }`}
                   >
-                    <span>🔴 คลังข้อมูลพนักงานลาออก (Resigned Archive)</span>
+                    <span>🔴 คลังข้อมูลพนักงานลาออก/พ้นสภาพ (Inactive / Resigned)</span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก").length} คน
+                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "ลาออก").length} คน
                     </span>
                   </button>
                 )}
@@ -4725,7 +4725,7 @@ export default function App() {
                       <div className="flex items-center gap-2.5">
                         <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
                         <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                          แสดง {filteredEmployees.length} จาก {(state?.employees || []).filter(e => selectedEmpStatusTab === "Resigned" ? (e.employmentStatus === "Resigned" || e.employmentStatus === "ลาออก") : (e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก")).length} คน
+                          แสดง {filteredEmployees.length} จาก {(state?.employees || []).filter(e => selectedEmpStatusTab === "Resigned" ? (e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "ลาออก") : (e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "ลาออก")).length} คน
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
@@ -6793,7 +6793,8 @@ export default function App() {
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
-                      <option value="Active">🟢 ทำงานปกติ (Active)</option>
+                      <option value="Active">🟢 ปฏิบัติงานปกติ (Active)</option>
+                      <option value="Inactive">🔴 พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
                       <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
                     </select>
                   </div>
@@ -7123,7 +7124,8 @@ export default function App() {
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
-                      <option value="Active">🟢 ทำงานปกติ (Active)</option>
+                      <option value="Active">🟢 ปฏิบัติงานปกติ (Active)</option>
+                      <option value="Inactive">🔴 พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
                       <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
                     </select>
                   </div>
