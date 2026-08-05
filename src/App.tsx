@@ -6120,7 +6120,7 @@ export default function App() {
                                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteEmployee(emp.id)}
+                          onClick={() => handleDeleteEmployee(emp.id)}
                                     className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                     title="ลบพนักงาน"
                                   >
@@ -6438,18 +6438,12 @@ export default function App() {
                         ))}
                       </div>
 
-                      {/* Monthly Summary Columns Header */}
-                      <div className="flex-shrink-0 border-l border-slate-300 flex flex-col bg-slate-50">
-                        <div className="bg-[#1b365d] text-white text-[11px] font-bold text-center py-1 tracking-wide uppercase border-b border-[#1b365d]">
-                          Monthly
-                        </div>
-                        <div className="flex text-[10px] font-extrabold text-slate-800 text-center divide-x divide-slate-300">
-                          <div className="w-20 py-1.5 flex items-center justify-center bg-white">OT ปกติ</div>
-                          <div className="w-24 py-1.5 flex items-center justify-center bg-white">OT วันหยุด</div>
-                          <div className="w-32 py-1.5 flex items-center justify-center bg-white">ทำงานวันหยุด (วัน)</div>
-                        </div>
+                      {/* Calendar Header End – plain column */}
+                      <div className="flex-shrink-0 p-2 border-l border-slate-200 flex flex-col justify-center items-center bg-slate-100 w-24">
+                        <span className="text-[10px] font-bold text-slate-600 uppercase">ตารางงาน</span>
                       </div>
                     </div>
+
 
                     {/* ตารางเรือ Vessel & Crane Section (NEW) */}
                     <div className="bg-amber-50/50 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
@@ -6527,16 +6521,46 @@ export default function App() {
                           })}
                         </div>
 
-                        <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-slate-50/10">
-                          <div className="w-20"></div>
-                          <div className="w-24"></div>
-                          <div className="w-32"></div>
+                        <div className="flex-shrink-0 border-l border-slate-200 bg-slate-50/10 w-24" />
+                      </div>))}
+
+                    {/* === Dedicated Employee Roster Header Bar === */}
+                    <div className="flex bg-slate-100 border-y border-slate-300 select-none">
+                      <div className="w-56 flex-shrink-0 p-3 border-r border-slate-300 font-extrabold text-slate-700 text-xs flex items-center bg-blue-50/80">
+                        <span className="text-blue-900 font-bold">รายชื่อพนักงานจัดกะ (All Employees)</span>
+                      </div>
+
+                      <div className="flex">
+                        {currentDays.map((day, dIdx) => (
+                          <div
+                            key={dIdx}
+                            style={{ width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
+                            className={`flex-shrink-0 p-1 text-center border-r border-slate-300 flex flex-col justify-center ${
+                              day.weekend ? "bg-slate-200/60" : "bg-slate-100"
+                            }`}
+                          >
+                            <span className={`font-bold ${day.weekend ? "text-rose-600" : "text-slate-500"} ${
+                              daysLimit === 30 ? "text-[8px]" : "text-[10px]"
+                            }`}>
+                              {day.th}
+                            </span>
+                            <span className={`font-extrabold text-slate-800 font-mono ${
+                              daysLimit === 30 ? "text-[10px]" : "text-xs"
+                            }`}>{day.n}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex-shrink-0 border-l border-slate-300 flex flex-col bg-slate-200/90">
+                        <div className="bg-[#1b365d] text-white text-[11px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d]">
+                          MONTHLY
+                        </div>
+                        <div className="flex text-[10px] font-black text-slate-800 text-center divide-x divide-slate-300">
+                          <div className="w-20 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
+                          <div className="w-24 py-1.5 flex items-center justify-center bg-slate-100">OT วันหยุด</div>
+                          <div className="w-32 py-1.5 flex items-center justify-center bg-slate-100">ทำงานวันหยุด (วัน)</div>
                         </div>
                       </div>
-                    ))}
-
-                    <div className="bg-blue-50/40 px-4 py-2 border-b border-slate-200">
-                      <span className="text-xs font-bold text-blue-700">รายชื่อบุคลากรและแผนการจัดกะทำงานทั้งหมด (All Employees)</span>
                     </div>
 
                     {/* Employee scheduler rows grouped by position/role */}
@@ -6654,28 +6678,40 @@ export default function App() {
                                       })()}
                                     </div>
 
-                                    {/* OT Column Cell */}
-                                    <div className={`flex-shrink-0 flex items-center justify-center border-l border-slate-200 bg-blue-50/20 font-mono text-xs font-bold ${daysLimit === 30 ? "w-20" : "w-24"}`}>
-                                      {(() => {
-                                        const empShifts = getEmpShiftsArray(emp.shifts);
-                                        const periodOtHours = currentDays.reduce((acc, day) => {
-                                          const shift = empShifts[day.n - 1] || "O";
-                                          return acc + getShiftOtHours(shift);
-                                        }, 0);
-                                        const periodTargetOt = selectedWeek === "all" ? emp.targetOt : emp.targetOt / 4;
-                                        const otPercentage = Math.round((periodOtHours / periodTargetOt) * 100) || 0;
-                                        const isOver = otPercentage > 100;
-                                        
-                                        return (
-                                          <div className="flex flex-col items-center">
-                                            <span className={periodOtHours > 0 ? "text-blue-700" : "text-slate-400"}>{periodOtHours} ชม.</span>
-                                            <span className={`text-[10px] px-1.5 rounded-full mt-0.5 ${isOver ? "bg-red-100 text-red-600" : periodOtHours > 0 ? "bg-blue-100 text-blue-600" : "text-transparent"}`}>
-                                              {periodOtHours > 0 ? `${otPercentage}%` : "0%"}
-                                            </span>
+                                    {/* Monthly Summary Cells per Employee */}
+                                    {(() => {
+                                      const empShifts = getEmpShiftsArray(emp.shifts);
+                                      let normalOt = 0;
+                                      let holidayOt = 0;
+                                      let holidayWorkDays = 0;
+
+                                      currentDays.forEach((day) => {
+                                        const shift = empShifts[day.n - 1] || "O";
+                                        const otHrs = getShiftOtHours(shift);
+                                        const isOff = shift === "O" || shift === "OFF";
+
+                                        if (shift === "OND" || (day.weekend && !isOff)) {
+                                          holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
+                                          if (!isOff) holidayWorkDays += 1;
+                                        } else if (otHrs > 0) {
+                                          normalOt += otHrs;
+                                        }
+                                      });
+
+                                      return (
+                                        <div className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white">
+                                          <div className="w-20 flex items-center justify-center font-bold text-slate-800">
+                                            {normalOt > 0 ? normalOt : <span className="text-slate-300">-</span>}
                                           </div>
-                                        );
-                                      })()}
-                                    </div>
+                                          <div className="w-24 flex items-center justify-center font-bold text-slate-800">
+                                            {holidayOt > 0 ? holidayOt : <span className="text-slate-300">-</span>}
+                                          </div>
+                                          <div className="w-32 flex items-center justify-center font-bold text-slate-800">
+                                            {holidayWorkDays > 0 ? holidayWorkDays : <span className="text-slate-300">-</span>}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 );
                               })}
