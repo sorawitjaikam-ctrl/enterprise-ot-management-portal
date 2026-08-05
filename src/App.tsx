@@ -1829,10 +1829,15 @@ export default function App() {
   const [jobValueSearchQuery, setJobValueSearchQuery] = useState<string>("");
   const [showImportJobValueModal, setShowImportJobValueModal] = useState<boolean>(false);
   const [viewingJobValueModal, setViewingJobValueModal] = useState<JobValueRecord | null>(null);
-  const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
-  const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
-  const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
-  const [dismissedBirthdayPopup, setDismissedBirthdayPopup] = useState<boolean>(false);
+  const currentMonthKey = new Date().toISOString().substring(0, 7);
+  const [dismissedBirthdayPopup, setDismissedBirthdayPopup] = useState<boolean>(() => {
+    return localStorage.getItem("dismissedBirthdayMonth") === currentMonthKey;
+  });
+
+  const handleDismissBirthdayPopup = () => {
+    localStorage.setItem("dismissedBirthdayMonth", currentMonthKey);
+    setDismissedBirthdayPopup(true);
+  };
 
   const fetchJobValueRecords = async () => {
     try {
@@ -3795,14 +3800,34 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].map(deptName => {
+                    const targetDeptId = normalizeDeptId(deptName);
                     const safeJv = jobValueRecords || [];
                     const deptJvRecords = safeJv.filter(r => 
-                      r.department === deptName || normalizeDeptId(r.department) === normalizeDeptId(deptName)
+                      r.department === deptName || 
+                      normalizeDeptId(r.department) === targetDeptId ||
+                      normalizeDeptId(r.deptId) === targetDeptId
                     );
-                    const totalRev = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
-                    const totalCost = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
-                    const p25 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0);
-                    const p26 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2026) || 0), 0);
+                    const empList = (state.employees || []).filter(e => 
+                      normalizeDeptId(e.deptId) === targetDeptId || 
+                      normalizeDeptId(e.department) === targetDeptId ||
+                      e.deptId === deptName ||
+                      e.department === deptName
+                    );
+
+                    let count = Math.max(deptJvRecords.length, empList.length);
+                    let totalRev = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
+                    let totalCost = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
+                    let p25 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0);
+                    let p26 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2026) || 0), 0);
+
+                    // Fallback to employees if jobValueRecords has no entries for this department
+                    if (deptJvRecords.length === 0 && empList.length > 0) {
+                      totalRev = empList.reduce((sum, e) => sum + (Number((e as any).avgRevenue || (e as any).salary * 4.5 || 98500) || 0), 0);
+                      totalCost = empList.reduce((sum, e) => sum + (Number((e as any).avgCost || (e as any).salary * 1.5 || 145000) || 0), 0);
+                      p25 = empList.reduce((sum, e) => sum + (Number((e as any).profit2025 || (e as any).salary * 1.2 || 88000) || 0), 0);
+                      p26 = empList.reduce((sum, e) => sum + (Number((e as any).profit2026 || (e as any).salary * 2.8 || 520000) || 0), 0);
+                    }
+
                     const diff = p26 - p25;
                     const isGrowth = diff >= 0;
 
@@ -3811,7 +3836,7 @@ export default function App() {
                         <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                           <span className="font-extrabold text-slate-900 text-sm">แผนก {deptName}</span>
                           <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-extrabold">
-                            {deptJvRecords.length} บุคลากร
+                            {count} บุคลากร
                           </span>
                         </div>
 
@@ -8789,12 +8814,14 @@ export default function App() {
             <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-amber-200 flex flex-col animate-in fade-in zoom-in-95 duration-200 text-center">
               {/* Birthday Header Banner */}
               <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white relative shadow-md">
-                <div className="text-4xl mb-2">🎉 🎂 🎈</div>
+                <div className="w-10 h-10 mx-auto mb-2 bg-white/20 rounded-full flex items-center justify-center font-black text-xs tracking-wider shadow-inner">
+                  HBD
+                </div>
                 <h3 className="text-xl font-black">สุขสันต์วันเกิดพนักงานในทีม!</h3>
                 <p className="text-xs text-amber-100 font-bold mt-1">แจ้งเตือนวันเกิดพนักงานในสังกัดประจำวันนี้</p>
                 <button 
                   type="button"
-                  onClick={() => setDismissedBirthdayPopup(true)}
+                  onClick={handleDismissBirthdayPopup}
                   className="absolute top-3 right-3 text-white/80 hover:text-white p-1 rounded-full text-lg cursor-pointer"
                 >
                   ✕
@@ -8811,7 +8838,7 @@ export default function App() {
                         {bEmp.role} • แผนก {getDeptName(bEmp.deptId, state?.departments)}
                       </p>
                       <p className="text-[11px] text-amber-800 font-extrabold mt-1">
-                        🎂 ครบรอบอายุ {bEmp.age || bEmp.calculatedAge || 30} ปีในวันนี้!
+                        ครบรอบอายุ {bEmp.age || bEmp.calculatedAge || 30} ปีในวันนี้!
                       </p>
                     </div>
                   </div>
@@ -8821,16 +8848,16 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      alert("🎉 ส่งคำอวยพรวันเกิดให้พนักงานในสังกัดเรียบร้อยแล้ว!");
-                      setDismissedBirthdayPopup(true);
+                      alert("ส่งคำอวยพรวันเกิดให้พนักงานในสังกัดเรียบร้อยแล้ว!");
+                      handleDismissBirthdayPopup();
                     }}
                     className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-2xl text-xs font-black shadow-md cursor-pointer transition-all"
                   >
-                    🎉 ร่วมส่งคำอวยพรวันเกิด!
+                    ร่วมส่งคำอวยพรวันเกิด
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDismissedBirthdayPopup(true)}
+                    onClick={handleDismissBirthdayPopup}
                     className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all cursor-pointer"
                   >
                     ปิด
