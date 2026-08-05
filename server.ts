@@ -321,13 +321,9 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
       });
     }
 
-    // If still all 'O's or empty, seed default realistic 4-on-2-off shifts pattern
-    if (shifts.length === 0 || shifts.every((s: string) => s === "O")) {
-      const pattern = defaultPatterns[idx % defaultPatterns.length];
-      shifts = Array.from({ length: daysInMonth }, (_, i) => pattern[i % pattern.length]);
-      try {
-        await queryD1("UPDATE employees SET shifts = ? WHERE id = ?", [JSON.stringify(shifts), e.id]);
-      } catch (_) {}
+    // Pad shifts with 'O' up to daysInMonth if needed without mutating database
+    while (shifts.length < daysInMonth) {
+      shifts.push("O");
     }
 
     return { ...e, shifts, actualOt, otPct, status };
@@ -1448,6 +1444,8 @@ app.post("/api/clear-mock-data", async (req, res) => {
       await queryD1("DELETE FROM employees");
       await queryD1("DELETE FROM ot_daily_records");
       await queryD1("DELETE FROM leave_records");
+      try { await queryD1("DELETE FROM job_value"); } catch (_) {}
+      try { await queryD1("DELETE FROM vessel_schedules"); } catch (_) {}
       await queryD1("DELETE FROM departments");
       await queryD1("DELETE FROM accounts");
       for (const d of REAL_DEPARTMENTS) {
