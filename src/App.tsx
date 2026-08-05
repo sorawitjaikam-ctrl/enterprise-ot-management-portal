@@ -4428,91 +4428,123 @@ export default function App() {
                 </div>
 
                 {/* KPI Stat Cards (4 Cards) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* 1. Total Revenue */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500">รายได้รวมสะสม (Total Revenue)</span>
-                      <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
-                        <DollarSign className="w-5 h-5" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <h4 className="text-2xl font-black text-slate-900 font-mono">
-                        ฿{safeJobValueRecords.reduce((sum, r) => sum + ((Number(r?.avgRevenue) || 0) * 12), 0).toLocaleString()}
-                      </h4>
-                      <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>ประมาณการจาก {safeJobValueRecords.length} บุคลากร</span>
-                      </p>
-                    </div>
-                  </div>
+                {(() => {
+                  const targetDeptFilter = !isHrOrFullAccess && currentUser?.deptId 
+                    ? getDeptName(currentUser.deptId, state?.departments) 
+                    : financialChartDeptFilter;
 
-                  {/* 2. Total Cost */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500">ต้นทุนรวมการดำเนินงาน (Total Cost)</span>
-                      <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
-                        <BarChart3 className="w-5 h-5" />
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <h4 className="text-2xl font-black text-rose-700 font-mono">
-                        ฿{safeJobValueRecords.reduce((sum, r) => sum + ((Number(r?.avgCost) || 0) * 12), 0).toLocaleString()}
-                      </h4>
-                      <p className="text-[11px] font-semibold text-slate-500 mt-1">
-                        เฉลี่ย ฿{Math.round(safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.avgCost) || 0), 0) / Math.max(1, safeJobValueRecords.length)).toLocaleString()} / คน / เดือน
-                      </p>
-                    </div>
-                  </div>
+                  const scopedJvRecords = safeJobValueRecords.filter(r => {
+                    if (!isHrOrFullAccess && currentUser?.deptId) {
+                      const managerDeptId = normalizeDeptId(currentUser.deptId);
+                      const recDeptId = normalizeDeptId(r.deptId || r.department);
+                      if (recDeptId !== managerDeptId && r.department !== getDeptName(currentUser.deptId, state?.departments)) return false;
+                    }
+                    if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
+                      const filterDeptId = normalizeDeptId(targetDeptFilter);
+                      const recDeptId = normalizeDeptId(r.deptId || r.department);
+                      if (r.department !== targetDeptFilter && recDeptId !== filterDeptId) return false;
+                    }
+                    return true;
+                  });
 
-                  {/* 3. Total Profit 2026 */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500">กำไรสุทธิสะสมปี 2026</span>
-                      <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                        <Award className="w-5 h-5" />
+                  const scopedEmpList = (state?.employees || []).filter(e => {
+                    if (!isHrOrFullAccess && currentUser?.deptId) {
+                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
+                    }
+                    if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
+                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
+                    }
+                    return true;
+                  });
+
+                  const totalRev = scopedJvRecords.reduce((sum, r) => sum + ((Number(r?.avgRevenue) || 0) * 12), 0);
+                  const totalCost = scopedJvRecords.reduce((sum, r) => sum + ((Number(r?.avgCost) || 0) * 12), 0);
+                  const totalProf26 = scopedJvRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0);
+                  const totalProf25 = scopedJvRecords.reduce((sum, r) => sum + (Number(r?.profit2025) || 0), 0);
+                  const avgCostPerPerson = Math.round(scopedJvRecords.reduce((sum, r) => sum + (Number(r?.avgCost) || 0), 0) / Math.max(1, scopedJvRecords.length));
+                  const diffPct = totalProf25 > 0 ? Math.round(((totalProf26 - totalProf25) / totalProf25) * 100) : 0;
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* 1. Total Revenue */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-500">รายได้รวมสะสม (Total Revenue)</span>
+                          <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                            <DollarSign className="w-5 h-5" />
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <h4 className="text-2xl font-black text-slate-900 font-mono">
+                            ฿{totalRev.toLocaleString()}
+                          </h4>
+                          <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>ประมาณการจาก {scopedJvRecords.length} บุคลากร</span>
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-3">
-                      <h4 className="text-2xl font-black text-blue-700 font-mono">
-                        ฿{safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0).toLocaleString()}
-                      </h4>
-                      {(() => {
-                        const p25 = safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2025) || 0), 0);
-                        const p26 = safeJobValueRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0);
-                        const diffPct = p25 > 0 ? Math.round(((p26 - p25) / p25) * 100) : 0;
-                        return (
+
+                      {/* 2. Total Cost */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-500">ต้นทุนรวมการดำเนินงาน (Total Cost)</span>
+                          <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
+                            <BarChart3 className="w-5 h-5" />
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <h4 className="text-2xl font-black text-rose-700 font-mono">
+                            ฿{totalCost.toLocaleString()}
+                          </h4>
+                          <p className="text-[11px] font-semibold text-slate-500 mt-1">
+                            เฉลี่ย ฿{avgCostPerPerson.toLocaleString()} / คน / เดือน
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 3. Total Profit 2026 */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-500">กำไรสุทธิสะสมปี 2026</span>
+                          <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                            <Award className="w-5 h-5" />
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <h4 className="text-2xl font-black text-blue-700 font-mono">
+                            ฿{totalProf26.toLocaleString()}
+                          </h4>
                           <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             <span>{diffPct >= 0 ? `▲ +${diffPct}%` : `▼ ${diffPct}%`}</span>
                             <span className="text-slate-400 font-normal">เทียบปี 2025</span>
                           </p>
-                        );
-                      })()}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  {/* 4. Coverage Ratio */}
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500">พนักงานที่มีข้อมูล Job Value</span>
-                      <div className="p-2 bg-purple-50 rounded-xl text-purple-600">
-                        <Users className="w-5 h-5" />
+                      {/* 4. Coverage Ratio */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-500">พนักงานที่มีข้อมูล Job Value</span>
+                          <div className="p-2 bg-purple-50 rounded-xl text-purple-600">
+                            <Users className="w-5 h-5" />
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <h4 className="text-2xl font-black text-slate-900 font-mono">
+                            {scopedJvRecords.length} <span className="text-sm font-normal text-slate-500">/ {scopedEmpList.length} คน</span>
+                          </h4>
+                          <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
+                            <div 
+                              className="bg-purple-600 h-full rounded-full transition-all duration-500" 
+                              style={{ width: `${Math.min(100, Math.round((scopedJvRecords.length / Math.max(1, scopedEmpList.length)) * 100))}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <h4 className="text-2xl font-black text-slate-900 font-mono">
-                        {safeJobValueRecords.length} <span className="text-sm font-normal text-slate-500">/ {(state?.employees || []).length} คน</span>
-                      </h4>
-                      <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
-                        <div 
-                          className="bg-purple-600 h-full rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min(100, Math.round((safeJobValueRecords.length / Math.max(1, (state?.employees || []).length)) * 100))}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Monthly Performance Trend & Financial Chart */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
