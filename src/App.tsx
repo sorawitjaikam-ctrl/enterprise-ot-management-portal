@@ -1026,13 +1026,15 @@ function HrDirectEditorView({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-          >
-            <span>เพิ่มพนักงานใหม่</span>
-          </button>
+          {isHrOrFullAccess && (
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <span>เพิ่มพนักงานใหม่</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSaveAll}
@@ -1824,14 +1826,14 @@ export default function App() {
   // New Employee Form State
   const [newEmpName, setNewEmpName] = useState<string>("");
   const [newEmpDept, setNewEmpDept] = useState<string>("inter2");
-  const [newEmpRole, setNewEmpRole] = useState<string>("Operator");
-  const [newEmpGroupName, setNewEmpGroupName] = useState<string>("ทีม ก.");
+  const [newEmpRole, setNewEmpRole] = useState<string>("ผู้ควบคุมงานขนถ่ายสินค้า");
+  const [newEmpGroupName, setNewEmpGroupName] = useState<string>("");
   const [newEmpTargetOt, setNewEmpTargetOt] = useState<number>(48);
   const [newEmpPrefix, setNewEmpPrefix] = useState<string>("นาย");
   const [newEmpFirstName, setNewEmpFirstName] = useState<string>("");
   const [newEmpLastName, setNewEmpLastName] = useState<string>("");
   const [newEmpNickname, setNewEmpNickname] = useState<string>("");
-  const [newEmpDivision, setNewEmpDivision] = useState<string>("");
+  const [newEmpDivision, setNewEmpDivision] = useState<string>("ITS Operation and Technical");
   const [newEmpSalary, setNewEmpSalary] = useState<number>(15000);
   const [newEmpBirthday, setNewEmpBirthday] = useState<string>("");
   const [newEmpAge, setNewEmpAge] = useState<number>(0);
@@ -5691,13 +5693,15 @@ export default function App() {
                     </>
                   )}
                   
-                  <button 
-                    onClick={handleOpenAddEmployeeModal}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>เพิ่มพนักงานใหม่</span>
-                  </button>
+                  {isHrOrFullAccess && (
+                    <button 
+                      onClick={handleOpenAddEmployeeModal}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>เพิ่มพนักงานใหม่</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -7602,14 +7606,26 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ตำแหน่งงาน *</label>
-                    <input 
-                      type="text"
+                    <select 
                       value={newEmpRole}
                       onChange={(e) => setNewEmpRole(e.target.value)}
-                      placeholder="เช่น พนักงานขับเครน"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
-                    />
+                    >
+                      <option value="O&M Electrical">O&M Electrical</option>
+                      <option value="O&M Mechanical">O&M Mechanical</option>
+                      <option value="O&M Generator">O&M Generator</option>
+                      <option value="O&M Specialist">O&M Specialist</option>
+                      <option value="ผู้ควบคุมงานขนถ่ายสินค้า">ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                      <option value="ผู้ควบคุมงานจักรกลหนัก">ผู้ควบคุมงานจักรกลหนัก</option>
+                      <option value="Engineer">Engineer</option>
+                      <option value="พนักงานขับจักรกลหนัก">พนักงานขับจักรกลหนัก</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option>
+                      <option value="พนักงานขับเครน ชำนาญการ">พนักงานขับเครน ชำนาญการ</option>
+                      <option value="ปากเรือ">ปากเรือ</option>
+                      <option value="ปากเรือ ชำนาญการ">ปากเรือ ชำนาญการ</option>
+                      <option value="ผู้จัดการแผนก">ผู้จัดการแผนก</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">สังกัดแผนก</label>
@@ -7628,13 +7644,13 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ฝ่าย</label>
-                    <input 
-                      type="text"
+                    <select 
                       value={newEmpDivision}
                       onChange={(e) => setNewEmpDivision(e.target.value)}
-                      placeholder="เช่น ปฏิบัติการ"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ITS Operation and Technical">ITS Operation and Technical</option>
+                    </select>
                   </div>
                 </div>
 
@@ -7925,14 +7941,26 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ตำแหน่งงาน *</label>
-                    <input 
-                      type="text"
+                    <select 
                       value={editEmpRole}
                       onChange={(e) => setEditEmpRole(e.target.value)}
-                      placeholder="เช่น พนักงานขับเครน"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
-                    />
+                    >
+                      <option value="O&M Electrical">O&M Electrical</option>
+                      <option value="O&M Mechanical">O&M Mechanical</option>
+                      <option value="O&M Generator">O&M Generator</option>
+                      <option value="O&M Specialist">O&M Specialist</option>
+                      <option value="ผู้ควบคุมงานขนถ่ายสินค้า">ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                      <option value="ผู้ควบคุมงานจักรกลหนัก">ผู้ควบคุมงานจักรกลหนัก</option>
+                      <option value="Engineer">Engineer</option>
+                      <option value="พนักงานขับจักรกลหนัก">พนักงานขับจักรกลหนัก</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option>
+                      <option value="พนักงานขับเครน ชำนาญการ">พนักงานขับเครน ชำนาญการ</option>
+                      <option value="ปากเรือ">ปากเรือ</option>
+                      <option value="ปากเรือ ชำนาญการ">ปากเรือ ชำนาญการ</option>
+                      <option value="ผู้จัดการแผนก">ผู้จัดการแผนก</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">สังกัดแผนก</label>
@@ -7951,13 +7979,13 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ฝ่าย</label>
-                    <input 
-                      type="text"
-                      value={editEmpDivision}
+                    <select 
+                      value={editEmpDivision || "ITS Operation and Technical"}
                       onChange={(e) => setEditEmpDivision(e.target.value)}
-                      placeholder="เช่น ปฏิบัติการ"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="ITS Operation and Technical">ITS Operation and Technical</option>
+                    </select>
                   </div>
                 </div>
 
