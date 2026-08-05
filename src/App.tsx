@@ -6414,10 +6414,16 @@ export default function App() {
                         ))}
                       </div>
 
-                      {/* OT Column Header */}
-                      <div className={`flex-shrink-0 p-2 border-l border-slate-200 flex flex-col justify-center items-center bg-blue-50/50 ${daysLimit === 30 ? "w-20" : "w-24"}`}>
-                        <span className="text-[10px] font-bold text-slate-700 uppercase leading-tight">รวม OT</span>
-                        <span className="text-[9px] font-semibold text-blue-600">ราย{daysLimit === 7 ? "สัปดาห์" : daysLimit === 14 ? " 2 สัปดาห์" : "เดือน"}</span>
+                      {/* Monthly Summary Columns Header */}
+                      <div className="flex-shrink-0 border-l border-slate-300 flex flex-col bg-slate-50">
+                        <div className="bg-[#1b365d] text-white text-[11px] font-bold text-center py-1 tracking-wide uppercase border-b border-[#1b365d]">
+                          Monthly
+                        </div>
+                        <div className="flex text-[10px] font-extrabold text-slate-800 text-center divide-x divide-slate-300">
+                          <div className="w-20 py-1.5 flex items-center justify-center bg-white">OT ปกติ</div>
+                          <div className="w-24 py-1.5 flex items-center justify-center bg-white">OT วันหยุด</div>
+                          <div className="w-32 py-1.5 flex items-center justify-center bg-white">ทำงานวันหยุด (วัน)</div>
+                        </div>
                       </div>
                     </div>
 
@@ -6497,7 +6503,11 @@ export default function App() {
                           })}
                         </div>
 
-                        <div className={`flex-shrink-0 border-l border-slate-200 bg-slate-50/10 ${daysLimit === 30 ? "w-20" : "w-24"}`} />
+                        <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-slate-50/10">
+                          <div className="w-20"></div>
+                          <div className="w-24"></div>
+                          <div className="w-32"></div>
+                        </div>
                       </div>
                     ))}
 
@@ -6676,7 +6686,11 @@ export default function App() {
                           })}
                         </div>
 
-                        <div className={`flex-shrink-0 border-l border-slate-200 bg-slate-200 ${daysLimit === 30 ? "w-20" : "w-24"}`}></div>
+                        <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-slate-100 font-mono text-[10px] font-extrabold text-slate-600 text-center">
+                          <div className="w-20 flex items-center justify-center">-</div>
+                          <div className="w-24 flex items-center justify-center">-</div>
+                          <div className="w-32 flex items-center justify-center">-</div>
+                        </div>
                       </div>
 
                       {/* Row 2: Daily OT Hours */}
@@ -6707,19 +6721,36 @@ export default function App() {
                           })}
                         </div>
 
-                        {/* Grand Total OT column */}
-                        <div className={`flex-shrink-0 p-1 text-center border-l border-slate-200 flex flex-col justify-center items-center bg-blue-100 ${daysLimit === 30 ? "w-20" : "w-24"}`}>
+                        {/* Monthly Department Totals */}
+                        <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-blue-100/90 font-mono text-xs font-black text-blue-950">
                            {(() => {
-                              let totalOt = 0;
-                              const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === currentShiftsDept);
-                              activeList.forEach(emp => {
-                                 const periodShifts = getEmployeeShiftsForView(emp.shifts, daysLimit);
-                                 totalOt += periodShifts.reduce((acc, shift) => acc + getShiftOtHours(shift), 0);
+                              let deptNormalOt = 0;
+                              let deptHolidayOt = 0;
+                              let deptHolidayWorkDays = 0;
+
+                              const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(e => e.deptId === currentShiftsDept);
+                              activeList.forEach(e => {
+                                const empShifts = getEmpShiftsArray(e.shifts);
+                                currentDays.forEach((day) => {
+                                  const shift = empShifts[day.n - 1] || "O";
+                                  const otHrs = getShiftOtHours(shift);
+                                  const isOff = shift === "O" || shift === "OFF";
+
+                                  if (shift === "OND" || (day.weekend && !isOff)) {
+                                    deptHolidayOt += otHrs > 0 ? otHrs : 8;
+                                    deptHolidayWorkDays += 1;
+                                  } else if (otHrs > 0) {
+                                    deptNormalOt += otHrs;
+                                  }
+                                });
                               });
+
                               return (
-                                 <div className="flex flex-col items-center">
-                                   <span className="text-[10px] text-blue-800 font-extrabold">{totalOt}h</span>
-                                 </div>
+                                <>
+                                  <div className="w-20 flex items-center justify-center">{deptNormalOt}</div>
+                                  <div className="w-24 flex items-center justify-center">{deptHolidayOt}</div>
+                                  <div className="w-32 flex items-center justify-center">{deptHolidayWorkDays}</div>
+                                </>
                               );
                            })()}
                         </div>
