@@ -986,7 +986,11 @@ function HrDirectEditorView({
       }
     }
 
-    // 2. Department Tab Filter
+    // 2. Filter out Inactive / Resigned / Retired employees
+    const isInactive = r.status === "Inactive" || r.status === "Resigned" || r.status === "Retired" || r.status === "พ้นสภาพ" || r.status === "ลาออก" || r.status === "เกษียณ";
+    if (isInactive) return false;
+
+    // 3. Department Tab Filter
     if (filterDept !== "all") {
       const targetDeptId = normalizeDeptId(filterDept);
       const recDeptId = normalizeDeptId(r.deptId || r.department);
@@ -995,7 +999,7 @@ function HrDirectEditorView({
       }
     }
 
-    // 3. Search Filter
+    // 4. Search Filter
     if (search.trim()) {
       const q = search.toLowerCase();
       const matchId = String(r.empId || "").toLowerCase().includes(q);
@@ -1099,7 +1103,7 @@ function HrDirectEditorView({
 
         {!isHrOrFullAccess && (
           <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
-            <span>🔒 สิทธิ์ผู้จัดการแผนก: ระบบแสดงผลและอนุญาตให้แก้ไขเฉพาะพนักงานในสังกัด {getDeptName(currentUser?.deptId, state?.departments)} เท่านั้น</span>
+            <span>สิทธิ์ผู้จัดการแผนก: ระบบแสดงผลและอนุญาตให้แก้ไขเฉพาะพนักงานในสังกัด {getDeptName(currentUser?.deptId, state?.departments)} เท่านั้น</span>
           </div>
         )}
       </div>
@@ -1114,7 +1118,6 @@ function HrDirectEditorView({
                 <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
                 <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
                 <th className="p-3 w-36">แผนก</th>
-                <th className="p-3 w-28 text-center">สถานะ</th>
                 <th className="p-3 text-right text-emerald-700 font-extrabold w-36">รายได้เฉลี่ย/เดือน</th>
                 <th className="p-3 text-right text-rose-700 font-extrabold w-36">ต้นทุนเฉลี่ย/เดือน</th>
                 <th className="p-3 text-right text-slate-600 font-bold w-32">กำไร 2568</th>
@@ -2328,8 +2331,8 @@ export default function App() {
       if (empDeptId !== managerDeptId) return false;
     }
 
-    // 1. Employment Status Tab (Active vs Resigned / Inactive)
-    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "Inactive" || emp.employmentStatus === "ลาออก";
+    // 1. Employment Status Tab (Active vs Resigned / Inactive / Retired)
+    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "Inactive" || emp.employmentStatus === "Retired" || emp.employmentStatus === "ลาออก" || emp.employmentStatus === "เกษียณ" || emp.employmentStatus === "พ้นสภาพ";
     const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
     if (!matchesStatus) return false;
 
@@ -3918,7 +3921,7 @@ export default function App() {
                     title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
                   >
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-                    <span>🔴 คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
+                    <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
                   </button>
 
                   <button 
@@ -4928,7 +4931,7 @@ export default function App() {
                           onChange={(e) => setJobValueDeptFilter(e.target.value)}
                           className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
                         >
-                          {isHrOrFullAccess && <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>}
+                          {isHrOrFullAccess && <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>}
                           {(uniqueRosterDepts || []).filter(d => {
                             if (isHrOrFullAccess) return true;
                             return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
@@ -4948,7 +4951,6 @@ export default function App() {
                           <th className="px-3.5 py-3 min-w-[170px]">ชื่อ-นามสกุล</th>
                           <th className="px-3.5 py-3 min-w-[130px]">ตำแหน่ง</th>
                           <th className="px-3.5 py-3 w-28 text-center">แผนก</th>
-                          <th className="px-3.5 py-3 text-center w-28">สถานะ</th>
                           <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[130px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
                           <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[130px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
                           <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2568</th>
@@ -4976,6 +4978,11 @@ export default function App() {
                                 return false;
                               }
                             }
+
+                            // Filter out inactive/resigned/retired employees from active list
+                            const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
+                            const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "Retired" || empStatus === "พ้นสภาพ" || empStatus === "ลาออก" || empStatus === "เกษียณ";
+                            if (isInactive) return false;
 
                             const q = (jobValueSearchQuery || "").toLowerCase().trim();
                             const matchesSearch = !q || String(jv.empId || "").toLowerCase().includes(q) || empName.toLowerCase().includes(q) || position.toLowerCase().includes(q);
@@ -5027,17 +5034,6 @@ export default function App() {
                                     {deptName}
                                   </span>
                                 </td>
-                                <td className="px-3.5 py-3 text-center">
-                                  {isInactive ? (
-                                    <span className="inline-block px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold">
-                                      🔴 พ้นสภาพ
-                                    </span>
-                                  ) : (
-                                    <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold">
-                                      🟢 ปฏิบัติงาน
-                                    </span>
-                                  )}
-                                </td>
                                 <td className="px-3.5 py-3 text-right font-black text-emerald-700 font-mono text-sm">{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-right font-black text-rose-700 font-mono text-sm">{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{p25.toLocaleString()}</td>
@@ -5045,11 +5041,11 @@ export default function App() {
                                 <td className="px-3.5 py-3 text-center font-bold">
                                   {isGrowth ? (
                                     <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black" title={`กำไรเพิ่มขึ้น +${diff.toLocaleString()}`}>
-                                      🟢 ต่อยอด (+{diff.toLocaleString()})
+                                      ต่อยอด (+{diff.toLocaleString()})
                                     </span>
                                   ) : (
                                     <span className="inline-block px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black" title={`กำไรลดลง -${Math.abs(diff).toLocaleString()}`}>
-                                      🔴 ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
+                                      ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
                                     </span>
                                   )}
                                 </td>
@@ -5715,9 +5711,9 @@ export default function App() {
                       : "border-transparent text-slate-500 hover:text-slate-800 bg-slate-100/50"
                   }`}
                 >
-                  <span>🟢 พนักงานปัจจุบัน (Active)</span>
+                  <span>พนักงานปัจจุบัน (Active)</span>
                   <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "ลาออก").length} คน
+                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length} คน
                   </span>
                 </button>
 
@@ -5730,9 +5726,9 @@ export default function App() {
                         : "border-transparent text-slate-500 hover:text-rose-700 bg-slate-100/50"
                     }`}
                   >
-                    <span>🔴 คลังข้อมูลพนักงานลาออก/พ้นสภาพ (Inactive / Resigned)</span>
+                    <span>คลังพนักงานลาออก / พ้นสภาพ / เกษียณ</span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "ลาออก").length} คน
+                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length} คน
                     </span>
                   </button>
                 )}
@@ -5801,7 +5797,7 @@ export default function App() {
                         onChange={(e) => setEmpDeptFilter(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
                       >
-                        <option value="ทุกแผนก">🏢 แผนกทั้งหมด (ทุกแผนก)</option>
+                        <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>
                         {uniqueRosterDepts.map(d => (
                           <option key={d} value={d}>แผนก {d}</option>
                         ))}
@@ -7757,9 +7753,10 @@ export default function App() {
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
-                      <option value="Active">🟢 ปฏิบัติงานปกติ (Active)</option>
-                      <option value="Inactive">🔴 พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
-                      <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
+                      <option value="Active">ปฏิบัติงานปกติ (Active)</option>
+                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
+                      <option value="Resigned">พนักงานลาออก (Resigned)</option>
+                      <option value="Retired">พนักงานเกษียณอายุ (Retired)</option>
                     </select>
                   </div>
 
@@ -8079,9 +8076,10 @@ export default function App() {
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
-                      <option value="Active">🟢 ปฏิบัติงานปกติ (Active)</option>
-                      <option value="Inactive">🔴 พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
-                      <option value="Resigned">🔴 พนักงานลาออก (Resigned Archive)</option>
+                      <option value="Active">ปฏิบัติงานปกติ (Active)</option>
+                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
+                      <option value="Resigned">พนักงานลาออก (Resigned)</option>
+                      <option value="Retired">พนักงานเกษียณอายุ (Retired)</option>
                     </select>
                   </div>
 
@@ -8183,7 +8181,7 @@ export default function App() {
               {/* Category 1: ข้อมูลทั่วไป */}
               <div className="space-y-2.5">
                 <h4 className="font-extrabold text-blue-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  📁 ข้อมูลทั่วไปของพนักงาน (General)
+                  ข้อมูลทั่วไปของพนักงาน (General)
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
                   <div>
@@ -8214,7 +8212,7 @@ export default function App() {
               {/* Category 2: โครงสร้างสังกัด */}
               <div className="space-y-2.5">
                 <h4 className="font-extrabold text-indigo-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  🏢 สังกัดและโครงสร้างสายปฏิบัติงาน (Organization)
+                  สังกัดและโครงสร้างสายปฏิบัติงาน (Organization)
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
                   <div>
@@ -8243,7 +8241,7 @@ export default function App() {
               {/* Category 3: ประวัติพนักงานและการปฏิบัติงาน */}
               <div className="space-y-2.5">
                 <h4 className="font-extrabold text-emerald-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  📜 ประวัติพนักงานและการปฏิบัติงาน (Employee Profile History)
+                  ประวัติพนักงานและการปฏิบัติงาน (Employee Profile History)
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
                   {canAccessSalary && (
@@ -8270,7 +8268,7 @@ export default function App() {
 
                 {/* Leave Days Summary Card */}
                 <div className="space-y-2 pt-1">
-                  <span className="block text-[11px] font-extrabold text-amber-800">🌴 สรุปจำนวนวันลาพนักงาน (Leave Quota Summary)</span>
+                  <span className="block text-[11px] font-extrabold text-amber-800">สรุปจำนวนวันลาพนักงาน (Leave Quota Summary)</span>
                   <div className="grid grid-cols-3 gap-3 bg-amber-50/40 p-3 rounded-2xl border border-amber-100/60 text-center">
                     <div className="bg-white p-2.5 rounded-xl border border-amber-200/60 shadow-sm">
                       <span className="block text-[10px] font-bold text-amber-700">สิทธิวันลาทั้งหมด</span>
@@ -9278,22 +9276,22 @@ export default function App() {
                   defaultValue="M12"
                   className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-xs shadow-sm cursor-pointer"
                 >
-                  <optgroup label="☀️ กะเช้า (Morning)">
+                  <optgroup label="กะเช้า (Morning)">
                     <option value="M8">M8 - กะเช้า 8 ชม. (08:00 - 16:00)</option>
                     <option value="M12">M12 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
                     <option value="M16">M16 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
                   </optgroup>
-                  <optgroup label="⛅ กะบ่าย (Afternoon)">
+                  <optgroup label="กะบ่าย (Afternoon)">
                     <option value="A8">A8 - กะบ่าย 8 ชม. (16:00 - 00:00)</option>
                     <option value="A12">A12 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
                     <option value="A16">A16 - กะบ่าย 16 ชม. (OT 8 ชม.)</option>
                   </optgroup>
-                  <optgroup label="🌙 กะดึก (Night)">
+                  <optgroup label="กะดึก (Night)">
                     <option value="N8">N8 - กะดึก 8 ชม. (20:00 - 04:00)</option>
                     <option value="N12">N12 - กะดึก 12 ชม. (OT 4 ชม.)</option>
                     <option value="N16">N16 - กะดึก 16 ชม. (OT 8 ชม.)</option>
                   </optgroup>
-                  <optgroup label="🏖️ วันหยุด (Off / Holiday)">
+                  <optgroup label="วันหยุด (Off / Holiday)">
                     <option value="O">O - วันหยุด (Off / Day Off)</option>
                     <option value="OND">OND - ทำงานวันหยุด (OT 8 ชม.)</option>
                   </optgroup>
@@ -9361,22 +9359,22 @@ export default function App() {
                         }}
                         className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       >
-                        <optgroup label="☀️ กะเช้า (Morning Shift: 08:00 - 16:00)">
+                        <optgroup label="กะเช้า (Morning Shift: 08:00 - 16:00)">
                           <option value="M8">M8 - กะเช้า 8 ชม. (08:00 - 16:00)</option>
                           <option value="M12">M12 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
                           <option value="M16">M16 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
                         </optgroup>
-                        <optgroup label="⛅ กะบ่าย (Afternoon Shift: 16:00 - 00:00)">
+                        <optgroup label="กะบ่าย (Afternoon Shift: 16:00 - 00:00)">
                           <option value="A8">A8 - กะบ่าย 8 ชม. (16:00 - 00:00)</option>
                           <option value="A12">A12 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
                           <option value="A16">A16 - กะบ่าย 16 ชม. (OT 8 ชม.)</option>
                         </optgroup>
-                        <optgroup label="🌙 กะดึก (Night Shift: 20:00 - 04:00)">
+                        <optgroup label="กะดึก (Night Shift: 20:00 - 04:00)">
                           <option value="N8">N8 - กะดึก 8 ชม. (20:00 - 04:00)</option>
                           <option value="N12">N12 - กะดึก 12 ชม. (OT 4 ชม.)</option>
                           <option value="N16">N16 - กะดึก 16 ชม. (OT 8 ชม.)</option>
                         </optgroup>
-                        <optgroup label="🏖️ วันหยุด & พิเศษ (Off / Holiday)">
+                        <optgroup label="วันหยุด & พิเศษ (Off / Holiday)">
                           <option value="O">O - วันหยุด (Off / Day Off)</option>
                           <option value="OND">OND - ทำงานวันหยุด (OT 8 ชม.)</option>
                         </optgroup>
