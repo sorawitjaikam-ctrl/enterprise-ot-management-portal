@@ -3925,26 +3925,26 @@ export default function App() {
                         <div className="space-y-1.5 text-xs font-mono">
                           <div className="flex justify-between">
                             <span className="text-slate-500 font-sans">รายได้เฉลี่ย/เดือน:</span>
-                            <span className="font-bold text-emerald-700">฿{totalRev.toLocaleString()}</span>
+                            <span className="font-bold text-emerald-700">{totalRev.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500 font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
-                            <span className="font-bold text-rose-700">฿{totalCost.toLocaleString()}</span>
+                            <span className="font-bold text-rose-700">{totalCost.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between pt-1 border-t border-slate-200/60">
                             <span className="text-slate-500 font-sans">กำไรสะสม 2568:</span>
-                            <span className="font-bold text-slate-700">฿{p25.toLocaleString()}</span>
+                            <span className="font-bold text-slate-700">{p25.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500 font-sans">กำไรสะสม 2569:</span>
-                            <span className="font-extrabold text-blue-700">฿{p26.toLocaleString()}</span>
+                            <span className="font-extrabold text-blue-700">{p26.toLocaleString()}</span>
                           </div>
                         </div>
 
                         <div className={`p-2 rounded-xl text-[11px] font-extrabold text-center border ${
                           isGrowth ? "bg-emerald-100/90 text-emerald-900 border-emerald-300" : "bg-rose-100/90 text-rose-900 border-rose-300"
                         }`}>
-                          {isGrowth ? `ต่อยอด (+฿${diff.toLocaleString()})` : `ไม่ต่อยอด (-฿${Math.abs(diff).toLocaleString()})`}
+                          {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
                         </div>
                       </div>
                     );
@@ -4108,7 +4108,7 @@ export default function App() {
                           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
                           <div className="flex items-baseline gap-1">
                             <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              {totalSpent >= 1000 ? `฿${(totalSpent / 1000).toFixed(1)}K` : `฿${totalSpent.toLocaleString()}`}
+                              {totalSpent >= 1000 ? `${(totalSpent / 1000).toFixed(1)}K` : `${totalSpent.toLocaleString()}`}
                             </h3>
                             <span className="text-xs font-bold text-slate-500">THB</span>
                           </div>
@@ -4476,7 +4476,7 @@ export default function App() {
                         </div>
                         <div className="mt-3">
                           <h4 className="text-2xl font-black text-slate-900 font-mono">
-                            ฿{totalRev.toLocaleString()}
+                            {totalRev.toLocaleString()}
                           </h4>
                           <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
@@ -4495,10 +4495,10 @@ export default function App() {
                         </div>
                         <div className="mt-3">
                           <h4 className="text-2xl font-black text-rose-700 font-mono">
-                            ฿{totalCost.toLocaleString()}
+                            {totalCost.toLocaleString()}
                           </h4>
                           <p className="text-[11px] font-semibold text-slate-500 mt-1">
-                            เฉลี่ย ฿{avgCostPerPerson.toLocaleString()} / คน / เดือน
+                            เฉลี่ย {avgCostPerPerson.toLocaleString()} / คน / เดือน
                           </p>
                         </div>
                       </div>
@@ -4513,7 +4513,7 @@ export default function App() {
                         </div>
                         <div className="mt-3">
                           <h4 className="text-2xl font-black text-blue-700 font-mono">
-                            ฿{totalProf26.toLocaleString()}
+                            {totalProf26.toLocaleString()}
                           </h4>
                           <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             <span>{diffPct >= 0 ? `▲ +${diffPct}%` : `▼ ${diffPct}%`}</span>
@@ -4691,7 +4691,7 @@ export default function App() {
                                     <g key={i}>
                                       <line x1="50" y1={y} x2="780" y2={y} stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
                                       <text x="45" y={y + 4} textAnchor="end" className="text-[10px] font-mono fill-slate-400">
-                                        ฿{val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                                        {val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
                                       </text>
                                     </g>
                                   );
@@ -4790,17 +4790,17 @@ export default function App() {
                                     <div 
                                       className="w-1/3 bg-emerald-500 rounded-t-md transition-all duration-300 group-hover:bg-emerald-600 shadow-sm" 
                                       style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
-                                      title={`Revenue (${d.month}): ฿${d.rev.toLocaleString()}`}
+                                      title={`Revenue (${d.month}): ${d.rev.toLocaleString()}`}
                                     />
                                     <div 
                                       className="w-1/3 bg-rose-400 rounded-t-md transition-all duration-300 group-hover:bg-rose-500 shadow-sm" 
                                       style={{ height: `${Math.max(8, Math.min(100, costPct))}%` }}
-                                      title={`Cost (${d.month}): ฿${d.cost.toLocaleString()}`}
+                                      title={`Cost (${d.month}): ${d.cost.toLocaleString()}`}
                                     />
                                     <div 
                                       className="w-1/3 bg-blue-600 rounded-t-md transition-all duration-300 group-hover:bg-blue-700 shadow-sm" 
                                       style={{ height: `${Math.max(5, Math.min(100, profPct))}%` }}
-                                      title={`Profit (${d.month}): ฿${d.prof.toLocaleString()}`}
+                                      title={`Profit (${d.month}): ${d.prof.toLocaleString()}`}
                                     />
                                   </div>
                                   <span className="text-xs font-black text-slate-700">{d.month}</span>
@@ -4837,15 +4837,15 @@ export default function App() {
                               <div className="text-[11px] space-y-0.5 pt-1">
                                 <div className="flex justify-between">
                                   <span className="text-slate-500 font-sans">รายได้:</span>
-                                  <span className="font-extrabold text-emerald-700">฿{d.rev.toLocaleString()}</span>
+                                  <span className="font-extrabold text-emerald-700">{d.rev.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-slate-500 font-sans">ต้นทุน:</span>
-                                  <span className="font-extrabold text-rose-700">฿{d.cost.toLocaleString()}</span>
+                                  <span className="font-extrabold text-rose-700">{d.cost.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between pt-0.5 border-t border-slate-200/40">
                                   <span className="text-slate-500 font-sans">กำไร:</span>
-                                  <span className="font-black text-blue-700">฿{d.prof.toLocaleString()}</span>
+                                  <span className="font-black text-blue-700">{d.prof.toLocaleString()}</span>
                                 </div>
                               </div>
                             </div>
@@ -5208,7 +5208,7 @@ export default function App() {
                                 <div 
                                   style={{ height: `${budgetHeight}%` }}
                                   className="w-3 bg-amber-500 rounded-t transition-all hover:bg-amber-600 shadow-sm cursor-pointer"
-                                  title={`${dept.nameTh}: งบประมาณ ฿${budgetUsed.toLocaleString()}`}
+                                  title={`${dept.nameTh}: งบประมาณ ${budgetUsed.toLocaleString()}`}
                                 ></div>
                               </div>
                               <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 text-center truncate max-w-[70px]">{dept.name}</span>
@@ -5235,9 +5235,9 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <span className="text-amber-600">{`฿${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
-                          <span className="text-amber-600">{`฿${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
-                          <span className="text-slate-400">฿0</span>
+                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
+                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
+                          <span className="text-slate-400">0</span>
                         </>
                       )}
                     </div>
@@ -5565,7 +5565,7 @@ export default function App() {
                           <td className="px-6 py-4 text-center font-bold font-mono">{dept.employeesCount} คน</td>
                           <td className="px-6 py-4 text-right font-extrabold text-slate-800 font-mono">{dept.otHours} ชม.</td>
                           <td className="px-6 py-4 text-right">
-                            <div className="font-extrabold text-slate-800 font-mono">฿{dept.budgetUsed.toLocaleString()}</div>
+                            <div className="font-extrabold text-slate-800 font-mono">{dept.budgetUsed.toLocaleString()}</div>
                             <div className={`flex items-center justify-end gap-0.5 text-[9px] font-bold ${
                               dept.budgetUsedChangePct > 0 ? 'text-red-500' : 'text-emerald-600'
                             }`}>
@@ -6044,7 +6044,7 @@ export default function App() {
                             </td>
                             {/* 9. ผลรวมค่าล่วงเวลา */}
                             <td className="px-4 py-3.5 text-right font-black text-slate-900 font-mono">
-                              ฿{totalOtPay.toLocaleString()}
+                              {totalOtPay.toLocaleString()}
                             </td>
                             {/* 10. % ค่าล่วงเวลา (เทียบจากฐานเงินเดือน) */}
                             <td className="px-4 py-3.5 text-right font-black font-mono">
@@ -8255,7 +8255,7 @@ export default function App() {
                     <div>
                       <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
                       <span className="font-bold text-slate-800 font-mono">
-                        ฿{viewingEmployeeDetails.salary?.toLocaleString() || "0"}
+                        {viewingEmployeeDetails.salary?.toLocaleString() || "0"}
                       </span>
                     </div>
                   )}
@@ -9086,15 +9086,15 @@ export default function App() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                   <span className="text-[10px] font-bold text-emerald-700 block">รายได้เฉลี่ย/เดือน</span>
-                  <span className="text-lg font-black text-emerald-800 font-mono">฿{(Number(viewingJobValueModal?.avgRevenue) || 0).toLocaleString()}</span>
+                  <span className="text-lg font-black text-emerald-800 font-mono">{(Number(viewingJobValueModal?.avgRevenue) || 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
                   <span className="text-[10px] font-bold text-rose-700 block">ต้นทุนเฉลี่ย/เดือน</span>
-                  <span className="text-lg font-black text-rose-800 font-mono">฿{(Number(viewingJobValueModal?.avgCost) || 0).toLocaleString()}</span>
+                  <span className="text-lg font-black text-rose-800 font-mono">{(Number(viewingJobValueModal?.avgCost) || 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                   <span className="text-[10px] font-bold text-blue-700 block">กำไรสะสมปี 2026</span>
-                  <span className="text-lg font-black text-blue-800 font-mono">฿{(Number(viewingJobValueModal?.profit2026) || 0).toLocaleString()}</span>
+                  <span className="text-lg font-black text-blue-800 font-mono">{(Number(viewingJobValueModal?.profit2026) || 0).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -9120,9 +9120,9 @@ export default function App() {
                       return (
                         <tr key={m} className="hover:bg-white/60">
                           <td className="px-3 py-2 font-sans font-bold text-slate-700">{m}</td>
-                          <td className="px-3 py-2 text-right text-emerald-600 font-bold">฿{rev.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right text-rose-600 font-bold">฿{cost.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right text-blue-700 font-extrabold">฿{prof.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-emerald-600 font-bold">{rev.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-rose-600 font-bold">{cost.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right text-blue-700 font-extrabold">{prof.toLocaleString()}</td>
                         </tr>
                       );
                     })}
