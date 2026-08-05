@@ -1834,6 +1834,7 @@ export default function App() {
   const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
   const [financialChartOnlyActiveMonths, setFinancialChartOnlyActiveMonths] = useState<boolean>(true);
   const [financialChartViewType, setFinancialChartViewType] = useState<"bar" | "trend">("trend");
+  const [financialChartDeptFilter, setFinancialChartDeptFilter] = useState<string>("ทุกแผนก");
   const currentMonthKey = new Date().toISOString().substring(0, 7);
   const [dismissedBirthdayPopup, setDismissedBirthdayPopup] = useState<boolean>(() => {
     return localStorage.getItem("dismissedBirthdayMonth") === currentMonthKey;
@@ -4451,6 +4452,24 @@ export default function App() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* Department Selector Filter */}
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1.5 text-xs font-bold border border-slate-200/60">
+                        <span className="text-slate-500 pl-2 font-sans">แผนก:</span>
+                        <select
+                          value={financialChartDeptFilter}
+                          onChange={(e) => setFinancialChartDeptFilter(e.target.value)}
+                          className="bg-white text-blue-800 border border-slate-200 rounded-lg py-1 px-2.5 text-xs font-extrabold shadow-sm focus:ring-0 cursor-pointer"
+                        >
+                          <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>
+                          <option value="INTER 2">แผนก INTER 2</option>
+                          <option value="INTER 3">แผนก INTER 3</option>
+                          <option value="INTER 5">แผนก INTER 5</option>
+                          <option value="INTER 7">แผนก INTER 7</option>
+                          <option value="Heavy Machine">แผนก Heavy Machine</option>
+                          <option value="ECC">แผนก ECC</option>
+                        </select>
+                      </div>
+
                       {/* Active Months vs 12 Months Filter */}
                       <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60">
                         <button
@@ -4508,11 +4527,19 @@ export default function App() {
                   </div>
 
                   {(() => {
+                    const filteredJvByDept = safeJobValueRecords.filter(r => {
+                      if (financialChartDeptFilter === "ทุกแผนก") return true;
+                      const targetDeptId = normalizeDeptId(financialChartDeptFilter);
+                      return r.department === financialChartDeptFilter || 
+                             normalizeDeptId(r.department) === targetDeptId ||
+                             normalizeDeptId(r.deptId) === targetDeptId;
+                    });
+
                     const allMonthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                     const allMonthData = allMonthLabels.map((m, idx) => {
-                      const monthRev = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[idx]) || 0), 0);
-                      const monthCost = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyCost || [])[idx]) || 0), 0);
-                      const monthProf = safeJobValueRecords.reduce((sum, r) => sum + (Number((r?.monthlyProfit || [])[idx]) || 0), 0);
+                      const monthRev = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[idx]) || 0), 0);
+                      const monthCost = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyCost || [])[idx]) || 0), 0);
+                      const monthProf = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyProfit || [])[idx]) || 0), 0);
                       return { month: m, idx, rev: monthRev, cost: monthCost, prof: monthProf, hasData: monthRev > 0 || monthCost > 0 || monthProf > 0 };
                     });
 
