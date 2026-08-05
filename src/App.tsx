@@ -1828,6 +1828,7 @@ export default function App() {
   const [jobValueDeptFilter, setJobValueDeptFilter] = useState<string>("ทุกแผนก");
   const [jobValueSearchQuery, setJobValueSearchQuery] = useState<string>("");
   const [showImportJobValueModal, setShowImportJobValueModal] = useState<boolean>(false);
+  const [viewingJobValueModal, setViewingJobValueModal] = useState<JobValueRecord | null>(null);
   const [copiedChecklistId, setCopiedChecklistId] = useState<string | null>(null);
   const [importJvLoading, setImportJvLoading] = useState<boolean>(false);
   const [isCsvTemplateHubOpen, setIsCsvTemplateHubOpen] = useState<boolean>(false);
