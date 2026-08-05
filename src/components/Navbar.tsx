@@ -47,7 +47,7 @@ export default function Navbar({
     { id: "dashboard",  label: "หน้าแรก Dashboard", icon: LayoutDashboard },
     { id: "shifts",     label: "ตารางจัดกะพนักงาน",  icon: Calendar },
     { id: "employees",  label: "รายชื่อพนักงาน",      icon: Users },
-    { id: "job_value",  label: "คุณค่าตำแหน่งงาน",   icon: TrendingUp },
+    { id: "job_value",  label: "Job Value",          icon: TrendingUp },
     ...(isHrOrFullAccess ? [
       { id: "hr-editor", label: "จัดการข้อมูลพนักงาน & รายได้", icon: FileText },
       { id: "leave-records", label: "บันทึกวันลา",      icon: FileText },

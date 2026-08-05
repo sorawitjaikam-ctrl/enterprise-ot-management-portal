@@ -3800,7 +3800,7 @@ export default function App() {
         <Navbar 
           title={
             activeTab === "dashboard" ? "Dashboard" : 
-            activeTab === "job_value" ? "Executive Operational Dashboard (คุณค่าตำแหน่งงาน & ผลตอบแทน)" :
+            activeTab === "job_value" ? "Job Value" :
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
@@ -4357,7 +4357,7 @@ export default function App() {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-lg font-extrabold text-slate-800">Executive Operational Dashboard (Job Value & Financials)</h3>
+                      <h3 className="text-lg font-extrabold text-slate-800">Job Value</h3>
                       <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
                         <span>ปี 2026</span>
