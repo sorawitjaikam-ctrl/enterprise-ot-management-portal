@@ -5853,7 +5853,7 @@ export default function App() {
                       <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">
                         <th 
                           onClick={() => handleRosterSort("id")}
-                          className="px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                           title="คลิกเพื่อเรียงตามรหัสพนักงาน"
                         >
                           <div className="flex items-center gap-1.5">
@@ -5867,7 +5867,7 @@ export default function App() {
                         </th>
                         <th 
                           onClick={() => handleRosterSort("name")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap min-w-[220px]"
                           title="คลิกเพื่อเรียงตามชื่อ-นามสกุล"
                         >
                           <div className="flex items-center gap-1.5">
@@ -5881,7 +5881,7 @@ export default function App() {
                         </th>
                         <th 
                           onClick={() => handleRosterSort("role")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap min-w-[180px]"
                           title="คลิกเพื่อเรียงตามตำแหน่ง"
                         >
                           <div className="flex items-center gap-1.5">
@@ -5895,7 +5895,7 @@ export default function App() {
                         </th>
                         <th 
                           onClick={() => handleRosterSort("dept")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                           title="คลิกเพื่อเรียงตามแผนก"
                         >
                           <div className="flex items-center gap-1.5">
@@ -5909,7 +5909,7 @@ export default function App() {
                         </th>
                         <th 
                           onClick={() => handleRosterSort("division")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
                           title="คลิกเพื่อเรียงตามฝ่าย"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6030,26 +6030,26 @@ export default function App() {
                         return (
                           <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
                             {/* 1. รหัสพนักงาน */}
-                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500">
+                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap">
                               {emp.id}
                             </td>
                             {/* 2. ชื่อ-นามสกุล */}
-                            <td className="px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setViewingEmployeeDetails(emp)}>
+                            <td className="px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap min-w-[220px]" onClick={() => setViewingEmployeeDetails(emp)}>
                               <div className="flex items-center gap-2.5">
                                 <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-8 h-8 flex-shrink-0" />
-                                <span>{emp.name}</span>
+                                <span className="whitespace-nowrap font-extrabold">{emp.name}</span>
                               </div>
                             </td>
                             {/* 3. ตำแหน่ง */}
-                            <td className="px-4 py-3.5 font-medium text-slate-700">
+                            <td className="px-4 py-3.5 font-medium text-slate-700 whitespace-nowrap">
                               {emp.role}
                             </td>
                             {/* 4. แผนก */}
-                            <td className="px-4 py-3.5 font-bold text-slate-700">
+                            <td className="px-4 py-3.5 font-bold text-slate-700 whitespace-nowrap">
                               {getDeptName(emp.deptId, state.departments)}
                             </td>
                             {/* 5. ฝ่าย */}
-                            <td className="px-4 py-3.5 text-slate-600 font-medium">
+                            <td className="px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap">
                               {emp.division || emp.groupName || "-"}
                             </td>
                             {/* 6. OT วันทำงาน (x1.5) */}
