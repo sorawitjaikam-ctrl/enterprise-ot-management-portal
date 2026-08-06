@@ -1158,7 +1158,7 @@ function HrDirectEditorView({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
             <thead>
-              <tr className="bg-slate-100/90 border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
+              <tr className="bg-[#f1f5f9] border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
                 <th className="p-3 w-28 font-mono">รหัสพนักงาน</th>
                 <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
                 <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
@@ -4259,7 +4259,7 @@ export default function App() {
                   <button 
                     type="button"
                     onClick={handleNavigateToEmployees}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-50/80 hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#eff6ff] hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
                     title="คลิกเพื่อเปิดตารางรายชื่อพนักงานทั้งหมด"
                   >
                     <span>ดูตารางรายชื่อทั้งหมด</span>
@@ -6517,7 +6517,7 @@ export default function App() {
 
                       return (
                       <div key={rIdx} className="flex border-b border-slate-200 hover:bg-slate-50/30 transition-colors">
-                        <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/60 flex flex-col justify-center px-3 py-2 sticky left-0 z-10 shadow-sm">
+                        <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-[#f8fafc] flex flex-col justify-center px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <span className="text-[11px] font-extrabold text-slate-700">{row.label}</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">{row.subLabel}</span>
                         </div>
@@ -6728,7 +6728,7 @@ export default function App() {
                                     title="คลิกเพื่อจัดการตารางกะรายวันของพนักงานคนนี้"
                                   >
                                     {/* Employee ID & Name head */}
-                                    <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-blue-50/50 flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
+                                    <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1">
