@@ -1983,6 +1983,42 @@ export default function App() {
     fetchJobValueRecords();
   }, []);
 
+    // Toast Notifications State & Override window.alert
+  const [toasts, setToasts] = useState<any[]>([]);
+  const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4500);
+  };
+
+  useEffect(() => {
+    window.alert = (message: string) => {
+      const msgStr = String(message);
+      let type: "success" | "error" | "info" | "warning" = "info";
+      if (
+        msgStr.includes("สำเร็จ") || 
+        msgStr.includes("เรียบร้อย") || 
+        msgStr.includes("success") || 
+        msgStr.includes("อนุมัติ")
+      ) {
+        type = "success";
+      } else if (
+        msgStr.includes("ผิดพลาด") || 
+        msgStr.includes("ล้มเหลว") || 
+        msgStr.includes("ไม่สามารถ") || 
+        msgStr.includes("error") || 
+        msgStr.includes("กรุณา") || 
+        msgStr.includes("ไม่มี") ||
+        msgStr.includes("แจ้งเตือน")
+      ) {
+        type = "warning";
+      }
+      showToast(msgStr, type);
+    };
+  }, []);
+
   // Active shift management edit state
   const [isEditingShifts, setIsEditingShifts] = useState<boolean>(false);
   const [tempEmployees, setTempEmployees] = useState<Employee[]>([]);
@@ -9800,6 +9836,37 @@ export default function App() {
         isOpen={isCsvTemplateHubOpen}
         onClose={() => setIsCsvTemplateHubOpen(false)}
       />
+
+      {/* Toast Container */}
+      <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-3 max-w-sm pointer-events-none">
+        {toasts.map((t: any) => (
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] border backdrop-blur-md transition-all duration-300 animate-in slide-in-from-bottom-5 fade-in ${
+              t.type === "success" 
+                ? "bg-emerald-50/95 text-emerald-950 border-emerald-200/60" 
+                : t.type === "warning"
+                ? "bg-amber-50/95 text-amber-950 border-amber-200/60"
+                : "bg-blue-50/95 text-blue-950 border-blue-200/60"
+            }`}
+          >
+            <div className="flex-shrink-0 mt-0.5">
+              {t.type === "success" && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+              {t.type === "warning" && <AlertTriangle className="w-4 h-4 text-amber-600" />}
+              {t.type === "info" && <Info className="w-4 h-4 text-blue-600" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold leading-relaxed whitespace-pre-line">{t.message}</p>
+            </div>
+            <button
+              onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
+              className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer rounded-full p-0.5 hover:bg-black/5"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
 
     </div>
   );
