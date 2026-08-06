@@ -6316,10 +6316,7 @@ export default function App() {
                           className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black hover:bg-blue-700 cursor-pointer font-sans font-bold">แก้ไข Plan</button>
                         <button onClick={() => { setShiftEditTarget("actual"); setIsEditingShifts(true); setTempEmployees(JSON.parse(JSON.stringify(state?.employees || []))); }}
                           className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-[10px] font-black hover:bg-orange-700 cursor-pointer font-sans font-bold">บันทึก Actual</button>
-                        <button onClick={() => setShowBulkShiftModal(true)}
-                          className="px-3 py-1.5 bg-[#0e2d1e] border border-emerald-700 text-emerald-300 rounded-lg text-[10px] font-bold hover:bg-[#1a4731] flex items-center gap-1 cursor-pointer font-sans font-bold">
-                          กะยกกลุ่ม
-                        </button>
+                        
                         <button onClick={() => setShowVesselModal(true)}
                           className="px-3 py-1.5 bg-amber-700 text-white rounded-lg text-[10px] font-black hover:bg-amber-600 cursor-pointer font-sans font-bold">ตารางเรือ/เครน</button>
                       </div>
