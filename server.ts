@@ -348,13 +348,27 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
       }
     }
 
+    let planShifts: string[] = [];
+    try {
+      if (typeof e.planShifts === "string") {
+        planShifts = JSON.parse(e.planShifts || "[]");
+      } else if (Array.isArray(e.planShifts)) {
+        planShifts = [...e.planShifts];
+      }
+    } catch (_) {
+      planShifts = [];
+    }
+    if (!Array.isArray(planShifts) || planShifts.length === 0) {
+      planShifts = [...shifts];
+    }
+
     const { actualOt: dbOt } = await computeEmployeeOtStats(e.id, e.targetOt || 48, year, month);
     const actualOt = Math.max(dbOt, otFromShifts);
     const targetOt = e.targetOt || 48;
     const otPct = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
     const status = actualOt > targetOt ? "Warning" : "On Track";
 
-    return { ...e, shifts, actualOt, otPct, status };
+    return { ...e, shifts, planShifts, actualOt, otPct, status };
   }));
 };
 
@@ -379,6 +393,7 @@ const initD1Database = async () => {
     await queryD1(`CREATE TABLE IF NOT EXISTS employees (
       id TEXT PRIMARY KEY, name TEXT, deptId TEXT, role TEXT,
       targetOt REAL DEFAULT 48, groupName TEXT, shifts TEXT DEFAULT '[]',
+      planShifts TEXT DEFAULT '[]',
       prefix TEXT, firstName TEXT, lastName TEXT, nickname TEXT,
       division TEXT, salary REAL DEFAULT 0, birthday TEXT,
       age INTEGER DEFAULT 0, calculatedAge INTEGER DEFAULT 0,
@@ -399,7 +414,8 @@ const initD1Database = async () => {
       { name: "startDate", type: "TEXT" },
       { name: "tenure", type: "TEXT" },
       { name: "probationDate", type: "TEXT" },
-      { name: "calendarType", type: "TEXT" }
+      { name: "calendarType", type: "TEXT" },
+      { name: "planShifts", type: "TEXT DEFAULT '[]'" }
     ];
     for (const col of newEmpCols) {
       try {
@@ -855,8 +871,15 @@ app.post("/api/save-shifts", async (req, res) => {
 
     if (isD1Enabled()) {
       for (const emp of employees) {
-        await queryD1("UPDATE employees SET shifts = ? WHERE id = ?", [JSON.stringify(emp.shifts || []), emp.id]);
+        // บันทึกทั้ง actual shifts และ plan shifts
+        const actualShifts = emp.shifts || [];
+        const planShifts   = emp.planShifts || actualShifts; // fallback: ถ้าไม่มี plan ให้ใช้ actual
+        await queryD1(
+          "UPDATE employees SET shifts = ?, planShifts = ? WHERE id = ?",
+          [JSON.stringify(actualShifts), JSON.stringify(planShifts), emp.id]
+        );
 
+        // OT daily records คำนวณจาก Actual shifts เท่านั้น
         await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ? AND year = ? AND month = ?",
           [emp.id, recordYear, recordMonth]);
 
@@ -864,9 +887,8 @@ app.post("/api/save-shifts", async (req, res) => {
         const empName = empRows[0]?.name || emp.name || "";
         const deptId  = empRows[0]?.deptId || emp.deptId || "";
 
-        const shifts: string[] = emp.shifts || [];
-        for (let dayIdx = 0; dayIdx < shifts.length; dayIdx++) {
-          const shiftCode = shifts[dayIdx];
+        for (let dayIdx = 0; dayIdx < actualShifts.length; dayIdx++) {
+          const shiftCode = actualShifts[dayIdx];
           const otHrs = getShiftOt(shiftCode);
           if (otHrs > 0) {
             const dayNum = dayIdx + 1;
@@ -890,10 +912,11 @@ app.post("/api/save-shifts", async (req, res) => {
       appState.employees = appState.employees.map(emp => {
         const updated = employees.find((e: any) => e.id === emp.id);
         if (updated) {
-          const shifts: string[] = updated.shifts || [];
+          const shifts: string[]     = updated.shifts || [];
+          const planShifts: string[] = updated.planShifts || shifts;
           const actualOt = Math.round(shifts.reduce((s, code) => s + getShiftOt(code), 0) * 10) / 10;
           const otPct    = Math.round((actualOt / emp.targetOt) * 100);
-          return { ...emp, shifts, actualOt, otPct, status: actualOt > emp.targetOt ? "Warning" : "On Track" };
+          return { ...emp, shifts, planShifts, actualOt, otPct, status: actualOt > emp.targetOt ? "Warning" : "On Track" };
         }
         return emp;
       });

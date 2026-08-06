@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS employees (
   status TEXT DEFAULT 'On Track',
   groupName TEXT DEFAULT 'Group A',
   shifts TEXT DEFAULT '[]',
+  planShifts TEXT DEFAULT '[]',
   prefix TEXT DEFAULT '',
   firstName TEXT DEFAULT '',
   lastName TEXT DEFAULT '',

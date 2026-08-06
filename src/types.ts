@@ -25,7 +25,8 @@ export interface Employee {
   otPct: number;
   status: "On Track" | "Warning";
   groupName: string;
-  shifts: string[]; // List of 10 items e.g., ["M", "M", "O", "O", "A", "A", "A", "A", "O", "O"] or "⚠"
+  shifts: string[];     // Actual shifts — กะที่เข้าทำงานจริง (ใช้คำนวณ OT)
+  planShifts?: string[]; // Plan shifts — ตารางที่วางล่วงหน้า (ไม่ใช้คำนวณ OT)
   
   // New fields from Data .csv
   prefix?: string;

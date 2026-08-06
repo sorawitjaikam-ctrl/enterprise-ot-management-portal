@@ -55,6 +55,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           try { await db.prepare("ALTER TABLE employees ADD COLUMN resignationDate TEXT DEFAULT ''").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN employmentStatus TEXT DEFAULT 'Active'").run(); } catch (e) {}
+          try { await db.prepare("ALTER TABLE employees ADD COLUMN planShifts TEXT DEFAULT '[]'").run(); } catch (e) {}
           empsRes = await db.prepare("SELECT * FROM employees").all();
           accountsRes = await db.prepare("SELECT * FROM accounts").all();
           vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
@@ -91,6 +92,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           shifts = [];
         }
 
+        let planShifts: string[] = [];
+        try {
+          planShifts = typeof emp.planShifts === "string" ? JSON.parse(emp.planShifts) : (emp.planShifts || []);
+        } catch {
+          planShifts = [];
+        }
+        if (!Array.isArray(planShifts) || planShifts.length === 0) {
+          planShifts = [...shifts];
+        }
+
         let actualOt = otSummaryMap[emp.id] || 0;
 
         if (actualOt === 0 && shifts && shifts.length > 0) {
@@ -104,6 +115,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         enrichedEmployees.push({
           ...emp,
           shifts,
+          planShifts,
           actualOt,
           otPct,
           status
@@ -386,23 +398,41 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (path === "/api/save-shifts" && request.method === "POST") {
       const { year, month, employees } = await getBody();
       if (db && employees && Array.isArray(employees)) {
+        const recordYear = Number(year);
+        const recordMonth = Number(month);
         for (const emp of employees) {
           const shifts: string[] = emp.shifts || [];
-          let totalOt = 0;
+          const planShifts: string[] = emp.planShifts || shifts;
+
+          // Delete existing OT daily records for this month to prevent orphans
+          try {
+            await db.prepare("DELETE FROM ot_daily_records WHERE employeeId = ? AND year = ? AND month = ?")
+              .bind(emp.id, recordYear, recordMonth).run();
+          } catch (e) {
+            console.error("D1 Delete OT Records Error:", e);
+          }
+
+          // Compute daily OT from actual shifts (shifts)
           for (let dayIdx = 0; dayIdx < shifts.length; dayIdx++) {
             const shiftCode = shifts[dayIdx];
             const otHrs = getShiftOt(shiftCode);
-            totalOt += otHrs;
             if (otHrs > 0) {
               const dayNum = dayIdx + 1;
-              const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              const recId = `OTD-${emp.id}-${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              await db.prepare(`INSERT OR REPLACE INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`).bind(recId, year, month, dateStr, emp.id, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
+              const dateStr = `${recordYear}-${String(recordMonth).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+              const recId = `OTD-${emp.id}-${recordYear}-${String(recordMonth).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+              try {
+                await db.prepare(`INSERT OR REPLACE INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`)
+                  .bind(recId, recordYear, recordMonth, dateStr, emp.id, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
+              } catch (e) {
+                console.error("D1 Insert OT Record Error:", e);
+              }
             }
           }
+
           try {
-            await db.prepare("UPDATE employees SET shifts = ? WHERE id = ?").bind(JSON.stringify(shifts), emp.id).run();
+            await db.prepare("UPDATE employees SET shifts = ?, planShifts = ? WHERE id = ?")
+              .bind(JSON.stringify(shifts), JSON.stringify(planShifts), emp.id).run();
           } catch (e) {
             console.error("D1 Update Shifts Error:", e);
           }
@@ -419,8 +449,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const division = body.division || body.groupName || "-";
       if (db) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
@@ -428,6 +458,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               Number(body.targetOt) || 48,
               body.groupName || "Group A",
               JSON.stringify(body.shifts || []),
+              JSON.stringify(body.planShifts || body.shifts || []),
               salary,
               division,
               body.prefix || "นาย",
@@ -471,8 +502,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (db && Array.isArray(employees)) {
         for (const emp of employees) {
           try {
-            await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+            await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
                 emp.id,
                 emp.name || ((emp.firstName || "") + " " + (emp.lastName || "")).trim(),
                 emp.deptId || "inter2",
@@ -480,6 +511,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 Number(emp.targetOt) || 48,
                 emp.groupName || "Group A",
                 JSON.stringify(emp.shifts || []),
+                JSON.stringify(emp.planShifts || emp.shifts || []),
                 Number(emp.salary) || 15000,
                 emp.division || emp.groupName || "-",
                 emp.prefix || "นาย",
@@ -510,8 +542,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const empId = body.id;
       if (db && empId) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               empId,
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
@@ -519,6 +551,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               Number(body.targetOt) || 48,
               body.groupName || "Group A",
               JSON.stringify(body.shifts || []),
+              JSON.stringify(body.planShifts || body.shifts || []),
               Number(body.salary) || 15000,
               body.division || body.groupName || "-",
               body.prefix || "นาย",
