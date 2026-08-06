@@ -2000,6 +2000,10 @@ export default function App() {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [shiftViewMode, setShiftViewMode] = useState<"plan" | "actual" | "both">("both");
   const [shiftEditTarget, setShiftEditTarget] = useState<"plan" | "actual">("actual");
+  const [mismatchAlertDismissed, setMismatchAlertDismissed] = useState<boolean>(false);
+  useEffect(() => {
+    setMismatchAlertDismissed(false);
+  }, [currentShiftsDept, shiftViewMode]);
 
   // Sort and display filters for report
   const [reportSortBy, setReportSortBy] = useState<string>("OT Hours (High to Low)");
@@ -6376,20 +6380,45 @@ export default function App() {
               )}
 
               {/* Mismatch info bar */}
-              {shiftViewMode === "both" && (
-                <div className="flex items-center gap-4 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-xs font-sans">
-                  <span className="font-black text-red-700">Plan != Actual</span>
-                  <span className="text-red-600 font-medium">เซลล์ขอบแดง = พนักงานเข้ากะไม่ตรงกับที่วางล่วงหน้า</span>
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <div className="w-10 h-5 bg-[#dce6f1] border-2 border-red-500 rounded text-[8px] flex items-center justify-center font-black text-blue-800">M8</div>
-                    <span className="text-slate-400 text-[10px]">= Plan M8, Actual ต่างออกไป</span>
-                  </div>
-                  <div className="ml-auto flex gap-2 text-[9px] font-bold">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">P = แถว Plan</span>
-                    <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">A = แถว Actual</span>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const deptEmpsForMismatch = (isEditingShifts ? tempEmployees : state?.employees || [])
+                  .filter(emp => emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก");
+                
+                const hasMismatch = deptEmpsForMismatch.some(emp => {
+                  const actuals = getEmpShiftsArray(emp.shifts);
+                  const plans = getEmpPlanShiftsArray(emp);
+                  return currentDays.some(day => {
+                    const dayIdx = day.n - 1;
+                    return isPlanActualMismatch(plans[dayIdx], actuals[dayIdx]);
+                  });
+                });
+
+                if (shiftViewMode === "both" && hasMismatch && !mismatchAlertDismissed) {
+                  return (
+                    <div className="flex flex-wrap items-center gap-4 px-5 py-2.5 bg-red-50 border border-red-200 rounded-2xl text-xs font-sans animate-in slide-in-from-top-2 duration-200">
+                      <span className="font-black text-red-700 bg-red-100 px-2 py-0.5 rounded-lg border border-red-200">Plan != Actual</span>
+                      <span className="text-red-600 font-bold">เซลล์ขอบแดง = พนักงานเข้ากะไม่ตรงกับที่วางล่วงหน้า</span>
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <div className="w-10 h-5 bg-[#dce6f1] border-2 border-red-500 rounded text-[8px] flex items-center justify-center font-black text-blue-800">M8</div>
+                        <span className="text-slate-500 text-[10px]">= Plan M8, Actual ต่างออกไป</span>
+                      </div>
+                      <div className="flex gap-2 text-[9px] font-bold">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded border border-blue-200">P = แถว Plan</span>
+                        <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded border border-orange-200">A = แถว Actual</span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setMismatchAlertDismissed(true)} 
+                        className="ml-auto text-red-600 hover:text-red-800 text-[11px] font-black cursor-pointer bg-red-100/50 hover:bg-red-100 border border-red-300 px-2.5 py-1 rounded-xl transition-all select-none"
+                      >
+                        ✕ ปิดแจ้งเตือน
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {/* Master Calendar Grid Canvas */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
