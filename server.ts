@@ -265,6 +265,7 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
   if (!month || isNaN(month)) month = now.getMonth() + 1;
 
   const daysInMonth = new Date(year, month, 0).getDate();
+  const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
   // Fetch daily OT records for current month
   let dailyRecords: any[] = [];
@@ -730,7 +731,7 @@ app.get("/api/portal-state", async (req, res) => {
       const shiftConfigRaw = await queryD1("SELECT * FROM shift_config LIMIT 1");
 
       // Compute OT stats for each employee from ot_daily_records
-      const employees = await enrichEmployeesWithOt(employeesRaw);
+      const employees = await enrichEmployeesWithOt(employeesRaw, thisYear, thisMonth);
 
       // Fetch dept budgets for current month
       const budgetRows = await queryD1(
@@ -906,6 +907,22 @@ app.post("/api/save-shifts", async (req, res) => {
       const updatedEmps = await enrichEmployeesWithOt(updatedRaw);
       await writeAuditLog(username || "system", "save_shifts", "shift", `${recordYear}-${recordMonth}`, { employeeCount: employees.length });
       res.json({ success: true, message: "บันทึกตารางกะสำเร็จ", employees: updatedEmps });
+
+// Save Department Shift Pattern
+app.post("/api/save-department-pattern", async (req, res) => {
+  try {
+    const { deptId, pattern } = req.body;
+    if (isD1Enabled()) {
+      await queryD1("UPDATE departments SET pattern = ? WHERE id = ?", [pattern, deptId]);
+    }
+    res.json({ success: true, message: "อัปเดตรูปแบบแผนกสำเร็จ" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
     } else {
       // Offline mode

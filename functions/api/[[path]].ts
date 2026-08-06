@@ -43,6 +43,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // 1. GET /api/portal-state
     if (path === "/api/portal-state" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const reqYear = urlObj.searchParams.get("year");
+      const reqMonth = urlObj.searchParams.get("month");
+      
+      const now = new Date();
+      const thisYear = reqYear ? Number(reqYear) : now.getFullYear();
+      const thisMonth = reqMonth ? Number(reqMonth) : (now.getMonth() + 1);
+      const monthKey = `${thisYear}-${String(thisMonth).padStart(2, "0")}`;
+
       let deptsRes: any = { results: [] };
       let empsRes: any = { results: [] };
       let accountsRes: any = { results: [] };
@@ -52,6 +61,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       if (db) {
         try {
+          try { await db.prepare("ALTER TABLE departments ADD COLUMN pattern TEXT DEFAULT '4-on-2-off'").run(); } catch (e) {}
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           try { await db.prepare("ALTER TABLE employees ADD COLUMN resignationDate TEXT DEFAULT ''").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN employmentStatus TEXT DEFAULT 'Active'").run(); } catch (e) {}
@@ -61,9 +71,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
           otRequestsRes = await db.prepare("SELECT * FROM ot_requests").all();
 
-          // Efficient single aggregation query for OT records
+          // Efficient single aggregation query for OT records filtered by month/year
           try {
-            const otSumRes = await db.prepare("SELECT employeeId, SUM(otHours) as total FROM ot_daily_records GROUP BY employeeId").all();
+            const otSumRes = await db.prepare("SELECT employeeId, SUM(otHours) as total FROM ot_daily_records WHERE year = ? AND month = ? GROUP BY employeeId")
+              .bind(thisYear, thisMonth).all();
             if (otSumRes && otSumRes.results) {
               for (const row of otSumRes.results as any[]) {
                 if (row.employeeId) {
@@ -85,22 +96,37 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       for (let idx = 0; idx < rawEmployees.length; idx++) {
         const emp = rawEmployees[idx];
-        let shifts: string[] = [];
+        let shiftsRaw: any = [];
         try {
-          shifts = typeof emp.shifts === "string" ? JSON.parse(emp.shifts) : (emp.shifts || []);
+          shiftsRaw = typeof emp.shifts === "string" ? JSON.parse(emp.shifts) : (emp.shifts || []);
         } catch {
-          shifts = [];
+          shiftsRaw = [];
+        }
+
+        let planShiftsRaw: any = [];
+        try {
+          planShiftsRaw = typeof emp.planShifts === "string" ? JSON.parse(emp.planShifts) : (emp.planShifts || []);
+        } catch {
+          planShiftsRaw = [];
+        }
+
+        // Extract this month's array
+        let shifts: string[] = [];
+        if (Array.isArray(shiftsRaw)) {
+          shifts = shiftsRaw;
+        } else if (shiftsRaw && typeof shiftsRaw === "object") {
+          shifts = shiftsRaw[monthKey] || [];
         }
 
         let planShifts: string[] = [];
-        try {
-          planShifts = typeof emp.planShifts === "string" ? JSON.parse(emp.planShifts) : (emp.planShifts || []);
-        } catch {
-          planShifts = [];
+        if (Array.isArray(planShiftsRaw)) {
+          planShifts = planShiftsRaw;
+        } else if (planShiftsRaw && typeof planShiftsRaw === "object") {
+          planShifts = planShiftsRaw[monthKey] || [];
         }
-        if (!Array.isArray(planShifts) || planShifts.length === 0) {
-          planShifts = [...shifts];
-        }
+
+        if (shifts.length === 0) { shifts = Array(31).fill("O"); }
+        if (planShifts.length === 0) { planShifts = [...shifts]; }
 
         let actualOt = otSummaryMap[emp.id] || 0;
 
@@ -114,8 +140,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
         enrichedEmployees.push({
           ...emp,
-          shifts,
-          planShifts,
+          shifts: shiftsRaw, // Keep the multi-month raw data to let the client have it
+          planShifts: planShiftsRaw,
           actualOt,
           otPct,
           status
@@ -215,7 +241,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         otRequests: otRequestsRes.results || [],
         shiftConfig: {
           pattern: "4-on-2-off",
-          currentMonth: new Date().toISOString().substring(0, 7),
+          currentMonth: monthKey,
           currentDept: "inter2"
         },
         otTrendData: {
@@ -439,6 +465,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "บันทึกตารางกะลง Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // POST /api/save-department-pattern
+    if (path === "/api/save-department-pattern" && request.method === "POST") {
+      const { deptId, pattern } = await getBody();
+      if (db && deptId && pattern) {
+        try {
+          await db.prepare("UPDATE departments SET pattern = ? WHERE id = ?").bind(pattern, deptId).run();
+          return Response.json({ success: true, message: "อัปเดตรูปแบบแผนกสำเร็จ" }, { headers: corsHeaders });
+        } catch (e) {
+          return Response.json({ error: "D1 Save Pattern Error" }, { status: 500, headers: corsHeaders });
+        }
+      }
+      return Response.json({ error: "Missing deptId or pattern" }, { status: 400, headers: corsHeaders });
     }
 
     // 8. POST /api/add-employee

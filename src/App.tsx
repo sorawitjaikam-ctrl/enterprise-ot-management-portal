@@ -6274,7 +6274,7 @@ export default function App() {
                     </div>
 
                     <div className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans">
-                      {state?.shiftConfig?.pattern === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
+                      {(currentDeptObj?.pattern || "4-on-2-off") === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
                     </div>
 
                     <div className="text-emerald-200 text-xs font-bold font-sans">
@@ -6341,12 +6341,12 @@ export default function App() {
                     </select>
                   )}
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
-                    onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; updatePlannerMonth(`${e.target.value}-${m2}`); }}
+                    onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; updatePlannerMonth(nextM); fetchPortalState(nextM); }}
                     className="px-2 py-1 bg-[#1a4731] border border-emerald-700 rounded-lg text-[10px] font-bold text-emerald-200 focus:outline-none cursor-pointer font-sans">
                     {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
                   </select>
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
-                    onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; updatePlannerMonth(`${y2}-${e.target.value}`); }}
+                    onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; updatePlannerMonth(nextM); fetchPortalState(nextM); }}
                     className="px-2 py-1 bg-[#1a4731] border border-emerald-700 rounded-lg text-[10px] font-bold text-emerald-200 focus:outline-none cursor-pointer font-sans">
                     {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
@@ -6421,8 +6421,8 @@ export default function App() {
                   .filter(emp => emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก");
                 
                 const hasMismatch = deptEmpsForMismatch.some(emp => {
-                  const actuals = getEmpShiftsArray(emp.shifts);
-                  const plans = getEmpPlanShiftsArray(emp);
+                  const actuals = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+                  const plans = getEmpPlanShiftsArray(emp, state?.shiftConfig?.currentMonth);
                   return currentDays.some(day => {
                     const dayIdx = day.n - 1;
                     return isPlanActualMismatch(plans[dayIdx], actuals[dayIdx]);
@@ -6512,7 +6512,7 @@ export default function App() {
                       
                       // 1. Total OT
                       const totalDeptOt = deptEmployees.reduce((sum, emp) => {
-                        const sArr = getEmpShiftsArray(emp.shifts);
+                        const sArr = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                         return sum + sArr.reduce((s, code) => s + getShiftOtHours(code), 0);
                       }, 0);
 
@@ -6520,8 +6520,8 @@ export default function App() {
                       let totalMatchDays = 0;
                       let totalTrackedDays = 0;
                       deptEmployees.forEach(emp => {
-                        const actuals = getEmpShiftsArray(emp.shifts);
-                        const plans = getEmpPlanShiftsArray(emp);
+                        const actuals = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+                        const plans = getEmpPlanShiftsArray(emp, state?.shiftConfig?.currentMonth);
                         currentDays.forEach(day => {
                           const dayIdx = day.n - 1;
                           const act = actuals[dayIdx] || "O";
@@ -6541,7 +6541,7 @@ export default function App() {
                       currentDays.forEach(day => {
                         const dayIdx = day.n - 1;
                         deptEmployees.forEach(emp => {
-                          const actuals = getEmpShiftsArray(emp.shifts);
+                          const actuals = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                           const act = actuals[dayIdx] || "O";
                           if (act !== "O" && act !== "OFF") {
                             totalWorkInstances++;
@@ -6796,8 +6796,8 @@ export default function App() {
                                     {/* Shift Cells */}
                                     <div className="flex">
                                       {(() => {
-                                        const empActualShifts = getEmpShiftsArray(emp.shifts);
-                                        const empPlanShifts = getEmpPlanShiftsArray(emp);
+                                        const empActualShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+                                        const empPlanShifts = getEmpPlanShiftsArray(emp, state?.shiftConfig?.currentMonth);
                                         return currentDays.map((day) => {
                                           const dayIdx = day.n - 1;
                                           const planShift = empPlanShifts[dayIdx] || "O";
@@ -6854,7 +6854,7 @@ export default function App() {
 
                                     {/* Monthly Summary Cells per Employee */}
                                     {(() => {
-                                      const empShifts = getEmpShiftsArray(emp.shifts);
+                                      const empShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                                       let normalOt = 0;
                                       let holidayOt = 0;
                                       let holidayWorkDays = 0;
@@ -6983,7 +6983,7 @@ export default function App() {
                                 .filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
 
                               activeList.forEach(e => {
-                                const empShifts = getEmpShiftsArray(e.shifts);
+                                const empShifts = getEmpShiftsArray(e.shifts, state?.shiftConfig?.currentMonth);
                                 let normalOt = 0;
                                 let holidayOt = 0;
                                 let holidayWorkDays = 0;
@@ -9690,8 +9690,8 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {Array.from({ length: totalDays }, (_, i) => {
                   const dayNum = i + 1;
-                  const empShifts = getEmpShiftsArray(editingEmployeeShiftsModal.shifts);
-                  const empPlanShifts = getEmpPlanShiftsArray(editingEmployeeShiftsModal);
+                  const empShifts = getEmpShiftsArray(editingEmployeeShiftsModal.shifts, state?.shiftConfig?.currentMonth);
+                  const empPlanShifts = getEmpPlanShiftsArray(editingEmployeeShiftsModal, state?.shiftConfig?.currentMonth);
                   const currentShiftCode = modalEditTarget === "plan" ? (empPlanShifts[i] || "O") : (empShifts[i] || "O");
                   const dateObj = new Date(yr, mn - 1, dayNum);
                   const dayOfWeek = dateObj.getDay();
