@@ -6424,8 +6424,8 @@ export default function App() {
                       </div>
 
                       {/* Calendar Header End – plain column */}
-                      <div className="flex-shrink-0 p-2 border-l border-slate-200 flex flex-col justify-center items-center bg-slate-100 w-24">
-                        <span className="text-[10px] font-bold text-slate-600 uppercase">ตารางงาน</span>
+                      <div className="flex-shrink-0 border-l border-slate-300 bg-slate-100 w-[304px] flex flex-col justify-center items-center p-2">
+                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">สรุปภาพรวมแผนก</span>
                       </div>
                     </div>
 
@@ -6442,7 +6442,51 @@ export default function App() {
                       { type: "vessel", planType: "actual", label: "ตารางเรือ Vessel", subLabel: "Actual", barColor: "#bfdbfe", textColor: "text-blue-950", labelBg: "bg-blue-100/90" },
                       { type: "crane", planType: "plan", label: "Ship crane", subLabel: "Plan", barColor: "#f5d0fe", textColor: "text-purple-950", labelBg: "bg-purple-100/90" },
                       { type: "crane", planType: "actual", label: "Ship crane", subLabel: "Actual", barColor: "#ccfbf1", textColor: "text-teal-950", labelBg: "bg-teal-100/90" }
-                    ].map((row, rIdx) => (
+                    ].map((row, rIdx) => {
+                      const deptEmployees = (state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+                      
+                      // 1. Total OT
+                      const totalDeptOt = deptEmployees.reduce((sum, emp) => {
+                        const sArr = getEmpShiftsArray(emp.shifts);
+                        return sum + sArr.reduce((s, code) => s + getShiftOtHours(code), 0);
+                      }, 0);
+
+                      // 2. Plan Accuracy
+                      let totalMatchDays = 0;
+                      let totalTrackedDays = 0;
+                      deptEmployees.forEach(emp => {
+                        const actuals = getEmpShiftsArray(emp.shifts);
+                        const plans = getEmpPlanShiftsArray(emp);
+                        currentDays.forEach(day => {
+                          const dayIdx = day.n - 1;
+                          const act = actuals[dayIdx] || "O";
+                          const pln = plans[dayIdx] || "O";
+                          if (act !== "O" || pln !== "O") {
+                            totalTrackedDays++;
+                            if (act === pln) {
+                              totalMatchDays++;
+                            }
+                          }
+                        });
+                      });
+                      const planAccuracy = totalTrackedDays > 0 ? Math.round((totalMatchDays / totalTrackedDays) * 100) : 100;
+
+                      // 3. Avg Workers per Day
+                      let totalWorkInstances = 0;
+                      currentDays.forEach(day => {
+                        const dayIdx = day.n - 1;
+                        deptEmployees.forEach(emp => {
+                          const actuals = getEmpShiftsArray(emp.shifts);
+                          const act = actuals[dayIdx] || "O";
+                          if (act !== "O" && act !== "OFF") {
+                            totalWorkInstances++;
+                          }
+                        });
+                      });
+                      const avgWorkersPerDay = currentDays.length > 0 ? (totalWorkInstances / currentDays.length).toFixed(1) : "0";
+                      const totalActiveStaff = deptEmployees.length;
+
+                      return (
                       <div key={rIdx} className="flex border-b border-slate-200 hover:bg-slate-50/30 transition-colors">
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/60 flex flex-col justify-center px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <span className="text-[11px] font-extrabold text-slate-700">{row.label}</span>
@@ -6506,8 +6550,43 @@ export default function App() {
                           })}
                         </div>
 
-                        <div className="flex-shrink-0 border-l border-slate-200 bg-slate-50/10 w-24" />
-                      </div>))}
+                        {/* Custom Summary Widgets instead of blank space */}
+                        {rIdx === 0 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                            <span className="font-bold text-slate-600">กะตรงตามแผน (Plan Accuracy)</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                <div style={{ width: `${planAccuracy}%` }} className="bg-emerald-500 h-full rounded-full" />
+                              </div>
+                              <span className="font-black text-emerald-700 font-mono">${planAccuracy}%</span>
+                            </div>
+                          </div>
+                        )}
+                        {rIdx === 1 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                            <span className="font-bold text-slate-600">ชั่วโมง OT สะสมรวมแผนก</span>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-mono font-black text-xs border border-blue-200">
+                              ${totalDeptOt} ชม.
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 2 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                            <span className="font-bold text-slate-600">กำลังพลทำงานเฉลี่ย (Avg Staff)</span>
+                            <span className="font-black text-indigo-700 font-mono bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 text-xs">${avgWorkersPerDay} คน/วัน</span>
+                          </div>
+                        )}
+                        {rIdx === 3 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                            <span className="font-bold text-slate-600">จำนวนกำลังพลปฏิบัติการ</span>
+                            <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-black border border-amber-200 font-mono text-xs">
+                              ${totalActiveStaff} คน
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
 
                     {/* === Dedicated Employee Roster Header Bar === */}
                     <div className="flex bg-slate-100 border-y border-slate-300 select-none">
