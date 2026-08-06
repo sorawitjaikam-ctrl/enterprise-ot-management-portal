@@ -6424,7 +6424,7 @@ export default function App() {
                       </div>
 
                       {/* Calendar Header End – plain column */}
-                      <div className="flex-shrink-0 border-l border-slate-300 bg-slate-100 w-[304px] flex flex-col justify-center items-center p-2">
+                      <div className="flex-shrink-0 border-l border-slate-300 bg-slate-100 w-[560px] flex flex-col justify-center items-center p-2">
                         <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">สรุปภาพรวมแผนก</span>
                       </div>
                     </div>
@@ -6552,18 +6552,18 @@ export default function App() {
 
                         {/* Custom Summary Widgets instead of blank space */}
                         {rIdx === 0 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">กะตรงตามแผน (Plan Accuracy)</span>
                             <div className="flex items-center gap-2">
                               <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
                                 <div style={{ width: `${planAccuracy}%` }} className="bg-emerald-500 h-full rounded-full" />
                               </div>
-                              <span className="font-black text-emerald-700 font-mono">${planAccuracy}%</span>
+                              <span className="font-black text-emerald-700 font-mono">{planAccuracy}%</span>
                             </div>
                           </div>
                         )}
                         {rIdx === 1 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">ชั่วโมง OT สะสมรวมแผนก</span>
                             <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-mono font-black text-xs border border-blue-200">
                               ${totalDeptOt} ชม.
@@ -6571,13 +6571,13 @@ export default function App() {
                           </div>
                         )}
                         {rIdx === 2 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">กำลังพลทำงานเฉลี่ย (Avg Staff)</span>
-                            <span className="font-black text-indigo-700 font-mono bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 text-xs">${avgWorkersPerDay} คน/วัน</span>
+                            <span className="font-black text-indigo-700 font-mono bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 text-xs">{avgWorkersPerDay} คน/วัน</span>
                           </div>
                         )}
                         {rIdx === 3 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[304px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">จำนวนกำลังพลปฏิบัติการ</span>
                             <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-black border border-amber-200 font-mono text-xs">
                               ${totalActiveStaff} คน
@@ -6615,14 +6615,35 @@ export default function App() {
                         ))}
                       </div>
 
-                      <div className="flex-shrink-0 border-l border-slate-300 flex flex-col bg-slate-200/90">
-                        <div className="bg-[#1b365d] text-white text-[11px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d]">
-                          MONTHLY
+                      <div className="flex-shrink-0 border-l border-slate-300 flex bg-slate-200/90 select-none">
+                        {/* Monthly sub-columns */}
+                        <div className="flex flex-col">
+                          <div className="bg-[#1b365d] text-white text-[11px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d] w-[304px]">
+                            Monthly
+                          </div>
+                          <div className="flex text-[10px] font-black text-slate-800 text-center divide-x divide-slate-300">
+                            <div className="w-20 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
+                            <div className="w-24 py-1.5 flex items-center justify-center bg-slate-100">OT วันหยุด</div>
+                            <div className="w-32 py-1.5 flex items-center justify-center bg-slate-100">ทำงานวันหยุด (วัน)</div>
+                          </div>
                         </div>
-                        <div className="flex text-[10px] font-black text-slate-800 text-center divide-x divide-slate-300">
-                          <div className="w-20 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
-                          <div className="w-24 py-1.5 flex items-center justify-center bg-slate-100">OT วันหยุด</div>
-                          <div className="w-32 py-1.5 flex items-center justify-center bg-slate-100">ทำงานวันหยุด (วัน)</div>
+
+                        {/* Green Column: Cost (Baht) */}
+                        <div className="w-36 flex flex-col bg-[#1a4731]">
+                          <div className="text-white text-[10px] font-black text-center py-2 h-9 flex flex-col justify-center items-center leading-normal border-b border-[#1a4731]">
+                            <div>สรุปผลค่าล่วงเวลา</div>
+                            <div>(บาท)</div>
+                          </div>
+                          <div className="h-6 bg-[#3b6db3]" />
+                        </div>
+
+                        {/* Purple Column: Cost % */}
+                        <div className="w-28 flex flex-col bg-[#995c7f]">
+                          <div className="text-white text-[10px] font-black text-center py-2 h-9 flex flex-col justify-center items-center leading-normal border-b border-[#995c7f]">
+                            <div>สรุปผลค่าล่วงเวลา</div>
+                            <div>%</div>
+                          </div>
+                          <div className="h-6 bg-[#3b6db3]" />
                         </div>
                       </div>
                     </div>
@@ -6786,8 +6807,13 @@ export default function App() {
                                         }
                                       });
 
+                                      const salary = emp.salary || 15000;
+                                      const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+                                      const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
+                                      const otPctSalary = salary > 0 ? ((totalOtPay / salary) * 100).toFixed(2) : "0.00";
+
                                       return (
-                                        <div className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white">
+                                        <div className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white select-none">
                                           <div className="w-20 flex items-center justify-center font-bold text-slate-800">
                                             {normalOt > 0 ? normalOt : <span className="text-slate-300">-</span>}
                                           </div>
@@ -6796,6 +6822,16 @@ export default function App() {
                                           </div>
                                           <div className="w-32 flex items-center justify-center font-bold text-slate-800">
                                             {holidayWorkDays > 0 ? holidayWorkDays : <span className="text-slate-300">-</span>}
+                                          </div>
+
+                                          {/* Green Column: Cost (Baht) */}
+                                          <div className="w-36 flex items-center justify-end pr-4 font-bold text-slate-800 bg-[#1a4731]/5 border-r border-slate-200">
+                                            {totalOtPay > 0 ? totalOtPay.toLocaleString() : <span className="text-slate-300">-</span>}
+                                          </div>
+
+                                          {/* Purple Column: Cost % */}
+                                          <div className="w-28 flex items-center justify-end pr-4 font-bold text-slate-800 bg-[#995c7f]/5">
+                                            {totalOtPay > 0 ? `${otPctSalary}%` : <span className="text-slate-300">-</span>}
                                           </div>
                                         </div>
                                       );
