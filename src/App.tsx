@@ -6882,7 +6882,7 @@ export default function App() {
                           สรุปความคุ้มครอง (M/A/N)
                         </div>
                         
-                        <div className="flex flex-1 text-[10px] font-extrabold text-slate-600 font-mono">
+                        <div className="flex text-[10px] font-extrabold text-slate-600 font-mono">
                           {currentDays.map((_, dayIdx) => {
                             const summary = getDailyShiftSummary(dayIdx, currentShiftsDept);
                             return (
@@ -6912,7 +6912,7 @@ export default function App() {
                           สรุปชั่วโมง OT รายวัน (ชม.)
                         </div>
                         
-                        <div className="flex flex-1 text-[10px] font-extrabold text-blue-700 font-mono">
+                        <div className="flex text-[10px] font-extrabold text-blue-700 font-mono">
                           {currentDays.map((_, dayIdx) => {
                             let dailyOt = 0;
                             const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === currentShiftsDept);
@@ -6940,29 +6940,61 @@ export default function App() {
                               let deptNormalOt = 0;
                               let deptHolidayOt = 0;
                               let deptHolidayWorkDays = 0;
+                              let deptTotalSalary = 0;
+                              let deptTotalOtPay = 0;
 
-                              const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(e => e.deptId === currentShiftsDept);
+                              const activeList = (isEditingShifts ? tempEmployees : state.employees)
+                                .filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
                               activeList.forEach(e => {
                                 const empShifts = getEmpShiftsArray(e.shifts);
+                                let normalOt = 0;
+                                let holidayOt = 0;
+                                let holidayWorkDays = 0;
+
                                 currentDays.forEach((day) => {
                                   const shift = empShifts[day.n - 1] || "O";
                                   const otHrs = getShiftOtHours(shift);
                                   const isOff = shift === "O" || shift === "OFF";
 
                                   if (shift === "OND" || (day.weekend && !isOff)) {
-                                    deptHolidayOt += otHrs > 0 ? otHrs : 8;
-                                    deptHolidayWorkDays += 1;
+                                    holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
+                                    if (!isOff) holidayWorkDays += 1;
                                   } else if (otHrs > 0) {
-                                    deptNormalOt += otHrs;
+                                    normalOt += otHrs; // For individual cost sum
                                   }
                                 });
+
+                                // Add individual sums to dept totals
+                                deptNormalOt += normalOt;
+                                deptHolidayOt += holidayOt;
+                                deptHolidayWorkDays += holidayWorkDays;
+
+                                const salary = e.salary || 15000;
+                                const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+                                const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
+
+                                deptTotalSalary += salary;
+                                deptTotalOtPay += totalOtPay;
                               });
+
+                              const deptTotalOtPct = deptTotalSalary > 0 ? ((deptTotalOtPay / deptTotalSalary) * 100).toFixed(2) : "0.00";
 
                               return (
                                 <>
                                   <div className="w-20 flex items-center justify-center">{deptNormalOt}</div>
                                   <div className="w-24 flex items-center justify-center">{deptHolidayOt}</div>
                                   <div className="w-32 flex items-center justify-center">{deptHolidayWorkDays}</div>
+                                  
+                                  {/* Sum of Baht */}
+                                  <div className="w-36 flex items-center justify-end pr-4 text-emerald-950 bg-emerald-100/30 border-r border-slate-300">
+                                    {deptTotalOtPay.toLocaleString()}
+                                  </div>
+
+                                  {/* Sum of % */}
+                                  <div className="w-28 flex items-center justify-end pr-4 text-purple-950 bg-purple-100/30">
+                                    {deptTotalOtPct}%
+                                  </div>
                                 </>
                               );
                            })()}
