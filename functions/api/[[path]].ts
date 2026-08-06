@@ -150,7 +150,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       // Compute actual monthly OT totals from D1 ot_daily_records table
       const monthNamesTh = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      const now = new Date();
       const currentYearNum = now.getFullYear();
       const currentMonthNum = now.getMonth() + 1; // 1-indexed
 
