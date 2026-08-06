@@ -6270,12 +6270,64 @@ export default function App() {
 
                     <div className="flex flex-col">
                       <span className="text-[9px] text-emerald-300 uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
-                      <span className="text-white text-xs font-bold">{currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}</span>
+                      {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
+                        <input
+                          type="text"
+                          value={currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}
+                          onChange={async (e) => {
+                            const newManagerName = e.target.value;
+                            setState((prev: any) => ({
+                              ...prev,
+                              departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, manager: newManagerName } : d)
+                            }));
+                            try {
+                              await fetch("/api/save-department-config", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ deptId: currentShiftsDept, manager: newManagerName })
+                              });
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          className="bg-[#0e2d1e] text-white text-xs font-bold border border-emerald-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 w-32 font-sans"
+                        />
+                      ) : (
+                        <span className="text-white text-xs font-bold">
+                          {currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans">
-                      {(currentDeptObj?.pattern || "4-on-2-off") === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
-                    </div>
+                    {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
+                      <select
+                        value={currentDeptObj?.pattern || "4-on-2-off"}
+                        onChange={async (e) => {
+                          const newPattern = e.target.value;
+                          setState((prev: any) => ({
+                            ...prev,
+                            departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, pattern: newPattern } : d)
+                          }));
+                          try {
+                            await fetch("/api/save-department-config", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ deptId: currentShiftsDept, pattern: newPattern })
+                            });
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans cursor-pointer focus:outline-none"
+                      >
+                        <option value="4-on-2-off">ตารางกะ 4 หยุด 2</option>
+                        <option value="6-on-1">ตารางกะ 6 หยุด 1 (2 ทีม)</option>
+                      </select>
+                    ) : (
+                      <div className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans">
+                        {(currentDeptObj?.pattern || "4-on-2-off") === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
+                      </div>
+                    )}
 
                     <div className="text-emerald-200 text-xs font-bold font-sans">
                       {(() => {

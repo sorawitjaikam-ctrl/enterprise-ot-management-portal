@@ -466,18 +466,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "บันทึกตารางกะลง Cloudflare D1 เรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
-    // POST /api/save-department-pattern
-    if (path === "/api/save-department-pattern" && request.method === "POST") {
-      const { deptId, pattern } = await getBody();
-      if (db && deptId && pattern) {
+    // POST /api/save-department-config
+    if (path === "/api/save-department-config" && request.method === "POST") {
+      const { deptId, pattern, manager } = await getBody();
+      if (db && deptId) {
         try {
-          await db.prepare("UPDATE departments SET pattern = ? WHERE id = ?").bind(pattern, deptId).run();
-          return Response.json({ success: true, message: "อัปเดตรูปแบบแผนกสำเร็จ" }, { headers: corsHeaders });
+          if (pattern !== undefined) {
+            await db.prepare("UPDATE departments SET pattern = ? WHERE id = ?").bind(pattern, deptId).run();
+          }
+          if (manager !== undefined) {
+            await db.prepare("UPDATE departments SET manager = ? WHERE id = ?").bind(manager, deptId).run();
+          }
+          return Response.json({ success: true, message: "อัปเดตข้อมูลแผนกสำเร็จ" }, { headers: corsHeaders });
         } catch (e) {
-          return Response.json({ error: "D1 Save Pattern Error" }, { status: 500, headers: corsHeaders });
+          return Response.json({ error: "D1 Save Config Error" }, { status: 500, headers: corsHeaders });
         }
       }
-      return Response.json({ error: "Missing deptId or pattern" }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: "Missing deptId" }, { status: 400, headers: corsHeaders });
     }
 
     // 8. POST /api/add-employee

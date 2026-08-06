@@ -908,14 +908,19 @@ app.post("/api/save-shifts", async (req, res) => {
       await writeAuditLog(username || "system", "save_shifts", "shift", `${recordYear}-${recordMonth}`, { employeeCount: employees.length });
       res.json({ success: true, message: "บันทึกตารางกะสำเร็จ", employees: updatedEmps });
 
-// Save Department Shift Pattern
-app.post("/api/save-department-pattern", async (req, res) => {
+// Save Department Shift Config (Pattern & Manager)
+app.post("/api/save-department-config", async (req, res) => {
   try {
-    const { deptId, pattern } = req.body;
+    const { deptId, pattern, manager } = req.body;
     if (isD1Enabled()) {
-      await queryD1("UPDATE departments SET pattern = ? WHERE id = ?", [pattern, deptId]);
+      if (pattern !== undefined) {
+        await queryD1("UPDATE departments SET pattern = ? WHERE id = ?", [pattern, deptId]);
+      }
+      if (manager !== undefined) {
+        await queryD1("UPDATE departments SET manager = ? WHERE id = ?", [manager, deptId]);
+      }
     }
-    res.json({ success: true, message: "อัปเดตรูปแบบแผนกสำเร็จ" });
+    res.json({ success: true, message: "อัปเดตข้อมูลแผนกสำเร็จ" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
