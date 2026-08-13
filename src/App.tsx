@@ -1983,6 +1983,82 @@ export default function App() {
     fetchJobValueRecords();
   }, []);
 
+    const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
+
+  const handleDirectSaveShift = async (emp: any, dayIdx: number, target: "plan" | "actual", newShiftCode: string) => {
+    try {
+      const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+      const [y, m] = monthKey.split("-");
+
+      // Get existing arrays
+      const currentShifts = getEmpShiftsArray(emp.shifts, monthKey);
+      const currentPlan = getEmpPlanShiftsArray(emp, monthKey);
+
+      // Create copies and update the target day
+      const updatedShifts = [...currentShifts];
+      while (updatedShifts.length <= dayIdx) updatedShifts.push("O");
+
+      const updatedPlan = [...currentPlan];
+      while (updatedPlan.length <= dayIdx) updatedPlan.push("O");
+
+      if (target === "plan") {
+        updatedPlan[dayIdx] = newShiftCode;
+      } else {
+        updatedShifts[dayIdx] = newShiftCode;
+      }
+
+      // Format as JSON object for database
+      const formatEmpShiftsObj = (empOrigin: any, newActualArr: string[], newPlanArr: string[]) => {
+        let dbShifts: any = {};
+        try {
+          dbShifts = empOrigin.shifts ? (typeof empOrigin.shifts === "string" ? JSON.parse(empOrigin.shifts) : empOrigin.shifts) : {};
+        } catch { dbShifts = {}; }
+        if (Array.isArray(dbShifts)) { dbShifts = { "2026-08": dbShifts }; }
+
+        let dbPlanShifts: any = {};
+        try {
+          dbPlanShifts = empOrigin.planShifts ? (typeof empOrigin.planShifts === "string" ? JSON.parse(empOrigin.planShifts) : empOrigin.planShifts) : {};
+        } catch { dbPlanShifts = {}; }
+        if (Array.isArray(dbPlanShifts)) { dbPlanShifts = { "2026-08": dbPlanShifts }; }
+
+        dbShifts[monthKey] = newActualArr;
+        dbPlanShifts[monthKey] = newPlanArr;
+
+        return {
+          ...empOrigin,
+          shifts: JSON.stringify(dbShifts),
+          planShifts: JSON.stringify(dbPlanShifts)
+        };
+      };
+
+      const enrichedEmp = formatEmpShiftsObj(emp, updatedShifts, updatedPlan);
+
+      // Update state immediately for instant feedback
+      const updatedEmployees = state.employees.map((e: any) => e.id === emp.id ? enrichedEmp : e);
+      setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+
+      // Save to D1 database in background
+      const res = await fetch("/api/save-shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employees: [enrichedEmp],
+          year: y ? Number(y) : undefined,
+          month: m ? Number(m) : undefined
+        })
+      });
+
+      if (res.ok) {
+        showToast("บันทึกตารางกะสำเร็จ!", "success");
+      } else {
+        showToast("เกิดข้อผิดพลาดในการบันทึกตารางกะ", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
+    }
+  };
+
   // Local state for department manager input to prevent focus loss during typing (declared at top level)
   const [deptManagerText, setDeptManagerText] = useState<string>("");
   useEffect(() => {
@@ -6380,10 +6456,7 @@ export default function App() {
                           className="px-3 py-1.5 bg-[#0f1d30] border border-slate-700/60 text-slate-300 rounded-lg text-[10px] font-bold hover:bg-slate-800 flex items-center gap-1 cursor-pointer font-sans">
                           CSV
                         </button>
-                        <button onClick={() => { setShiftEditTarget("plan"); setIsEditingShifts(true); setTempEmployees(JSON.parse(JSON.stringify(state?.employees || []))); }}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black hover:bg-blue-700 cursor-pointer font-sans font-bold">แก้ไข Plan</button>
-                        <button onClick={() => { setShiftEditTarget("actual"); setIsEditingShifts(true); setTempEmployees(JSON.parse(JSON.stringify(state?.employees || []))); }}
-                          className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-[10px] font-black hover:bg-orange-700 cursor-pointer font-sans font-bold">บันทึก Actual</button>
+                        
                         
                         <button onClick={() => setShowVesselModal(true)}
                           className="px-3 py-1.5 bg-amber-700 text-white rounded-lg text-[10px] font-black hover:bg-amber-600 cursor-pointer font-sans font-bold">ตารางเรือ/เครน</button>
@@ -6879,12 +6952,26 @@ export default function App() {
                                             <div 
                                               key={dayIdx} 
                                               style={{ width: cellW, height: cellH }}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const isManager = currentUser?.role === "Section Manager" && normalizeDeptId(currentUser?.deptId) === normalizeDeptId(emp.deptId);
+                                                const isAllowed = isHrOrFullAccess || isManager;
+                                                if (!isAllowed) return;
+
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setActiveCellEditor({
+                                                  emp,
+                                                  dayIdx,
+                                                  target: shiftViewMode,
+                                                  x: rect.left + window.scrollX,
+                                                  y: rect.bottom + window.scrollY
+                                                });
+                                              }}
                                               className={[
-                                                "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none",
+                                                "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none cursor-pointer hover:bg-blue-50/60 transition-colors",
                                                 mismatch ? "outline outline-2 outline-red-500 outline-offset-[-1px] z-[1]" : "",
                                                 day.weekend ? "bg-red-50/20" : ""
-                                              ].join(" ")}
-                                            >
+                                              ].join(" ")}>
                                               {/* Plan sub-row */}
                                               {(shiftViewMode === "plan" || shiftViewMode === "both") && (
                                                 <div className={[
@@ -9901,6 +9988,95 @@ export default function App() {
         isOpen={isCsvTemplateHubOpen}
         onClose={() => setIsCsvTemplateHubOpen(false)}
       />
+
+      {/* Quick Cell Shift Editor Popover */}
+      {activeCellEditor && (
+        <>
+          <div 
+            className="fixed inset-0 z-[990] cursor-default bg-transparent"
+            onClick={() => setActiveCellEditor(null)}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: (() => {
+                const w = 310;
+                let l = activeCellEditor.x - w / 2;
+                if (l < 10) l = 10;
+                if (l + w > window.innerWidth - 10) l = window.innerWidth - w - 10;
+                return `${l}px`;
+              })(),
+              top: (() => {
+                const h = activeCellEditor.target === "both" ? 188 : 108;
+                let t = activeCellEditor.y + 6;
+                if (t + h > window.innerHeight + window.scrollY - 10) {
+                  t = activeCellEditor.y - h - 6;
+                }
+                return `${t}px`;
+              })(),
+              width: "310px",
+              zIndex: 991
+            }}
+            className="bg-slate-900/95 text-white backdrop-blur-md rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.3)] p-3 border border-slate-700/50 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 select-none"
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+              <span className="text-[10px] font-black text-slate-400 truncate max-w-[200px]">
+                {activeCellEditor.emp.name} (วันที่ {activeCellEditor.dayIdx + 1})
+              </span>
+              <button 
+                onClick={() => setActiveCellEditor(null)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5 rounded hover:bg-white/5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* Plan editing row */}
+              {(activeCellEditor.target === "both" || activeCellEditor.target === "plan") && (
+                <div>
+                  <div className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-1.5">แก้ไข Plan</div>
+                  <div className="flex flex-wrap gap-1">
+                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O"].map(code => (
+                      <button
+                        key={code}
+                        onClick={() => {
+                          handleDirectSaveShift(activeCellEditor.emp, activeCellEditor.dayIdx, "plan", code);
+                          setActiveCellEditor(null);
+                        }}
+                        className={`px-2 py-1 text-[10px] font-extrabold rounded-md border border-white/5 hover:scale-105 active:scale-95 transition-all cursor-pointer ${getShiftStyle(code)}`}
+                      >
+                        {code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actual editing row */}
+              {(activeCellEditor.target === "both" || activeCellEditor.target === "actual") && (
+                <div className={activeCellEditor.target === "both" ? "border-t border-slate-800/80 pt-2" : ""}>
+                  <div className="text-[9px] font-black text-orange-300 uppercase tracking-widest mb-1.5">แก้ไข Actual</div>
+                  <div className="flex flex-wrap gap-1">
+                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O"].map(code => (
+                      <button
+                        key={code}
+                        onClick={() => {
+                          handleDirectSaveShift(activeCellEditor.emp, activeCellEditor.dayIdx, "actual", code);
+                          setActiveCellEditor(null);
+                        }}
+                        className={`px-2 py-1 text-[10px] font-extrabold rounded-md border border-white/5 hover:scale-105 active:scale-95 transition-all cursor-pointer ${getShiftStyle(code)}`}
+                      >
+                        {code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Toast Container */}
       <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-3 max-w-sm pointer-events-none">
