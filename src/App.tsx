@@ -125,13 +125,21 @@ export const getShiftOtHours = (shift: string) => {
   return 0;
 };
 
-export const getEmpShiftsArray = (shifts: any): string[] => {
+export const getEmpShiftsArray = (shifts: any, monthKey?: string): string[] => {
+  const mKey = monthKey || "2026-08";
   if (Array.isArray(shifts)) return shifts;
   if (typeof shifts === "string") {
     try {
       const parsed = JSON.parse(shifts);
       if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") {
+        return parsed[mKey] || [];
+      }
     } catch (_) {}
+  }
+  if (shifts && typeof shifts === "object") {
+    if (Array.isArray(shifts)) return shifts;
+    return shifts[mKey] || [];
   }
   return [];
 };
@@ -142,9 +150,10 @@ export const isJvDepartment = (deptNameOrId: string): boolean => {
   return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
 };
 
-export const getEmpCalculatedOt = (emp: any): number => {
+export const getEmpCalculatedOt = (emp: any, monthKey?: string): number => {
   if (!emp) return 0;
-  const shiftsArray = getEmpShiftsArray(emp.shifts);
+  const mKey = monthKey || "2026-08";
+  const shiftsArray = getEmpShiftsArray(emp.shifts, mKey);
   if (shiftsArray && shiftsArray.length > 0) {
     let total = 0;
     for (let i = 0; i < shiftsArray.length; i++) {
@@ -165,18 +174,27 @@ export const isPlanActualMismatch = (planShift: string, actualShift: string): bo
 };
 
 // ดึง planShifts array ของพนักงาน (fallback เป็น shifts ถ้าไม่มี planShifts)
-export const getEmpPlanShiftsArray = (emp: any): string[] => {
-  if (emp && Array.isArray(emp.planShifts) && emp.planShifts.length > 0) {
-    return emp.planShifts;
+export const getEmpPlanShiftsArray = (emp: any, monthKey?: string): string[] => {
+  const mKey = monthKey || "2026-08";
+  if (!emp) return [];
+  let planShifts = emp.planShifts;
+  if (Array.isArray(planShifts)) {
+    return planShifts;
   }
-  if (emp && typeof emp.planShifts === "string") {
+  if (typeof planShifts === "string") {
     try {
-      const parsed = JSON.parse(emp.planShifts);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const parsed = JSON.parse(planShifts);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") {
+        return parsed[mKey] || [];
+      }
     } catch (_) {}
   }
-  // fallback: ใช้ actual shifts เป็น plan
-  return Array.isArray(emp?.shifts) ? [...emp.shifts] : (emp?.shifts ? getEmpShiftsArray(emp.shifts) : []);
+  if (planShifts && typeof planShifts === "object") {
+    if (Array.isArray(planShifts)) return planShifts;
+    return planShifts[mKey] || [];
+  }
+  return getEmpShiftsArray(emp.shifts, mKey);
 }
 
 export const getEmployeeShiftsForView = (shifts: any, limit: number) => {
@@ -2568,7 +2586,7 @@ export default function App() {
   }).sort((a, b) => {
     // Helper to calculate OT multiplier values for sorting
     const getOtMetrics = (emp: Employee) => {
-      const shifts: string[] = emp.shifts || [];
+            const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
       let ot1_5 = 0;
       let ot1_0 = 0;
       let ot3_0 = 0;
@@ -2659,14 +2677,24 @@ export default function App() {
       return;
     }
     const updated = listToUpdate.map(emp => {
-      if (emp.deptId === currentShiftsDept && (bulkGroupName === "all" || emp.groupName === bulkGroupName)) {
-        const newShifts = [...(emp.shifts || [])];
+            if (emp.deptId === currentShiftsDept && (bulkGroupName === "all" || emp.groupName === bulkGroupName)) {
+        const shiftsArray = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+        const newShifts = [...shiftsArray];
         const sDay = Math.max(1, bulkStartDay) - 1;
         const eDay = Math.min(31, bulkEndDay);
         for (let d = sDay; d < eDay; d++) {
           newShifts[d] = bulkShiftCode;
         }
-        return { ...emp, shifts: newShifts };
+        
+        const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+        let dbShifts: any = {};
+        try {
+          dbShifts = emp.shifts ? (typeof emp.shifts === "string" ? JSON.parse(emp.shifts) : emp.shifts) : {};
+        } catch { dbShifts = {}; }
+        if (Array.isArray(dbShifts)) { dbShifts = { "2026-08": dbShifts }; }
+        dbShifts[monthKey] = newShifts;
+        
+        return { ...emp, shifts: JSON.stringify(dbShifts) };
       }
       return emp;
     });
@@ -2937,7 +2965,7 @@ export default function App() {
         csvContent += headers.join(",") + "\n";
 
         employees.forEach((emp: any) => {
-          const shiftsStr = Array.isArray(emp.shifts) ? emp.shifts.join(",") : "";
+          const shiftsStr = Array.isArray(getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth)) ? getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth).join(",") : "";
           const row = [
             escapeCsv(emp.id),
             escapeCsv(emp.prefix || ""),
@@ -3354,21 +3382,32 @@ export default function App() {
     const targetEmp = state.employees.find(e => e.id === employeeId);
     if (!targetEmp) return;
 
-    const newShifts = [...(targetEmp.shifts || [])];
+        const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const shiftsArray = getEmpShiftsArray(targetEmp.shifts, monthKey);
+    const newShifts = [...shiftsArray];
     while (newShifts.length <= dayIndex) {
       newShifts.push("O");
     }
     newShifts[dayIndex] = newValue;
 
+    let dbShifts: any = {};
+    try {
+      dbShifts = targetEmp.shifts ? (typeof targetEmp.shifts === "string" ? JSON.parse(targetEmp.shifts) : targetEmp.shifts) : {};
+    } catch { dbShifts = {}; }
+    if (Array.isArray(dbShifts)) { dbShifts = { "2026-08": dbShifts }; }
+    dbShifts[monthKey] = newShifts;
+
+    const updatedEmpObj = { ...targetEmp, shifts: JSON.stringify(dbShifts) };
+
     setState(prev => ({
       ...prev,
-      employees: prev.employees.map(e => e.id === employeeId ? { ...e, shifts: newShifts } : e)
+      employees: prev.employees.map(e => e.id === employeeId ? updatedEmpObj : e)
     }));
     setActiveEditingCell(null);
 
     try {
       const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
-      const updatedEmployeeList = state.employees.map(e => e.id === employeeId ? { ...e, shifts: newShifts } : e);
+      const updatedEmployeeList = state.employees.map(e => e.id === employeeId ? updatedEmpObj : e);
       await fetch("/api/save-shifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3591,10 +3630,11 @@ export default function App() {
     const deptEmps = state.employees.filter(e => e.deptId === dept.id);
     let totalOt = 0;
     deptEmps.forEach(emp => {
-      let ot = emp.actualOt || 0;
-      if (emp.shifts && emp.shifts.length > 0) {
+            let ot = emp.actualOt || 0;
+      const shiftsArray = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+      if (shiftsArray && shiftsArray.length > 0) {
         let shiftOt = 0;
-        emp.shifts.forEach((code: string) => {
+        shiftsArray.forEach((code: string) => {
           if (code === "OND") shiftOt += 8;
           else if (code.endsWith("12") || code === "M12" || code === "A12" || code === "N12") shiftOt += 4;
           else if (code.endsWith("16") || code === "M16" || code === "N16") shiftOt += 8;
@@ -3738,7 +3778,10 @@ export default function App() {
   const computeKpiForEmployees = (emps: typeof state.employees) => {
     const n = emps.length;
     if (n === 0) return { coveragePct: 0, productivityPct: 0, costEfficiencyPct: 0, safetyPct: 0, attendancePct: 0 };
-    const scheduledCount = emps.filter(e => e.shifts && e.shifts.some((s: string) => s !== "O" && s !== "")).length;
+    const scheduledCount = emps.filter(e => {
+      const arr = getEmpShiftsArray(e.shifts, state?.shiftConfig?.currentMonth);
+      return arr.some((s: string) => s !== "O" && s !== "");
+    }).length;
     const coveragePct = scheduledCount / n;
     const warningCount = emps.filter(e => (e.actualOt || 0) > (e.targetOt || 48)).length;
     const productivityPct = Math.max(0, 1 - warningCount / n);
@@ -3750,7 +3793,10 @@ export default function App() {
     
     const fatiguedCount = emps.filter(e => (e.actualOt || 0) > 36).length;
     const safetyPct = Math.max(0, 1 - fatiguedCount / n);
-    const activeCount = emps.filter(e => e.shifts && e.shifts.some((s: string) => s === "D" || s.startsWith("M") || s.startsWith("A") || s.startsWith("N"))).length;
+    const activeCount = emps.filter(e => {
+      const arr = getEmpShiftsArray(e.shifts, state?.shiftConfig?.currentMonth);
+      return arr.some((s: string) => s === "D" || s.startsWith("M") || s.startsWith("A") || s.startsWith("N"));
+    }).length;
     const attendancePct = activeCount / n;
     return { coveragePct, productivityPct, costEfficiencyPct, safetyPct, attendancePct };
   };
@@ -3794,7 +3840,8 @@ export default function App() {
     // 2. Consecutive shifts (more than 6 days in a row without 'O' or '')
     let maxConsecutive = 0;
     let currentConsecutive = 0;
-    for (const shift of emp.shifts || []) {
+    const shiftsArrayFatigue = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+    for (const shift of shiftsArrayFatigue) {
       if (shift !== "O" && shift !== "") {
         currentConsecutive++;
         if (currentConsecutive > maxConsecutive) {
@@ -3815,7 +3862,7 @@ export default function App() {
   state.employees.forEach(emp => {
     if (activeDeptId !== "all" && emp.deptId !== activeDeptId) return;
     
-    const shifts = emp.shifts || [];
+        const shifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
     shifts.forEach((shift, dayIdx) => {
       const dateObj = new Date(yr, mn - 1, dayIdx + 1);
       const dayOfWeek = dateObj.getDay();
@@ -6177,7 +6224,7 @@ export default function App() {
                         const dept = state.departments.find(d => d.id === emp.deptId);
                         
                         // Calculate OT Multipliers
-                        const shifts: string[] = emp.shifts || [];
+                                                const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                         let ot1_5 = 0;
                         let ot1_0 = 0;
                         let ot3_0 = 0;
@@ -6905,7 +6952,7 @@ export default function App() {
                                         <div className="flex items-center gap-1">
                                           <p className="text-xs font-bold text-slate-800 truncate" title={emp.name}>{emp.name}</p>
                                           {(() => {
-                                            const shifts: string[] = emp.shifts || [];
+                                            const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                                             let maxWeekOt = 0;
                                             for (let i = 0; i < shifts.length; i += 7) {
                                               const weekShifts = shifts.slice(i, i + 7);
