@@ -2388,6 +2388,13 @@ export default function App() {
   const filteredDeptsForStats = (state?.departments || []).filter(d => activeDeptId === "all" || d.id === activeDeptId);
   const deptEmpsCount = (state?.employees || []).filter(emp => emp.deptId === currentShiftsDept).length;
   const currentDeptObj = (state?.departments || []).find(d => d.id === currentShiftsDept);
+  // Local state for department manager input to prevent focus loss during typing
+  const [deptManagerText, setDeptManagerText] = useState<string>("");
+  useEffect(() => {
+    if (currentDeptObj) {
+      setDeptManagerText(currentDeptObj.manager && currentDeptObj.manager !== "-" ? currentDeptObj.manager : "คุณสันทัด คุ้มค่า");
+    }
+  }, [currentDeptObj?.manager, currentShiftsDept]);
 
   // Dynamically extract unique roles and groups for auto-suggestions & HR dropdowns
   const uniqueRoles = Array.from(new Set((state?.employees || []).filter(Boolean).map(emp => emp?.role))).filter(Boolean);
@@ -6273,9 +6280,10 @@ export default function App() {
                       {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
                         <input
                           type="text"
-                          value={currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}
-                          onChange={async (e) => {
-                            const newManagerName = e.target.value;
+                          value={deptManagerText}
+                          onChange={(e) => setDeptManagerText(e.target.value)}
+                          onBlur={async () => {
+                            const newManagerName = deptManagerText.trim() || "คุณสันทัด คุ้มค่า";
                             setState((prev: any) => ({
                               ...prev,
                               departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, manager: newManagerName } : d)
@@ -6290,7 +6298,12 @@ export default function App() {
                               console.error(err);
                             }
                           }}
-                          className="bg-[#0e2d1e] text-white text-xs font-bold border border-emerald-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 w-32 font-sans"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          className="bg-[#103020] text-white text-xs font-bold border border-emerald-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 rounded-lg px-2 py-1 w-32 font-sans transition-all"
                         />
                       ) : (
                         <span className="text-white text-xs font-bold">
@@ -6318,13 +6331,13 @@ export default function App() {
                             console.error(err);
                           }
                         }}
-                        className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans cursor-pointer focus:outline-none"
+                        className="bg-[#103020] text-emerald-300 text-xs font-black border border-emerald-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 rounded-lg px-2.5 py-1 font-sans cursor-pointer hover:bg-[#153a27] transition-all"
                       >
                         <option value="4-on-2-off">ตารางกะ 4 หยุด 2</option>
                         <option value="6-on-1">ตารางกะ 6 หยุด 1 (2 ทีม)</option>
                       </select>
                     ) : (
-                      <div className="bg-[#0e2d1e] text-emerald-300 px-2 py-1 rounded text-[10px] font-bold border border-emerald-700 font-sans">
+                      <div className="bg-[#103020] text-emerald-300 px-3 py-1 rounded-lg text-xs font-black border border-emerald-800">
                         {(currentDeptObj?.pattern || "4-on-2-off") === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
                       </div>
                     )}
