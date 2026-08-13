@@ -1983,6 +1983,15 @@ export default function App() {
     fetchJobValueRecords();
   }, []);
 
+  // Local state for department manager input to prevent focus loss during typing (declared at top level)
+  const [deptManagerText, setDeptManagerText] = useState<string>("");
+  useEffect(() => {
+    const curDept = (state?.departments || []).find((d: any) => d.id === currentShiftsDept);
+    if (curDept) {
+      setDeptManagerText(curDept.manager && curDept.manager !== "-" ? curDept.manager : "คุณสันทัด คุ้มค่า");
+    }
+  }, [state?.departments, currentShiftsDept]);
+
     // Toast Notifications State & Override window.alert
   const [toasts, setToasts] = useState<any[]>([]);
   const showToast = (message: string, type: "success" | "error" | "info" | "warning" = "info") => {
@@ -2388,13 +2397,7 @@ export default function App() {
   const filteredDeptsForStats = (state?.departments || []).filter(d => activeDeptId === "all" || d.id === activeDeptId);
   const deptEmpsCount = (state?.employees || []).filter(emp => emp.deptId === currentShiftsDept).length;
   const currentDeptObj = (state?.departments || []).find(d => d.id === currentShiftsDept);
-  // Local state for department manager input to prevent focus loss during typing
-  const [deptManagerText, setDeptManagerText] = useState<string>("");
-  useEffect(() => {
-    if (currentDeptObj) {
-      setDeptManagerText(currentDeptObj.manager && currentDeptObj.manager !== "-" ? currentDeptObj.manager : "คุณสันทัด คุ้มค่า");
-    }
-  }, [currentDeptObj?.manager, currentShiftsDept]);
+
 
   // Dynamically extract unique roles and groups for auto-suggestions & HR dropdowns
   const uniqueRoles = Array.from(new Set((state?.employees || []).filter(Boolean).map(emp => emp?.role))).filter(Boolean);
