@@ -6515,12 +6515,9 @@ export default function App() {
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
-                      <span>สัญลักษณ์รหัสกะและตารางการจัดสีเวร (Shift Master Legend)</span>
+                      <span>สัญลักษณ์รหัสกะและตารางการจัดการ</span>
                     </h4>
-                    <div className="text-blue-600 flex items-center gap-1.5 text-xs font-bold">
-                      <span className="w-2 h-2 bg-blue-600 rounded-full animate-ping"></span>
-                      <span>รูปแบบหลักขององค์กร: 4-on-2-off</span>
-                    </div>
+                    
                   </div>
 
                   <div className="overflow-x-auto pb-2">
@@ -7016,7 +7013,7 @@ export default function App() {
                                         const otHrs = getShiftOtHours(shift);
                                         const isOff = shift === "O" || shift === "OFF";
 
-                                        if (shift === "OND" || (day.weekend && !isOff)) {
+                                        if (shift === "OND" || (day.th === "อา." && !isOff)) {
                                           holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
                                           if (!isOff) holidayWorkDays += 1;
                                         } else if (otHrs > 0) {
@@ -7145,7 +7142,7 @@ export default function App() {
                                   const otHrs = getShiftOtHours(shift);
                                   const isOff = shift === "O" || shift === "OFF";
 
-                                  if (shift === "OND" || (day.weekend && !isOff)) {
+                                  if (shift === "OND" || (day.th === "อา." && !isOff)) {
                                     holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
                                     if (!isOff) holidayWorkDays += 1;
                                   } else if (otHrs > 0) {
