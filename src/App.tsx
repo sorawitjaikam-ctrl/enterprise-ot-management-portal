@@ -6404,12 +6404,11 @@ export default function App() {
                     <div className="flex flex-col">
                       <span className="text-[9px] text-slate-300 uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
                       {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
-                        <input
-                          type="text"
+                        <select
                           value={deptManagerText}
-                          onChange={(e) => setDeptManagerText(e.target.value)}
-                          onBlur={async () => {
-                            const newManagerName = deptManagerText.trim() || "คุณสันทัด คุ้มค่า";
+                          onChange={async (e) => {
+                            const newManagerName = e.target.value;
+                            setDeptManagerText(newManagerName);
                             setState((prev: any) => ({
                               ...prev,
                               departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, manager: newManagerName } : d)
@@ -6424,49 +6423,21 @@ export default function App() {
                               console.error(err);
                             }
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          className="bg-[#0f1d30] text-white text-xs font-bold border border-slate-700/60 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg px-2 py-1 w-32 font-sans transition-all"
-                        />
+                          className="bg-[#0f1d30] text-white text-xs font-bold border border-slate-700/60 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg px-2.5 py-1 font-sans cursor-pointer hover:bg-[#1b2d45] transition-all"
+                        >
+                          {Array.from(new Set([
+                            ...(state?.departments || []).map((d: any) => d.manager).filter((m: string) => m && m !== "-" && m !== "คุณสันทัด คุ้มค่า"),
+                            "คุณสมชาย", "คุณวิภา", "คุณอนันต์", "คุณสมศักดิ์", "คุณศักดิ์ชัย", "คุณประสิทธิ์", "คุณสันทัด คุ้มค่า"
+                          ])).filter(Boolean).map((managerName: any) => (
+                            <option key={managerName} value={managerName}>{managerName}</option>
+                          ))}
+                        </select>
                       ) : (
                         <span className="text-white text-xs font-bold">
                           {currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}
                         </span>
                       )}
                     </div>
-
-                    {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
-                      <select
-                        value={currentDeptObj?.pattern || "4-on-2-off"}
-                        onChange={async (e) => {
-                          const newPattern = e.target.value;
-                          setState((prev: any) => ({
-                            ...prev,
-                            departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, pattern: newPattern } : d)
-                          }));
-                          try {
-                            await fetch("/api/save-department-config", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ deptId: currentShiftsDept, pattern: newPattern })
-                            });
-                          } catch (err) {
-                            console.error(err);
-                          }
-                        }}
-                        className="bg-[#0f1d30] text-blue-300 text-xs font-black border border-slate-700/60 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg px-2.5 py-1 font-sans cursor-pointer hover:bg-[#1b2d45] transition-all"
-                      >
-                        <option value="4-on-2-off">ตารางกะ 4 หยุด 2</option>
-                        <option value="6-on-1">ตารางกะ 6 หยุด 1 (2 ทีม)</option>
-                      </select>
-                    ) : (
-                      <div className="bg-[#0f1d30] text-slate-300 px-3 py-1 rounded-lg text-xs font-black border border-slate-700/60">
-                        {(currentDeptObj?.pattern || "4-on-2-off") === "4-on-2-off" ? "ตารางกะ 4 หยุด 2" : "ตารางกะ 6 หยุด 1 (2 ทีม)"}
-                      </div>
-                    )}
 
                     <div className="text-slate-200 text-xs font-bold font-sans">
                       {(() => {
