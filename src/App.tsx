@@ -2080,11 +2080,32 @@ export default function App() {
   // Local state for department manager input to prevent focus loss during typing (declared at top level)
   const [deptManagerText, setDeptManagerText] = useState<string>("");
   useEffect(() => {
-    const curDept = (state?.departments || []).find((d: any) => d.id === currentShiftsDept);
-    if (curDept) {
-      setDeptManagerText(curDept.manager && curDept.manager !== "-" ? curDept.manager : "คุณสันทัด คุ้มค่า");
+    if (currentUser?.name) {
+      const curDept = (state?.departments || []).find((d: any) => d.id === currentShiftsDept);
+      const managerName = currentUser.name;
+      setDeptManagerText(managerName);
+      
+      const isManager = currentUser?.role === "Section Manager" && normalizeDeptId(currentUser?.deptId) === normalizeDeptId(currentShiftsDept);
+      const isAllowed = ["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") || isManager;
+
+      if (isAllowed && curDept && curDept.manager !== managerName) {
+        setState((prev: any) => ({
+          ...prev,
+          departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, manager: managerName } : d)
+        }));
+        fetch("/api/save-department-config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deptId: currentShiftsDept, manager: managerName })
+        }).catch(console.error);
+      }
+    } else {
+      const curDept = (state?.departments || []).find((d: any) => d.id === currentShiftsDept);
+      if (curDept) {
+        setDeptManagerText(curDept.manager && curDept.manager !== "-" ? curDept.manager : "คุณสันทัด คุ้มค่า");
+      }
     }
-  }, [state?.departments, currentShiftsDept]);
+  }, [state?.departments, currentShiftsDept, currentUser]);
 
     // Toast Notifications State & Override window.alert
   const [toasts, setToasts] = useState<any[]>([]);
@@ -6403,40 +6424,10 @@ export default function App() {
 
                     <div className="flex flex-col">
                       <span className="text-[9px] text-slate-300 uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
-                      {["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin"].includes(currentUser?.role || "") ? (
-                        <select
-                          value={deptManagerText}
-                          onChange={async (e) => {
-                            const newManagerName = e.target.value;
-                            setDeptManagerText(newManagerName);
-                            setState((prev: any) => ({
-                              ...prev,
-                              departments: prev.departments.map((d: any) => d.id === currentShiftsDept ? { ...d, manager: newManagerName } : d)
-                            }));
-                            try {
-                              await fetch("/api/save-department-config", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ deptId: currentShiftsDept, manager: newManagerName })
-                              });
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }}
-                          className="bg-[#0f1d30] text-white text-xs font-bold border border-slate-700/60 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 rounded-lg px-2.5 py-1 font-sans cursor-pointer hover:bg-[#1b2d45] transition-all"
-                        >
-                          {Array.from(new Set([
-                            ...(state?.departments || []).map((d: any) => d.manager).filter((m: string) => m && m !== "-" && m !== "คุณสันทัด คุ้มค่า"),
-                            "คุณสมชาย", "คุณวิภา", "คุณอนันต์", "คุณสมศักดิ์", "คุณศักดิ์ชัย", "คุณประสิทธิ์", "คุณสันทัด คุ้มค่า"
-                          ])).filter(Boolean).map((managerName: any) => (
-                            <option key={managerName} value={managerName}>{managerName}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-white text-xs font-bold">
-                          {currentDeptObj?.manager && currentDeptObj?.manager !== "-" ? currentDeptObj?.manager : "คุณสันทัด คุ้มค่า"}
-                        </span>
-                      )}
+                      <div className="bg-[#0f1d30] text-white px-3 py-1 rounded-lg text-xs font-bold border border-slate-700/60 flex items-center gap-1.5 font-sans mt-0.5">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                        <span>{deptManagerText || "คุณสันทัด คุ้มค่า"}</span>
+                      </div>
                     </div>
 
                     <div className="text-slate-200 text-xs font-bold font-sans">
