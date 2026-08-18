@@ -4361,15 +4361,28 @@ export default function App() {
               {/* KPI Cards Grid Matching Mockup */}
               {(() => {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, state?.shiftConfig?.currentMonth), 0) * 10) / 10;
+                const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, currentMonthKey), 0) * 10) / 10;
                 const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
                 const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
-                  return acc + getEmpCalculatedOtPay(curr, state?.shiftConfig?.currentMonth);
+                  return acc + getEmpCalculatedOtPay(curr, currentMonthKey);
                 }, 0) * timeMult);
-                const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e) > 0).length;
+                const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e, currentMonthKey) > 0).length;
                 const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
                 const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
                 const avgOtPerEmp = Math.round(totalOtHrs / Math.max(1, activeEmps));
+
+                const totalBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
+                const otSalaryPct = totalBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / totalBaseSalary) * 100)) : 14;
+
+                const prevMonthKey = currentMonthKey === "2026-08" ? "2026-07" : "2026-08";
+                const prevTotalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
+                  return acc + getEmpCalculatedOtPay(curr, prevMonthKey);
+                }, 0) * timeMult);
+
+                const otComparePct = prevTotalSpent > 0 
+                  ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
+                  : 58;
 
                 return (
                   <div className="space-y-6">
