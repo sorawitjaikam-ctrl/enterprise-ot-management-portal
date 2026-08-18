@@ -4690,12 +4690,18 @@ export default function App() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {state.departments.map((dept) => {
                           const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                          const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, currentMonthKey), 0) * timeMult * 10) / 10;
+                          const deptOtHours = Math.round(
+                            deptEmployees.reduce((s, e) => {
+                              return s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0);
+                            }, 0) * 10
+                          ) / 10;
                           const maxHr = Math.max(...state.departments.map(d => {
                             const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                            return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e, currentMonthKey), 0) * timeMult;
-                          }), 100);
-                          const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
+                            return dEmps.reduce((s, e) => {
+                              return s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0);
+                            }, 0);
+                          }), 1);
+                          const percentage = maxHr > 0 ? Math.min(100, Math.round((deptOtHours / maxHr) * 100)) : 0;
                           return (
                             <div key={dept.id} className="group cursor-pointer bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all">
                               <div className="flex justify-between items-end mb-1.5">
