@@ -1997,7 +1997,7 @@ export default function App() {
   const [editEmpStartDate, setEditEmpStartDate] = useState<string>("");
   const [editEmpTenure, setEditEmpTenure] = useState<string>("");
   const [editEmpProbationDate, setEditEmpProbationDate] = useState<string>("");
-  const [editEmpCalendarType, setEditEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+  const [editEmpCalendarType, setEditEmpCalendarType] = useState<string>("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
   const [editEmpResignationDate, setEditEmpResignationDate] = useState<string>("");
   const [editEmpStatus, setEditEmpStatus] = useState<string>("Active");
 
@@ -2012,7 +2012,7 @@ export default function App() {
   const [empSortField, setEmpSortField] = useState<string>("id");
   const [empSortOrder, setEmpSortOrder] = useState<"asc" | "desc">("asc");
 
-  const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทินกะ 4-on-2-off");
+  const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
 
   const updatePlannerMonth = (newMonthStr: string) => {
     setState((prev: any) => prev ? ({
@@ -3019,7 +3019,7 @@ export default function App() {
         setNewEmpStartDate("");
         setNewEmpTenure("");
         setNewEmpProbationDate("");
-        setNewEmpCalendarType("ปฏิทินกะ 4-on-2-off");
+        setNewEmpCalendarType("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
         setNewEmpRole("Operator");
         setNewEmpTargetOt(48);
 
@@ -3301,7 +3301,7 @@ export default function App() {
           const startDate   = startDateIdx !== -1 ? (values[startDateIdx]?.trim() || "") : "";
           const tenure      = tenureIdx !== -1 ? (values[tenureIdx]?.trim() || "") : "";
           const probationDate = probationIdx !== -1 ? (values[probationIdx]?.trim() || "") : "";
-          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "ปฏิทินกะ 4-on-2-off") : "ปฏิทินกะ 4-on-2-off";
+          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "ปฏิทินกะ 4-on-2-off") : "ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)";
 
           const targetOt    = targetOtIdx !== -1 ? (Number(values[targetOtIdx]) || 48) : 48;
           const groupName   = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "") : "";
@@ -3522,7 +3522,7 @@ export default function App() {
     setEditEmpStartDate(emp.startDate || "");
     setEditEmpTenure(emp.tenure || "");
     setEditEmpProbationDate(emp.probationDate || "");
-    setEditEmpCalendarType(emp.calendarType || "ปฏิทินกะ 4-on-2-off");
+    setEditEmpCalendarType(emp.calendarType || "ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
     setEditEmpResignationDate(emp.resignationDate || "");
     setEditEmpStatus(emp.employmentStatus || (emp.resignationDate ? "Resigned" : "Active"));
     
@@ -8846,9 +8846,10 @@ export default function App() {
                       onChange={(e) => setNewEmpCalendarType(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      <option value="ปฏิทินกะ 4-on-2-off">ปฏิทินกะ 4-on-2-off</option>
+                      <option value="ปฏิทิน 2 ทีม (คู่กะ 12 ชม. ทำ 12 พัก 12)">ปฏิทิน 2 ทีม (คู่กะ 12 ชม. ทำ 12 พัก 12)</option>
+                      <option value="ปฏิทิน 3 ทีม (3 กะ 8 ชม. 8-8-8 สามคน)">ปฏิทิน 3 ทีม (3 กะ 8 ชม. 8-8-8 สามคน)</option>
+                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)">วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)</option>
                       <option value="ทำงานวันจันทร์-ศุกร์ (Office)">ทำงานวันจันทร์-ศุกร์ (Office)</option>
-                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์">วันทำงานปกติ 6 วันต่อสัปดาห์</option>
                     </select>
                   </div>
                 </div>
@@ -9181,9 +9182,10 @@ export default function App() {
                       onChange={(e) => setEditEmpCalendarType(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      <option value="ปฏิทินกะ 4-on-2-off">ปฏิทินกะ 4-on-2-off</option>
+                      <option value="ปฏิทิน 2 ทีม (คู่กะ 12 ชม. ทำ 12 พัก 12)">ปฏิทิน 2 ทีม (คู่กะ 12 ชม. ทำ 12 พัก 12)</option>
+                      <option value="ปฏิทิน 3 ทีม (3 กะ 8 ชม. 8-8-8 สามคน)">ปฏิทิน 3 ทีม (3 กะ 8 ชม. 8-8-8 สามคน)</option>
+                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)">วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)</option>
                       <option value="ทำงานวันจันทร์-ศุกร์ (Office)">ทำงานวันจันทร์-ศุกร์ (Office)</option>
-                      <option value="วันทำงานปกติ 6 วันต่อสัปดาห์">วันทำงานปกติ 6 วันต่อสัปดาห์</option>
                     </select>
                   </div>
                 </div>
@@ -10489,70 +10491,91 @@ export default function App() {
               )}
             </div>
 
-            {/* Quick Action Bar for Fast Scheduling */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-slate-700">เครื่องมือจัดกะด่วนทั้งเดือน:</span>
+            {/* Smart Team Shift Preset Toolbar (2-Team 12h & 3-Team 8-8-8) */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs font-sans">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-black text-slate-800 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                  <span>รูปแบบจัดคู่กะ (Presets):</span>
+                </span>
+                
+                <select
+                  id="team-shift-preset-select"
+                  defaultValue="team2_m12"
+                  className="px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-xs shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <optgroup label="🌟 รูปแบบ 2 ทีม (คู่กะ 12 ชม. ทำ 12 ชม. พัก 12 ชม.)">
+                    <option value="team2_m12">2 ทีม: กะเช้า 12 ชม. (M12 ทุกวัน)</option>
+                    <option value="team2_n12">2 ทีม: กะดึก 12 ชม. (N12 ทุกวัน)</option>
+                    <option value="team2_a12">2 ทีม: กะบ่าย 12 ชม. (A12 ทุกวัน)</option>
+                    <option value="team2_rot">2 ทีม: หมุนเวียนสลับกะ (2 วัน M12 - 2 วัน N12 - 2 วัน OFF)</option>
+                  </optgroup>
+                  <optgroup label="🌟 รูปแบบ 3 ทีม (3 กะ 8 ชม. / 8-8-8 สามคนหมุนเวียน 24 ชม.)">
+                    <option value="team3_m8">3 ทีม: กะเช้า 8 ชม. (M8 ทุกวัน)</option>
+                    <option value="team3_a8">3 ทีม: กะบ่าย 8 ชม. (A8 ทุกวัน)</option>
+                    <option value="team3_n8">3 ทีม: กะดึก 8 ชม. (N8 ทุกวัน)</option>
+                    <option value="team3_rot">3 ทีม: หมุนเวียน 8-8-8 (M8 ➔ A8 ➔ N8 ➔ OFF)</option>
+                  </optgroup>
+                  <optgroup label="⚙️ ตั้งกะคงที่ทั้งเดือน">
+                    <option value="all_m12">กะเช้า 12 ชม. (M12) ทั้งเดือน</option>
+                    <option value="all_m8">กะเช้า 8 ชม. (M8) ทั้งเดือน</option>
+                    <option value="all_a12">กะบ่าย 12 ชม. (A12) ทั้งเดือน</option>
+                    <option value="all_a8">กะบ่าย 8 ชม. (A8) ทั้งเดือน</option>
+                    <option value="all_n12">กะดึก 12 ชม. (N12) ทั้งเดือน</option>
+                    <option value="all_n8">กะดึก 8 ชม. (N8) ทั้งเดือน</option>
+                    <option value="all_o">วันหยุด (OFF) ทั้งเดือน</option>
+                  </optgroup>
+                </select>
+
                 <button
                   type="button"
                   onClick={() => {
-                    const pattern = ["M12", "M12", "A12", "A12", "O", "O"];
-                    const newShifts = Array.from({ length: totalDays }, (_, i) => pattern[i % 6]);
+                    const elem = document.getElementById("team-shift-preset-select") as HTMLSelectElement;
+                    const mode = elem?.value || "team2_m12";
+                    let newShifts: string[] = [];
+
+                    if (mode === "team2_m12") {
+                      newShifts = Array(totalDays).fill("M12");
+                    } else if (mode === "team2_n12") {
+                      newShifts = Array(totalDays).fill("N12");
+                    } else if (mode === "team2_a12") {
+                      newShifts = Array(totalDays).fill("A12");
+                    } else if (mode === "team2_rot") {
+                      const pattern = ["M12", "M12", "N12", "N12", "O", "O"];
+                      newShifts = Array.from({ length: totalDays }, (_, i) => pattern[i % 6]);
+                    } else if (mode === "team3_m8") {
+                      newShifts = Array(totalDays).fill("M8");
+                    } else if (mode === "team3_a8") {
+                      newShifts = Array(totalDays).fill("A8");
+                    } else if (mode === "team3_n8") {
+                      newShifts = Array(totalDays).fill("N8");
+                    } else if (mode === "team3_rot") {
+                      const pattern = ["M8", "A8", "N8", "O"];
+                      newShifts = Array.from({ length: totalDays }, (_, i) => pattern[i % 4]);
+                    } else if (mode.startsWith("all_")) {
+                      const code = mode.replace("all_", "").toUpperCase();
+                      newShifts = Array(totalDays).fill(code);
+                    } else {
+                      newShifts = Array(totalDays).fill("M12");
+                    }
+
                     if (modalEditTarget === "plan") {
                       setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, planShifts: newShifts });
                     } else {
                       setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
                     }
                   }}
-                  className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl font-bold border border-blue-300 cursor-pointer transition-colors font-sans"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-extrabold cursor-pointer transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center gap-1.5"
                 >
-                  จัดกะ 4-on-2-off อัตโนมัติ
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>ปรับใช้รูปแบบคู่กะ</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-600">ตั้งกะทั้งเดือนเป็น:</span>
-                <select
-                  id="bulk-modal-shift-select"
-                  defaultValue="M12"
-                  className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-800 text-xs shadow-sm cursor-pointer font-sans"
-                >
-                  <optgroup label="กะเช้า (Morning)">
-                    <option value="M8">M8 - กะเช้า 8 ชม. (08:00 - 16:00)</option>
-                    <option value="M12">M12 - กะเช้า 12 ชม. (OT 4 ชม.)</option>
-                    <option value="M16">M16 - กะเช้า 16 ชม. (OT 8 ชม.)</option>
-                  </optgroup>
-                  <optgroup label="กะบ่าย (Afternoon)">
-                    <option value="A8">A8 - กะบ่าย 8 ชม. (16:00 - 00:00)</option>
-                    <option value="A12">A12 - กะบ่าย 12 ชม. (OT 4 ชม.)</option>
-                    <option value="A16">A16 - กะบ่าย 16 ชม. (OT 8 ชม.)</option>
-                  </optgroup>
-                  <optgroup label="กะดึก (Night)">
-                    <option value="N8">N8 - กะดึก 8 ชม. (20:00 - 04:00)</option>
-                    <option value="N12">N12 - กะดึก 12 ชม. (OT 4 ชม.)</option>
-                    <option value="N16">N16 - กะดึก 16 ชม. (OT 8 ชม.)</option>
-                  </optgroup>
-                  <optgroup label="วันหยุด (Off / Holiday)">
-                    <option value="O">O - วันหยุด (Off / Day Off)</option>
-                    <option value="OND">OND - ทำงานวันหยุด (OT 8 ชม.)</option>
-                  </optgroup>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const elem = document.getElementById("bulk-modal-shift-select") as HTMLSelectElement;
-                    const val = elem?.value || "M12";
-                    const newShifts = Array(totalDays).fill(val);
-                    if (modalEditTarget === "plan") {
-                      setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, planShifts: newShifts });
-                    } else {
-                      setEditingEmployeeShiftsModal({ ...editingEmployeeShiftsModal, shifts: newShifts });
-                    }
-                  }}
-                  className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold cursor-pointer transition-colors shadow-sm font-sans"
-                >
-                  ปรับใช้กับทั้งเดือน
-                </button>
+                <span className="text-[11px] font-bold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                  กำลังปรับใช้กับ: <strong className="text-blue-700">{modalEditTarget === "plan" ? "แผนงาน (Plan)" : "บันทึกจริง (Actual)"}</strong>
+                </span>
               </div>
             </div>
 
