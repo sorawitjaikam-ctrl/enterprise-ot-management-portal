@@ -7071,73 +7071,104 @@ export default function App() {
 
               {/* HEADER TOOLBAR — Clean Minimalist High-Contrast Style */}
               <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
-                <div className="bg-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100">
+                {/* Top Row: Department info & View mode / Actions (Equal Height & Perfectly Balanced Centerline) */}
+                <div className="bg-white px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 min-h-[56px]">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">แผนกปฏิบัติงาน</span>
-                      <span className="text-slate-900 text-sm font-black leading-tight">{currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}</span>
+                    {/* Department */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl h-10 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                        <Building2 className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-tight">แผนก</span>
+                        <span className="text-slate-900 text-xs font-black leading-tight">{currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}</span>
+                      </div>
                     </div>
                     
                     {/* Worker count box */}
-                    <div className="bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5">
-                      <span>จำนวนพนักงาน:</span>
-                      <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md font-mono font-black text-[11px]">
-                        {(isEditingShifts ? tempEmployees : state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length}
-                      </span>
-                      <span className="text-slate-500 font-mono font-sans font-semibold">/{ (state?.employees || []).filter(e => e.deptId === currentShiftsDept).length } คน</span>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
-                      <div className="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 font-sans mt-0.5">
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <span>{deptManagerText || "คุณสันทัด คุ้มค่า"}</span>
+                    <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl h-10 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-tight">กำลังพล</span>
+                        <div className="flex items-center gap-1 leading-tight">
+                          <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">
+                            {(isEditingShifts ? tempEmployees : state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length}
+                          </span>
+                          <span className="text-slate-500 font-mono text-[11px] font-semibold">/ {(state?.employees || []).filter(e => e.deptId === currentShiftsDept).length} คน</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="text-slate-700 text-xs font-black font-sans bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                      {(() => {
-                        const [y, m] = (state?.shiftConfig?.currentMonth || "2026-08").split("-");
-                        const mn = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-                        return `${mn[Number(m)]} ${Number(y)+543}`;
-                      })()}
+                    {/* Department Planner / Manager */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl h-10 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <UserCheck className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-tight">ผู้จัดแผนงาน</span>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 leading-tight">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          <span className="truncate max-w-[140px]">{deptManagerText || "คุณสันทัด คุ้มค่า"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Period Month */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl h-10 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                        <Calendar className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-tight">รอบเดือน</span>
+                        <span className="text-slate-800 text-xs font-black leading-tight">
+                          {(() => {
+                            const [y, m] = (state?.shiftConfig?.currentMonth || "2026-08").split("-");
+                            const mn = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+                            return `${mn[Number(m)]} ${Number(y)+543}`;
+                          })()}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Top Right: Toggle & CTA Buttons (Matching h-10 Height Exactly) */}
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     {/* Toggle [ Plan / Actual / Plan+Actual ] */}
-                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                    <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold h-10 items-center shadow-inner">
                       {(["plan", "actual", "both"] as const).map(mode => (
                         <button key={mode} onClick={() => setShiftViewMode(mode)}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-sm font-black" : "text-slate-600 hover:text-slate-900"}`}>
+                          className={`px-3.5 py-1 rounded-xl transition-all cursor-pointer h-full flex items-center ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-xs font-black" : "text-slate-600 hover:text-slate-900"}`}>
                           {mode === "plan" ? "Plan" : mode === "actual" ? "Actual" : "Plan+Actual"}
                         </button>
                       ))}
                     </div>
 
                     {isEditingShifts ? (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2 h-10">
                         <button onClick={() => { setIsEditingShifts(false); setTempEmployees(state?.employees || []); }}
-                          className="px-3.5 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer font-sans">ยกเลิก</button>
+                          className="h-10 px-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer font-sans flex items-center">ยกเลิก</button>
                         <button onClick={handleSaveShifts}
-                          className="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 transition-colors shadow cursor-pointer font-sans">
+                          className="h-10 px-4 bg-blue-600 text-white rounded-2xl text-xs font-black hover:bg-blue-700 transition-colors shadow-xs cursor-pointer font-sans flex items-center">
                           บันทึก {shiftEditTarget === "plan" ? "Plan" : "Actual"}
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 h-10">
                         <button 
                           onClick={handleExportShiftsCsv}
-                          className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all hover:scale-105 active:scale-95"
+                          className="h-10 px-3.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all hover:scale-105 active:scale-95"
                           title="ส่งออกไฟล์สรุปยอดทำจ่ายค่าล่วงเวลา (OT Payroll-Ready CSV) ประจำเดือน"
                         >
-                          <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                          <FileText className="w-4 h-4 text-emerald-700" />
                           <span>CSV ทำจ่าย OT</span>
                         </button>
                         
                         <button onClick={() => setShowVesselModal(true)}
-                          className="px-3.5 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs">
-                          ตารางเรือ/เครน
+                          className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
+                          <Ship className="w-4 h-4 text-white" />
+                          <span>ตารางเรือ/เครน</span>
                         </button>
                       </div>
                     )}
@@ -7145,121 +7176,138 @@ export default function App() {
                 </div>
 
                 {/* Sub-toolbar: Filters & selects (High Contrast Minimal Style) */}
-                <div className="bg-slate-50/80 px-6 py-2.5 flex flex-wrap items-center gap-3 border-b border-slate-200/80">
-                  {activeDeptId === "all" && (
-                    <select value={currentShiftsDept} onChange={(e) => setShiftsDeptFilter(e.target.value)}
-                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
-                      <option value="inter2">INTER 2</option>
-                      <option value="inter3">INTER 3</option>
-                      <option value="inter5">INTER 5</option>
-                      <option value="inter7">INTER 7</option>
-                      <option value="heavy">Heavy Machine</option>
-                      <option value="ecc">ECC</option>
-                    </select>
-                  )}
-                  <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
-                    onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; handleShiftConfigMonthChange(nextM); }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
-                    {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
-                  </select>
-                  <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
-                    onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; handleShiftConfigMonthChange(nextM); }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
-                    {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                  <select value={selectedWeek} onChange={(e) => { const val = e.target.value; setSelectedWeek(val); setDaysLimit(val === "all" ? 30 : 7); }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
-                    <option value="all">ทั้งเดือน</option>
-                    {weeksList.map((w) => <option key={w.weekNum} value={String(w.weekNum)}>สัปดาห์ {w.weekNum} ({w.startDay}-{w.endDay})</option>)}
-                  </select>
-                  {/* Multi-select Role Filter */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)}
-                      className="px-2.5 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans flex items-center gap-1.5 hover:bg-[#20406c] transition-all"
-                    >
-                      <span className="truncate max-w-[140px]">
-                        {selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")
-                          ? "ทุกตำแหน่ง"
-                          : selectedShiftRoleFilters.length === 1
-                          ? selectedShiftRoleFilters[0]
-                          : `เลือก ${selectedShiftRoleFilters.length} ตำแหน่ง`}
-                      </span>
-                      <svg className={`w-3 h-3 text-slate-400 transition-transform ${isRoleFilterOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {isRoleFilterOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-40" 
-                          onClick={() => setIsRoleFilterOpen(false)}
-                        />
-                        <div className="absolute top-full left-0 mt-1 z-50 bg-[#10223b] border border-slate-700/80 rounded-xl shadow-2xl p-2.5 w-64 max-h-72 overflow-y-auto font-sans flex flex-col gap-1 text-slate-200">
-                          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2 px-1 mb-1">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กรองตำแหน่ง (เลือกได้หลายตำแหน่ง)</span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedShiftRoleFilters([])}
-                              className="text-[10px] text-blue-400 hover:text-blue-300 font-bold cursor-pointer"
-                            >
-                              ล้างทั้งหมด
-                            </button>
-                          </div>
-
-                          <label 
-                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs font-semibold select-none transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")}
-                              onChange={() => setSelectedShiftRoleFilters([])}
-                              className="rounded border-slate-600 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
-                            />
-                            <span>ทุกตำแหน่ง</span>
-                          </label>
-
-                          <div className="h-px bg-slate-700/50 my-0.5" />
-
-                          {Array.from(new Set((state?.employees || []).map(e => e.role || "Operator"))).map((role) => {
-                            const isChecked = selectedShiftRoleFilters.includes(role);
-                            return (
-                              <label
-                                key={role}
-                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs select-none transition-colors ${isChecked ? 'bg-blue-900/30 text-white font-bold' : 'text-slate-300 font-medium'}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {
-                                    let next: string[];
-                                    if (isChecked) {
-                                      next = selectedShiftRoleFilters.filter(r => r !== role);
-                                    } else {
-                                      next = [...selectedShiftRoleFilters.filter(r => r !== "ทุกตำแหน่ง"), role];
-                                    }
-                                    setSelectedShiftRoleFilters(next);
-                                  }}
-                                  className="rounded border-slate-600 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
-                                />
-                                <span className="truncate">{role}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </>
+                <div className="bg-slate-50/90 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {activeDeptId === "all" && (
+                      <select value={currentShiftsDept} onChange={(e) => setShiftsDeptFilter(e.target.value)}
+                        className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                        <option value="inter2">INTER 2</option>
+                        <option value="inter3">INTER 3</option>
+                        <option value="inter5">INTER 5</option>
+                        <option value="inter7">INTER 7</option>
+                        <option value="heavy">Heavy Machine</option>
+                        <option value="ecc">ECC</option>
+                      </select>
                     )}
+                    <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
+                      onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; handleShiftConfigMonthChange(nextM); }}
+                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
+                    </select>
+                    <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
+                      onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; handleShiftConfigMonthChange(nextM); }}
+                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                    <select value={selectedWeek} onChange={(e) => { const val = e.target.value; setSelectedWeek(val); setDaysLimit(val === "all" ? 30 : 7); }}
+                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      <option value="all">ทั้งเดือน</option>
+                      {weeksList.map((w) => <option key={w.weekNum} value={String(w.weekNum)}>สัปดาห์ {w.weekNum} ({w.startDay}-{w.endDay})</option>)}
+                    </select>
+
+                    {/* Multi-select Role Filter */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)}
+                        className="h-8.5 px-3 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer font-sans flex items-center gap-1.5 shadow-2xs transition-colors"
+                      >
+                        <span className="truncate max-w-[140px]">
+                          {selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")
+                            ? "ทุกตำแหน่ง"
+                            : selectedShiftRoleFilters.length === 1
+                            ? selectedShiftRoleFilters[0]
+                            : `เลือก ${selectedShiftRoleFilters.length} ตำแหน่ง`}
+                        </span>
+                        <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isRoleFilterOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isRoleFilterOpen && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-40" 
+                            onClick={() => setIsRoleFilterOpen(false)}
+                          />
+                          <div className="absolute top-full left-0 mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-2.5 w-64 max-h-72 overflow-y-auto font-sans flex flex-col gap-1 text-slate-700">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-2 px-1 mb-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กรองตำแหน่ง</span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedShiftRoleFilters([])}
+                                className="text-[10px] text-blue-600 hover:text-blue-700 font-bold cursor-pointer"
+                              >
+                                ล้างทั้งหมด
+                              </button>
+                            </div>
+
+                            <label 
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 cursor-pointer text-xs font-semibold select-none transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")}
+                                onChange={() => setSelectedShiftRoleFilters([])}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                              />
+                              <span>ทุกตำแหน่ง</span>
+                            </label>
+
+                            <div className="h-px bg-slate-100 my-0.5" />
+
+                            {Array.from(new Set((state?.employees || []).map(e => e.role || "Operator"))).map((role) => {
+                              const isChecked = selectedShiftRoleFilters.includes(role);
+                              return (
+                                <label
+                                  key={role}
+                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 cursor-pointer text-xs select-none transition-colors ${isChecked ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 font-medium'}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      let next: string[];
+                                      if (isChecked) {
+                                        next = selectedShiftRoleFilters.filter(r => r !== role);
+                                      } else {
+                                        next = [...selectedShiftRoleFilters.filter(r => r !== "ทุกตำแหน่ง"), role];
+                                      }
+                                      setSelectedShiftRoleFilters(next);
+                                    }}
+                                    className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                  />
+                                  <span className="truncate">{role}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <button onClick={() => setShowShiftLegend(!showShiftLegend)} 
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 text-slate-300 rounded-lg text-[10px] font-bold hover:bg-[#1e3a8a]/40 cursor-pointer font-sans">
-                    {showShiftLegend ? "ซ่อนรหัสกะ" : "แสดงรหัสกะ"}
-                  </button>
-                  <button onClick={() => setIsFullScreen(!isFullScreen)} 
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 text-slate-300 rounded-lg text-[10px] font-bold hover:bg-[#1e3a8a]/40 cursor-pointer font-sans">
-                    {isFullScreen ? "ออกเต็มจอ" : "เต็มจอ"}
-                  </button>
+
+                  {/* Actions in row 2: Legend & Fullscreen */}
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setShowShiftLegend(!showShiftLegend)} 
+                      className={`h-8.5 px-3 border rounded-xl text-xs font-bold transition-all cursor-pointer font-sans flex items-center gap-1.5 shadow-2xs ${
+                        showShiftLegend 
+                          ? "bg-blue-50 border-blue-200 text-blue-700" 
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                      }`}>
+                      <Info className="w-3.5 h-3.5" />
+                      <span>{showShiftLegend ? "ซ่อนรหัสกะ" : "แสดงรหัสกะ"}</span>
+                    </button>
+                    <button onClick={() => setIsFullScreen(!isFullScreen)} 
+                      className={`h-8.5 px-3 border rounded-xl text-xs font-bold transition-all cursor-pointer font-sans flex items-center gap-1.5 shadow-2xs ${
+                        isFullScreen 
+                          ? "bg-blue-50 border-blue-200 text-blue-700" 
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                      }`}>
+                      {isFullScreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                      <span>{isFullScreen ? "ออกเต็มจอ" : "เต็มจอ"}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
