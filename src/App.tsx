@@ -130,18 +130,22 @@ export const getShiftOtHours = (shift: string) => {
 
 export const getEmpShiftsArray = (shifts: any, monthKey?: string): string[] => {
   const mKey = monthKey || "2026-08";
-  if (Array.isArray(shifts)) return shifts;
+  if (!shifts) return [];
   if (typeof shifts === "string") {
     try {
       const parsed = JSON.parse(shifts);
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed && typeof parsed === "object") {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         return parsed[mKey] || [];
+      }
+      if (Array.isArray(parsed)) {
+        return mKey === "2026-08" ? parsed : [];
       }
     } catch (_) {}
   }
   if (shifts && typeof shifts === "object") {
-    if (Array.isArray(shifts)) return shifts;
+    if (Array.isArray(shifts)) {
+      return mKey === "2026-08" ? shifts : [];
+    }
     return shifts[mKey] || [];
   }
   return [];
@@ -207,21 +211,13 @@ export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
 export const getEmpCalculatedOt = (emp: any, monthKey?: string): number => {
   if (!emp) return 0;
   const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
-  if (breakdown.totalOtHours > 0 || breakdown.holidayWorkDays > 0) {
-    return breakdown.totalOtHours;
-  }
-  return Number(emp.actualOt) || 0;
+  return breakdown.totalOtHours || 0;
 };
 
 export const getEmpCalculatedOtPay = (emp: any, monthKey?: string): number => {
   if (!emp) return 0;
   const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
-  if (breakdown.totalOtPay > 0) {
-    return breakdown.totalOtPay;
-  }
-  const salary = Number(emp.salary) || 15000;
-  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-  return Math.round((Number(emp.actualOt) || 0) * 1.5 * hourlyRate);
+  return breakdown.totalOtPay || 0;
 };
 
 // ตรวจสอบว่า Plan กับ Actual ต่างกันหรือไม่
