@@ -4426,7 +4426,11 @@ export default function App() {
                         <div className="flex items-end justify-between mt-3">
                           <div>
                             <div className="text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
-                            <div className="text-[10px] text-slate-400 font-medium">from last month</div>
+                            {prevTotalSpent > 0 ? (
+                              <div className="text-[10px] text-slate-400 font-medium">เทียบกับเดือนก่อนหน้า</div>
+                            ) : (
+                              <div className="text-[10px] text-emerald-600 font-medium font-semibold">เดือนแรกที่เริ่มบันทึกข้อมูล</div>
+                            )}
                           </div>
                           
                           {/* Mini Bar Sparkline */}
@@ -6922,8 +6926,8 @@ export default function App() {
             <div className={`space-y-4 ${isFullScreen ? "fixed inset-0 z-50 bg-white overflow-auto p-4" : ""}`}>
 
               {/* HEADER TOOLBAR — Excel dark green style */}
-              <div className="rounded-2xl overflow-hidden shadow-lg border border-[#1a365d]/30">
-                <div className="bg-[#1a365d] px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
+                <div className="bg-slate-50/90 border-b border-slate-200/80 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex flex-col">
                       <span className="text-[10px] text-slate-300 font-semibold uppercase tracking-widest font-sans">แผนกปฏิบัติงาน</span>
