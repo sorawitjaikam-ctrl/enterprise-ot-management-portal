@@ -64,7 +64,7 @@ export default function Navbar({
   const categories = [
     {
       name: "ภาพรวม & แผนงาน",
-      color: "bg-blue-500/10 text-blue-700 border-blue-200/80",
+      color: "bg-[#0f2347]/10 text-[#0f2347] border-[#0f2347]/20 font-black",
       items: [
         { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
         { id: "shifts", label: "ตารางจัดกะพนักงาน", icon: Calendar },
@@ -72,7 +72,7 @@ export default function Navbar({
     },
     {
       name: "การจัดการบุคลากร",
-      color: "bg-emerald-500/10 text-emerald-700 border-emerald-200/80",
+      color: "bg-[#112d5e]/10 text-[#112d5e] border-[#112d5e]/20 font-black",
       items: [
         { id: "employees", label: "รายชื่อพนักงาน", icon: Users },
         { id: "job_value", label: "Job Value", icon: TrendingUp },
@@ -84,7 +84,7 @@ export default function Navbar({
     ...(isHrOrFullAccess ? [
       {
         name: "วันลา & ประวัติ OT",
-        color: "bg-amber-500/10 text-amber-700 border-amber-200/80",
+        color: "bg-[#1a3a70]/10 text-[#1a3a70] border-[#1a3a70]/20 font-black",
         items: [
           { id: "leave-records", label: "บันทึกวันลา", icon: FileText },
           { id: "ot-records", label: "ประวัติ OT", icon: ClipboardList }
@@ -92,7 +92,7 @@ export default function Navbar({
       },
       {
         name: "บริหารจัดการระบบ",
-        color: "bg-purple-500/10 text-purple-700 border-purple-200/80",
+        color: "bg-[#0b1830]/10 text-[#0b1830] border-[#0b1830]/20 font-black",
         items: [
           { id: "admin-permissions", label: "จัดการสิทธิ์ Admin", icon: ShieldCheck },
           { id: "settings", label: "การตั้งค่าระบบ", icon: Settings }
@@ -233,7 +233,7 @@ export default function Navbar({
                         onClick={() => setActiveTab(item.id)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-150 flex-shrink-0 cursor-pointer ${
                           isActive
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]"
+                            ? "bg-[#0f2347] text-white shadow-md shadow-[#0f2347]/30 scale-[1.02]"
                             : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/80"
                         }`}
                       >
