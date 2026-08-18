@@ -6129,10 +6129,38 @@ export default function App() {
                     
                     {/* Card 1: Current Total Employees (Minimal Blue Accent) */}
                     {(() => {
-                      const activeEmps = (state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
-                      const resignedEmps = (state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length;
-                      const totalEmps = (state?.employees || []).length;
+                      const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+                      const empsList = state?.employees || [];
+                      
+                      const activeEmps = empsList.filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
+                      const totalEmps = empsList.length;
                       const activeRatioPct = totalEmps > 0 ? Math.round((activeEmps / totalEmps) * 100) : 100;
+
+                      // All resigned / inactive employees in the database
+                      const allResignedEmps = empsList.filter(e => 
+                        e.employmentStatus === "Resigned" || 
+                        e.employmentStatus === "Inactive" || 
+                        e.employmentStatus === "Retired" || 
+                        e.employmentStatus === "ลาออก" || 
+                        e.employmentStatus === "เกษียณ" || 
+                        e.employmentStatus === "พ้นสภาพ"
+                      );
+
+                      // Resigned / Case in CURRENT MONTH
+                      const resignedThisMonthEmps = allResignedEmps.filter(e => {
+                        if (!e.resignationDate) return true;
+                        return e.resignationDate.startsWith(currentMonthKey) || e.resignationDate.includes(currentMonthKey);
+                      });
+
+                      const thisMonthCaseCount = resignedThisMonthEmps.length;
+
+                      const formatMonthThai = (mKey: string) => {
+                        const parts = mKey.split("-");
+                        const m = parseInt(parts[1], 10);
+                        const y = parseInt(parts[0], 10);
+                        const thMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+                        return `${thMonths[m - 1] || parts[1]} ${y}`;
+                      };
 
                       return (
                         <>
@@ -6153,7 +6181,7 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Card 2: Case and Resigned (Minimal Rose Accent) */}
+                          {/* Card 2: Case and Resigned (Current Month Calculation) */}
                           <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shadow-2xs">
@@ -6175,9 +6203,9 @@ export default function App() {
                             <div className="mt-4">
                               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Case and Resigned</h4>
                               <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-slate-900">{resignedEmps} Case</span>
+                                <span className="text-4xl font-black tracking-tight text-slate-900">{thisMonthCaseCount} Case</span>
                               </div>
-                              <p className="text-xs font-extrabold text-slate-400 pt-1">(ประวัติพนักงานพ้นสภาพ/ลาออก)</p>
+                              <p className="text-xs font-extrabold text-rose-600 pt-1">ประจำเดือน {formatMonthThai(currentMonthKey)} (สะสมทั้งหมด {allResignedEmps.length} เคส)</p>
                             </div>
                           </div>
                         </>
