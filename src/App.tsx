@@ -2028,6 +2028,9 @@ export default function App() {
 
   // Status Tab State (Active vs Resigned Archive)
   const [selectedEmpStatusTab, setSelectedEmpStatusTab] = useState<"Active" | "Resigned">("Active");
+  const [showResignedModal, setShowResignedModal] = useState<boolean>(false);
+  const [resignedSearchQuery, setResignedSearchQuery] = useState<string>("");
+  const [resignedDeptFilter, setResignedDeptFilter] = useState<string>("all");
 
   // Dedicated HR Employee Roster Filters & Sort
   const [empSearchQuery, setEmpSearchQuery] = useState<string>("");
@@ -3758,6 +3761,57 @@ export default function App() {
   };
 
   // Export shift schedule as Payroll-Ready OT Payment CSV (รูปแบบทำจ่ายค่าล่วงเวลา)
+  const handleRestoreEmployee = async (emp: any) => {
+    if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการคืนสภาพพนักงาน "${emp.name}" กลับเป็นพนักงานปกติ (Active)?`)) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/edit-employee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: emp.id,
+          name: emp.name,
+          deptId: emp.deptId,
+          role: emp.role,
+          targetOt: emp.targetOt,
+          groupName: emp.groupName,
+          prefix: emp.prefix,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          nickname: emp.nickname,
+          division: emp.division,
+          salary: emp.salary,
+          birthday: emp.birthday,
+          age: emp.age,
+          calculatedAge: emp.calculatedAge,
+          startDate: emp.startDate,
+          tenure: emp.tenure,
+          probationDate: emp.probationDate,
+          calendarType: emp.calendarType,
+          resignationDate: "",
+          employmentStatus: "Active",
+          shifts: emp.shifts,
+          planShifts: emp.planShifts,
+          username: currentUser?.username || "system"
+        })
+      });
+
+      if (res.ok) {
+        setState(prev => ({
+          ...prev,
+          employees: prev.employees.map(e => e.id === emp.id ? { ...e, employmentStatus: "Active", resignationDate: "" } : e)
+        }));
+        showToast(`คืนสภาพพนักงาน "${emp.name}" สำเร็จแล้ว! 🎉`, "success");
+      } else {
+        showToast("เกิดข้อผิดพลาดในการคืนสภาพพนักงาน", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
+    }
+  };
+
   const handleExportShiftsCsv = () => {
     const activeList = isEditingShifts ? tempEmployees : state.employees;
     const currentDept = currentShiftsDept || (activeDeptId !== "all" ? activeDeptId : undefined);
@@ -6435,11 +6489,15 @@ export default function App() {
                               {isHrOrFullAccess && (
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedEmpStatusTab("Resigned")}
-                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[10px] font-bold transition-all border border-rose-200/80 cursor-pointer shadow-2xs"
-                                  title="จัดการและดูประวัติพนักงานพ้นสภาพ"
+                                  onClick={() => {
+                                    setSelectedEmpStatusTab("Resigned");
+                                    setShowResignedModal(true);
+                                  }}
+                                  className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-black transition-all border border-rose-200/80 cursor-pointer shadow-xs hover:scale-105 active:scale-95 flex items-center gap-1.5"
+                                  title="เปิดหน้าต่างจัดการข้อมูลพนักงานลาออก / พ้นสภาพ"
                                 >
-                                  จัดการข้อมูล
+                                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                                  <span>จัดการข้อมูล</span>
                                 </button>
                               )}
                             </div>
@@ -6770,6 +6828,7 @@ export default function App() {
               </div>
 
               {/* Employee roster list */}
+              <div id="employee-roster-section"></div>
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                 <div className="p-6 border-b border-slate-100 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -11274,6 +11333,226 @@ export default function App() {
                 type="button"
                 onClick={() => setViewingSalaryFormulaEmployee(null)}
                 className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-md font-sans"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* OVERLAY / MODAL: RESIGNED & CASE MANAGEMENT */}
+      {/* ======================================= */}
+      {showResignedModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-rose-50/80 via-white to-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-200 shadow-sm">
+                  <UserX className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>จัดการข้อมูลพนักงานลาออก / พ้นสภาพ / เคส</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-xs font-bold font-mono">
+                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length} เคสสะสม
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">ตรวจสอบประวัติพนักงานที่พ้นสภาพ แก้ไขวันที่ลาออก หรือกู้คืนสถานะกลับเป็นพนักงานปกติ (Active)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowResignedModal(false)}
+                className="p-2 hover:bg-slate-200/70 rounded-full text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                title="ปิดหน้าต่าง"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 flex-1 min-w-[280px]">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={resignedSearchQuery}
+                    onChange={(e) => setResignedSearchQuery(e.target.value)}
+                    placeholder="ค้นหาชื่อ, นามสกุล หรือรหัสพนักงาน..."
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 font-sans"
+                  />
+                  {resignedSearchQuery && (
+                    <button onClick={() => setResignedSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+                  )}
+                </div>
+
+                <select
+                  value={resignedDeptFilter}
+                  onChange={(e) => setResignedDeptFilter(e.target.value)}
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/20 font-sans cursor-pointer"
+                >
+                  <option value="all">ทุกแผนก (All Depts)</option>
+                  {(state?.departments || []).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResignedModal(false);
+                    setShowAddEmployeeModal(true);
+                  }}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>เพิ่มพนักงาน</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Resigned Employee List Table */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {(() => {
+                const resignedList = (state?.employees || []).filter(e => {
+                  const isResigned = e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ";
+                  if (!isResigned) return false;
+                  
+                  if (resignedDeptFilter !== "all" && normalizeDeptId(e.deptId) !== normalizeDeptId(resignedDeptFilter)) {
+                    return false;
+                  }
+
+                  if (resignedSearchQuery) {
+                    const q = resignedSearchQuery.toLowerCase().trim();
+                    const nameMatch = (e.name || "").toLowerCase().includes(q);
+                    const idMatch = (e.id || "").toLowerCase().includes(q);
+                    const roleMatch = (e.role || "").toLowerCase().includes(q);
+                    if (!nameMatch && !idMatch && !roleMatch) return false;
+                  }
+
+                  return true;
+                });
+
+                if (resignedList.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <UserX className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-sm font-bold text-slate-700">ไม่พบข้อมูลพนักงานพ้นสภาพตามเงื่อนไขที่ค้นหา</p>
+                      <p className="text-xs text-slate-400 mt-1">สามารถเปลี่ยนคำค้นหาหรือตัวกรองแผนกเพื่อดูข้อมูลรายการอื่น</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-100/90 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+                          <th className="px-4 py-3 font-mono">รหัส</th>
+                          <th className="px-4 py-3">ชื่อ-นามสกุล</th>
+                          <th className="px-4 py-3">ตำแหน่ง / แผนก</th>
+                          <th className="px-4 py-3">วันที่เริ่มงาน / อายุงาน</th>
+                          <th className="px-4 py-3 text-rose-700">วันที่ลาออก / สถานะ</th>
+                          <th className="px-4 py-3 text-center">การจัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {resignedList.map(emp => (
+                          <tr key={emp.id} className="hover:bg-rose-50/30 transition-colors bg-white">
+                            <td className="px-4 py-3 font-mono font-bold text-slate-500 whitespace-nowrap">
+                              {emp.id}
+                            </td>
+                            <td className="px-4 py-3 font-bold text-slate-800">
+                              <div className="flex items-center gap-2">
+                                <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
+                                <span>{emp.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
+                              <div className="font-bold text-slate-800">{emp.role}</div>
+                              <div className="text-[10px] text-slate-500">{getDeptName(emp.deptId, state?.departments || [])} ({emp.division || "-"})</div>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-600">
+                              <div>{emp.startDate ? emp.startDate : "-"}</div>
+                              <div className="text-[10px] text-slate-400">{emp.tenure ? `อายุงาน ${emp.tenure}` : ""}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold font-mono text-[11px] inline-block">
+                                {emp.resignationDate ? `ลาออก: ${emp.resignationDate}` : "สถานะ: พ้นสภาพ/ลาออก"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                {/* Restore Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestoreEmployee(emp)}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-bold text-[10px] border border-emerald-200/80 transition-all flex items-center gap-1 cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                  title="กู้คืนสถานะกลับเป็นพนักงานปกติ (Active)"
+                                >
+                                  <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                  <span>กู้คืนสถานะ</span>
+                                </button>
+
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowResignedModal(false);
+                                    startEditEmployee(emp);
+                                  }}
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                  title="แก้ไขข้อมูลพนักงาน"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                  </svg>
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                  className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="ลบข้อมูลพนักงานถาวร"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResignedModal(false);
+                  setSelectedEmpStatusTab("Resigned");
+                  document.getElementById("employee-roster-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+                <span>ไปยังตารางรายชื่อด้านล่าง</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowResignedModal(false)}
+                className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-sm"
               >
                 ปิดหน้าต่าง
               </button>
