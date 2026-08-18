@@ -1906,6 +1906,15 @@ export default function App() {
   const [stateError, setStateError] = useState<string | null>(null);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("ทุกแผนก");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("เดือนปัจจุบัน");
+  const [chartSeriesFilter, setChartSeriesFilter] = useState<{
+    compare: boolean;
+    spent: boolean;
+    pct: boolean;
+  }>({
+    compare: true,
+    spent: true,
+    pct: true
+  });
   const [daysLimit, setDaysLimit] = useState<number>(30);
   const [selectedWeek, setSelectedWeek] = useState<string>("all");
   const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
@@ -4555,20 +4564,52 @@ export default function App() {
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                           <h3 className="text-sm font-black text-slate-800 tracking-wider uppercase">DASHBOARD</h3>
                           
-                          {/* Legend Pills Matching Card Color Scheme */}
+                          {/* Legend Pills with Interactive Toggle Filtering */}
                           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80">
-                              <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                              <span>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                              <span>ผลรวมค่าล่วงเวลา</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-sm">
-                              <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                              <span>% ค่าล่วงเวลา</span>
-                            </div>
+                            {/* Pill 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
+                            <button
+                              type="button"
+                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, compare: !prev.compare }))}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
+                                chartSeriesFilter.compare
+                                  ? "bg-sky-50 text-sky-800 border-sky-300 shadow-2xs hover:bg-sky-100"
+                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
+                              }`}
+                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่งเปรียบเทียบผลรวมค่าล่วงเวลา"
+                            >
+                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.compare ? "bg-sky-400" : "bg-slate-300"}`}></span>
+                              <span className={chartSeriesFilter.compare ? "" : "line-through"}>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
+                            </button>
+
+                            {/* Pill 2: ผลรวมค่าล่วงเวลา */}
+                            <button
+                              type="button"
+                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, spent: !prev.spent }))}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
+                                chartSeriesFilter.spent
+                                  ? "bg-blue-50 text-blue-800 border-blue-300 shadow-2xs hover:bg-blue-100"
+                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
+                              }`}
+                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่งผลรวมค่าล่วงเวลา"
+                            >
+                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.spent ? "bg-blue-600" : "bg-slate-300"}`}></span>
+                              <span className={chartSeriesFilter.spent ? "" : "line-through"}>ผลรวมค่าล่วงเวลา</span>
+                            </button>
+
+                            {/* Pill 3: % ค่าล่วงเวลา */}
+                            <button
+                              type="button"
+                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, pct: !prev.pct }))}
+                              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer border ${
+                                chartSeriesFilter.pct
+                                  ? "bg-slate-900 text-white border-slate-900 shadow-sm hover:bg-slate-800"
+                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
+                              }`}
+                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่ง % ค่าล่วงเวลา"
+                            >
+                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.pct ? "bg-slate-300" : "bg-slate-300"}`}></span>
+                              <span className={chartSeriesFilter.pct ? "" : "line-through"}>% ค่าล่วงเวลา</span>
+                            </button>
                           </div>
                         </div>
 
@@ -4601,27 +4642,36 @@ export default function App() {
                               const bar2H = st.spent > 0 ? Math.min(75, Math.max(4, Math.round((st.spent / maxSpentInYear) * 70))) : 0;
                               const bar3H = st.spent > 0 ? Math.min(60, Math.max(4, st.salPct * 2.5)) : 0;
 
+                              const activeSeriesCount = (chartSeriesFilter.compare ? 1 : 0) + (chartSeriesFilter.spent ? 1 : 0) + (chartSeriesFilter.pct ? 1 : 0);
+                              const barWidthClass = activeSeriesCount === 1 ? "w-3/4 max-w-[28px]" : (activeSeriesCount === 2 ? "w-1/2 max-w-[20px]" : "w-1/3 max-w-[14px]");
+
                               return (
                                 <div key={st.name} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                                  <div className="w-full flex items-end justify-center gap-1 h-[82%]">
+                                  <div className="w-full flex items-end justify-center gap-1.5 h-[82%]">
                                     {/* Bar 1: Sky Blue (Connects to Card 1) */}
-                                    <div 
-                                      style={{ height: `${bar1H}%` }}
-                                      className="w-1/3 bg-sky-400 rounded-t-sm hover:bg-sky-500 transition-all shadow-sm"
-                                      title={`เปรียบเทียบผลรวม (${st.name}): ${st.compPct}%`}
-                                    />
+                                    {chartSeriesFilter.compare && (
+                                      <div 
+                                        style={{ height: `${bar1H}%` }}
+                                        className={`${barWidthClass} bg-sky-400 rounded-t-sm hover:bg-sky-500 transition-all shadow-sm`}
+                                        title={`เปรียบเทียบผลรวม (${st.name}): ${st.compPct}%`}
+                                      />
+                                    )}
                                     {/* Bar 2: Royal Blue (Connects to Card 2) */}
-                                    <div 
-                                      style={{ height: `${bar2H}%` }}
-                                      className="w-1/3 bg-blue-600 rounded-t-sm hover:bg-blue-700 transition-all shadow-sm"
-                                      title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
-                                    />
+                                    {chartSeriesFilter.spent && (
+                                      <div 
+                                        style={{ height: `${bar2H}%` }}
+                                        className={`${barWidthClass} bg-blue-600 rounded-t-sm hover:bg-blue-700 transition-all shadow-sm`}
+                                        title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
+                                      />
+                                    )}
                                     {/* Bar 3: Slate/Navy (Connects to Card 3) */}
-                                    <div 
-                                      style={{ height: `${bar3H}%` }}
-                                      className="w-1/3 bg-slate-800 rounded-t-sm hover:bg-slate-900 transition-all shadow-sm"
-                                      title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}%`}
-                                    />
+                                    {chartSeriesFilter.pct && (
+                                      <div 
+                                        style={{ height: `${bar3H}%` }}
+                                        className={`${barWidthClass} bg-slate-800 rounded-t-sm hover:bg-slate-900 transition-all shadow-sm`}
+                                        title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}%`}
+                                      />
+                                    )}
                                   </div>
                                   <span className="text-[11px] font-bold text-slate-500">{st.name}</span>
                                 </div>
