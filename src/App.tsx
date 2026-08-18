@@ -1905,7 +1905,8 @@ export default function App() {
   const [selectedWeek, setSelectedWeek] = useState<string>("all");
   const [showShiftLegend, setShowShiftLegend] = useState<boolean>(false);
   const [shiftsDeptFilter, setShiftsDeptFilter] = useState<string>("inter2");
-  const [selectedShiftRoleFilter, setSelectedShiftRoleFilter] = useState<string>("ทุกตำแหน่ง");
+  const [selectedShiftRoleFilters, setSelectedShiftRoleFilters] = useState<string[]>([]);
+  const [isRoleFilterOpen, setIsRoleFilterOpen] = useState<boolean>(false);
   const activeDeptId = currentUser?.deptId || "all";
   const currentShiftsDept = activeDeptId === "all" ? shiftsDeptFilter : activeDeptId;
 
@@ -6582,11 +6583,86 @@ export default function App() {
                     <option value="all">ทั้งเดือน</option>
                     {weeksList.map((w) => <option key={w.weekNum} value={String(w.weekNum)}>สัปดาห์ {w.weekNum} ({w.startDay}-{w.endDay})</option>)}
                   </select>
-                  <select value={selectedShiftRoleFilter} onChange={(e) => setSelectedShiftRoleFilter(e.target.value)}
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
-                    <option value="ทุกตำแหน่ง">ทุกตำแหน่ง</option>
-                    {Array.from(new Set((state?.employees || []).map(e => e.role || "Operator"))).map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  {/* Multi-select Role Filter */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)}
+                      className="px-2.5 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans flex items-center gap-1.5 hover:bg-[#20406c] transition-all"
+                    >
+                      <span className="truncate max-w-[140px]">
+                        {selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")
+                          ? "ทุกตำแหน่ง"
+                          : selectedShiftRoleFilters.length === 1
+                          ? selectedShiftRoleFilters[0]
+                          : `เลือก ${selectedShiftRoleFilters.length} ตำแหน่ง`}
+                      </span>
+                      <svg className={`w-3 h-3 text-slate-400 transition-transform ${isRoleFilterOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {isRoleFilterOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsRoleFilterOpen(false)}
+                        />
+                        <div className="absolute top-full left-0 mt-1 z-50 bg-[#10223b] border border-slate-700/80 rounded-xl shadow-2xl p-2.5 w-64 max-h-72 overflow-y-auto font-sans flex flex-col gap-1 text-slate-200">
+                          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2 px-1 mb-1">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กรองตำแหน่ง (เลือกได้หลายตำแหน่ง)</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedShiftRoleFilters([])}
+                              className="text-[10px] text-blue-400 hover:text-blue-300 font-bold cursor-pointer"
+                            >
+                              ล้างทั้งหมด
+                            </button>
+                          </div>
+
+                          <label 
+                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs font-semibold select-none transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง")}
+                              onChange={() => setSelectedShiftRoleFilters([])}
+                              className="rounded border-slate-600 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                            />
+                            <span>ทุกตำแหน่ง</span>
+                          </label>
+
+                          <div className="h-px bg-slate-700/50 my-0.5" />
+
+                          {Array.from(new Set((state?.employees || []).map(e => e.role || "Operator"))).map((role) => {
+                            const isChecked = selectedShiftRoleFilters.includes(role);
+                            return (
+                              <label
+                                key={role}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs select-none transition-colors ${isChecked ? 'bg-blue-900/30 text-white font-bold' : 'text-slate-300 font-medium'}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    let next: string[];
+                                    if (isChecked) {
+                                      next = selectedShiftRoleFilters.filter(r => r !== role);
+                                    } else {
+                                      next = [...selectedShiftRoleFilters.filter(r => r !== "ทุกตำแหน่ง"), role];
+                                    }
+                                    setSelectedShiftRoleFilters(next);
+                                  }}
+                                  className="rounded border-slate-600 text-blue-600 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                />
+                                <span className="truncate">{role}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button onClick={() => setShowShiftLegend(!showShiftLegend)} 
                     className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 text-slate-300 rounded-lg text-[10px] font-bold hover:bg-[#1e3a8a]/40 cursor-pointer font-sans">
                     {showShiftLegend ? "ซ่อนรหัสกะ" : "แสดงรหัสกะ"}
@@ -6943,7 +7019,7 @@ export default function App() {
                         const filtered = (isEditingShifts ? tempEmployees : state.employees)
                           .filter(emp => emp.deptId === currentShiftsDept)
                           .filter(emp => emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก")
-                          .filter(emp => selectedShiftRoleFilter === "ทุกตำแหน่ง" || (emp.role || "Operator") === selectedShiftRoleFilter);
+                          .filter(emp => selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง") || selectedShiftRoleFilters.includes(emp.role || "Operator"));
 
                         const grouped: Record<string, typeof filtered> = {};
                         filtered.forEach(emp => {
