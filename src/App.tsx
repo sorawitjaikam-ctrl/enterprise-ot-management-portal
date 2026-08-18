@@ -4360,30 +4360,88 @@ export default function App() {
 
               {/* KPI Cards Grid Matching Mockup & Minimal Executive Theme */}
               {(() => {
-                const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
-                
-                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, currentMonthKey), 0) * 10) / 10;
-                const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
-                
-                const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
-                  return acc + getEmpCalculatedOtPay(curr, currentMonthKey);
-                }, 0) * timeMult);
-                
-                const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e, currentMonthKey) > 0).length;
-                const avgOtPerEmp = activeEmps > 0 ? Math.round(totalOtHrs / activeEmps) : 0;
-                
-                const totalBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
-                const otSalaryPct = totalBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / totalBaseSalary) * 100)) : 0;
 
-                const prevMonthKey = currentMonthKey === "2026-08" ? "2026-07" : "2026-08";
-                const prevTotalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
-                  return acc + getEmpCalculatedOtPay(curr, prevMonthKey);
-                }, 0) * timeMult);
+                // Function to get the EXACT array of month keys corresponding to the user filter
+                const getTargetMonths = (filter: string, baseMonth: string) => {
+                  const [yStr, mStr] = baseMonth.split("-");
+                  let y = parseInt(yStr, 10);
+                  let m = parseInt(mStr, 10);
+                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
+                  const result: string[] = [];
+                  
+                  for (let i = 0; i < count; i++) {
+                    const curM = m - i;
+                    let curY = y;
+                    let actualM = curM;
+                    if (curM <= 0) {
+                      curY -= 1;
+                      actualM = 12 + curM;
+                    }
+                    const padM = String(actualM).padStart(2, "0");
+                    result.push(`${curY}-${padM}`);
+                  }
+                  return result;
+                };
+
+                const activeMonthsList = getTargetMonths(selectedMonthFilter, currentMonthKey);
+
+                // 100% Exact Multi-Month Database Query from emp.shifts[mKey]
+                const totalOtHrs = Math.round(
+                  dashboardEmployees.reduce((sum, emp) => {
+                    return sum + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(emp, mKey), 0);
+                  }, 0) * 10
+                ) / 10;
+
+                const totalSpent = Math.round(
+                  dashboardEmployees.reduce((sum, emp) => {
+                    return sum + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOtPay(emp, mKey), 0);
+                  }, 0)
+                );
+
+                const activeEmps = dashboardEmployees.filter(emp => 
+                  activeMonthsList.some(mKey => getEmpCalculatedOt(emp, mKey) > 0)
+                ).length;
+
+                const avgOtPerEmp = activeEmps > 0 ? Math.round(totalOtHrs / activeEmps) : 0;
+
+                // Base salary calculation across the selected time period
+                const singleMonthBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
+                const periodTotalSalary = singleMonthBaseSalary * activeMonthsList.length;
+                const otSalaryPct = periodTotalSalary > 0 && totalSpent > 0 ? Math.min(100, Math.round((totalSpent / periodTotalSalary) * 100)) : 0;
+
+                // Comparison with the exact equivalent prior period
+                const getPriorPeriodMonths = (filter: string, baseMonth: string) => {
+                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
+                  const [yStr, mStr] = baseMonth.split("-");
+                  let y = parseInt(yStr, 10);
+                  let m = parseInt(mStr, 10) - count;
+                  if (m <= 0) {
+                    y -= 1;
+                    m = 12 + m;
+                  }
+                  const priorStartMonth = `${y}-${String(m).padStart(2, "0")}`;
+                  return getTargetMonths(filter, priorStartMonth);
+                };
+
+                const priorMonthsList = getPriorPeriodMonths(selectedMonthFilter, currentMonthKey);
+                const prevTotalSpent = Math.round(
+                  dashboardEmployees.reduce((sum, emp) => {
+                    return sum + priorMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOtPay(emp, mKey), 0);
+                  }, 0)
+                );
 
                 const otComparePct = prevTotalSpent > 0 
                   ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
                   : (totalSpent > 0 ? 100 : 0);
+
+                const periodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
+                  ? "สะสม 3 เดือนที่ผ่านมา" 
+                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "สะสม 6 เดือนย้อนหลัง" : "ประจำเดือนนี้");
+
+                const comparePeriodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
+                  ? "เทียบกับ 3 เดือนก่อนหน้า" 
+                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "เทียบกับ 6 เดือนก่อนหน้า" : "เทียบกับเดือนก่อนหน้า");
 
                 // 10-Month Dynamic Calculation Array (Jan - Oct 2026)
                 const monthKeys = ["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
@@ -4427,7 +4485,7 @@ export default function App() {
                           <div>
                             <div className="text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
                             {prevTotalSpent > 0 ? (
-                              <div className="text-[10px] text-slate-400 font-medium">เทียบกับเดือนก่อนหน้า</div>
+                              <div className="text-[10px] text-slate-400 font-medium">{comparePeriodLabel}</div>
                             ) : (
                               <div className="text-[10px] text-emerald-600 font-medium font-semibold">เดือนแรกที่เริ่มบันทึกข้อมูล</div>
                             )}
@@ -4459,7 +4517,7 @@ export default function App() {
                             <div className="text-3xl font-black tracking-tight text-blue-700">
                               {totalSpent.toLocaleString()} THB
                             </div>
-                            <div className="text-[10px] text-slate-400 font-medium">from this month</div>
+                            <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
                           </div>
 
                           {/* Mini Bar Sparkline */}
@@ -4486,7 +4544,7 @@ export default function App() {
                         <div className="flex items-end justify-between mt-3">
                           <div>
                             <div className="text-3xl font-black tracking-tight text-slate-800">{otSalaryPct}%</div>
-                            <div className="text-[10px] text-slate-400 font-medium">from this month</div>
+                            <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
                           </div>
 
                           {/* Mini Bar Sparkline */}
@@ -4592,7 +4650,7 @@ export default function App() {
                       </div>
 
                       {/* Right Panel: Minimal Clean Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm font-sans flex flex-col justify-between min-h-[260px] group hover:shadow-md transition-all">
+                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm font-sans flex flex-col justify-between h-full min-h-[260px] group hover:shadow-md transition-all">
                         
                         <div className="flex justify-between items-start">
                           <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shadow-2xs">
