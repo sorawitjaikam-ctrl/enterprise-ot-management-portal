@@ -2580,9 +2580,64 @@ export default function App() {
 
   if (loading || !state) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-600 font-medium">กำลังโหลดโปรทัลจัดการ OT และตารางกะ...</p>
+      <div className="min-h-screen bg-[#070d18] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
+        {/* Background Ambient Glowing Lights */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none" />
+
+        {/* Tech Grid Pattern Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]" />
+
+        {/* Main Loading Card Container */}
+        <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center">
+          
+          {/* Company Brand Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-950/60 border border-blue-800/40 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(59,130,246,0.15)] backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+            <span>Double A Terminal • Port & Logistics OT System</span>
+          </div>
+
+          {/* Futuristic Multi-Ring Animated Loading Core */}
+          <div className="relative w-28 h-28 flex items-center justify-center mb-8">
+            {/* Outer Pulsing Glow */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 blur-xl opacity-30 animate-pulse" />
+
+            {/* Ring 1: Clockwise Gradient Spinner */}
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 border-r-cyan-400 animate-[spin_3s_linear_infinite]" />
+
+            {/* Ring 2: Counter-Clockwise Inner Ring */}
+            <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-indigo-400 border-l-blue-400 opacity-80 animate-[spin_2s_linear_infinite_reverse]" />
+
+            {/* Center Core Badge */}
+            <div className="w-16 h-16 rounded-2xl bg-[#0e1a2f] border border-blue-500/30 flex items-center justify-center shadow-inner relative z-10">
+              <svg className="w-8 h-8 text-blue-400 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Main Title & Status Text */}
+          <h2 className="text-lg font-black tracking-tight text-white mb-2">
+            กำลังโหลดโปรทัลจัดการ OT และตารางกะ
+          </h2>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed mb-6">
+            เชื่อมต่อกับฐานข้อมูล Cloudflare D1 Database และเตรียมข้อมูลแผนกปฏิบัติงาน...
+          </p>
+
+          {/* Animated Glowing Progress Bar */}
+          <div className="w-full bg-slate-900/80 border border-slate-800 rounded-full h-2 p-0.5 overflow-hidden relative shadow-inner mb-4">
+            <div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-indigo-500 rounded-full w-full animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
+          </div>
+
+          {/* Subtitle / Version Info */}
+          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+            <span>Direct D1 Real-time Sync</span>
+            <span>•</span>
+            <span>v2.5 Enterprise Edition</span>
+          </div>
+
+        </div>
       </div>
     );
   }
