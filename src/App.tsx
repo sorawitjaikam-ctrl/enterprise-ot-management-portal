@@ -4219,7 +4219,7 @@ export default function App() {
       {/* Main container area */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Dynamic page container */}
-        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isFullScreen ? "p-4" : (isNavbarCollapsed ? "mt-16 p-8" : "mt-28 p-8")}`}>
+        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isFullScreen ? "p-4" : "mt-28 p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
