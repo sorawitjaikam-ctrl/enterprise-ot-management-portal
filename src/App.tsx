@@ -6228,30 +6228,44 @@ export default function App() {
                     </div>
 
                     {/* Bottom Panel: Organization Chart People Silhouettes Bar */}
-                    <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                          <Globe className="w-6 h-6 text-white" />
+                    {(() => {
+                      const activeEmps = (state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
+                      const totalEmps = (state?.employees || []).length;
+                      const activeRatioPct = totalEmps > 0 ? Math.round((activeEmps / totalEmps) * 100) : 90;
+                      const activeIconsCount = Math.min(10, Math.round((activeRatioPct / 100) * 10));
+
+                      return (
+                        <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                              <Globe className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
+                              <p className="text-[10px] text-slate-500 font-medium">สัดส่วนพนักงานปฏิบัติงานปัจจุบัน</p>
+                            </div>
+                          </div>
+
+                          {/* 10 People Icon Silhouettes */}
+                          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                            {Array.from({ length: 10 }).map((_, idx) => (
+                              <Users 
+                                key={idx} 
+                                className={`w-5 h-5 ${idx < activeIconsCount ? "text-blue-600" : "text-slate-300"}`} 
+                              />
+                            ))}
+                          </div>
+
+                          {/* Percent badge */}
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
+                            <span className="text-xs font-bold text-emerald-600">(+5%)</span>
+                          </div>
+
                         </div>
-                        <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
-                      </div>
-
-                      {/* 10 People Icon Silhouettes */}
-                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-                          <Users key={i} className="w-5 h-5 text-blue-600" />
-                        ))}
-                        <Users className="w-5 h-5 text-slate-300" />
-                      </div>
-
-                      {/* Percent badge */}
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
-                        <span className="text-xs font-bold text-emerald-600">(+5%)</span>
-                      </div>
-
-                    </div>
+                      );
+                    })()}
 
                   </div>
 
