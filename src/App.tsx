@@ -7328,7 +7328,7 @@ export default function App() {
                       </div>
 
                       {/* Calendar Header End – plain column */}
-                      <div className="flex-shrink-0 border-l border-slate-300 bg-slate-100 w-[368px] flex flex-col justify-center items-center p-1">
+                      <div className="flex-shrink-0 border-l border-slate-300 bg-slate-100 w-[560px] flex flex-col justify-center items-center p-2">
                         <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">สรุปภาพรวมแผนก</span>
                       </div>
                     </div>
@@ -7748,23 +7748,26 @@ export default function App() {
                                           title="คลิกเพื่อดูรายละเอียดสูตรและการคำนวณค่าล่วงเวลา (OT)"
                                           className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white select-none cursor-pointer hover:bg-blue-50/50 transition-colors duration-150"
                                         >
-                                          <div className="w-14 flex items-center justify-center font-bold text-slate-800 text-[11px]">
+                                          {/* OT ปกติ (w-20 / 80px) */}
+                                          <div className="w-20 flex items-center justify-center font-bold text-slate-800">
                                             {normalOt > 0 ? normalOt : <span className="text-slate-300">-</span>}
                                           </div>
-                                          <div className="w-16 flex items-center justify-center font-bold text-slate-800 text-[11px]">
+                                          {/* OT วันหยุด (w-24 / 96px) */}
+                                          <div className="w-24 flex items-center justify-center font-bold text-slate-800">
                                             {holidayOt > 0 ? holidayOt : <span className="text-slate-300">-</span>}
                                           </div>
-                                          <div className="w-20 flex items-center justify-center font-bold text-slate-800 text-[11px]">
+                                          {/* ทำงานวันหยุด (w-32 / 128px) */}
+                                          <div className="w-32 flex items-center justify-center font-bold text-slate-800">
                                             {holidayWorkDays > 0 ? holidayWorkDays : <span className="text-slate-300">-</span>}
                                           </div>
 
-                                          {/* Green Column: Cost (Baht) */}
-                                          <div className="w-24 flex items-center justify-end pr-2 font-bold text-slate-800 bg-[#1a4731]/5 border-r border-slate-200 text-[11px]">
+                                          {/* Green Column: Cost (Baht) (w-36 / 144px) */}
+                                          <div className="w-36 flex items-center justify-end pr-4 font-bold text-slate-800 bg-[#1a4731]/5 border-r border-slate-200">
                                             {totalOtPay > 0 ? totalOtPay.toLocaleString() : <span className="text-slate-300">-</span>}
                                           </div>
 
-                                          {/* Purple Column: Cost % */}
-                                          <div className="w-18 flex items-center justify-end pr-2 font-bold text-slate-800 bg-[#995c7f]/5 text-[11px]">
+                                          {/* Purple Column: Cost % (w-28 / 112px) */}
+                                          <div className="w-28 flex items-center justify-end pr-4 font-bold text-slate-800 bg-[#995c7f]/5">
                                             {totalOtPay > 0 ? `${otPctSalary}%` : <span className="text-slate-300">-</span>}
                                           </div>
                                         </div>
@@ -7805,11 +7808,11 @@ export default function App() {
                         </div>
 
                         <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-slate-100 font-mono text-[10px] font-extrabold text-slate-600 text-center">
-                          <div className="w-14 flex items-center justify-center">-</div>
-                          <div className="w-16 flex items-center justify-center">-</div>
                           <div className="w-20 flex items-center justify-center">-</div>
                           <div className="w-24 flex items-center justify-center">-</div>
-                          <div className="w-18 flex items-center justify-center">-</div>
+                          <div className="w-32 flex items-center justify-center">-</div>
+                          <div className="w-36 flex items-center justify-center">-</div>
+                          <div className="w-28 flex items-center justify-center">-</div>
                         </div>
                       </div>
 
@@ -7889,17 +7892,17 @@ export default function App() {
 
                               return (
                                 <>
-                                  <div className="w-14 flex items-center justify-center">{deptNormalOt}</div>
-                                  <div className="w-16 flex items-center justify-center">{deptHolidayOt}</div>
-                                  <div className="w-20 flex items-center justify-center">{deptHolidayWorkDays}</div>
+                                  <div className="w-20 flex items-center justify-center">{deptNormalOt}</div>
+                                  <div className="w-24 flex items-center justify-center">{deptHolidayOt}</div>
+                                  <div className="w-32 flex items-center justify-center">{deptHolidayWorkDays}</div>
                                   
                                   {/* Sum of Baht */}
-                                  <div className="w-24 flex items-center justify-end pr-2 text-emerald-950 bg-emerald-100/30 border-r border-slate-300 text-[11px]">
+                                  <div className="w-36 flex items-center justify-end pr-4 text-emerald-950 bg-emerald-100/30 border-r border-slate-300">
                                     {deptTotalOtPay.toLocaleString()}
                                   </div>
 
                                   {/* Sum of % */}
-                                  <div className="w-18 flex items-center justify-end pr-2 text-purple-950 bg-purple-100/30 text-[11px]">
+                                  <div className="w-28 flex items-center justify-end pr-4 text-purple-950 bg-purple-100/30">
                                     {deptTotalOtPct}%
                                   </div>
                                 </>
