@@ -3313,6 +3313,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingEmployee.id,
+          shifts: editingEmployee.shifts,
+          planShifts: editingEmployee.planShifts,
           name: fullName,
           deptId: editEmpDept,
           role: editEmpRole,

@@ -586,16 +586,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const empId = body.id;
       if (db && empId) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-              empId,
+          await db.prepare(`UPDATE employees SET 
+            name = ?, deptId = ?, role = ?, targetOt = ?, groupName = ?, 
+            salary = ?, division = ?, prefix = ?, firstName = ?, lastName = ?, 
+            nickname = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, 
+            tenure = ?, probationDate = ?, calendarType = ?, resignationDate = ?, employmentStatus = ?
+            WHERE id = ?`).bind(
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
               body.role || "Operator",
               Number(body.targetOt) || 48,
               body.groupName || "Group A",
-              JSON.stringify(body.shifts || []),
-              JSON.stringify(body.planShifts || body.shifts || []),
               Number(body.salary) || 15000,
               body.division || body.groupName || "-",
               body.prefix || "นาย",
@@ -610,7 +611,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.probationDate || "",
               body.calendarType || "ปฏิทินกะ 4-on-2-off",
               body.resignationDate || "",
-              body.employmentStatus || (body.resignationDate ? "Resigned" : "Active")
+              body.employmentStatus || (body.resignationDate ? "Resigned" : "Active"),
+              empId
             ).run();
         } catch (e) {
           console.error("D1 Edit Employee Error:", e);
