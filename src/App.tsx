@@ -7570,30 +7570,30 @@ export default function App() {
                       </div>
 
                       <div className="flex-shrink-0 border-l border-slate-300 flex bg-slate-200/90 select-none">
-                        {/* Monthly sub-columns */}
+                        {/* Monthly sub-columns (Ultra-Compact w-[200px]) */}
                         <div className="flex flex-col">
-                          <div className="bg-[#1b365d] text-white text-[11px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d] w-[304px]">
-                            Monthly
+                          <div className="bg-[#1b365d] text-white text-[10px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d] w-[200px]">
+                            MONTHLY
                           </div>
-                          <div className="flex text-[10px] font-black text-slate-800 text-center divide-x divide-slate-300">
-                            <div className="w-20 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
-                            <div className="w-24 py-1.5 flex items-center justify-center bg-slate-100">OT วันหยุด</div>
-                            <div className="w-32 py-1.5 flex items-center justify-center bg-slate-100">ทำงานวันหยุด (วัน)</div>
+                          <div className="flex text-[9px] font-black text-slate-800 text-center divide-x divide-slate-300">
+                            <div className="w-14 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
+                            <div className="w-16 py-1.5 flex items-center justify-center bg-slate-100">OT วันหยุด</div>
+                            <div className="w-20 py-1.5 flex items-center justify-center bg-slate-100">ทำงานวันหยุด (วัน)</div>
                           </div>
                         </div>
 
-                        {/* Green Column: Cost (Baht) */}
-                        <div className="w-36 flex flex-col bg-[#1a4731]">
-                          <div className="text-white text-[10px] font-black text-center py-2 h-9 flex flex-col justify-center items-center leading-normal border-b border-[#1a4731]">
+                        {/* Green Column: Cost (Baht) (w-24 / 96px) */}
+                        <div className="w-24 flex flex-col bg-[#1a4731]">
+                          <div className="text-white text-[9px] font-black text-center py-1 h-9 flex flex-col justify-center items-center leading-tight border-b border-[#1a4731]">
                             <div>สรุปผลค่าล่วงเวลา</div>
                             <div>(บาท)</div>
                           </div>
                           <div className="h-6 bg-[#3b6db3]" />
                         </div>
 
-                        {/* Purple Column: Cost % */}
-                        <div className="w-28 flex flex-col bg-[#995c7f]">
-                          <div className="text-white text-[10px] font-black text-center py-2 h-9 flex flex-col justify-center items-center leading-normal border-b border-[#995c7f]">
+                        {/* Purple Column: Cost % (w-18 / 72px) */}
+                        <div className="w-18 flex flex-col bg-[#995c7f]">
+                          <div className="text-white text-[9px] font-black text-center py-1 h-9 flex flex-col justify-center items-center leading-tight border-b border-[#995c7f]">
                             <div>สรุปผลค่าล่วงเวลา</div>
                             <div>%</div>
                           </div>
