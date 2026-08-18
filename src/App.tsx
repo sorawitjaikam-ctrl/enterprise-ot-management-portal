@@ -7656,36 +7656,36 @@ export default function App() {
                           })}
                         </div>
 
-                        {/* Custom Summary Widgets instead of blank space */}
+                        {/* Custom Summary Widgets (Ultra-Compact 368px - Perfectly Aligned) */}
                         {rIdx === 0 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-[#f9fbfd] flex items-center justify-between px-3 py-1 text-[10px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">กะตรงตามแผน (Plan Accuracy)</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-16 bg-slate-200 h-1.5 rounded-full overflow-hidden">
                                 <div style={{ width: `${planAccuracy}%` }} className="bg-emerald-500 h-full rounded-full" />
                               </div>
-                              <span className="font-black text-emerald-700 font-mono">{planAccuracy}%</span>
+                              <span className="font-black text-emerald-700 font-mono text-[10px]">{planAccuracy}%</span>
                             </div>
                           </div>
                         )}
                         {rIdx === 1 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-[#f9fbfd] flex items-center justify-between px-3 py-1 text-[10px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">ชั่วโมง OT สะสมรวมแผนก</span>
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-mono font-black text-xs border border-blue-200">
+                            <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md font-mono font-black text-[10px] border border-blue-200/80">
                               {totalDeptOt} ชม.
                             </span>
                           </div>
                         )}
                         {rIdx === 2 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-[#f9fbfd] flex items-center justify-between px-3 py-1 text-[10px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">กำลังพลทำงานเฉลี่ย (Avg Staff)</span>
-                            <span className="font-black text-indigo-700 font-mono bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 text-xs">{avgWorkersPerDay} คน/วัน</span>
+                            <span className="font-black text-indigo-700 font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/80 text-[10px]">{avgWorkersPerDay} คน/วัน</span>
                           </div>
                         )}
                         {rIdx === 3 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[560px] bg-[#f9fbfd] flex items-center justify-between px-3.5 py-1 text-[11px] font-sans border-b border-slate-200">
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-[#f9fbfd] flex items-center justify-between px-3 py-1 text-[10px] font-sans border-b border-slate-200">
                             <span className="font-bold text-slate-600">จำนวนกำลังพลปฏิบัติการ</span>
-                            <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-black border border-amber-200 font-mono text-xs">
+                            <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md font-black border border-amber-200/80 font-mono text-[10px]">
                               {totalActiveStaff} คน.
                             </span>
                           </div>
