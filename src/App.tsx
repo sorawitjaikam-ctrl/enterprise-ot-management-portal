@@ -2009,6 +2009,20 @@ export default function App() {
     }) : prev);
   };
 
+  const handleShiftConfigMonthChange = async (nextM: string) => {
+    updatePlannerMonth(nextM);
+    await fetchPortalState(nextM);
+    try {
+      await fetch("/api/save-shift-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentMonth: nextM })
+      });
+    } catch (err) {
+      console.error("Failed to save shift config month:", err);
+    }
+  };
+
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
 
@@ -2307,14 +2321,22 @@ export default function App() {
   });
 
   // Fetch initial portal state
-  const fetchPortalState = async () => {
+  const fetchPortalState = async (monthOverride?: string) => {
     try {
       setLoading(true);
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
         const data: AppState & { accounts?: any[]; otRequests?: any[] } = await res.json();
-        setState(data);
+        const targetMonth = monthOverride || state?.shiftConfig?.currentMonth || data?.shiftConfig?.currentMonth || "2026-08";
+        const updatedData = {
+          ...data,
+          shiftConfig: {
+            ...(data.shiftConfig || {}),
+            currentMonth: targetMonth
+          }
+        };
+        setState(updatedData);
         setTempEmployees(data.employees);
         if (data.accounts && Array.isArray(data.accounts)) {
           setAccounts(data.accounts);
@@ -6544,12 +6566,12 @@ export default function App() {
                     </select>
                   )}
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
-                    onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; updatePlannerMonth(nextM); fetchPortalState(nextM); }}
+                    onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; handleShiftConfigMonthChange(nextM); }}
                     className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
                     {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
                   </select>
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
-                    onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; updatePlannerMonth(nextM); fetchPortalState(nextM); }}
+                    onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; handleShiftConfigMonthChange(nextM); }}
                     className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
                     {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
