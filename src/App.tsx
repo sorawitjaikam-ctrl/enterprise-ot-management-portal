@@ -6925,33 +6925,33 @@ export default function App() {
           {activeTab === "shifts" && (
             <div className={`space-y-4 ${isFullScreen ? "fixed inset-0 z-50 bg-white overflow-auto p-4" : ""}`}>
 
-              {/* HEADER TOOLBAR — Excel dark green style */}
+              {/* HEADER TOOLBAR — Clean Minimalist High-Contrast Style */}
               <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
-                <div className="bg-slate-50/90 border-b border-slate-200/80 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="bg-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100">
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-300 font-semibold uppercase tracking-widest font-sans">แผนกปฏิบัติงาน</span>
-                      <span className="text-white text-sm font-black leading-tight">{currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}</span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">แผนกปฏิบัติงาน</span>
+                      <span className="text-slate-900 text-sm font-black leading-tight">{currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}</span>
                     </div>
                     
                     {/* Worker count box */}
-                    <div className="bg-[#0f1d30] text-slate-300 px-3 py-1 rounded-lg text-xs font-black border border-slate-700/60 flex items-center gap-1">
+                    <div className="bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5">
                       <span>จำนวนพนักงาน:</span>
-                      <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded font-mono">
+                      <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md font-mono font-black text-[11px]">
                         {(isEditingShifts ? tempEmployees : state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก").length}
                       </span>
-                      <span className="text-slate-400 font-mono font-sans">/{ (state?.employees || []).filter(e => e.deptId === currentShiftsDept).length } คน</span>
+                      <span className="text-slate-500 font-mono font-sans font-semibold">/{ (state?.employees || []).filter(e => e.deptId === currentShiftsDept).length } คน</span>
                     </div>
 
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-slate-300 uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
-                      <div className="bg-[#0f1d30] text-white px-3 py-1 rounded-lg text-xs font-bold border border-slate-700/60 flex items-center gap-1.5 font-sans mt-0.5">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-sans">ผู้จัดแผนการทำงาน</span>
+                      <div className="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 font-sans mt-0.5">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                         <span>{deptManagerText || "คุณสันทัด คุ้มค่า"}</span>
                       </div>
                     </div>
 
-                    <div className="text-slate-200 text-xs font-bold font-sans">
+                    <div className="text-slate-700 text-xs font-black font-sans bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
                       {(() => {
                         const [y, m] = (state?.shiftConfig?.currentMonth || "2026-08").split("-");
                         const mn = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -6962,10 +6962,10 @@ export default function App() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Toggle [ Plan / Actual / Plan+Actual ] */}
-                    <div className="flex bg-[#0f1d30] rounded-lg overflow-hidden border border-slate-700/60 text-[10px] font-bold">
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
                       {(["plan", "actual", "both"] as const).map(mode => (
                         <button key={mode} onClick={() => setShiftViewMode(mode)}
-                          className={`px-3 py-1.5 transition-colors cursor-pointer ${shiftViewMode === mode ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-sm font-black" : "text-slate-600 hover:text-slate-900"}`}>
                           {mode === "plan" ? "Plan" : mode === "actual" ? "Actual" : "Plan+Actual"}
                         </button>
                       ))}
@@ -6974,32 +6974,33 @@ export default function App() {
                     {isEditingShifts ? (
                       <div className="flex gap-2">
                         <button onClick={() => { setIsEditingShifts(false); setTempEmployees(state?.employees || []); }}
-                          className="px-3 py-1.5 bg-[#0f1d30] border border-slate-700/60 rounded-lg text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer font-sans">ยกเลิก</button>
+                          className="px-3.5 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer font-sans">ยกเลิก</button>
                         <button onClick={handleSaveShifts}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-black hover:bg-blue-500 transition-colors shadow cursor-pointer font-sans">
+                          className="px-3.5 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 transition-colors shadow cursor-pointer font-sans">
                           บันทึก {shiftEditTarget === "plan" ? "Plan" : "Actual"}
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <button onClick={handleExportShiftsCsv}
-                          className="px-3 py-1.5 bg-[#0f1d30] border border-slate-700/60 text-slate-300 rounded-lg text-[10px] font-bold hover:bg-slate-800 flex items-center gap-1 cursor-pointer font-sans">
+                          className="px-3.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 flex items-center gap-1 cursor-pointer font-sans shadow-2xs">
                           CSV
                         </button>
                         
-                        
                         <button onClick={() => setShowVesselModal(true)}
-                          className="px-3 py-1.5 bg-amber-700 text-white rounded-lg text-[10px] font-black hover:bg-amber-600 cursor-pointer font-sans font-bold">ตารางเรือ/เครน</button>
+                          className="px-3.5 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs">
+                          ตารางเรือ/เครน
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Sub-toolbar: Filters & selects */}
-                <div className="bg-[#10223b] px-5 py-2 flex flex-wrap items-center gap-3">
+                {/* Sub-toolbar: Filters & selects (High Contrast Minimal Style) */}
+                <div className="bg-slate-50/80 px-6 py-2.5 flex flex-wrap items-center gap-3 border-b border-slate-200/80">
                   {activeDeptId === "all" && (
                     <select value={currentShiftsDept} onChange={(e) => setShiftsDeptFilter(e.target.value)}
-                      className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
+                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
                       <option value="inter2">INTER 2</option>
                       <option value="inter3">INTER 3</option>
                       <option value="inter5">INTER 5</option>
@@ -7010,16 +7011,16 @@ export default function App() {
                   )}
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
                     onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; handleShiftConfigMonthChange(nextM); }}
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
                     {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
                   </select>
                   <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
                     onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; handleShiftConfigMonthChange(nextM); }}
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
                     {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                   <select value={selectedWeek} onChange={(e) => { const val = e.target.value; setSelectedWeek(val); setDaysLimit(val === "all" ? 30 : 7); }}
-                    className="px-2 py-1 bg-[#1a365d] border border-slate-700/60 rounded-lg text-[10px] font-bold text-slate-200 focus:outline-none cursor-pointer font-sans">
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs">
                     <option value="all">ทั้งเดือน</option>
                     {weeksList.map((w) => <option key={w.weekNum} value={String(w.weekNum)}>สัปดาห์ {w.weekNum} ({w.startDay}-{w.endDay})</option>)}
                   </select>
