@@ -2002,6 +2002,7 @@ export default function App() {
   }, []);
 
     const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
+  const [viewingSalaryFormulaEmployee, setViewingSalaryFormulaEmployee] = useState<any | null>(null);
 
   const handleDirectSaveShift = async (emp: any, dayIdx: number, target: "plan" | "actual", newShiftCode: string) => {
     try {
@@ -7036,7 +7037,23 @@ export default function App() {
                                       const otPctSalary = salary > 0 ? ((totalOtPay / salary) * 100).toFixed(2) : "0.00";
 
                                       return (
-                                        <div className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white select-none">
+                                        <div 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setViewingSalaryFormulaEmployee({
+                                              emp,
+                                              normalOt,
+                                              holidayOt,
+                                              holidayWorkDays,
+                                              salary,
+                                              hourlyRate,
+                                              totalOtPay,
+                                              otPctSalary
+                                            });
+                                          }}
+                                          title="คลิกเพื่อดูรายละเอียดสูตรและการคำนวณค่าล่วงเวลา (OT)"
+                                          className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white select-none cursor-pointer hover:bg-blue-50/50 transition-colors duration-150"
+                                        >
                                           <div className="w-20 flex items-center justify-center font-bold text-slate-800">
                                             {normalOt > 0 ? normalOt : <span className="text-slate-300">-</span>}
                                           </div>
@@ -9928,7 +9945,7 @@ export default function App() {
             <div className="p-4 border-t border-slate-200 bg-white flex justify-between items-center">
               <div className="text-xs text-slate-500 font-bold">
                 รวมชั่วโมง OT เดือนนี้ (คำนวณจาก Actual เท่านั้น): <span className="text-blue-700 font-mono font-black text-sm">{
-                  (editingEmployeeShiftsModal.shifts || []).reduce((acc, code) => acc + getShiftOtHours(code), 0)
+                  getEmpShiftsArray(editingEmployeeShiftsModal.shifts, state?.shiftConfig?.currentMonth).reduce((acc, code) => acc + getShiftOtHours(code), 0)
                 } ชม.</span>
               </div>
               <div className="flex gap-3">
@@ -10082,6 +10099,145 @@ export default function App() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal: Salary & OT Formula Details */}
+      {viewingSalaryFormulaEmployee && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black leading-tight">สูตรและวิธีการคำนวณเงินได้ค่าล่วงเวลา (OT)</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
+                    {viewingSalaryFormulaEmployee.emp.name} ({viewingSalaryFormulaEmployee.emp.id})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingSalaryFormulaEmployee(null)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1 rounded-full hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh] bg-slate-50/50">
+              {/* Financial Base Info */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  <span>ฐานเงินเดือนที่ใช้คำนวณ (Financial Base)</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-1">
+                    <span className="text-slate-400 font-bold">ฐานเงินเดือนหลัก:</span>
+                    <div className="font-extrabold text-slate-800 font-mono text-sm">
+                      {viewingSalaryFormulaEmployee.salary.toLocaleString()} บาท
+                      {!viewingSalaryFormulaEmployee.emp.salary && (
+                        <span className="block text-[9px] text-amber-600 font-sans mt-0.5">*(ค่าเริ่มต้นระบบเนื่องจากไม่ได้ระบุข้อมูลใน DATA)*</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-slate-400 font-bold">อัตราจ้างรายชั่วโมง (Hourly Rate):</span>
+                    <div className="font-extrabold text-slate-800 font-mono text-sm">
+                      {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท/ชม.
+                      <span className="block text-[9px] text-slate-400 font-sans mt-0.5">สูตร: เงินเดือน ÷ 240 ชั่วโมง</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Breakdown */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
+                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  <span>รายละเอียดชั่วโมงสะสมและเรทเงินได้ (Rate Calculations)</span>
+                </h4>
+
+                <div className="space-y-3.5 divide-y divide-slate-100 text-xs">
+                  {/* 1. Weekday OT (1.5x) */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800">1. OT วันปฏิบัติงานปกติ (Weekday OT - 1.5x)</span>
+                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg border border-blue-200 font-mono font-black">{viewingSalaryFormulaEmployee.normalOt} ชม.</span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
+                      <p>สูตร: [ชั่วโมงสะสม] × [อัตราจ้างรายชั่วโมง] × 1.5</p>
+                      <p>คำนวณ: {viewingSalaryFormulaEmployee.normalOt} ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 1.5</p>
+                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
+                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.normalOt * 1.5 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 2. Holiday OT (3.0x) */}
+                  <div className="space-y-1 pt-3.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800">2. OT วันหยุดประจำสัปดาห์ (Holiday OT - 3.0x)</span>
+                      <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-lg border border-orange-200 font-mono font-black">{viewingSalaryFormulaEmployee.holidayOt} ชม.</span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
+                      <p>สูตร: [ชั่วโมงสะสมวันหยุด] × [อัตราจ้างรายชั่วโมง] × 3.0</p>
+                      <p>คำนวณ: {viewingSalaryFormulaEmployee.holidayOt} ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 3.0</p>
+                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
+                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.holidayOt * 3.0 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 3. Holiday Work (1.0x) */}
+                  <div className="space-y-1 pt-3.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800">3. ค่าจ้างทำงานในวันหยุดปกติ (Holiday Regular Work - 1.0x)</span>
+                      <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200 font-mono font-black">{viewingSalaryFormulaEmployee.holidayWorkDays} วัน (หรือ {viewingSalaryFormulaEmployee.holidayWorkDays * 8} ชม.)</span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
+                      <p>สูตร: [จำนวนวันทำงานในวันหยุด] × 8 ชม. × [อัตราจ้างรายชั่วโมง] × 1.0</p>
+                      <p>คำนวณ: {viewingSalaryFormulaEmployee.holidayWorkDays} วัน × 8 ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 1.0</p>
+                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
+                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.holidayWorkDays * 8 * 1.0 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Summary */}
+              <div className="bg-blue-600 text-white rounded-2xl p-4 shadow-md space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-blue-200 uppercase tracking-widest font-sans">ยอดรวมเงินได้ค่าล่วงเวลาทั้งหมด</span>
+                  <span className="text-lg font-black font-mono">{viewingSalaryFormulaEmployee.totalOtPay.toLocaleString()} บาท</span>
+                </div>
+                <div className="border-t border-blue-500/50 pt-2 flex justify-between items-center text-xs">
+                  <span className="text-blue-200 font-bold font-sans">คิดเป็นสัดส่วนเปอร์เซ็นต์ของฐานเงินเดือน:</span>
+                  <span className="font-extrabold bg-blue-700 text-white px-2 py-0.5 rounded-lg border border-blue-500 font-mono">
+                    {viewingSalaryFormulaEmployee.otPctSalary}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-white flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingSalaryFormulaEmployee(null)}
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-md font-sans"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast Container */}
