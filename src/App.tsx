@@ -2746,29 +2746,16 @@ export default function App() {
 
     return true;
   }).sort((a, b) => {
-    // Helper to calculate OT multiplier values for sorting
+    // Helper to calculate OT multiplier values for sorting (Single Source of Truth)
     const getOtMetrics = (emp: Employee) => {
-            const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
-      let ot1_5 = 0;
-      let ot1_0 = 0;
-      let ot3_0 = 0;
-      shifts.forEach((code: string) => {
-        if (code === "OND") {
-          ot1_0 += 8;
-        } else if (code === "M12" || code === "A12" || code === "N12" || code.endsWith("12")) {
-          ot1_5 += 4;
-        } else if (code === "M16" || code === "N16" || code.endsWith("16")) {
-          ot1_5 += 8;
-        }
-      });
-      if (ot1_5 === 0 && ot1_0 === 0 && ot3_0 === 0 && emp.actualOt > 0) {
-        ot1_5 = emp.actualOt;
-      }
-      const salary = emp.salary || 15000;
-      const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-      const totalOtPay = Math.round((ot1_5 * 1.5 + ot1_0 * 1.0 + ot3_0 * 3.0) * hourlyRate);
-      const otPctSalary = salary > 0 ? Math.round((totalOtPay / salary) * 100) : 0;
-      return { ot1_5, ot1_0, ot3_0, totalOtPay, otPctSalary };
+      const b = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
+      return {
+        ot1_5: b.normalOt,
+        ot1_0: b.holidayWorkDays * 8,
+        ot3_0: b.holidayOt,
+        totalOtPay: b.totalOtPay,
+        otPctSalary: Number(b.otPctSalary) || 0
+      };
     };
 
     let valA: any = "";
@@ -6826,34 +6813,13 @@ export default function App() {
                       {filteredEmployees.map((emp) => {
                         const dept = state.departments.find(d => d.id === emp.deptId);
                         
-                        // Calculate OT Multipliers
-                                                const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
-                        let ot1_5 = 0;
-                        let ot1_0 = 0;
-                        let ot3_0 = 0;
-
-                        shifts.forEach((code: string) => {
-                          if (code === "OND") {
-                            ot1_0 += 8;
-                          } else if (code === "M12" || code === "A12" || code === "N12") {
-                            ot1_5 += 4;
-                          } else if (code === "M16" || code === "N16") {
-                            ot1_5 += 8;
-                          } else if (code.endsWith("12")) {
-                            ot1_5 += 4;
-                          } else if (code.endsWith("16")) {
-                            ot1_5 += 8;
-                          }
-                        });
-
-                        if (ot1_5 === 0 && ot1_0 === 0 && ot3_0 === 0 && emp.actualOt > 0) {
-                          ot1_5 = emp.actualOt;
-                        }
-
-                        const salary = emp.salary || 15000;
-                        const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-                        const totalOtPay = Math.round((ot1_5 * 1.5 + ot1_0 * 1.0 + ot3_0 * 3.0) * hourlyRate);
-                        const otPctSalary = salary > 0 ? Math.round((totalOtPay / salary) * 100) : 0;
+                        // Calculate exact monthly OT metrics using single source of truth
+                        const breakdown = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
+                        const ot1_5 = breakdown.normalOt;
+                        const ot1_0 = breakdown.holidayWorkDays * 8;
+                        const ot3_0 = breakdown.holidayOt;
+                        const totalOtPay = breakdown.totalOtPay;
+                        const otPctSalary = Number(breakdown.otPctSalary) || 0;
 
                         return (
                           <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
