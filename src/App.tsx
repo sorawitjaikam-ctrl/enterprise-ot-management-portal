@@ -7023,7 +7023,7 @@ export default function App() {
                                         const otHrs = getShiftOtHours(shift);
                                         const isOff = shift === "O" || shift === "OFF";
 
-                                        if (shift === "OND" || (day.th === "อา." && !isOff)) {
+                                        if (shift === "OND" || (day.th && day.th.startsWith("อา") && !isOff)) {
                                           holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
                                           if (!isOff) holidayWorkDays += 1;
                                         } else if (otHrs > 0) {
@@ -7168,7 +7168,7 @@ export default function App() {
                                   const otHrs = getShiftOtHours(shift);
                                   const isOff = shift === "O" || shift === "OFF";
 
-                                  if (shift === "OND" || (day.th === "อา." && !isOff)) {
+                                  if (shift === "OND" || (day.th && day.th.startsWith("อา") && !isOff)) {
                                     holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
                                     if (!isOff) holidayWorkDays += 1;
                                   } else if (otHrs > 0) {
