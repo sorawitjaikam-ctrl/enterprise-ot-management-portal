@@ -4377,7 +4377,7 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
                       
                       {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                      <div className="bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 border border-blue-600/40 text-white p-6 rounded-3xl shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-cyan-100 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
@@ -4387,7 +4387,7 @@ export default function App() {
                         
                         <div className="flex items-end justify-between mt-2">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-white">58%</div>
+                            <div className="text-3xl font-black tracking-tight text-white">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
                             <div className="text-[10px] text-cyan-100/80 font-medium">from last month</div>
                           </div>
                           
@@ -4404,7 +4404,7 @@ export default function App() {
                       </div>
 
                       {/* Card 2: ผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                      <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-blue-950 border border-slate-700/60 text-white p-6 rounded-3xl shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-cyan-100 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-extrabold text-sm">
@@ -4443,7 +4443,7 @@ export default function App() {
                         
                         <div className="flex items-end justify-between mt-2">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-white">14%</div>
+                            <div className="text-3xl font-black tracking-tight text-white">{otSalaryPct}%</div>
                             <div className="text-[10px] text-cyan-100/80 font-medium">from this month</div>
                           </div>
 
@@ -4474,14 +4474,14 @@ export default function App() {
                           {/* Legend Switches/Pills matching mockup */}
                           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
-                              <span className="w-2.5 h-2.5 rounded-full bg-[#b2ebf2]"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
                               <span>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
                             </div>
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
-                              <span className="w-2.5 h-2.5 rounded-full bg-[#4dd0e1]"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                               <span>ผลรวมค่าล่วงเวลา</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#00838f] text-white shadow-sm">
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-950 text-white shadow-sm">
                               <span className="w-2.5 h-2.5 rounded-full bg-white"></span>
                               <span>% ค่าล่วงเวลา</span>
                             </div>
@@ -4522,19 +4522,19 @@ export default function App() {
                                     {/* Bar 1: Light Cyan */}
                                     <div 
                                       style={{ height: `${series1H}%` }}
-                                      className="w-1/3 bg-[#b2ebf2] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      className="w-1/3 bg-sky-300 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
                                       title={`เปรียบเทียบผลรวม (${mName}): ${series1H}%`}
                                     />
                                     {/* Bar 2: Medium Cyan */}
                                     <div 
                                       style={{ height: `${series2H}%` }}
-                                      className="w-1/3 bg-[#4dd0e1] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      className="w-1/3 bg-blue-500 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
                                       title={`ผลรวมค่าล่วงเวลา (${mName}): ${series2H}%`}
                                     />
                                     {/* Bar 3: Dark Teal */}
                                     <div 
                                       style={{ height: `${series3H}%` }}
-                                      className="w-1/3 bg-[#00838f] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      className="w-1/3 bg-indigo-950 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
                                       title={`% ค่าล่วงเวลา (${mName}): ${series3H}%`}
                                     />
                                   </div>
@@ -4549,8 +4549,8 @@ export default function App() {
                       </div>
 
                       {/* Right Panel: Special Pastel Yellow Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-[#fae692] p-5 rounded-3xl shadow-sm border border-amber-200/60 font-sans flex flex-col justify-center">
-                        <div className="bg-[#0a93a6] text-white p-6 rounded-2xl shadow-md space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
+                      <div className="lg:col-span-1 bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 font-sans flex flex-col justify-center">
+                        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 text-white p-6 rounded-2xl shadow-lg space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
                           
                           {/* Top Yellow Clock Icon */}
                           <div className="w-11 h-11 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm">
@@ -6095,7 +6095,7 @@ export default function App() {
 
                       return (
                         <>
-                          <div className="bg-[#383838] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700 group hover:shadow-lg transition-shadow">
+                          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-800 group hover:shadow-lg transition-shadow">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
                                 <Users className="w-5 h-5 text-slate-900" />
@@ -6113,7 +6113,7 @@ export default function App() {
                           </div>
 
                           {/* Card 2: Case and Resigned (Dusty Pink Card) */}
-                          <div className="bg-[#d89191] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-rose-300/30 group hover:shadow-lg transition-shadow">
+                          <div className="bg-gradient-to-br from-rose-950/90 via-rose-900/80 to-slate-900 p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-rose-800/40 group hover:shadow-lg transition-shadow">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
                                 <UserX className="w-5 h-5 text-slate-900" />
@@ -6145,11 +6145,11 @@ export default function App() {
                         {/* Section Legend Pills */}
                         <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
                             <span className="text-slate-600">INTER 2</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
                             <span className="text-slate-600">INTER 3</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
@@ -6157,11 +6157,11 @@ export default function App() {
                             <span className="text-slate-600">INTER 5</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
                             <span className="text-slate-600">INTER 7</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>
                             <span className="text-slate-600">HVM</span>
                           </div>
                         </div>
@@ -6218,7 +6218,7 @@ export default function App() {
                     <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
                       
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-[#0a93a6] text-white flex items-center justify-center shadow-sm">
+                        <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
                           <Globe className="w-6 h-6 text-white" />
                         </div>
                         <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
@@ -6227,14 +6227,14 @@ export default function App() {
                       {/* 10 People Icon Silhouettes */}
                       <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-                          <Users key={i} className="w-5 h-5 text-[#0a93a6]" />
+                          <Users key={i} className="w-5 h-5 text-blue-600" />
                         ))}
                         <Users className="w-5 h-5 text-slate-300" />
                       </div>
 
                       {/* Percent badge */}
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-[#0a93a6]">90%</span>
+                        <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
                         <span className="text-xs font-bold text-emerald-600">(+5%)</span>
                       </div>
 
