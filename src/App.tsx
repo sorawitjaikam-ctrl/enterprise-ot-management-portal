@@ -2594,61 +2594,93 @@ export default function App() {
 
   if (loading || !state) {
     return (
-      <div className="min-h-screen bg-[#070d18] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
-        {/* Background Ambient Glowing Lights */}
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none" />
+      <div className="min-h-screen bg-gradient-to-b from-[#020b18] via-[#05182e] to-[#021020] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
+        {/* Ambient Oceanic Glows */}
+        <div className="absolute -top-32 -left-32 w-[450px] h-[450px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[160px] pointer-events-none" />
+        <div className="absolute -bottom-32 left-1/4 w-[600px] h-[400px] bg-teal-500/10 rounded-full blur-[160px] pointer-events-none" />
 
-        {/* Tech Grid Pattern Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]" />
+        {/* Floating Water Bubble Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+          <div className="absolute bottom-10 left-[15%] w-3 h-3 bg-cyan-300/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute bottom-20 left-[28%] w-2 h-2 bg-blue-300/50 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute bottom-16 right-[20%] w-4 h-4 bg-teal-300/30 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '5s' }} />
+          <div className="absolute bottom-24 right-[35%] w-2.5 h-2.5 bg-cyan-200/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '7s' }} />
+        </div>
 
-        {/* Main Loading Card Container */}
+        {/* Multi-Layer Animated SVG Ocean Waves at Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-48 pointer-events-none overflow-hidden leading-none z-0">
+          {/* Wave 3 (Deep Blue Background Wave) */}
+          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-35 animate-wave-3">
+            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path d="M0,0 C150,90 350,-40 500,45 C650,130 900,10 1200,50 L1200,120 L0,120 Z" fill="#034078" />
+            </svg>
+          </div>
+          {/* Wave 2 (Glowing Cyan Mid Wave) */}
+          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-45 animate-wave-2">
+            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path d="M0,30 C200,100 450,0 650,60 C850,120 1050,20 1200,70 L1200,120 L0,120 Z" fill="#0284c7" />
+            </svg>
+          </div>
+          {/* Wave 1 (Bright Teal Seafoam Foreground Wave) */}
+          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-60 animate-wave-1">
+            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path d="M0,50 C150,110 300,20 500,75 C700,130 950,40 1200,85 L1200,120 L0,120 Z" fill="#0891b2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Main Central Card */}
         <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center">
           
-          {/* Company Brand Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-950/60 border border-blue-800/40 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(59,130,246,0.15)] backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-            <span>Double A Terminal • Port & Logistics OT System</span>
+          {/* Maritime Brand Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-widest mb-7 shadow-[0_0_25px_rgba(6,182,212,0.25)] backdrop-blur-xl">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span>Double A Terminal • Port & Logistics</span>
           </div>
 
-          {/* Futuristic Multi-Ring Animated Loading Core */}
-          <div className="relative w-28 h-28 flex items-center justify-center mb-8">
-            {/* Outer Pulsing Glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 blur-xl opacity-30 animate-pulse" />
+          {/* Floating Vessel / Maritime Core with Sonar Ripple */}
+          <div className="relative w-32 h-32 flex items-center justify-center mb-6">
+            {/* Pulsing Sonar / Wave Ripple Rings */}
+            <div className="absolute inset-0 rounded-full border border-cyan-400/20 animate-ping" style={{ animationDuration: '3s' }} />
+            <div className="absolute -inset-3 rounded-full border border-blue-500/25 animate-ping" style={{ animationDuration: '4s' }} />
+            
+            {/* Glowing Water Pool Base */}
+            <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-blue-600/30 via-cyan-500/30 to-teal-400/20 blur-xl animate-pulse" />
 
-            {/* Ring 1: Clockwise Gradient Spinner */}
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 border-r-cyan-400 animate-[spin_3s_linear_infinite]" />
+            {/* Rotating Marine Compass Rings */}
+            <div className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-400/30 animate-[spin_12s_linear_infinite]" />
+            <div className="absolute inset-3 rounded-full border border-blue-400/40 animate-[spin_8s_linear_infinite_reverse]" />
 
-            {/* Ring 2: Counter-Clockwise Inner Ring */}
-            <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-indigo-400 border-l-blue-400 opacity-80 animate-[spin_2s_linear_infinite_reverse]" />
-
-            {/* Center Core Badge */}
-            <div className="w-16 h-16 rounded-2xl bg-[#0e1a2f] border border-blue-500/30 flex items-center justify-center shadow-inner relative z-10">
-              <svg className="w-8 h-8 text-blue-400 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
+            {/* Floating Ship / Port Beacon Centerpiece */}
+            <div className="w-18 h-18 rounded-3xl bg-gradient-to-b from-[#0e2540] to-[#071322] border border-cyan-400/40 flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(6,182,212,0.3)] relative z-10 animate-float-boat">
+              <Ship className="w-8 h-8 text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+              {/* Miniature wave line under ship */}
+              <div className="w-7 h-1 bg-cyan-400/60 rounded-full mt-1 blur-[0.5px]" />
             </div>
           </div>
 
-          {/* Main Title & Status Text */}
-          <h2 className="text-lg font-black tracking-tight text-white mb-2">
-            กำลังโหลดโปรทัลจัดการ OT และตารางกะ
+          {/* Headings */}
+          <h2 className="text-xl font-black tracking-tight text-white mb-2 flex items-center gap-2">
+            <span>ระบบบริหารเวลา OT และจัดกะหน้าท่า</span>
           </h2>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed mb-6">
-            กำลังตรวจสอบสิทธิ์ความปลอดภัย และจัดเตรียมข้อมูลแผนกปฏิบัติงาน...
+          
+          <p className="text-xs text-cyan-200/70 font-medium leading-relaxed mb-6 max-w-xs">
+            กำลังเชื่อมต่อฐานข้อมูลตารางเรือ แผนกปฏิบัติการ และจัดเตรียมคำนวณเบี้ย OT ประจำเดือน...
           </p>
 
-          {/* Animated Glowing Progress Bar */}
-          <div className="w-full bg-slate-900/80 border border-slate-800 rounded-full h-2 p-0.5 overflow-hidden relative shadow-inner mb-4">
-            <div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-indigo-500 rounded-full w-full animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
+          {/* Liquid Shimmering Wave Progress Bar */}
+          <div className="w-full max-w-xs bg-[#091e36] border border-cyan-500/30 rounded-full h-2.5 p-0.5 overflow-hidden relative shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] mb-4">
+            <div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-teal-300 rounded-full w-full animate-[pulse_1.8s_ease-in-out_infinite] shadow-[0_0_16px_rgba(6,182,212,0.8)]" />
           </div>
 
-          {/* Subtitle / Version Info */}
-          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-            <span>Encrypted Real-time Sync</span>
+          {/* Footer Terminal Metadata */}
+          <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-mono tracking-wider">
+            <span className="text-cyan-400">🌊 Maritime Port Sync</span>
             <span>•</span>
-            <span>v2.5 Enterprise Edition</span>
+            <span>Real-time Operations</span>
+            <span>•</span>
+            <span>v2.6</span>
           </div>
 
         </div>
