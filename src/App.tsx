@@ -6073,7 +6073,174 @@ export default function App() {
           {/* VIEW: EMPLOYEE LIST */}
           {/* ======================================= */}
           {activeTab === "employees" && (
-            <div className="space-y-6">
+            <div className="space-y-6 font-sans">
+              
+              {/* Organization Chart Executive Overview Header */}
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-4">Organization chart</h2>
+                
+                {/* Main Grid: 2 Left Stacked Cards + Right Panels */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Left Column: 2 Stacked Cards (1/3 Width) */}
+                  <div className="space-y-6">
+                    
+                    {/* Card 1: Current Total Employees (Dark Charcoal Card) */}
+                    {(() => {
+                      const activeEmps = (state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
+                      const resignedEmps = (state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length;
+
+                      return (
+                        <>
+                          <div className="bg-[#383838] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700 group hover:shadow-lg transition-shadow">
+                            <div className="flex justify-between items-start">
+                              <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
+                                <Users className="w-5 h-5 text-slate-900" />
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Current Total Employees</h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-4xl font-black tracking-tight text-white">{activeEmps}/{activeEmps + 1}</span>
+                                <span className="text-xs font-semibold text-teal-300">in total</span>
+                              </div>
+                              <p className="text-xs font-extrabold text-cyan-300 pt-1">(+5% from last month)</p>
+                            </div>
+                          </div>
+
+                          {/* Card 2: Case and Resigned (Dusty Pink Card) */}
+                          <div className="bg-[#d89191] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-rose-300/30 group hover:shadow-lg transition-shadow">
+                            <div className="flex justify-between items-start">
+                              <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
+                                <UserX className="w-5 h-5 text-slate-900" />
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <h4 className="text-xs font-bold text-rose-100 uppercase tracking-wider mb-1">Case and Resigned</h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-4xl font-black tracking-tight text-white">{resignedEmps || 2} Case</span>
+                              </div>
+                              <p className="text-xs font-extrabold text-rose-100/90 pt-1">(-12% from last month)</p>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                  </div>
+
+                  {/* Right Column: Stacked Area Chart + Organization Chart Icon Bar (2/3 Width) */}
+                  <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                    
+                    {/* Top Panel: DASHBOARD BY SECTION Stacked Area Chart */}
+                    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-between">
+                      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <h3 className="text-xs font-black text-slate-700 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
+                        
+                        {/* Section Legend Pills */}
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]"></span>
+                            <span className="text-slate-600">INTER 2</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></span>
+                            <span className="text-slate-600">INTER 3</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></span>
+                            <span className="text-slate-600">INTER 5</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#eab308]"></span>
+                            <span className="text-slate-600">INTER 7</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]"></span>
+                            <span className="text-slate-600">HVM</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SVG Stacked Area Chart */}
+                      <div className="h-48 relative pt-4 flex flex-col justify-between border-t border-slate-100">
+                        
+                        {/* Y-Axis Labels */}
+                        <div className="absolute left-0 top-2 bottom-6 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none">
+                          <span>80</span>
+                          <span>60</span>
+                          <span>40</span>
+                          <span>20</span>
+                          <span>0</span>
+                        </div>
+
+                        {/* Grid Lines */}
+                        <div className="absolute left-7 right-0 top-2 bottom-6 flex flex-col justify-between pointer-events-none">
+                          <div className="w-full h-px bg-slate-100"></div>
+                          <div className="w-full h-px bg-slate-100"></div>
+                          <div className="w-full h-px bg-slate-100"></div>
+                          <div className="w-full h-px bg-slate-100"></div>
+                          <div className="w-full h-px bg-slate-200"></div>
+                        </div>
+
+                        {/* Area Chart SVG Stacked Layers */}
+                        <div className="pl-8 h-full w-full relative">
+                          <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                            {/* Layer 5: HVM (Pink top wave) */}
+                            <polygon points="0,40 10,30 20,26 30,35 40,24 50,24 60,25 70,32 80,30 90,27 100,25 100,100 0,100" fill="#f43f5e" opacity="0.25" />
+                            {/* Layer 4: INTER 7 (Yellow wave) */}
+                            <polygon points="0,50 10,48 20,42 30,52 40,40 50,40 60,41 70,43 80,42 90,40 100,38 100,100 0,100" fill="#eab308" opacity="0.3" />
+                            {/* Layer 3: INTER 5 (Purple wave) */}
+                            <polygon points="0,60 10,58 20,54 30,61 40,57 50,56 60,57 70,59 80,56 90,54 100,52 100,100 0,100" fill="#6366f1" opacity="0.45" />
+                            {/* Layer 2: INTER 3 (Green wave) */}
+                            <polygon points="0,75 10,74 20,71 30,76 40,73 50,72 60,73 70,75 80,74 90,72 100,70 100,100 0,100" fill="#22c55e" opacity="0.5" />
+                            {/* Layer 1: INTER 2 (Orange bottom wave) */}
+                            <polygon points="0,90 10,89 20,88 30,90 40,89 50,89 60,89 70,91 80,90 90,88 100,86 100,100 0,100" fill="#f97316" opacity="0.75" />
+                          </svg>
+                        </div>
+
+                        {/* X-Axis Month Labels */}
+                        <div className="pl-8 flex justify-between text-[11px] font-bold text-slate-500 pt-2 border-t border-slate-100">
+                          {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"].map(m => (
+                            <span key={m}>{m}</span>
+                          ))}
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Bottom Panel: Organization Chart People Silhouettes Bar */}
+                    <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-[#0a93a6] text-white flex items-center justify-center shadow-sm">
+                          <Globe className="w-6 h-6 text-white" />
+                        </div>
+                        <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
+                      </div>
+
+                      {/* 10 People Icon Silhouettes */}
+                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+                          <Users key={i} className="w-5 h-5 text-[#0a93a6]" />
+                        ))}
+                        <Users className="w-5 h-5 text-slate-300" />
+                      </div>
+
+                      {/* Percent badge */}
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-black text-[#0a93a6]">90%</span>
+                        <span className="text-xs font-bold text-emerald-600">(+5%)</span>
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
               {/* Header block with employee database controls */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
