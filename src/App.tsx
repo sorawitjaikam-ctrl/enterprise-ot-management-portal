@@ -1895,6 +1895,12 @@ export default function App() {
   };
 
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem("isNavbarCollapsed") === "true";
+  });
+  useEffect(() => {
+    localStorage.setItem("isNavbarCollapsed", String(isNavbarCollapsed));
+  }, [isNavbarCollapsed]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [state, setState] = useState<AppState | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -4189,6 +4195,8 @@ export default function App() {
       {/* Top Navbar */}
       {!isFullScreen && (
         <Navbar 
+          isNavbarCollapsed={isNavbarCollapsed}
+          setIsNavbarCollapsed={setIsNavbarCollapsed}
           title={
             activeTab === "dashboard" ? "Dashboard" : 
             activeTab === "job_value" ? "Job Value" :
@@ -4216,7 +4224,7 @@ export default function App() {
       {/* Main container area */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Dynamic page container */}
-        <main className={`flex-1 overflow-y-auto ${isFullScreen ? "p-4" : "mt-28 p-8"}`}>
+        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isFullScreen ? "p-4" : (isNavbarCollapsed ? "mt-16 p-8" : "mt-28 p-8")}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
