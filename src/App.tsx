@@ -6346,34 +6346,55 @@ export default function App() {
                     // Layer 5 (HVM): Top (Total)
                     const xCoords = [0, 11, 22, 33, 44, 55, 66, 77, 88, 100];
                     
-                    // Monthly variation factors based on actual shift distribution
-                    const getMonthlyDeptCount = (deptKey: string, mKey: string, baseCount: number) => {
-                      const countInMonth = empsList.filter(e => {
-                        const isMatch = deptKey === "hvm" ? (normalizeDeptId(e.deptId) === "heavy" || normalizeDeptId(e.deptId) === "hvm") : (normalizeDeptId(e.deptId) === deptKey);
+                    // Calculate exact monthly headcount per department considering startDate & resignationDate
+                    const getMonthlyDeptCount = (deptKey: string, mKey: string) => {
+                      return empsList.filter(e => {
+                        const isMatch = deptKey === "hvm" 
+                          ? (normalizeDeptId(e.deptId) === "heavy" || normalizeDeptId(e.deptId) === "hvm") 
+                          : (normalizeDeptId(e.deptId) === deptKey);
                         if (!isMatch) return false;
-                        if (e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive") return false;
+
+                        // 1. Check startDate (เข้าทำงานเมื่อไหร่)
+                        if (e.startDate) {
+                          const empStartMonth = e.startDate.substring(0, 7);
+                          if (empStartMonth > mKey) return false; // ยังไม่เข้าทำงานในเดือนนี้
+                        }
+
+                        // 2. Check resignationDate / status (ลาออกเมื่อไหร่)
+                        const isResigned = e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ";
+                        if (isResigned) {
+                          if (e.resignationDate) {
+                            const empResignMonth = e.resignationDate.substring(0, 7);
+                            if (mKey > empResignMonth) return false; // ลาออกไปแล้วก่อนเดือนนี้
+                          } else {
+                            if (mKey >= (state?.shiftConfig?.currentMonth || "2026-08")) return false;
+                          }
+                        }
+
                         return true;
                       }).length;
-                      return countInMonth || baseCount;
                     };
 
-                    const monthlyData = monthKeys.map((mKey, idx) => {
-                      const c2 = getMonthlyDeptCount("inter2", mKey, countInter2);
-                      const c3 = getMonthlyDeptCount("inter3", mKey, countInter3);
-                      const c5 = getMonthlyDeptCount("inter5", mKey, countInter5);
-                      const c7 = getMonthlyDeptCount("inter7", mKey, countInter7);
-                      const ch = getMonthlyDeptCount("hvm", mKey, countHvm);
-                      const mTotal = Math.max(1, c2 + c3 + c5 + c7 + ch);
+                    // Compute raw counts for all 10 months
+                    const rawMonthlyCounts = monthKeys.map(mKey => {
+                      const c2 = getMonthlyDeptCount("inter2", mKey);
+                      const c3 = getMonthlyDeptCount("inter3", mKey);
+                      const c5 = getMonthlyDeptCount("inter5", mKey);
+                      const c7 = getMonthlyDeptCount("inter7", mKey);
+                      const ch = getMonthlyDeptCount("hvm", mKey);
+                      const total = c2 + c3 + c5 + c7 + ch;
+                      return { c2, c3, c5, c7, ch, total };
+                    });
 
-                      // Normalized heights (where total reaches ~80-85% of SVG viewBox to leave clean margin)
-                      const maxView = 100;
-                      const scale = 82 / mTotal;
+                    const maxTotalInYear = Math.max(80, ...rawMonthlyCounts.map(r => r.total));
+                    const globalScale = 78 / maxTotalInYear;
 
-                      const y1 = Math.round(100 - (c2 * scale));
-                      const y2 = Math.round(100 - ((c2 + c3) * scale));
-                      const y3 = Math.round(100 - ((c2 + c3 + c5) * scale));
-                      const y4 = Math.round(100 - ((c2 + c3 + c5 + c7) * scale));
-                      const y5 = Math.round(100 - ((c2 + c3 + c5 + c7 + ch) * scale));
+                    const monthlyData = rawMonthlyCounts.map((r, idx) => {
+                      const y1 = Math.round(100 - (r.c2 * globalScale));
+                      const y2 = Math.round(100 - ((r.c2 + r.c3) * globalScale));
+                      const y3 = Math.round(100 - ((r.c2 + r.c3 + r.c5) * globalScale));
+                      const y4 = Math.round(100 - ((r.c2 + r.c3 + r.c5 + r.c7) * globalScale));
+                      const y5 = Math.round(100 - (r.total * globalScale));
 
                       return { x: xCoords[idx], y1, y2, y3, y4, y5 };
                     });
