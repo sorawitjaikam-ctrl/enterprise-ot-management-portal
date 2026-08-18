@@ -185,34 +185,48 @@ export default function Navbar({
       {!isNavbarCollapsed && (
         <div className="bg-slate-100/70 px-8 py-2 flex items-center gap-3.5 overflow-x-auto border-t border-slate-200/80 shadow-inner animate-in slide-in-from-top-2 duration-200">
         {categories.map((cat) => {
-          return (
-            <div key={cat.name} className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 shadow-sm flex-shrink-0">
-              {/* Category Badge */}
-              <div className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${cat.color}`}>
-                <span>{cat.name}</span>
-              </div>
+          const isCollapsed = collapsedCategories.includes(cat.name);
+          const hasActiveItem = cat.items.some(item => item.id === activeTab);
 
-              {/* Items in Category */}
-              <div className="flex items-center gap-1">
-                {cat.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-150 flex-shrink-0 cursor-pointer ${
-                        isActive
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]"
-                          : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/80"
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-400"}`} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          return (
+            <div key={cat.name} className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 shadow-sm flex-shrink-0 transition-all duration-200">
+              {/* Clickable Category Badge */}
+              <button
+                type="button"
+                onClick={() => toggleCategory(cat.name)}
+                title={isCollapsed ? `คลิกเพื่อขยายหมวดหมู่ ${cat.name}` : `คลิกเพื่อซ่อน/หุบหมวดหมู่ ${cat.name}`}
+                className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:opacity-85 select-none ${cat.color} ${hasActiveItem && isCollapsed ? 'ring-2 ring-blue-500/50 shadow-sm font-extrabold' : ''}`}
+              >
+                <span>{cat.name}</span>
+                {hasActiveItem && isCollapsed && (
+                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />
+                )}
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-500'}`} />
+              </button>
+
+              {/* Items in Category (Collapsible) */}
+              {!isCollapsed && (
+                <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-150">
+                  {cat.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-150 flex-shrink-0 cursor-pointer ${
+                          isActive
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]"
+                            : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/80"
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
