@@ -46,7 +46,10 @@ import {
   BarChart3,
   ShieldCheck,
   ClipboardList,
-  Trash2
+  Trash2,
+  Settings,
+  UserX,
+  Globe
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
