@@ -3665,37 +3665,83 @@ export default function App() {
     }
   };
 
-  // Export shift schedule as CSV
+  // Export shift schedule as Payroll-Ready OT Payment CSV (รูปแบบทำจ่ายค่าล่วงเวลา)
   const handleExportShiftsCsv = () => {
     const activeList = isEditingShifts ? tempEmployees : state.employees;
-    const deptFilter = activeDeptId !== "all" ? activeDeptId : undefined;
-    const filtered = deptFilter ? activeList.filter(e => e.deptId === deptFilter) : activeList;
+    const currentDept = currentShiftsDept || (activeDeptId !== "all" ? activeDeptId : undefined);
+    const filtered = activeList
+      .filter(e => !currentDept || currentDept === "all" || normalizeDeptId(e.deptId) === normalizeDeptId(currentDept))
+      .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
     if (filtered.length === 0) { alert("ไม่มีข้อมูลพนักงานสำหรับส่งออก"); return; }
 
-    const [y, m] = (state.shiftConfig.currentMonth || "").split("-");
-    const currentMonth = state.shiftConfig.currentMonth || new Date().toISOString().substring(0, 7);
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const [y, m] = currentMonthKey.split("-");
+    const totalDaysInMonth = new Date(Number(y), Number(m), 0).getDate();
 
     const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
 
-    // Build header row: id, name, dept, role, day1, day2, ... dayN
-    const maxDays = daysLimit;
-    const dayHeaders = Array.from({ length: maxDays }, (_, i) => `วันที่ ${i + 1}`).join(",");
-    let csv = "\ufeff"; // BOM
-    csv += `รหัสพนักงาน,ชื่อพนักงาน,แผนก,ตำแหน่ง,กลุ่ม,OT รวม (ชม.),${dayHeaders}\n`;
+    // Build Daily OT Hour Headers: วันที่ 1, วันที่ 2, ...
+    const dayHeaders = Array.from({ length: totalDaysInMonth }, (_, i) => {
+      const dNum = i + 1;
+      const dObj = new Date(Number(y), Number(m) - 1, dNum);
+      const isSunday = dObj.getDay() === 0;
+      return `"${dNum} (${isSunday ? 'อา' : 'จ-ส'})"`;
+    }).join(",");
+
+    let csv = "\ufeff"; // BOM for Excel Thai
+    // Payroll Structure Header
+    csv += `รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ตำแหน่ง,ฐานเงินเดือน (บาท),อัตราค่าจ้างต่อ ชม. (บาท),OT วันทำงานปกติ 1.5x (ชม.),ทำงานวันหยุด 1.0x (วัน),OT วันหยุด 3.0x (ชม.),ยอดรวม ชม. OT ทั้งเดือน (ชม.),ยอดเงินทำจ่ายค่าล่วงเวลา (บาท),% เทียบฐานเงินเดือน,${dayHeaders}\n`;
 
     filtered.forEach(emp => {
-      const shifts = getEmployeeShiftsForView(emp.shifts, maxDays);
-      const totalOt = shifts.reduce((s, code) => s + (SHIFT_OT_HOURS[code] || 0), 0);
-      const deptLabel = DEPT_LABELS[emp.deptId] || emp.deptId;
-      const shiftCells = shifts.map(s => esc(s)).join(",");
-      csv += [esc(emp.id), esc(emp.name), esc(deptLabel), esc(emp.role || ""), esc(emp.groupName || ""), totalOt, shiftCells].join(",") + "\n";
+      const breakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonthKey);
+      const shifts = getEmpShiftsArray(emp.shifts, currentMonthKey);
+      const deptLabel = getDeptName(emp.deptId, state?.departments) || emp.deptId;
+      const salary = emp.salary || 15000;
+      const hourlyRate = (salary / 240).toFixed(2);
+
+      // Extract exact daily OT hours for each day of the month
+      const dailyOtHours = Array.from({ length: totalDaysInMonth }, (_, i) => {
+        const shiftCode = shifts[i] || "O";
+        const dObj = new Date(Number(y), Number(m) - 1, i + 1);
+        const isSunday = dObj.getDay() === 0;
+        const isOff = shiftCode === "O" || shiftCode === "OFF";
+
+        if (isOff) return "0";
+        if (shiftCode === "OND") return "8";
+        if (isSunday) {
+          const ot = getShiftOtHours(shiftCode);
+          return ot > 0 ? String(ot) : (shiftCode.endsWith("12") ? "4" : (shiftCode.endsWith("16") ? "8" : "0"));
+        }
+        return String(getShiftOtHours(shiftCode));
+      });
+
+      const totalOtHoursMonth = breakdown.normalOt + breakdown.holidayOt + (breakdown.holidayWorkDays * 8);
+
+      const row = [
+        esc(emp.id),
+        esc(emp.name),
+        esc(deptLabel),
+        esc(emp.role || ""),
+        salary,
+        hourlyRate,
+        breakdown.normalOt,
+        breakdown.holidayWorkDays,
+        breakdown.holidayOt,
+        totalOtHoursMonth,
+        breakdown.totalOtPay,
+        `${breakdown.otPctSalary}%`,
+        ...dailyOtHours
+      ];
+
+      csv += row.join(",") + "\n";
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ตารางกะ_${currentMonth}_${deptFilter ? (DEPT_LABELS[deptFilter] || deptFilter) : "ทุกแผนก"}.csv`;
+    a.download = `แบบสรุปทำจ่ายค่าล่วงเวลา_${currentMonthKey}_${currentDept ? (getDeptName(currentDept, state?.departments) || currentDept) : "ทุกแผนก"}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   };
@@ -7080,9 +7126,13 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <button onClick={handleExportShiftsCsv}
-                          className="px-3.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 flex items-center gap-1 cursor-pointer font-sans shadow-2xs">
-                          CSV
+                        <button 
+                          onClick={handleExportShiftsCsv}
+                          className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all hover:scale-105 active:scale-95"
+                          title="ส่งออกไฟล์สรุปยอดทำจ่ายค่าล่วงเวลา (OT Payroll-Ready CSV) ประจำเดือน"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>CSV ทำจ่าย OT</span>
                         </button>
                         
                         <button onClick={() => setShowVesselModal(true)}
