@@ -1038,7 +1038,8 @@ app.post("/api/edit-employee", async (req, res) => {
   try {
     const {
       id, name, deptId, role, groupName, targetOt, username,
-      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
+      shifts, planShifts
     } = req.body;
     if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
     const newTargetOt = Number(targetOt) || 48;
@@ -1048,11 +1049,14 @@ app.post("/api/edit-employee", async (req, res) => {
       await queryD1(
         `UPDATE employees SET 
           name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ?,
-          prefix = ?, firstName = ?, lastName = ?, nickname = ?, division = ?, salary = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, tenure = ?, probationDate = ?, calendarType = ?
+          prefix = ?, firstName = ?, lastName = ?, nickname = ?, division = ?, salary = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, tenure = ?, probationDate = ?, calendarType = ?,
+          shifts = COALESCE(?, shifts), planShifts = COALESCE(?, planShifts)
          WHERE id = ?`,
         [
           empName, deptId, role, groupName, newTargetOt,
           prefix, firstName, lastName, nickname, division, Number(salary) || 0, birthday, Number(age) || 0, Number(calculatedAge) || 0, startDate, tenure, probationDate, calendarType,
+          shifts ? (typeof shifts === "string" ? shifts : JSON.stringify(shifts)) : null,
+          planShifts ? (typeof planShifts === "string" ? planShifts : JSON.stringify(planShifts)) : null,
           id
         ]
       );
@@ -1079,6 +1083,8 @@ app.post("/api/edit-employee", async (req, res) => {
         emp.tenure = tenure ?? emp.tenure;
         emp.probationDate = probationDate ?? emp.probationDate;
         emp.calendarType = calendarType ?? emp.calendarType;
+        if (shifts) emp.shifts = Array.isArray(shifts) ? shifts : JSON.parse(shifts || "[]");
+        if (planShifts) emp.planShifts = Array.isArray(planShifts) ? planShifts : JSON.parse(planShifts || "[]");
       }
       saveLocalDb();
     }

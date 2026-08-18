@@ -128,27 +128,51 @@ export const getShiftOtHours = (shift: string) => {
   return 0;
 };
 
-export const getEmpShiftsArray = (shifts: any, monthKey?: string): string[] => {
+export const getEmpShiftsArray = (shifts: any, monthKey?: string, calendarType?: string): string[] => {
   const mKey = monthKey || "2026-08";
-  if (!shifts) return [];
-  if (typeof shifts === "string") {
-    try {
-      const parsed = JSON.parse(shifts);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed[mKey] || [];
+  let extracted: string[] = [];
+  if (shifts) {
+    if (typeof shifts === "string") {
+      try {
+        const parsed = JSON.parse(shifts);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          extracted = parsed[mKey] || [];
+        } else if (Array.isArray(parsed)) {
+          extracted = mKey === "2026-08" ? parsed : [];
+        }
+      } catch (_) {}
+    } else if (typeof shifts === "object") {
+      if (Array.isArray(shifts)) {
+        extracted = mKey === "2026-08" ? shifts : [];
+      } else {
+        extracted = shifts[mKey] || [];
       }
-      if (Array.isArray(parsed)) {
-        return mKey === "2026-08" ? parsed : [];
-      }
-    } catch (_) {}
-  }
-  if (shifts && typeof shifts === "object") {
-    if (Array.isArray(shifts)) {
-      return mKey === "2026-08" ? shifts : [];
     }
-    return shifts[mKey] || [];
   }
-  return [];
+
+  // If shifts found and contains active shift values, return them
+  if (extracted && extracted.length > 0 && extracted.some(s => s && s !== "O" && s !== "")) {
+    return extracted;
+  }
+
+  // Fallback: Generate real shift patterns according to calendarType if shifts are unassigned
+  if (calendarType) {
+    const [yStr, mStr] = mKey.split("-");
+    const yr = Number(yStr) || 2026;
+    const mn = Number(mStr) || 8;
+    const totalDays = new Date(yr, mn, 0).getDate();
+
+    if (calendarType.includes("2 ทีม") || calendarType.includes("12")) {
+      const cycle = ["M12", "M12", "N12", "N12", "OFF", "OFF"];
+      return Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
+    }
+    if (calendarType.includes("3 ทีม") || calendarType.includes("8-8-8")) {
+      const cycle = ["M8", "M8", "A8", "A8", "N8", "N8", "OFF", "OFF"];
+      return Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
+    }
+  }
+
+  return extracted && extracted.length > 0 ? extracted : [];
 };
 
 export const isJvDepartment = (deptNameOrId: string): boolean => {
@@ -161,7 +185,7 @@ export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
   const mKey = monthKey || "2026-08";
   if (!emp) return { normalOt: 0, holidayOt: 0, holidayWorkDays: 0, totalOtHours: 0, salary: 15000, hourlyRate: 62.5, totalOtPay: 0, otPctSalary: "0.00" };
   
-  const empShifts = getEmpShiftsArray(emp.shifts, mKey);
+  const empShifts = getEmpShiftsArray(emp.shifts, mKey, emp.calendarType);
   let normalOt = 0;
   let holidayOt = 0;
   let holidayWorkDays = 0;
@@ -3396,14 +3420,47 @@ export default function App() {
     }
     const fullName = (editEmpFirstName + (editEmpLastName ? " " + editEmpLastName : "")).trim();
     const finalStatus = editEmpStatus || (editEmpResignationDate ? "Resigned" : "Active");
+    // Determine updated shifts based on calendarType
+    let updatedShifts = editingEmployee.shifts;
+    let updatedPlanShifts = editingEmployee.planShifts;
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const [yStr, mStr] = currentMonthKey.split("-");
+    const totalDays = new Date(Number(yStr), Number(mStr), 0).getDate();
+
+    if (!updatedShifts || (Array.isArray(updatedShifts) && updatedShifts.length === 0) || editEmpCalendarType !== editingEmployee.calendarType) {
+      let pattern: string[] = [];
+      if (editEmpCalendarType?.includes("2 ทีม") || editEmpCalendarType?.includes("12")) {
+        const cycle = ["M12", "M12", "N12", "N12", "OFF", "OFF"];
+        pattern = Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
+      } else if (editEmpCalendarType?.includes("3 ทีม") || editEmpCalendarType?.includes("8-8-8")) {
+        const cycle = ["M8", "M8", "A8", "A8", "N8", "N8", "OFF", "OFF"];
+        pattern = Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
+      } else {
+        pattern = Array.from({ length: totalDays }, (_, i) => {
+          const d = new Date(Number(yStr), Number(mStr) - 1, i + 1);
+          return (d.getDay() === 0 || d.getDay() === 6) ? "OFF" : "M8";
+        });
+      }
+
+      let shiftsObj: Record<string, string[]> = {};
+      if (typeof updatedShifts === "string") {
+        try { shiftsObj = JSON.parse(updatedShifts); } catch (_) {}
+      } else if (updatedShifts && typeof updatedShifts === "object" && !Array.isArray(updatedShifts)) {
+        shiftsObj = { ...updatedShifts };
+      }
+      shiftsObj[currentMonthKey] = pattern;
+      updatedShifts = JSON.stringify(shiftsObj);
+      updatedPlanShifts = JSON.stringify(shiftsObj);
+    }
+
     try {
       const res = await fetch("/api/edit-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingEmployee.id,
-          shifts: editingEmployee.shifts,
-          planShifts: editingEmployee.planShifts,
+          shifts: updatedShifts,
+          planShifts: updatedPlanShifts,
           name: fullName,
           deptId: editEmpDept,
           role: editEmpRole,
@@ -3451,6 +3508,8 @@ export default function App() {
               calculatedAge: editEmpCalculatedAge,
               startDate: editEmpStartDate,
               tenure: editEmpTenure,
+              shifts: updatedShifts,
+              planShifts: updatedPlanShifts,
               probationDate: editEmpProbationDate,
               calendarType: editEmpCalendarType,
               resignationDate: editEmpResignationDate,
@@ -6814,10 +6873,11 @@ export default function App() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">
+                      <tr className="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider select-none">
+                        {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px) */}
                         <th 
                           onClick={() => handleRosterSort("id")}
-                          className="px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
+                          className="sticky left-0 z-20 bg-slate-100 px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[90px] w-[90px]"
                           title="คลิกเพื่อเรียงตามรหัสพนักงาน"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6825,13 +6885,15 @@ export default function App() {
                             {empSortField === "id" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px) */}
                         <th 
                           onClick={() => handleRosterSort("name")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap min-w-[220px]"
+                          className="sticky left-[90px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[190px] w-[190px]"
                           title="คลิกเพื่อเรียงตามชื่อ-นามสกุล"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6839,13 +6901,15 @@ export default function App() {
                             {empSortField === "name" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px) */}
                         <th 
                           onClick={() => handleRosterSort("role")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap min-w-[180px]"
+                          className="sticky left-[280px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[160px] w-[160px]"
                           title="คลิกเพื่อเรียงตามตำแหน่ง"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6853,13 +6917,15 @@ export default function App() {
                             {empSortField === "role" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 4. แผนก (Sticky Col 4: 440px - 550px) */}
                         <th 
                           onClick={() => handleRosterSort("dept")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
+                          className="sticky left-[440px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[110px] w-[110px]"
                           title="คลิกเพื่อเรียงตามแผนก"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6867,13 +6933,15 @@ export default function App() {
                             {empSortField === "dept" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px) — DIVIDER BORDER & SHADOW */}
                         <th 
                           onClick={() => handleRosterSort("division")}
-                          className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors whitespace-nowrap"
+                          className="sticky left-[550px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[150px] w-[150px] border-r-2 border-slate-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]"
                           title="คลิกเพื่อเรียงตามฝ่าย"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6881,7 +6949,7 @@ export default function App() {
                             {empSortField === "division" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
@@ -6971,28 +7039,32 @@ export default function App() {
                         const otPctSalary = Number(breakdown.otPctSalary) || 0;
 
                         return (
-                          <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                            {/* 1. รหัสพนักงาน */}
-                            <td className="px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap">
+                          <tr key={emp.id} className="group hover:bg-blue-50/40 transition-colors bg-white">
+                            {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px) */}
+                            <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap min-w-[90px] w-[90px]">
                               {emp.id}
                             </td>
-                            {/* 2. ชื่อ-นามสกุล */}
-                            <td className="px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap min-w-[220px]" onClick={() => setViewingEmployeeDetails(emp)}>
+
+                            {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px) */}
+                            <td className="sticky left-[90px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap min-w-[190px] w-[190px]" onClick={() => setViewingEmployeeDetails(emp)}>
                               <div className="flex items-center gap-2.5">
                                 <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-8 h-8 flex-shrink-0" />
                                 <span className="whitespace-nowrap font-extrabold">{emp.name}</span>
                               </div>
                             </td>
-                            {/* 3. ตำแหน่ง */}
-                            <td className="px-4 py-3.5 font-medium text-slate-700 whitespace-nowrap">
+
+                            {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px) */}
+                            <td className="sticky left-[280px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-medium text-slate-700 whitespace-nowrap min-w-[160px] w-[160px]">
                               {emp.role}
                             </td>
-                            {/* 4. แผนก */}
-                            <td className="px-4 py-3.5 font-bold text-slate-700 whitespace-nowrap">
+
+                            {/* 4. แผนก (Sticky Col 4: 440px - 550px) */}
+                            <td className="sticky left-[440px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-700 whitespace-nowrap min-w-[110px] w-[110px]">
                               {getDeptName(emp.deptId, state.departments)}
                             </td>
-                            {/* 5. ฝ่าย */}
-                            <td className="px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap">
+
+                            {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px) — DIVIDER BORDER & SHADOW */}
+                            <td className="sticky left-[550px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap min-w-[150px] w-[150px] border-r-2 border-slate-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]">
                               {emp.division || emp.groupName || "-"}
                             </td>
                             {/* 6. OT วันทำงาน (x1.5) */}

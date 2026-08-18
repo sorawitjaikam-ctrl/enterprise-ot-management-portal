@@ -590,7 +590,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             name = ?, deptId = ?, role = ?, targetOt = ?, groupName = ?, 
             salary = ?, division = ?, prefix = ?, firstName = ?, lastName = ?, 
             nickname = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, 
-            tenure = ?, probationDate = ?, calendarType = ?, resignationDate = ?, employmentStatus = ?
+            tenure = ?, probationDate = ?, calendarType = ?, resignationDate = ?, employmentStatus = ?,
+            shifts = COALESCE(?, shifts), planShifts = COALESCE(?, planShifts)
             WHERE id = ?`).bind(
               body.name || ((body.firstName || "") + " " + (body.lastName || "")).trim(),
               body.deptId || "inter2",
@@ -609,9 +610,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               body.startDate || "",
               body.tenure || "",
               body.probationDate || "",
-              body.calendarType || "ปฏิทินกะ 4-on-2-off",
+              body.calendarType || "ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)",
               body.resignationDate || "",
               body.employmentStatus || (body.resignationDate ? "Resigned" : "Active"),
+              body.shifts ? (typeof body.shifts === "string" ? body.shifts : JSON.stringify(body.shifts)) : null,
+              body.planShifts ? (typeof body.planShifts === "string" ? body.planShifts : JSON.stringify(body.planShifts)) : null,
               empId
             ).run();
         } catch (e) {
