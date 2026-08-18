@@ -2622,7 +2622,7 @@ export default function App() {
             กำลังโหลดโปรทัลจัดการ OT และตารางกะ
           </h2>
           <p className="text-xs text-slate-400 font-medium leading-relaxed mb-6">
-            เชื่อมต่อกับฐานข้อมูล Cloudflare D1 Database และเตรียมข้อมูลแผนกปฏิบัติงาน...
+            กำลังตรวจสอบสิทธิ์ความปลอดภัย และจัดเตรียมข้อมูลแผนกปฏิบัติงาน...
           </p>
 
           {/* Animated Glowing Progress Bar */}
@@ -2632,7 +2632,7 @@ export default function App() {
 
           {/* Subtitle / Version Info */}
           <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-            <span>Direct D1 Real-time Sync</span>
+            <span>Encrypted Real-time Sync</span>
             <span>•</span>
             <span>v2.5 Enterprise Edition</span>
           </div>
@@ -2858,7 +2858,7 @@ export default function App() {
     setTempEmployees(updated);
     setIsEditingShifts(true);
     setShowBulkShiftModal(false);
-    alert(`กำหนดกะงาน ${bulkShiftCode} ให้กลุ่ม ${bulkGroupName === "all" ? "ทุกกลุ่ม" : bulkGroupName} เรียบร้อยแล้ว!\n(กรุณากดปุ่ม "บันทึกการจัดกะ" สีเขียว เพื่อบันทึกลง Cloudflare D1)`);
+    alert(`กำหนดกะงาน ${bulkShiftCode} ให้กลุ่ม ${bulkGroupName === "all" ? "ทุกกลุ่ม" : bulkGroupName} เรียบร้อยแล้ว!\n(กรุณากดปุ่ม "บันทึกการจัดกะ" สีเขียว เพื่อบันทึกลงระบบ)`);
   };
 
   // OT Request Action Handlers
@@ -2919,7 +2919,7 @@ export default function App() {
       });
       setOtRequests(prev => [newReq, ...prev]);
       setNewOtReqReason("");
-      alert("ยื่นใบคำขอทำ OT ลง Cloudflare D1 Database เรียบร้อยแล้ว! ส่งเรื่องรอผู้บังคับบัญชาพิจารณาอนุมัติ");
+      alert("ยื่นใบคำขอทำ OT เรียบร้อยแล้ว! ส่งเรื่องรอผู้บังคับบัญชาพิจารณาอนุมัติ");
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการส่งคำขอ");
@@ -4235,7 +4235,7 @@ export default function App() {
                     ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
                   </h2>
                   <p className="text-xs text-slate-300 max-w-2xl leading-relaxed font-medium">
-                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณลอจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Direct D1 Database
+                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณลอจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
                   </p>
                 </div>
                 <div className="relative z-10 flex flex-wrap gap-3">
