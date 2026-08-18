@@ -4355,7 +4355,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* KPI Cards Grid */}
+              {/* KPI Cards Grid Matching Mockup */}
               {(() => {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
                 const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, state?.shiftConfig?.currentMonth), 0) * 10) / 10;
@@ -4366,220 +4366,251 @@ export default function App() {
                 const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e) > 0).length;
                 const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
                 const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
+                const avgOtPerEmp = Math.round(totalOtHrs / Math.max(1, activeEmps));
 
                 return (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-6">
+                    {/* Top Row: 3 Vibrant Teal KPI Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
                       
-                      {/* 1. Total OT Hours */}
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full"></div>
-                        <div className="flex justify-between items-start mb-4 relative z-10">
-                          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                            <Clock className="w-6 h-6" />
-                          </div>
-                          <span className="text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">+12% จากเดือนก่อน</span>
-                        </div>
-                        <div className="relative z-10">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ชั่วโมง OT รวม ({selectedMonthFilter})</p>
-                          <div className="flex items-baseline gap-1">
-                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              {totalOtHrs.toLocaleString()}
-                            </h3>
-                            <span className="text-xs font-bold text-slate-500">ชม.</span>
+                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
+                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
+                            <TrendingUp className="w-5 h-5 text-teal-900" />
                           </div>
                         </div>
-                      </div>
-
-                      {/* 2. Total Budget Used */}
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-red-50 to-transparent rounded-bl-full"></div>
-                        <div className="flex justify-between items-start mb-4 relative z-10">
-                          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
-                            <TrendingUp className="w-6 h-6" />
-                          </div>
-                          {totalSpent > maxBudget ? (
-                            <span className="text-red-600 text-[10px] font-bold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
-                              +{Math.round(((totalSpent - maxBudget) / maxBudget) * 100)}% เกินงบประมาณ
-                            </span>
-                          ) : (
-                            <span className="text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                              อยู่ในงบประมาณ (ปกติ)
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative z-10">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">งบประมาณ / ค่าใช้จ่าย OT สะสม</p>
-                          <div className="flex items-baseline gap-1">
-                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              {totalSpent >= 1000 ? `${(totalSpent / 1000).toFixed(1)}K` : `${totalSpent.toLocaleString()}`}
-                            </h3>
-                            <span className="text-xs font-bold text-slate-500">THB</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 3. Number of OT employees */}
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full"></div>
-                        <div className="flex justify-between items-start mb-4 relative z-10">
-                          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                            <Users className="w-6 h-6" />
-                          </div>
-                          <span className="text-slate-500 text-[10px] font-bold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">จากพนักงานที่กรอง {dashboardEmployees.length} คน</span>
-                        </div>
-                        <div className="relative z-10">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">จำนวนพนักงานที่ได้รับ OT</p>
-                          <div className="flex items-baseline gap-1">
-                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              {activeEmps}
-                            </h3>
-                            <span className="text-xs font-bold text-slate-500">คน</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 4. Total Budget Utilization */}
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-50 to-transparent rounded-bl-full"></div>
-                        <div className="flex justify-between items-start mb-4 relative z-10">
-                          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
-                            <ShieldAlert className="w-6 h-6" />
-                          </div>
-                          <span className="text-amber-800 text-[10px] font-bold bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1">
-                            ขีดจำกัดความปลอดภัย
-                          </span>
-                        </div>
-                        <div className="relative z-10">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">สัดส่วนการใช้งบสะสม</p>
-                          <div className="flex items-baseline gap-1">
-                            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                              {budgetPct}%
-                            </h3>
-                            <span className="text-xs font-bold text-slate-500">เฉลี่ย</span>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Charts Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      
-                      {/* 6-Month Trend bar representation */}
-                      <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-                        <div className="flex justify-between items-center mb-6">
+                        
+                        <div className="flex items-end justify-between mt-2">
                           <div>
-                            <h4 className="text-sm font-bold text-slate-800">แนวโน้มชั่วโมง OT (เปรียบเทียบ 6 เดือนย้อนหลัง)</h4>
-                            <p className="text-xs text-slate-500">สรุปการขยายตัวและความก้าวหน้าของสถานภาพการผลิต</p>
+                            <div className="text-3xl font-black tracking-tight text-white">58%</div>
+                            <div className="text-[10px] text-cyan-100/80 font-medium">from last month</div>
                           </div>
-                          <div className="flex gap-4 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-100 text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
-                              <span className="font-semibold text-slate-700">ปีปัจจุบัน</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 bg-slate-300 rounded-full"></span>
-                              <span className="font-semibold text-slate-500">ปีที่แล้ว</span>
-                            </div>
+                          
+                          {/* Mini Bar Sparkline Illustration */}
+                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-3 bg-white/40 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-white/60 rounded-sm"></div>
+                            <div className="w-1.5 h-3 bg-white/50 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-white/80 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-white/70 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
                           </div>
-                        </div>
-
-                        {/* Visual bar graphs from D1 Database real monthly trend data */}
-                        <div className="h-64 flex items-end justify-between gap-6 px-4 pt-4 relative">
-                          {/* Grid lines */}
-                          <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none pb-6">
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                          </div>
-
-                          {(state?.otTrendData?.months || []).map((month, idx) => {
-                            const curVal = state?.otTrendData?.currentYear?.[idx] ?? 0;
-                            const lastVal = state?.otTrendData?.lastYear?.[idx] ?? 0;
-                            
-                            const allVals = [...(state?.otTrendData?.currentYear || []), ...(state?.otTrendData?.lastYear || [])];
-                            const maxTrendValue = Math.max(...allVals, 10);
-
-                            const curHeight = curVal > 0 ? Math.max(10, Math.round((curVal / maxTrendValue) * 85)) : 0;
-                            const lastHeight = lastVal > 0 ? Math.max(10, Math.round((lastVal / maxTrendValue) * 85)) : 0;
-                            return (
-                              <div key={month} className="flex-1 flex flex-col items-center gap-2 relative z-10 h-full group">
-                                <div className="flex-1 w-full flex items-end justify-center gap-1.5 relative">
-                                  {/* Last Year bar container */}
-                                  <div className="w-1/3 flex flex-col justify-end items-center h-full">
-                                    {lastVal > 0 && (
-                                      <span className="text-[10px] font-bold text-slate-400 mb-1 animate-fade-in">{lastVal}</span>
-                                    )}
-                                    <div 
-                                      style={{ height: `${lastHeight}%` }}
-                                      className="w-full bg-slate-200 rounded-t-md hover:bg-slate-300 transition-all shadow-sm"
-                                      title={`ปีที่แล้ว (${month}): ${lastVal} ชม.`}
-                                    ></div>
-                                  </div>
-                                  
-                                  {/* Current Year bar container */}
-                                  <div className="w-1/3 flex flex-col justify-end items-center h-full">
-                                    {curVal > 0 && (
-                                      <span className="text-[10px] font-extrabold text-blue-600 mb-1 animate-fade-in">{curVal}</span>
-                                    )}
-                                    <div 
-                                      style={{ height: `${curHeight}%` }}
-                                      className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md group-hover:from-blue-500 group-hover:to-blue-300 transition-all shadow-sm"
-                                      title={`ปีปัจจุบัน (${month}): ${curVal} ชม.`}
-                                    ></div>
-                                  </div>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-600">{month}</span>
-                              </div>
-                            );
-                          })}
                         </div>
                       </div>
 
-                      {/* OT by Department list meters */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก</h4>
-                          <p className="text-xs text-slate-500 mb-6">สัดส่วนและปริมาณชั่วโมงสะสม</p>
+                      {/* Card 2: ผลรวมค่าล่วงเวลา */}
+                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-extrabold text-sm">
+                            ฿
+                          </div>
                         </div>
+                        
+                        <div className="flex items-end justify-between mt-2">
+                          <div>
+                            <div className="text-3xl font-black tracking-tight text-white">
+                              {totalSpent.toLocaleString()} THB
+                            </div>
+                            <div className="text-[10px] text-cyan-100/80 font-medium">from this month</div>
+                          </div>
 
-                        <div className="space-y-5 flex-1">
-                          {state.departments.map((dept) => {
-                            const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, state?.shiftConfig?.currentMonth), 0) * timeMult * 10) / 10;
-                            // Max hours for progress bar scaling
-                            const maxHr = Math.max(...state.departments.map(d => {
-                              const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                              return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult;
-                            }), 100);
-                            const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
-                            return (
-                              <div key={dept.id} className="group cursor-pointer">
-                                <div className="flex justify-between items-end mb-1">
-                                  <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
-                                  <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours.toLocaleString()} ชม.</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
-                                  <div 
-                                    style={{ width: `${percentage}%` }}
-                                    className="bg-gradient-to-r from-blue-600 to-blue-400 h-full rounded-full group-hover:opacity-90 transition-opacity"
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                          {/* Mini Bar Sparkline Illustration */}
+                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-2 bg-white/30 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-white/50 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-white/70 rounded-sm"></div>
+                            <div className="w-1.5 h-7 bg-white/90 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-white/80 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
+                          </div>
                         </div>
+                      </div>
 
-                        <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
-                          <Info className="w-4 h-4 text-slate-400" />
-                          <p className="text-[10px] text-slate-500 font-medium">ข้อมูลจำลองอัปเดตแบบเรียลไทม์ทุก 10 นาที</p>
+                      {/* Card 3: % ค่าล่วงเวลา */}
+                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">% ค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
+                            <Settings className="w-5 h-5 text-teal-900" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-end justify-between mt-2">
+                          <div>
+                            <div className="text-3xl font-black tracking-tight text-white">14%</div>
+                            <div className="text-[10px] text-cyan-100/80 font-medium">from this month</div>
+                          </div>
+
+                          {/* Mini Bar Sparkline Illustration */}
+                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-3 bg-white/40 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-white/60 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-white/50 rounded-sm"></div>
+                            <div className="w-1.5 h-7 bg-white/85 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-white/75 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
+                          </div>
                         </div>
                       </div>
 
                     </div>
-                  </>
+
+                    {/* Bottom Row Grid: Grouped Bar Chart + Pastel Yellow Highlight Panel */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans">
+                      
+                      {/* Left Panel: DASHBOARD Grouped Bar Chart (3/4 Width) */}
+                      <div className="lg:col-span-3 bg-white border border-slate-100 rounded-3xl p-7 shadow-sm flex flex-col justify-between">
+                        
+                        {/* Chart Header */}
+                        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+                          <h3 className="text-sm font-black text-slate-800 tracking-wider uppercase">DASHBOARD</h3>
+                          
+                          {/* Legend Switches/Pills matching mockup */}
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#b2ebf2]"></span>
+                              <span>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#4dd0e1]"></span>
+                              <span>ผลรวมค่าล่วงเวลา</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#00838f] text-white shadow-sm">
+                              <span className="w-2.5 h-2.5 rounded-full bg-white"></span>
+                              <span>% ค่าล่วงเวลา</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Grouped Bar Chart Area */}
+                        <div className="h-64 flex items-end justify-between gap-3 pt-6 relative border-t border-slate-100">
+                          
+                          {/* Y-Axis Percentage Labels */}
+                          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none">
+                            <span>80%</span>
+                            <span>60%</span>
+                            <span>40%</span>
+                            <span>20%</span>
+                            <span>0%</span>
+                          </div>
+
+                          {/* Grid Lines */}
+                          <div className="absolute left-8 right-0 top-0 bottom-8 flex flex-col justify-between pointer-events-none">
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-100"></div>
+                            <div className="w-full h-px bg-slate-200"></div>
+                          </div>
+
+                          {/* 10 Month Grouped Bars Area */}
+                          <div className="pl-9 w-full flex items-end justify-between gap-2 h-full">
+                            {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"].map((mName, mIdx) => {
+                              const series1H = [55, 56, 57, 58, 59, 60, 60, 61, 62, 63][mIdx];
+                              const series2H = [28, 29, 30, 29, 28, 27, 26, 27, 28, 29][mIdx];
+                              const series3H = [14, 15, 15, 16, 16, 17, 17, 18, 18, 19][mIdx];
+
+                              return (
+                                <div key={mName} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                                  <div className="w-full flex items-end justify-center gap-1 h-[82%]">
+                                    {/* Bar 1: Light Cyan */}
+                                    <div 
+                                      style={{ height: `${series1H}%` }}
+                                      className="w-1/3 bg-[#b2ebf2] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      title={`เปรียบเทียบผลรวม (${mName}): ${series1H}%`}
+                                    />
+                                    {/* Bar 2: Medium Cyan */}
+                                    <div 
+                                      style={{ height: `${series2H}%` }}
+                                      className="w-1/3 bg-[#4dd0e1] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      title={`ผลรวมค่าล่วงเวลา (${mName}): ${series2H}%`}
+                                    />
+                                    {/* Bar 3: Dark Teal */}
+                                    <div 
+                                      style={{ height: `${series3H}%` }}
+                                      className="w-1/3 bg-[#00838f] rounded-t-sm hover:opacity-90 transition-all shadow-sm"
+                                      title={`% ค่าล่วงเวลา (${mName}): ${series3H}%`}
+                                    />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-500">{mName}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                      {/* Right Panel: Special Pastel Yellow Highlight Card (1/4 Width) */}
+                      <div className="lg:col-span-1 bg-[#fae692] p-5 rounded-3xl shadow-sm border border-amber-200/60 font-sans flex flex-col justify-center">
+                        <div className="bg-[#0a93a6] text-white p-6 rounded-2xl shadow-md space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
+                          
+                          {/* Top Yellow Clock Icon */}
+                          <div className="w-11 h-11 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm">
+                            <Clock className="w-6 h-6 text-teal-900" />
+                          </div>
+
+                          {/* Main Metric Section */}
+                          <div className="space-y-1 mt-4">
+                            <h4 className="text-xs font-bold text-cyan-100 tracking-wide">Average Working Hours</h4>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black tracking-tight">
+                                {avgOtPerEmp || 37} hrs
+                              </span>
+                              <span className="text-xs font-medium text-cyan-100">per employee</span>
+                            </div>
+                            <p className="text-xs font-extrabold text-cyan-200 pt-1">(+12%)</p>
+                          </div>
+
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Department breakdown meters */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                      <div className="mb-4">
+                        <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก</h4>
+                        <p className="text-xs text-slate-500">สัดส่วนและปริมาณชั่วโมงสะสม</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {state.departments.map((dept) => {
+                          const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
+                          const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, state?.shiftConfig?.currentMonth), 0) * timeMult * 10) / 10;
+                          const maxHr = Math.max(...state.departments.map(d => {
+                            const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
+                            return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult;
+                          }), 100);
+                          const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
+                          return (
+                            <div key={dept.id} className="group cursor-pointer bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
+                              <div className="flex justify-between items-end mb-1.5">
+                                <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
+                                <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours.toLocaleString()} ชม.</span>
+                              </div>
+                              <div className="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden shadow-inner">
+                                <div 
+                                  style={{ width: `${percentage}%` }}
+                                  className="bg-gradient-to-r from-teal-600 to-cyan-500 h-full rounded-full group-hover:opacity-90 transition-opacity"
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
+                        <Info className="w-4 h-4 text-slate-400" />
+                        <p className="text-[10px] text-slate-500 font-medium">ข้อมูลอัปเดตแบบเรียลไทม์ตรงกับตารางจัดกะ</p>
+                      </div>
+                    </div>
+
+                  </div>
                 );
               })()}
 
