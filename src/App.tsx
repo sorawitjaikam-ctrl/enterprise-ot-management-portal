@@ -4383,7 +4383,7 @@ export default function App() {
 
                 const otComparePct = prevTotalSpent > 0 
                   ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
-                  : 58;
+                  : (totalSpent > 0 ? 100 : 0);
 
                 // 10-Month Dynamic Calculation Array (Jan - Oct 2026)
                 const monthKeys = ["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
@@ -6122,49 +6122,62 @@ export default function App() {
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-4">Organization chart</h2>
                 
                 {/* Main Grid: 2 Left Stacked Cards + Right Panels */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
                   
-                  {/* Left Column: 2 Stacked Cards (1/3 Width) */}
+                  {/* Left Column: 2 Stacked Minimalist Cards (1/3 Width) */}
                   <div className="space-y-6">
                     
-                    {/* Card 1: Current Total Employees (Dark Charcoal Card) */}
+                    {/* Card 1: Current Total Employees (Minimal Blue Accent) */}
                     {(() => {
                       const activeEmps = (state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
                       const resignedEmps = (state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length;
+                      const totalEmps = (state?.employees || []).length;
+                      const activeRatioPct = totalEmps > 0 ? Math.round((activeEmps / totalEmps) * 100) : 100;
 
                       return (
                         <>
-                          <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] p-6 rounded-3xl text-white shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700/50 group hover:shadow-md transition-all">
+                          <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
-                                <Users className="w-5 h-5 text-slate-900" />
+                              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs">
+                                <Users className="w-5 h-5 text-blue-700" />
                               </div>
                             </div>
                             
                             <div className="mt-4">
-                              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Current Total Employees</h4>
+                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Current Total Employees</h4>
                               <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-white">{activeEmps}/{activeEmps + 1}</span>
-                                <span className="text-xs font-semibold text-teal-300">in total</span>
+                                <span className="text-4xl font-black tracking-tight text-slate-900">{activeEmps}/{totalEmps}</span>
+                                <span className="text-xs font-semibold text-slate-500">in total</span>
                               </div>
-                              <p className="text-xs font-extrabold text-cyan-300 pt-1">(+5% from last month)</p>
+                              <p className="text-xs font-extrabold text-blue-600 pt-1">({activeRatioPct}% active workforce)</p>
                             </div>
                           </div>
 
-                          {/* Card 2: Case and Resigned (Dusty Pink Card) */}
-                          <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] p-6 rounded-3xl text-white shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700/50 group hover:shadow-md transition-all">
+                          {/* Card 2: Case and Resigned (Minimal Rose Accent) */}
+                          <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
-                                <UserX className="w-5 h-5 text-slate-900" />
+                              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shadow-2xs">
+                                <UserX className="w-5 h-5 text-rose-600" />
                               </div>
+
+                              {isHrOrFullAccess && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedEmpStatusTab("Resigned")}
+                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[10px] font-bold transition-all border border-rose-200/80 cursor-pointer shadow-2xs"
+                                  title="จัดการและดูประวัติพนักงานพ้นสภาพ"
+                                >
+                                  จัดการข้อมูล
+                                </button>
+                              )}
                             </div>
                             
                             <div className="mt-4">
-                              <h4 className="text-xs font-bold text-rose-100 uppercase tracking-wider mb-1">Case and Resigned</h4>
+                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Case and Resigned</h4>
                               <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-white">{resignedEmps || 2} Case</span>
+                                <span className="text-4xl font-black tracking-tight text-slate-900">{resignedEmps} Case</span>
                               </div>
-                              <p className="text-xs font-extrabold text-rose-100/90 pt-1">(-12% from last month)</p>
+                              <p className="text-xs font-extrabold text-slate-400 pt-1">(ประวัติพนักงานพ้นสภาพ/ลาออก)</p>
                             </div>
                           </div>
                         </>
@@ -6177,29 +6190,29 @@ export default function App() {
                   <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
                     
                     {/* Top Panel: DASHBOARD BY SECTION Stacked Area Chart */}
-                    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-between">
+                    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-between">
                       <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                        <h3 className="text-xs font-black text-slate-700 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
+                        <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
                         
                         {/* Section Legend Pills */}
                         <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
                             <span className="text-slate-600">INTER 2</span>
                           </div>
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
                             <span className="text-slate-600">INTER 3</span>
                           </div>
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></span>
                             <span className="text-slate-600">INTER 5</span>
                           </div>
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
                             <span className="text-slate-600">INTER 7</span>
                           </div>
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100">
+                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>
                             <span className="text-slate-600">HVM</span>
                           </div>
@@ -6230,16 +6243,16 @@ export default function App() {
                         {/* Area Chart SVG Stacked Layers */}
                         <div className="pl-8 h-full w-full relative">
                           <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                            {/* Layer 5: HVM (Pink top wave) */}
-                            <polygon points="0,40 10,30 20,26 30,35 40,24 50,24 60,25 70,32 80,30 90,27 100,25 100,100 0,100" fill="#f43f5e" opacity="0.25" />
-                            {/* Layer 4: INTER 7 (Yellow wave) */}
-                            <polygon points="0,50 10,48 20,42 30,52 40,40 50,40 60,41 70,43 80,42 90,40 100,38 100,100 0,100" fill="#eab308" opacity="0.3" />
-                            {/* Layer 3: INTER 5 (Purple wave) */}
+                            {/* Layer 5: HVM (Sky Blue wave) */}
+                            <polygon points="0,40 10,30 20,26 30,35 40,24 50,24 60,25 70,32 80,30 90,27 100,25 100,100 0,100" fill="#0284c7" opacity="0.3" />
+                            {/* Layer 4: INTER 7 (Amber Gold wave) */}
+                            <polygon points="0,50 10,48 20,42 30,52 40,40 50,40 60,41 70,43 80,42 90,40 100,38 100,100 0,100" fill="#d97706" opacity="0.35" />
+                            {/* Layer 3: INTER 5 (Indigo Purple wave) */}
                             <polygon points="0,60 10,58 20,54 30,61 40,57 50,56 60,57 70,59 80,56 90,54 100,52 100,100 0,100" fill="#6366f1" opacity="0.45" />
-                            {/* Layer 2: INTER 3 (Green wave) */}
-                            <polygon points="0,75 10,74 20,71 30,76 40,73 50,72 60,73 70,75 80,74 90,72 100,70 100,100 0,100" fill="#22c55e" opacity="0.5" />
-                            {/* Layer 1: INTER 2 (Orange bottom wave) */}
-                            <polygon points="0,90 10,89 20,88 30,90 40,89 50,89 60,89 70,91 80,90 90,88 100,86 100,100 0,100" fill="#f97316" opacity="0.75" />
+                            {/* Layer 2: INTER 3 (Emerald Green wave) */}
+                            <polygon points="0,75 10,74 20,71 30,76 40,73 50,72 60,73 70,75 80,74 90,72 100,70 100,100 0,100" fill="#059669" opacity="0.55" />
+                            {/* Layer 1: INTER 2 (Royal Blue bottom wave) */}
+                            <polygon points="0,90 10,89 20,88 30,90 40,89 50,89 60,89 70,91 80,90 90,88 100,86 100,100 0,100" fill="#2563eb" opacity="0.75" />
                           </svg>
                         </div>
 
@@ -6257,14 +6270,14 @@ export default function App() {
                     {(() => {
                       const activeEmps = (state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length;
                       const totalEmps = (state?.employees || []).length;
-                      const activeRatioPct = totalEmps > 0 ? Math.round((activeEmps / totalEmps) * 100) : 90;
+                      const activeRatioPct = totalEmps > 0 ? Math.round((activeEmps / totalEmps) * 100) : 100;
                       const activeIconsCount = Math.min(10, Math.round((activeRatioPct / 100) * 10));
 
                       return (
-                        <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
+                        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
                           
                           <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
                               <Globe className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -6274,7 +6287,7 @@ export default function App() {
                           </div>
 
                           {/* 10 People Icon Silhouettes */}
-                          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
                             {Array.from({ length: 10 }).map((_, idx) => (
                               <Users 
                                 key={idx} 
@@ -6285,8 +6298,8 @@ export default function App() {
 
                           {/* Percent badge */}
                           <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-slate-900">{activeRatioPct}%</span>
-                            <span className="text-xs font-bold text-emerald-600">(+5%)</span>
+                            <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
+                            <span className="text-xs font-bold text-emerald-600">(คำนวณจาก D1)</span>
                           </div>
 
                         </div>
@@ -6296,8 +6309,7 @@ export default function App() {
                   </div>
 
                 </div>
-              </div>
-              {/* Header block with employee database controls */}
+              </div>{/* Header block with employee database controls */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
