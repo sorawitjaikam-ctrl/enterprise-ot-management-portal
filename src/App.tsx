@@ -150,18 +150,75 @@ export const isJvDepartment = (deptNameOrId: string): boolean => {
   return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
 };
 
+export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
+  const mKey = monthKey || "2026-08";
+  if (!emp) return { normalOt: 0, holidayOt: 0, holidayWorkDays: 0, totalOtHours: 0, salary: 15000, hourlyRate: 62.5, totalOtPay: 0, otPctSalary: "0.00" };
+  
+  const empShifts = getEmpShiftsArray(emp.shifts, mKey);
+  let normalOt = 0;
+  let holidayOt = 0;
+  let holidayWorkDays = 0;
+
+  const [yStr, mStr] = mKey.split("-");
+  const yr = Number(yStr) || new Date().getFullYear();
+  const mn = Number(mStr) || (new Date().getMonth() + 1);
+  const totalDays = new Date(yr, mn, 0).getDate();
+  const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+  for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+    const shift = empShifts[dayNum - 1] || "O";
+    const otHrs = getShiftOtHours(shift);
+    const isOff = shift === "O" || shift === "OFF";
+
+    const dateObj = new Date(yr, mn - 1, dayNum);
+    const dayOfWeek = dateObj.getDay();
+    const dayTh = dayNames[dayOfWeek];
+    const isSunday = dayTh && dayTh.startsWith("อา");
+
+    if (shift === "OND" || (isSunday && !isOff)) {
+      holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
+      if (!isOff) holidayWorkDays += 1;
+    } else if (otHrs > 0) {
+      normalOt += otHrs;
+    }
+  }
+
+  const salary = Number(emp.salary) || 15000;
+  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+  const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
+  const totalOtHours = normalOt + holidayOt;
+  const otPctSalary = salary > 0 ? ((totalOtPay / salary) * 100).toFixed(2) : "0.00";
+
+  return {
+    normalOt,
+    holidayOt,
+    holidayWorkDays,
+    totalOtHours,
+    salary,
+    hourlyRate,
+    totalOtPay,
+    otPctSalary
+  };
+};
+
 export const getEmpCalculatedOt = (emp: any, monthKey?: string): number => {
   if (!emp) return 0;
-  const mKey = monthKey || "2026-08";
-  const shiftsArray = getEmpShiftsArray(emp.shifts, mKey);
-  if (shiftsArray && shiftsArray.length > 0) {
-    let total = 0;
-    for (let i = 0; i < shiftsArray.length; i++) {
-      total += getShiftOtHours(shiftsArray[i] || "O");
-    }
-    return total;
+  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
+  if (breakdown.totalOtHours > 0 || breakdown.holidayWorkDays > 0) {
+    return breakdown.totalOtHours;
   }
   return Number(emp.actualOt) || 0;
+};
+
+export const getEmpCalculatedOtPay = (emp: any, monthKey?: string): number => {
+  if (!emp) return 0;
+  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
+  if (breakdown.totalOtPay > 0) {
+    return breakdown.totalOtPay;
+  }
+  const salary = Number(emp.salary) || 15000;
+  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+  return Math.round((Number(emp.actualOt) || 0) * 1.5 * hourlyRate);
 };
 
 // ตรวจสอบว่า Plan กับ Actual ต่างกันหรือไม่
@@ -4213,12 +4270,10 @@ export default function App() {
               {/* KPI Cards Grid */}
               {(() => {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr), 0) * 10) / 10;
+                const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, state?.shiftConfig?.currentMonth), 0) * 10) / 10;
                 const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
                 const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
-                  const salary = Number(curr.salary) || 15000;
-                  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-                  return acc + (getEmpCalculatedOt(curr) * 1.5 * hourlyRate);
+                  return acc + getEmpCalculatedOtPay(curr, state?.shiftConfig?.currentMonth);
                 }, 0) * timeMult);
                 const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e) > 0).length;
                 const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
@@ -4405,7 +4460,7 @@ export default function App() {
                         <div className="space-y-5 flex-1">
                           {state.departments.map((dept) => {
                             const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult * 10) / 10;
+                            const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, state?.shiftConfig?.currentMonth), 0) * timeMult * 10) / 10;
                             // Max hours for progress bar scaling
                             const maxHr = Math.max(...state.departments.map(d => {
                               const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
