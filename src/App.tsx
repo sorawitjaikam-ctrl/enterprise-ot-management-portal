@@ -4371,10 +4371,10 @@ export default function App() {
                 }, 0) * timeMult);
                 
                 const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e, currentMonthKey) > 0).length;
-                const avgOtPerEmp = activeEmps > 0 ? Math.round(totalOtHrs / activeEmps) : 37;
+                const avgOtPerEmp = activeEmps > 0 ? Math.round(totalOtHrs / activeEmps) : 0;
                 
                 const totalBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
-                const otSalaryPct = totalBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / totalBaseSalary) * 100)) : 14;
+                const otSalaryPct = totalBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / totalBaseSalary) * 100)) : 0;
 
                 const prevMonthKey = currentMonthKey === "2026-08" ? "2026-07" : "2026-08";
                 const prevTotalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
@@ -4395,8 +4395,8 @@ export default function App() {
                   const pKey = idx > 0 ? monthKeys[idx - 1] : "2025-12";
                   const pSpent = dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOtPay(curr, pKey), 0);
                   
-                  const compPct = pSpent > 0 ? Math.round(((mSpent - pSpent) / pSpent) * 100) : (50 + idx);
-                  const salPct = totalBaseSalary > 0 ? Math.round((mSpent / totalBaseSalary) * 100) : (10 + idx);
+                  const compPct = mSpent > 0 ? (pSpent > 0 ? Math.round(((mSpent - pSpent) / pSpent) * 100) : 100) : 0;
+                  const salPct = totalBaseSalary > 0 && mSpent > 0 ? Math.round((mSpent / totalBaseSalary) * 100) : 0;
                   
                   return {
                     name: monthNames[idx],
@@ -4407,7 +4407,7 @@ export default function App() {
                   };
                 });
 
-                const maxSpentInYear = Math.max(...monthlyStats.map(s => s.spent), 10000);
+                const maxSpentInYear = Math.max(...monthlyStats.map(s => s.spent), 1);
 
                 return (
                   <div className="space-y-6 font-sans">
@@ -4550,10 +4550,10 @@ export default function App() {
                           {/* 10 Month DYNAMIC Grouped Bars Area */}
                           <div className="pl-9 w-full flex items-end justify-between gap-2 h-full">
                             {monthlyStats.map((st) => {
-                              // Dynamic bar heights computed from real monthly D1 data
-                              const bar1H = Math.min(80, Math.max(15, Math.abs(st.compPct)));
-                              const bar2H = Math.min(75, Math.max(10, Math.round((st.spent / maxSpentInYear) * 70)));
-                              const bar3H = Math.min(60, Math.max(8, st.salPct * 2.5));
+                              // Dynamic bar heights computed from real monthly D1 data (0% when spent is 0)
+                              const bar1H = st.spent > 0 ? Math.min(80, Math.max(4, Math.abs(st.compPct))) : 0;
+                              const bar2H = st.spent > 0 ? Math.min(75, Math.max(4, Math.round((st.spent / maxSpentInYear) * 70))) : 0;
+                              const bar3H = st.spent > 0 ? Math.min(60, Math.max(4, st.salPct * 2.5)) : 0;
 
                               return (
                                 <div key={st.name} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
@@ -4587,28 +4587,32 @@ export default function App() {
 
                       </div>
 
-                      {/* Right Panel: Executive Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 font-sans flex flex-col justify-center">
-                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white p-6 rounded-2xl shadow-lg border border-slate-800 space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
-                          
-                          {/* Yellow Clock Icon Badge */}
-                          <div className="w-11 h-11 rounded-2xl bg-[#fef08a] text-slate-900 flex items-center justify-center shadow-sm">
-                            <Clock className="w-6 h-6 text-slate-900" />
+                      {/* Right Panel: Minimal Clean Highlight Card (1/4 Width) */}
+                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm font-sans flex flex-col justify-between min-h-[260px] group hover:shadow-md transition-all">
+                        
+                        <div className="flex justify-between items-start">
+                          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shadow-2xs">
+                            <Clock className="w-6 h-6 text-amber-600" />
                           </div>
-
-                          {/* Main Metric Section */}
-                          <div className="space-y-1 mt-4">
-                            <h4 className="text-xs font-bold text-slate-300 tracking-wide">Average Working Hours</h4>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-4xl font-black tracking-tight text-white">
-                                {avgOtPerEmp} hrs
-                              </span>
-                              <span className="text-xs font-medium text-slate-300">per employee</span>
-                            </div>
-                            <p className="text-xs font-extrabold text-teal-400 pt-1">(+12% from target)</p>
-                          </div>
-
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-200/80">
+                            เฉลี่ยรายบุคคล
+                          </span>
                         </div>
+
+                        {/* Main Metric Section */}
+                        <div className="space-y-1.5 mt-4">
+                          <h4 className="text-xs font-bold text-slate-500 tracking-wide">Average Working Hours</h4>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black tracking-tight text-slate-900">
+                              {avgOtPerEmp} hrs
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500">per employee</span>
+                          </div>
+                          <p className="text-xs font-extrabold text-amber-600 pt-1">
+                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "⚠️ เกินเป้าหมาย 36 ชม./เดือน" : "✓ อยู่ในเกณฑ์มาตรฐาน") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
+                          </p>
+                        </div>
+
                       </div>
 
                     </div>
