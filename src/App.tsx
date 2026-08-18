@@ -4407,6 +4407,7 @@ export default function App() {
 
                 // Base salary calculation across the selected time period
                 const singleMonthBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
+                const totalBaseSalary = singleMonthBaseSalary;
                 const periodTotalSalary = singleMonthBaseSalary * activeMonthsList.length;
                 const otSalaryPct = periodTotalSalary > 0 && totalSpent > 0 ? Math.min(100, Math.round((totalSpent / periodTotalSalary) * 100)) : 0;
 
