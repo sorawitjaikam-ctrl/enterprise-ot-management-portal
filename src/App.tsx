@@ -1138,7 +1138,7 @@ function HrDirectEditorView({
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#0f2347]" />
+            <FileText className="w-5 h-5 text-slate-800" />
             <span>ศูนย์จัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)</span>
           </h3>
           <p className="text-xs text-slate-500 mt-1">
@@ -4390,7 +4390,7 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
                       
                       {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-br from-[#0c1938] via-[#0f244c] to-[#162e5c] border border-[#1b356b]/50 text-white p-6 rounded-3xl shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow">
+                      <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] border border-slate-700/50 text-white p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-cyan-100 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
@@ -4417,7 +4417,7 @@ export default function App() {
                       </div>
 
                       {/* Card 2: ผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-br from-[#0b1830] via-[#0f2347] to-[#152e5c] border border-[#1b356b]/50 text-white p-6 rounded-3xl shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow">
+                      <div className="bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#0f766e] border border-sky-300/40 text-white p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-cyan-100 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-extrabold text-sm">
@@ -4562,8 +4562,8 @@ export default function App() {
                       </div>
 
                       {/* Right Panel: Special Pastel Yellow Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-[#0c1938] p-5 rounded-3xl shadow-sm border border-[#1b356b]/50 font-sans flex flex-col justify-center">
-                        <div className="bg-gradient-to-br from-[#122858] via-[#1a397a] to-[#0f2347] text-white p-6 rounded-2xl shadow-lg border border-white/10 space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
+                      <div className="lg:col-span-1 bg-slate-100/90 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-slate-200/80 font-sans flex flex-col justify-center">
+                        <div className="bg-gradient-to-br from-[#1e3a8a] via-[#1e293b] to-[#0f172a] text-white p-6 rounded-2xl shadow-md border border-white/10 space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
                           
                           {/* Top Yellow Clock Icon */}
                           <div className="w-11 h-11 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm">
@@ -6108,7 +6108,7 @@ export default function App() {
 
                       return (
                         <>
-                          <div className="bg-gradient-to-br from-[#0c1938] via-[#0f244c] to-[#162e5c] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-[#1b356b]/50 group hover:shadow-lg transition-shadow">
+                          <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] p-6 rounded-3xl text-white shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700/50 group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
                                 <Users className="w-5 h-5 text-slate-900" />
@@ -6126,7 +6126,7 @@ export default function App() {
                           </div>
 
                           {/* Card 2: Case and Resigned (Dusty Pink Card) */}
-                          <div className="bg-gradient-to-br from-[#1c2b4a] via-[#172542] to-[#0c1938] p-6 rounded-3xl text-white shadow-md flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-[#1b356b]/50 group hover:shadow-lg transition-shadow">
+                          <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] p-6 rounded-3xl text-white shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden border border-slate-700/50 group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-slate-900 flex items-center justify-center shadow-sm">
                                 <UserX className="w-5 h-5 text-slate-900" />
@@ -6238,7 +6238,7 @@ export default function App() {
                         <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
                           
                           <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-[#0f2347] text-white flex items-center justify-center shadow-sm">
+                            <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
                               <Globe className="w-6 h-6 text-white" />
                             </div>
                             <div>
@@ -6259,7 +6259,7 @@ export default function App() {
 
                           {/* Percent badge */}
                           <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-[#0f2347]">{activeRatioPct}%</span>
+                            <span className="text-3xl font-black text-slate-900">{activeRatioPct}%</span>
                             <span className="text-xs font-bold text-emerald-600">(+5%)</span>
                           </div>
 
