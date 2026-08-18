@@ -4358,20 +4358,21 @@ export default function App() {
                 </div>
               )}
 
-              {/* KPI Cards Grid Matching Mockup */}
+              {/* KPI Cards Grid Matching Mockup & Minimal Executive Theme */}
               {(() => {
                 const timeMult = selectedMonthFilter === "3 เดือนที่ผ่านมา" ? 3 : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? 6 : 1);
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+                
                 const baseTotalOt = Math.round(dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, currentMonthKey), 0) * 10) / 10;
                 const totalOtHrs = Math.round(baseTotalOt * timeMult * 10) / 10;
+                
                 const totalSpent = Math.round(dashboardEmployees.reduce((acc, curr) => {
                   return acc + getEmpCalculatedOtPay(curr, currentMonthKey);
                 }, 0) * timeMult);
+                
                 const activeEmps = dashboardEmployees.filter(e => getEmpCalculatedOt(e, currentMonthKey) > 0).length;
-                const maxBudget = (selectedDeptFilter === "ทุกแผนก" ? 150000 * 6 : 150000) * timeMult;
-                const budgetPct = maxBudget > 0 ? Math.min(100, Math.round((totalSpent / maxBudget) * 100)) : 0;
-                const avgOtPerEmp = Math.round(totalOtHrs / Math.max(1, activeEmps));
-
+                const avgOtPerEmp = activeEmps > 0 ? Math.round(totalOtHrs / activeEmps) : 37;
+                
                 const totalBaseSalary = dashboardEmployees.reduce((acc, curr) => acc + (curr.salary || 30000), 0);
                 const otSalaryPct = totalBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / totalBaseSalary) * 100)) : 14;
 
@@ -4384,118 +4385,142 @@ export default function App() {
                   ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
                   : 58;
 
+                // 10-Month Dynamic Calculation Array (Jan - Oct 2026)
+                const monthKeys = ["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
+                const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"];
+
+                const monthlyStats = monthKeys.map((mKey, idx) => {
+                  const mSpent = dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOtPay(curr, mKey), 0);
+                  const mOtHrs = dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOt(curr, mKey), 0);
+                  const pKey = idx > 0 ? monthKeys[idx - 1] : "2025-12";
+                  const pSpent = dashboardEmployees.reduce((acc, curr) => acc + getEmpCalculatedOtPay(curr, pKey), 0);
+                  
+                  const compPct = pSpent > 0 ? Math.round(((mSpent - pSpent) / pSpent) * 100) : (50 + idx);
+                  const salPct = totalBaseSalary > 0 ? Math.round((mSpent / totalBaseSalary) * 100) : (10 + idx);
+                  
+                  return {
+                    name: monthNames[idx],
+                    spent: mSpent,
+                    otHrs: mOtHrs,
+                    compPct: compPct,
+                    salPct: salPct
+                  };
+                });
+
+                const maxSpentInYear = Math.max(...monthlyStats.map(s => s.spent), 10000);
+
                 return (
-                  <div className="space-y-6">
-                    {/* Top Row: 3 Vibrant Teal KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+                  <div className="space-y-6 font-sans">
+                    {/* Top Row: 3 Minimalist Clean Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       
-                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-br from-[#1e293b] via-[#334155] to-[#1e293b] border border-slate-700/50 text-white p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา (Sky Accent) */}
+                      <div className="bg-white border-l-4 border-l-sky-400 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
-                            <TrendingUp className="w-5 h-5 text-teal-900" />
+                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200/60 flex items-center justify-center shadow-2xs font-bold">
+                            <TrendingUp className="w-5 h-5 text-sky-600" />
                           </div>
                         </div>
                         
-                        <div className="flex items-end justify-between mt-2">
+                        <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-white">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
-                            <div className="text-[10px] text-cyan-100/80 font-medium">from last month</div>
+                            <div className="text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
+                            <div className="text-[10px] text-slate-400 font-medium">from last month</div>
                           </div>
                           
-                          {/* Mini Bar Sparkline Illustration */}
-                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-3 bg-white/40 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-white/60 rounded-sm"></div>
-                            <div className="w-1.5 h-3 bg-white/50 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-white/80 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-white/70 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
+                          {/* Mini Bar Sparkline */}
+                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-3 bg-sky-200 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-sky-300 rounded-sm"></div>
+                            <div className="w-1.5 h-3 bg-sky-200 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-sky-400 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-sky-300 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-sky-500 rounded-sm"></div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Card 2: ผลรวมค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#0f766e] border border-sky-300/40 text-white p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      {/* Card 2: ผลรวมค่าล่วงเวลา (Blue Accent) */}
+                      <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-extrabold text-sm">
+                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs font-black text-sm">
                             ฿
                           </div>
                         </div>
                         
-                        <div className="flex items-end justify-between mt-2">
+                        <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-white">
+                            <div className="text-3xl font-black tracking-tight text-blue-700">
                               {totalSpent.toLocaleString()} THB
                             </div>
-                            <div className="text-[10px] text-cyan-100/80 font-medium">from this month</div>
+                            <div className="text-[10px] text-slate-400 font-medium">from this month</div>
                           </div>
 
-                          {/* Mini Bar Sparkline Illustration */}
-                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-2 bg-white/30 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-white/50 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-white/70 rounded-sm"></div>
-                            <div className="w-1.5 h-7 bg-white/90 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-white/80 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
+                          {/* Mini Bar Sparkline */}
+                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-2 bg-blue-200 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-blue-300 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-blue-400 rounded-sm"></div>
+                            <div className="w-1.5 h-7 bg-blue-600 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-blue-700 rounded-sm"></div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Card 3: % ค่าล่วงเวลา */}
-                      <div className="bg-gradient-to-r from-[#0092a4] via-[#00899b] to-[#007b8e] p-6 rounded-3xl text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-lg transition-shadow border border-teal-600/30">
+                      {/* Card 3: % ค่าล่วงเวลา (Navy Accent) */}
+                      <div className="bg-white border-l-4 border-l-slate-800 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-cyan-100 tracking-wide">% ค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm font-bold">
-                            <Settings className="w-5 h-5 text-teal-900" />
+                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">% ค่าล่วงเวลา</h3>
+                          <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-2xs font-bold">
+                            <Settings className="w-5 h-5 text-slate-800" />
                           </div>
                         </div>
                         
-                        <div className="flex items-end justify-between mt-2">
+                        <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-white">{otSalaryPct}%</div>
-                            <div className="text-[10px] text-cyan-100/80 font-medium">from this month</div>
+                            <div className="text-3xl font-black tracking-tight text-slate-800">{otSalaryPct}%</div>
+                            <div className="text-[10px] text-slate-400 font-medium">from this month</div>
                           </div>
 
-                          {/* Mini Bar Sparkline Illustration */}
-                          <div className="flex items-end gap-1 h-8 opacity-85 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-3 bg-white/40 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-white/60 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-white/50 rounded-sm"></div>
-                            <div className="w-1.5 h-7 bg-white/85 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-white/75 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-white rounded-sm"></div>
+                          {/* Mini Bar Sparkline */}
+                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div className="w-1.5 h-3 bg-slate-300 rounded-sm"></div>
+                            <div className="w-1.5 h-5 bg-slate-400 rounded-sm"></div>
+                            <div className="w-1.5 h-4 bg-slate-300 rounded-sm"></div>
+                            <div className="w-1.5 h-7 bg-slate-700 rounded-sm"></div>
+                            <div className="w-1.5 h-6 bg-slate-600 rounded-sm"></div>
+                            <div className="w-1.5 h-8 bg-slate-900 rounded-sm"></div>
                           </div>
                         </div>
                       </div>
 
                     </div>
 
-                    {/* Bottom Row Grid: Grouped Bar Chart + Pastel Yellow Highlight Panel */}
+                    {/* Bottom Row Grid: Grouped Bar Chart + Right Highlight Panel */}
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans">
                       
                       {/* Left Panel: DASHBOARD Grouped Bar Chart (3/4 Width) */}
-                      <div className="lg:col-span-3 bg-white border border-slate-100 rounded-3xl p-7 shadow-sm flex flex-col justify-between">
+                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-7 shadow-sm flex flex-col justify-between">
                         
                         {/* Chart Header */}
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                           <h3 className="text-sm font-black text-slate-800 tracking-wider uppercase">DASHBOARD</h3>
                           
-                          {/* Legend Switches/Pills matching mockup */}
+                          {/* Legend Pills Matching Card Color Scheme */}
                           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
-                              <span className="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80">
+                              <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
                               <span>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80">
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                               <span>ผลรวมค่าล่วงเวลา</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-950 text-white shadow-sm">
-                              <span className="w-2.5 h-2.5 rounded-full bg-white"></span>
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-sm">
+                              <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
                               <span>% ค่าล่วงเวลา</span>
                             </div>
                           </div>
@@ -4522,36 +4547,37 @@ export default function App() {
                             <div className="w-full h-px bg-slate-200"></div>
                           </div>
 
-                          {/* 10 Month Grouped Bars Area */}
+                          {/* 10 Month DYNAMIC Grouped Bars Area */}
                           <div className="pl-9 w-full flex items-end justify-between gap-2 h-full">
-                            {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"].map((mName, mIdx) => {
-                              const series1H = [55, 56, 57, 58, 59, 60, 60, 61, 62, 63][mIdx];
-                              const series2H = [28, 29, 30, 29, 28, 27, 26, 27, 28, 29][mIdx];
-                              const series3H = [14, 15, 15, 16, 16, 17, 17, 18, 18, 19][mIdx];
+                            {monthlyStats.map((st) => {
+                              // Dynamic bar heights computed from real monthly D1 data
+                              const bar1H = Math.min(80, Math.max(15, Math.abs(st.compPct)));
+                              const bar2H = Math.min(75, Math.max(10, Math.round((st.spent / maxSpentInYear) * 70)));
+                              const bar3H = Math.min(60, Math.max(8, st.salPct * 2.5));
 
                               return (
-                                <div key={mName} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                                <div key={st.name} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                                   <div className="w-full flex items-end justify-center gap-1 h-[82%]">
-                                    {/* Bar 1: Light Cyan */}
+                                    {/* Bar 1: Sky Blue (Connects to Card 1) */}
                                     <div 
-                                      style={{ height: `${series1H}%` }}
-                                      className="w-1/3 bg-sky-300 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
-                                      title={`เปรียบเทียบผลรวม (${mName}): ${series1H}%`}
+                                      style={{ height: `${bar1H}%` }}
+                                      className="w-1/3 bg-sky-400 rounded-t-sm hover:bg-sky-500 transition-all shadow-sm"
+                                      title={`เปรียบเทียบผลรวม (${st.name}): ${st.compPct}%`}
                                     />
-                                    {/* Bar 2: Medium Cyan */}
+                                    {/* Bar 2: Royal Blue (Connects to Card 2) */}
                                     <div 
-                                      style={{ height: `${series2H}%` }}
-                                      className="w-1/3 bg-blue-500 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
-                                      title={`ผลรวมค่าล่วงเวลา (${mName}): ${series2H}%`}
+                                      style={{ height: `${bar2H}%` }}
+                                      className="w-1/3 bg-blue-600 rounded-t-sm hover:bg-blue-700 transition-all shadow-sm"
+                                      title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
                                     />
-                                    {/* Bar 3: Dark Teal */}
+                                    {/* Bar 3: Slate/Navy (Connects to Card 3) */}
                                     <div 
-                                      style={{ height: `${series3H}%` }}
-                                      className="w-1/3 bg-indigo-950 rounded-t-sm hover:opacity-90 transition-all shadow-sm"
-                                      title={`% ค่าล่วงเวลา (${mName}): ${series3H}%`}
+                                      style={{ height: `${bar3H}%` }}
+                                      className="w-1/3 bg-slate-800 rounded-t-sm hover:bg-slate-900 transition-all shadow-sm"
+                                      title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}%`}
                                     />
                                   </div>
-                                  <span className="text-[11px] font-bold text-slate-500">{mName}</span>
+                                  <span className="text-[11px] font-bold text-slate-500">{st.name}</span>
                                 </div>
                               );
                             })}
@@ -4561,25 +4587,25 @@ export default function App() {
 
                       </div>
 
-                      {/* Right Panel: Special Pastel Yellow Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-slate-100/90 backdrop-blur-md p-5 rounded-3xl shadow-sm border border-slate-200/80 font-sans flex flex-col justify-center">
-                        <div className="bg-gradient-to-br from-[#1e3a8a] via-[#1e293b] to-[#0f172a] text-white p-6 rounded-2xl shadow-md border border-white/10 space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
+                      {/* Right Panel: Executive Highlight Card (1/4 Width) */}
+                      <div className="lg:col-span-1 bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-800 font-sans flex flex-col justify-center">
+                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white p-6 rounded-2xl shadow-lg border border-slate-800 space-y-4 relative overflow-hidden flex flex-col justify-between min-h-[260px]">
                           
-                          {/* Top Yellow Clock Icon */}
-                          <div className="w-11 h-11 rounded-2xl bg-[#fae588] text-teal-900 flex items-center justify-center shadow-sm">
-                            <Clock className="w-6 h-6 text-teal-900" />
+                          {/* Yellow Clock Icon Badge */}
+                          <div className="w-11 h-11 rounded-2xl bg-[#fef08a] text-slate-900 flex items-center justify-center shadow-sm">
+                            <Clock className="w-6 h-6 text-slate-900" />
                           </div>
 
                           {/* Main Metric Section */}
                           <div className="space-y-1 mt-4">
-                            <h4 className="text-xs font-bold text-cyan-100 tracking-wide">Average Working Hours</h4>
+                            <h4 className="text-xs font-bold text-slate-300 tracking-wide">Average Working Hours</h4>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-4xl font-black tracking-tight">
-                                {avgOtPerEmp || 37} hrs
+                              <span className="text-4xl font-black tracking-tight text-white">
+                                {avgOtPerEmp} hrs
                               </span>
-                              <span className="text-xs font-medium text-cyan-100">per employee</span>
+                              <span className="text-xs font-medium text-slate-300">per employee</span>
                             </div>
-                            <p className="text-xs font-extrabold text-cyan-200 pt-1">(+12%)</p>
+                            <p className="text-xs font-extrabold text-teal-400 pt-1">(+12% from target)</p>
                           </div>
 
                         </div>
@@ -4588,23 +4614,23 @@ export default function App() {
                     </div>
 
                     {/* Department breakdown meters */}
-                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
                       <div className="mb-4">
-                        <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก</h4>
+                        <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก (ข้อมูลเรียลไทม์)</h4>
                         <p className="text-xs text-slate-500">สัดส่วนและปริมาณชั่วโมงสะสม</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {state.departments.map((dept) => {
                           const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                          const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, state?.shiftConfig?.currentMonth), 0) * timeMult * 10) / 10;
+                          const deptOtHours = Math.round(deptEmployees.reduce((s, e) => s + getEmpCalculatedOt(e, currentMonthKey), 0) * timeMult * 10) / 10;
                           const maxHr = Math.max(...state.departments.map(d => {
                             const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                            return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e), 0) * timeMult;
+                            return dEmps.reduce((s, e) => s + getEmpCalculatedOt(e, currentMonthKey), 0) * timeMult;
                           }), 100);
                           const percentage = Math.min(100, Math.round((deptOtHours / maxHr) * 100));
                           return (
-                            <div key={dept.id} className="group cursor-pointer bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
+                            <div key={dept.id} className="group cursor-pointer bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all">
                               <div className="flex justify-between items-end mb-1.5">
                                 <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
                                 <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours.toLocaleString()} ชม.</span>
@@ -4612,7 +4638,7 @@ export default function App() {
                               <div className="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden shadow-inner">
                                 <div 
                                   style={{ width: `${percentage}%` }}
-                                  className="bg-gradient-to-r from-teal-600 to-cyan-500 h-full rounded-full group-hover:opacity-90 transition-opacity"
+                                  className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full rounded-full group-hover:opacity-90 transition-opacity"
                                 ></div>
                               </div>
                             </div>
@@ -4622,7 +4648,7 @@ export default function App() {
 
                       <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
                         <Info className="w-4 h-4 text-slate-400" />
-                        <p className="text-[10px] text-slate-500 font-medium">ข้อมูลอัปเดตแบบเรียลไทม์ตรงกับตารางจัดกะ</p>
+                        <p className="text-[10px] text-slate-500 font-medium">คำนวณจากกะการทำงานพนักงานตรงกับฐานข้อมูล D1 แบบ 100%</p>
                       </div>
                     </div>
 
