@@ -7725,7 +7725,7 @@ export default function App() {
                         {/* Monthly sub-columns (Ultra-Compact w-[200px]) */}
                         <div className="flex flex-col">
                           <div className="bg-[#1b365d] text-white text-[10px] font-black text-center py-1 tracking-wider uppercase border-b border-[#1b365d] w-[200px]">
-                            MONTHLY
+                            {shiftViewMode === "plan" ? "MONTHLY (PLAN)" : shiftViewMode === "actual" ? "MONTHLY (ACTUAL)" : "MONTHLY (ACTUAL / DIFF)"}
                           </div>
                           <div className="flex text-[9px] font-black text-slate-800 text-center divide-x divide-slate-300">
                             <div className="w-14 py-1.5 flex items-center justify-center bg-slate-100">OT ปกติ</div>
@@ -7907,30 +7907,75 @@ export default function App() {
                                       })()}
                                     </div>
 
-                                    {/* Monthly Summary Cells per Employee */}
+                                    {/* Monthly Summary Cells per Employee (Plan / Actual / Plan+Actual Diff) */}
                                     {(() => {
-                                      const empShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
-                                      let normalOt = 0;
-                                      let holidayOt = 0;
-                                      let holidayWorkDays = 0;
+                                      const planShifts = getEmpShiftsArray(emp.planShifts || emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
+                                      const actualShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
 
-                                      currentDays.forEach((day) => {
-                                        const shift = empShifts[day.n - 1] || "O";
-                                        const otHrs = getShiftOtHours(shift);
-                                        const isOff = shift === "O" || shift === "OFF";
+                                      const calcBreakdown = (shiftsArr: string[]) => {
+                                        let normalOt = 0;
+                                        let holidayOt = 0;
+                                        let holidayWorkDays = 0;
 
-                                        if (shift === "OND" || (day.th && day.th.startsWith("อา") && !isOff)) {
-                                          holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
-                                          if (!isOff) holidayWorkDays += 1;
-                                        } else if (otHrs > 0) {
-                                          normalOt += otHrs;
+                                        currentDays.forEach((day) => {
+                                          const shift = shiftsArr[day.n - 1] || "O";
+                                          const otHrs = getShiftOtHours(shift);
+                                          const isOff = shift === "O" || shift === "OFF";
+
+                                          if (shift === "OND" || (day.th && day.th.startsWith("อา") && !isOff)) {
+                                            holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
+                                            if (!isOff) holidayWorkDays += 1;
+                                          } else if (otHrs > 0) {
+                                            normalOt += otHrs;
+                                          }
+                                        });
+
+                                        const salary = emp.salary || 15000;
+                                        const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+                                        const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
+                                        const otPctSalary = salary > 0 ? ((totalOtPay / salary) * 100).toFixed(2) : "0.00";
+
+                                        return { normalOt, holidayOt, holidayWorkDays, salary, hourlyRate, totalOtPay, otPctSalary: Number(otPctSalary) || 0 };
+                                      };
+
+                                      const planData = calcBreakdown(planShifts);
+                                      const actualData = calcBreakdown(actualShifts);
+
+                                      const isPlanMode = shiftViewMode === "plan";
+                                      const isBothMode = shiftViewMode === "both";
+
+                                      // Main display data
+                                      const mainData = isPlanMode ? planData : actualData;
+
+                                      // Differences (Actual - Plan)
+                                      const diffNormalOt = actualData.normalOt - planData.normalOt;
+                                      const diffHolidayOt = actualData.holidayOt - planData.holidayOt;
+                                      const diffHolidayWorkDays = actualData.holidayWorkDays - planData.holidayWorkDays;
+                                      const diffTotalOtPay = actualData.totalOtPay - planData.totalOtPay;
+                                      const diffOtPctSalary = (actualData.otPctSalary - planData.otPctSalary).toFixed(2);
+
+                                      const renderDiff = (diffVal: number, unit = "", isCurrency = false) => {
+                                        if (!isBothMode) return null;
+                                        if (diffVal > 0) {
+                                          return (
+                                            <span className="text-[8px] font-black text-rose-600 font-mono tracking-tighter leading-none mt-0.5">
+                                              +{isCurrency ? diffVal.toLocaleString() : diffVal}{unit}
+                                            </span>
+                                          );
                                         }
-                                      });
-
-                                      const salary = emp.salary || 15000;
-                                      const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-                                      const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
-                                      const otPctSalary = salary > 0 ? ((totalOtPay / salary) * 100).toFixed(2) : "0.00";
+                                        if (diffVal < 0) {
+                                          return (
+                                            <span className="text-[8px] font-black text-emerald-600 font-mono tracking-tighter leading-none mt-0.5">
+                                              {isCurrency ? diffVal.toLocaleString() : diffVal}{unit}
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span className="text-[8px] font-bold text-slate-400 font-mono tracking-tighter leading-none mt-0.5">
+                                            ±0{unit}
+                                          </span>
+                                        );
+                                      };
 
                                       return (
                                         <div 
@@ -7938,39 +7983,46 @@ export default function App() {
                                             e.stopPropagation();
                                             setViewingSalaryFormulaEmployee({
                                               emp,
-                                              normalOt,
-                                              holidayOt,
-                                              holidayWorkDays,
-                                              salary,
-                                              hourlyRate,
-                                              totalOtPay,
-                                              otPctSalary
+                                              normalOt: mainData.normalOt,
+                                              holidayOt: mainData.holidayOt,
+                                              holidayWorkDays: mainData.holidayWorkDays,
+                                              salary: mainData.salary,
+                                              hourlyRate: mainData.hourlyRate,
+                                              totalOtPay: mainData.totalOtPay,
+                                              otPctSalary: mainData.otPctSalary.toFixed(2)
                                             });
                                           }}
-                                          title="คลิกเพื่อดูรายละเอียดสูตรและการคำนวณค่าล่วงเวลา (OT)"
+                                          title={`คลิกเพื่อดูรายละเอียดสูตรการคำนวณค่าล่วงเวลา (${isPlanMode ? 'โหมด Plan' : isBothMode ? 'โหมด Plan+Actual (Diff)' : 'โหมด Actual'})`}
                                           className="flex-shrink-0 border-l border-slate-300 flex font-mono text-xs divide-x divide-slate-200 bg-white select-none cursor-pointer hover:bg-blue-50/50 transition-colors duration-150"
                                         >
                                           {/* OT ปกติ (w-14 / 56px) */}
-                                          <div className="w-14 flex items-center justify-center font-bold text-slate-800 text-[11px]">
-                                            {normalOt > 0 ? normalOt : <span className="text-slate-300">-</span>}
+                                          <div className="w-14 flex flex-col items-center justify-center font-bold text-slate-800 text-[11px] py-1">
+                                            <span>{mainData.normalOt > 0 ? mainData.normalOt : <span className="text-slate-300 font-normal">-</span>}</span>
+                                            {renderDiff(diffNormalOt)}
                                           </div>
+
                                           {/* OT วันหยุด (w-16 / 64px) */}
-                                          <div className="w-16 flex items-center justify-center font-bold text-slate-800 text-[11px]">
-                                            {holidayOt > 0 ? holidayOt : <span className="text-slate-300">-</span>}
+                                          <div className="w-16 flex flex-col items-center justify-center font-bold text-slate-800 text-[11px] py-1">
+                                            <span>{mainData.holidayOt > 0 ? mainData.holidayOt : <span className="text-slate-300 font-normal">-</span>}</span>
+                                            {renderDiff(diffHolidayOt)}
                                           </div>
+
                                           {/* ทำงานวันหยุด (w-20 / 80px) */}
-                                          <div className="w-20 flex items-center justify-center font-bold text-slate-800 text-[11px]">
-                                            {holidayWorkDays > 0 ? holidayWorkDays : <span className="text-slate-300">-</span>}
+                                          <div className="w-20 flex flex-col items-center justify-center font-bold text-slate-800 text-[11px] py-1">
+                                            <span>{mainData.holidayWorkDays > 0 ? mainData.holidayWorkDays : <span className="text-slate-300 font-normal">-</span>}</span>
+                                            {renderDiff(diffHolidayWorkDays)}
                                           </div>
 
                                           {/* Green Column: Cost (Baht) (w-24 / 96px) */}
-                                          <div className="w-24 flex items-center justify-end pr-2.5 font-bold text-slate-800 bg-[#1a4731]/5 border-r border-slate-200 text-[11px]">
-                                            {totalOtPay > 0 ? totalOtPay.toLocaleString() : <span className="text-slate-300">-</span>}
+                                          <div className="w-24 flex flex-col items-end justify-center pr-2.5 font-bold text-slate-800 bg-[#1a4731]/5 border-r border-slate-200 text-[11px] py-1">
+                                            <span>{mainData.totalOtPay > 0 ? mainData.totalOtPay.toLocaleString() : <span className="text-slate-300 font-normal">-</span>}</span>
+                                            {renderDiff(diffTotalOtPay, "", true)}
                                           </div>
 
                                           {/* Purple Column: Cost % (w-18 / 72px) */}
-                                          <div className="w-18 flex items-center justify-end pr-2.5 font-bold text-slate-800 bg-[#995c7f]/5 text-[11px]">
-                                            {totalOtPay > 0 ? `${otPctSalary}%` : <span className="text-slate-300">-</span>}
+                                          <div className="w-18 flex flex-col items-end justify-center pr-2.5 font-bold text-slate-800 bg-[#995c7f]/5 text-[11px] py-1">
+                                            <span>{mainData.totalOtPay > 0 ? `${mainData.otPctSalary}%` : <span className="text-slate-300 font-normal">-</span>}</span>
+                                            {renderDiff(Number(diffOtPctSalary), "%")}
                                           </div>
                                         </div>
                                       );
@@ -8046,66 +8098,131 @@ export default function App() {
                           })}
                         </div>
 
-                        {/* Monthly Department Totals */}
+                        {/* Monthly Department Totals (Plan / Actual / Plan+Actual Diff) */}
                         <div className="flex-shrink-0 border-l border-slate-300 flex divide-x divide-slate-200 bg-blue-100/90 font-mono text-xs font-black text-blue-950">
                            {(() => {
-                              let deptNormalOt = 0;
-                              let deptHolidayOt = 0;
-                              let deptHolidayWorkDays = 0;
-                              let deptTotalSalary = 0;
-                              let deptTotalOtPay = 0;
+                              let planDeptNormalOt = 0;
+                              let planDeptHolidayOt = 0;
+                              let planDeptHolidayWorkDays = 0;
+                              let planDeptTotalOtPay = 0;
+
+                              let actualDeptNormalOt = 0;
+                              let actualDeptHolidayOt = 0;
+                              let actualDeptHolidayWorkDays = 0;
+                              let actualDeptTotalSalary = 0;
+                              let actualDeptTotalOtPay = 0;
 
                               const activeList = (isEditingShifts ? tempEmployees : state.employees)
                                 .filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
 
                               activeList.forEach(e => {
-                                const empShifts = getEmpShiftsArray(e.shifts, state?.shiftConfig?.currentMonth);
-                                let normalOt = 0;
-                                let holidayOt = 0;
-                                let holidayWorkDays = 0;
+                                const pShifts = getEmpShiftsArray(e.planShifts || e.shifts, state?.shiftConfig?.currentMonth, e.calendarType);
+                                const aShifts = getEmpShiftsArray(e.shifts, state?.shiftConfig?.currentMonth, e.calendarType);
+                                
+                                const salary = e.salary || 15000;
+                                const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+
+                                let pNorm = 0, pHol = 0, pHolDays = 0;
+                                let aNorm = 0, aHol = 0, aHolDays = 0;
 
                                 currentDays.forEach((day) => {
-                                  const shift = empShifts[day.n - 1] || "O";
-                                  const otHrs = getShiftOtHours(shift);
-                                  const isOff = shift === "O" || shift === "OFF";
+                                  const pShift = pShifts[day.n - 1] || "O";
+                                  const pOtHrs = getShiftOtHours(pShift);
+                                  const pIsOff = pShift === "O" || pShift === "OFF";
+                                  if (pShift === "OND" || (day.th && day.th.startsWith("อา") && !pIsOff)) {
+                                    pHol += pOtHrs > 0 ? pOtHrs : (pShift === "OND" ? 8 : 0);
+                                    if (!pIsOff) pHolDays += 1;
+                                  } else if (pOtHrs > 0) {
+                                    pNorm += pOtHrs;
+                                  }
 
-                                  if (shift === "OND" || (day.th && day.th.startsWith("อา") && !isOff)) {
-                                    holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
-                                    if (!isOff) holidayWorkDays += 1;
-                                  } else if (otHrs > 0) {
-                                    normalOt += otHrs; // For individual cost sum
+                                  const aShift = aShifts[day.n - 1] || "O";
+                                  const aOtHrs = getShiftOtHours(aShift);
+                                  const aIsOff = aShift === "O" || aShift === "OFF";
+                                  if (aShift === "OND" || (day.th && day.th.startsWith("อา") && !aIsOff)) {
+                                    aHol += aOtHrs > 0 ? aOtHrs : (aShift === "OND" ? 8 : 0);
+                                    if (!aIsOff) aHolDays += 1;
+                                  } else if (aOtHrs > 0) {
+                                    aNorm += aOtHrs;
                                   }
                                 });
 
-                                // Add individual sums to dept totals
-                                deptNormalOt += normalOt;
-                                deptHolidayOt += holidayOt;
-                                deptHolidayWorkDays += holidayWorkDays;
+                                planDeptNormalOt += pNorm;
+                                planDeptHolidayOt += pHol;
+                                planDeptHolidayWorkDays += pHolDays;
+                                planDeptTotalOtPay += Math.round((pNorm * 1.5 + pHol * 3.0 + pHolDays * 8 * 1.0) * hourlyRate);
 
-                                const salary = e.salary || 15000;
-                                const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
-                                const totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate);
-
-                                deptTotalSalary += salary;
-                                deptTotalOtPay += totalOtPay;
+                                actualDeptNormalOt += aNorm;
+                                actualDeptHolidayOt += aHol;
+                                actualDeptHolidayWorkDays += aHolDays;
+                                actualDeptTotalSalary += salary;
+                                actualDeptTotalOtPay += Math.round((aNorm * 1.5 + aHol * 3.0 + aHolDays * 8 * 1.0) * hourlyRate);
                               });
 
-                              const deptTotalOtPct = deptTotalSalary > 0 ? ((deptTotalOtPay / deptTotalSalary) * 100).toFixed(2) : "0.00";
+                              const isPlan = shiftViewMode === "plan";
+                              const isBoth = shiftViewMode === "both";
+
+                              const mainNorm = isPlan ? planDeptNormalOt : actualDeptNormalOt;
+                              const mainHol = isPlan ? planDeptHolidayOt : actualDeptHolidayOt;
+                              const mainHolDays = isPlan ? planDeptHolidayWorkDays : actualDeptHolidayWorkDays;
+                              const mainOtPay = isPlan ? planDeptTotalOtPay : actualDeptTotalOtPay;
+                              const mainOtPct = actualDeptTotalSalary > 0 ? ((mainOtPay / actualDeptTotalSalary) * 100).toFixed(2) : "0.00";
+
+                              const diffNorm = actualDeptNormalOt - planDeptNormalOt;
+                              const diffHol = actualDeptHolidayOt - planDeptHolidayOt;
+                              const diffHolDays = actualDeptHolidayWorkDays - planDeptHolidayWorkDays;
+                              const diffPay = actualDeptTotalOtPay - planDeptTotalOtPay;
+                              const planOtPct = actualDeptTotalSalary > 0 ? ((planDeptTotalOtPay / actualDeptTotalSalary) * 100).toFixed(2) : "0.00";
+                              const diffPct = (Number(mainOtPct) - Number(planOtPct)).toFixed(2);
+
+                              const renderFooterDiff = (diffVal: number, unit = "", isCurrency = false) => {
+                                if (!isBoth) return null;
+                                if (diffVal > 0) {
+                                  return (
+                                    <span className="text-[8px] font-black text-rose-700 font-mono tracking-tighter leading-none mt-0.5">
+                                      +{isCurrency ? diffVal.toLocaleString() : diffVal}{unit}
+                                    </span>
+                                  );
+                                }
+                                if (diffVal < 0) {
+                                  return (
+                                    <span className="text-[8px] font-black text-emerald-700 font-mono tracking-tighter leading-none mt-0.5">
+                                      {isCurrency ? diffVal.toLocaleString() : diffVal}{unit}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="text-[8px] font-bold text-slate-500 font-mono tracking-tighter leading-none mt-0.5">
+                                    ±0{unit}
+                                  </span>
+                                );
+                              };
 
                               return (
                                 <>
-                                  <div className="w-14 flex items-center justify-center text-[11px]">{deptNormalOt}</div>
-                                  <div className="w-16 flex items-center justify-center text-[11px]">{deptHolidayOt}</div>
-                                  <div className="w-20 flex items-center justify-center text-[11px]">{deptHolidayWorkDays}</div>
+                                  <div className="w-14 flex flex-col items-center justify-center text-[11px] py-1">
+                                    <span>{mainNorm}</span>
+                                    {renderFooterDiff(diffNorm)}
+                                  </div>
+                                  <div className="w-16 flex flex-col items-center justify-center text-[11px] py-1">
+                                    <span>{mainHol}</span>
+                                    {renderFooterDiff(diffHol)}
+                                  </div>
+                                  <div className="w-20 flex flex-col items-center justify-center text-[11px] py-1">
+                                    <span>{mainHolDays}</span>
+                                    {renderFooterDiff(diffHolDays)}
+                                  </div>
                                   
                                   {/* Sum of Baht */}
-                                  <div className="w-24 flex items-center justify-end pr-2.5 text-emerald-950 bg-emerald-100/30 border-r border-slate-300 text-[11px]">
-                                    {deptTotalOtPay.toLocaleString()}
+                                  <div className="w-24 flex flex-col items-end justify-center pr-2.5 text-emerald-950 bg-emerald-100/30 border-r border-slate-300 text-[11px] py-1">
+                                    <span>{mainOtPay.toLocaleString()}</span>
+                                    {renderFooterDiff(diffPay, "", true)}
                                   </div>
 
                                   {/* Sum of % */}
-                                  <div className="w-18 flex items-center justify-end pr-2.5 text-purple-950 bg-purple-100/30 text-[11px]">
-                                    {deptTotalOtPct}%
+                                  <div className="w-18 flex flex-col items-end justify-center pr-2.5 text-purple-950 bg-purple-100/30 text-[11px] py-1">
+                                    <span>{mainOtPct}%</span>
+                                    {renderFooterDiff(Number(diffPct), "%")}
                                   </div>
                                 </>
                               );
