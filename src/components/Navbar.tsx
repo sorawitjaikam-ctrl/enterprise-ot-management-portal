@@ -44,6 +44,23 @@ export default function Navbar({
 }: NavbarProps) {
   const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
 
+  const [collapsedCategories, setCollapsedCategories] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("collapsedCategories");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleCategory = (catName: string) => {
+    setCollapsedCategories(prev => {
+      const next = prev.includes(catName) ? prev.filter(name => name !== catName) : [...prev, catName];
+      localStorage.setItem("collapsedCategories", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const categories = [
     {
       name: "ภาพรวม & แผนงาน",
