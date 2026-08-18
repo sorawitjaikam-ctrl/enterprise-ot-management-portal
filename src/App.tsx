@@ -5,6 +5,7 @@ import {
   TrendingUp, 
   AlertTriangle, 
   CheckCircle, 
+  CheckCircle2, 
   XCircle, 
   FileText, 
   ChevronRight, 
