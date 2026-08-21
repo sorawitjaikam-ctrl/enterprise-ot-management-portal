@@ -1920,7 +1920,8 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem("isNavbarCollapsed") === "true";
+    const stored = localStorage.getItem("isNavbarCollapsed");
+    return stored === null ? true : stored === "true";
   });
   useEffect(() => {
     localStorage.setItem("isNavbarCollapsed", String(isNavbarCollapsed));
