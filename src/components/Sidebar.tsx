@@ -32,7 +32,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
     ...(isHrOrFullAccess ? [
       { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
-      { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: FileText },
+      { id: "hr-editor",  label: "จัดการข้อมูล & รายได้ (HR Direct)", icon: FileText },
+      { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: ClipboardList },
     ] : []),
     { id: "shifts",     label: "จัดตารางกะเทียบเรือ (Shifts)", icon: Calendar },
     ...(isHrOrFullAccess ? [

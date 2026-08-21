@@ -2,6 +2,7 @@ import React, { StrictMode, Component, ErrorInfo, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { registerServiceWorker } from './pwa/registerServiceWorker';
 
 interface Props {
   children?: ReactNode;
@@ -13,7 +14,7 @@ interface State {
 }
 
 class GlobalErrorBoundary extends Component<Props, State> {
-  public state: State = {
+  public override state: State = {
     hasError: false
   };
 
@@ -21,11 +22,11 @@ class GlobalErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught Error in Application:", error, errorInfo);
   }
 
-  public render() {
+  public override render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center">
@@ -65,3 +66,20 @@ createRoot(document.getElementById('root')!).render(
     </GlobalErrorBoundary>
   </StrictMode>,
 );
+
+// Register Service Worker in production with update callbacks
+registerServiceWorker({
+  onSuccess: (reg) => {
+    console.info('[PWA] Service Worker active, scope:', reg.scope);
+  },
+  onUpdate: (_reg) => {
+    console.info('[PWA] New version ready, waiting to activate.');
+  },
+  onOfflineReady: () => {
+    console.info('[PWA] App shell cached for offline access.');
+  },
+  onError: (err) => {
+    console.warn('[PWA] SW registration failed:', err);
+  }
+});
+

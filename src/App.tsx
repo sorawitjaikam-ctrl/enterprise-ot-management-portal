@@ -512,15 +512,15 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
   const topAbsenteeUser = topAbsentees[0];
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0">
             <span className="text-white text-lg">📝</span>
           </div>
           <div>
-            <h3 className="text-lg font-extrabold text-slate-800">ประวัติและการวิเคราะห์การลางานพนักงาน (Leave Analytics)</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ประวัติและการวิเคราะห์การลางานพนักงาน (Leave Analytics)</h3>
             <p className="text-xs text-slate-500 mt-0.5">ระบบจัดการและวิเคราะห์สถิติการลาป่วย ลากิจ และพักร้อนของบุคลากรในองค์กร</p>
           </div>
         </div>
@@ -531,14 +531,14 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
             }
             setShowAddModal(true);
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 cursor-pointer min-h-[40px] shrink-0 self-stretch sm:self-auto justify-center"
         >
           <span>+ บันทึกการลาใหม่</span>
         </button>
       </div>
 
       {/* Leave Analytics Summary Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         
         {/* KPI Cards */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
@@ -663,7 +663,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
 
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -862,22 +862,22 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
   const years = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 font-sans">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
             <span className="text-white text-lg">📋</span>
           </div>
           <div>
-            <h3 className="text-lg font-extrabold text-slate-800">ประวัติ OT จากกะทำงาน</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ประวัติ OT จากกะทำงาน</h3>
             <p className="text-xs text-slate-500 mt-0.5">ระบบบันทึก OT อัตโนมัติจากรหัสกะ — M12/A12/N12=4ชม., M16/N16/OND=8ชม.</p>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3">
+      <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center gap-2.5 sm:gap-3">
         <select
           value={filterYear}
           onChange={e => setFilterYear(Number(e.target.value))}
@@ -907,13 +907,13 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
           </select>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs font-bold text-blue-700">
-            OT รวม: <span className="text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
+        <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-between sm:justify-end gap-2">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 sm:px-4 py-2 text-xs font-bold text-blue-700">
+            OT รวม: <span className="text-base sm:text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
           </div>
           <button
             onClick={handleExportOtRecordsCsv}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer min-h-[40px]"
             title="ส่งออกรายการ OT เป็นไฟล์ CSV"
           >
             <span>⬇</span>
@@ -924,7 +924,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
 
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -1154,12 +1154,12 @@ function HrDirectEditorView({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
       {/* Header Card */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-slate-800" />
+          <h3 className="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-800 shrink-0" />
             <span>ศูนย์จัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)</span>
           </h3>
           <p className="text-xs text-slate-500 mt-1">
@@ -1167,12 +1167,12 @@ function HrDirectEditorView({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           {isHrOrFullAccess && (
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
             >
               <span>เพิ่มพนักงานใหม่</span>
             </button>
@@ -1181,7 +1181,7 @@ function HrDirectEditorView({
             type="button"
             onClick={handleSaveAll}
             disabled={isSaving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-4 sm:px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 min-h-[40px]"
           >
             <span>{isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไขไปยัง D1 Database"}</span>
           </button>
@@ -1189,15 +1189,15 @@ function HrDirectEditorView({
       </div>
 
       {/* Filter & Department Selector Tabs Toolbar */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Department Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar touch-pan-x max-w-full">
             {isHrOrFullAccess && (
               <button
                 type="button"
                 onClick={() => setFilterDept("all")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   filterDept === "all"
                     ? "bg-white text-blue-700 shadow-sm font-extrabold"
                     : "text-slate-600 hover:text-slate-900"
@@ -1220,7 +1220,7 @@ function HrDirectEditorView({
                   type="button"
                   onClick={() => isAllowed && setFilterDept(dept)}
                   disabled={!isAllowed}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     filterDept === dept
                       ? "bg-blue-600 text-white shadow-sm font-extrabold"
                       : "bg-transparent text-slate-600 hover:bg-white/60"
@@ -1234,7 +1234,7 @@ function HrDirectEditorView({
 
           {/* Search Box */}
           <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 border border-slate-200 rounded-2xl w-full md:w-72 shadow-inner">
-            <Search className="w-4 h-4 text-slate-400" />
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               type="text"
               placeholder="ค้นหารหัส, ชื่อ, ตำแหน่ง..."
@@ -1254,7 +1254,7 @@ function HrDirectEditorView({
 
       {/* Interactive Spreadsheet Table */}
       <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
           <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
             <thead>
               <tr className="bg-[#f1f5f9] border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
@@ -4411,15 +4411,15 @@ export default function App() {
       {/* Main container area */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Dynamic page container */}
-        <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isFullScreen ? "p-4" : "mt-28 p-8"}`}>
+        <main className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
           {/* ======================================= */}
           {activeTab === "dashboard" && (
-            <div className="space-y-6">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Maritime Terminal Header Banner */}
-              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 shadow-xl text-white border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-4 sm:p-6 shadow-xl text-white border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-96 h-full opacity-10 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${loginBg})` }}></div>
                 <div className="relative z-10 space-y-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-500/20 border border-sky-400/30 rounded-full text-xs font-bold text-sky-300">
@@ -4436,7 +4436,7 @@ export default function App() {
                 <div className="relative z-10 flex flex-wrap gap-3">
                   <button
                     onClick={() => setActiveTab("shifts")}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <Calendar className="w-4 h-4" />
                     <span>จัดตารางกะเทียบเรือ</span>
@@ -4653,12 +4653,12 @@ export default function App() {
                 const maxSpentInYear = Math.max(...monthlyStats.map(s => s.spent), 1);
 
                 return (
-                  <div className="space-y-6 font-sans">
+                  <div className="space-y-4 sm:space-y-6 font-sans">
                     {/* Top Row: 3 Minimalist Clean Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                       
                       {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา (Sky Accent) */}
-                      <div className="bg-white border-l-4 border-l-sky-400 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      <div className="bg-white border-l-4 border-l-sky-400 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-slate-500 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200/60 flex items-center justify-center shadow-2xs font-bold">
@@ -4668,7 +4668,7 @@ export default function App() {
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
+                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
                             {prevTotalSpent > 0 ? (
                               <div className="text-[10px] text-slate-400 font-medium">{comparePeriodLabel}</div>
                             ) : (
@@ -4689,7 +4689,7 @@ export default function App() {
                       </div>
 
                       {/* Card 2: ผลรวมค่าล่วงเวลา (Blue Accent) */}
-                      <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-slate-500 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs font-black text-sm">
@@ -4699,7 +4699,7 @@ export default function App() {
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-blue-700">
+                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-blue-700">
                               {totalSpent.toLocaleString()} THB
                             </div>
                             <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
@@ -4718,7 +4718,7 @@ export default function App() {
                       </div>
 
                       {/* Card 3: % ค่าล่วงเวลา (Navy Accent) */}
-                      <div className="bg-white border-l-4 border-l-slate-800 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      <div className="bg-white border-l-4 border-l-slate-800 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                           <h3 className="text-xs font-bold text-slate-500 tracking-wide">% ค่าล่วงเวลา</h3>
                           <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-2xs font-bold">
@@ -4728,7 +4728,7 @@ export default function App() {
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-3xl font-black tracking-tight text-slate-800">{otSalaryPct}%</div>
+                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800">{otSalaryPct}%</div>
                             <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
                           </div>
 
@@ -4747,22 +4747,22 @@ export default function App() {
                     </div>
 
                     {/* Bottom Row Grid: Grouped Bar Chart + Right Highlight Panel */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 font-sans">
                       
                       {/* Left Panel: DASHBOARD Grouped Bar Chart (3/4 Width) */}
-                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-7 shadow-sm flex flex-col justify-between">
+                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-sm flex flex-col justify-between">
                         
                         {/* Chart Header */}
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                           <h3 className="text-sm font-black text-slate-800 tracking-wider uppercase">DASHBOARD</h3>
                           
                           {/* Legend Pills with Interactive Toggle Filtering */}
-                          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                          <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
                             {/* Pill 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
                             <button
                               type="button"
                               onClick={() => setChartSeriesFilter(prev => ({ ...prev, compare: !prev.compare }))}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
+                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
                                 chartSeriesFilter.compare
                                   ? "bg-sky-50 text-sky-800 border-sky-300 shadow-2xs hover:bg-sky-100"
                                   : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
@@ -4777,7 +4777,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => setChartSeriesFilter(prev => ({ ...prev, spent: !prev.spent }))}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
+                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
                                 chartSeriesFilter.spent
                                   ? "bg-blue-50 text-blue-800 border-blue-300 shadow-2xs hover:bg-blue-100"
                                   : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
@@ -4792,7 +4792,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => setChartSeriesFilter(prev => ({ ...prev, pct: !prev.pct }))}
-                              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer border ${
+                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer border ${
                                 chartSeriesFilter.pct
                                   ? "bg-slate-900 text-white border-slate-900 shadow-sm hover:bg-slate-800"
                                   : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
@@ -4906,13 +4906,13 @@ export default function App() {
                     </div>
 
                     {/* Department breakdown meters */}
-                    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
+                    <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 shadow-sm">
                       <div className="mb-4">
                         <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก (ข้อมูลเรียลไทม์)</h4>
                         <p className="text-xs text-slate-500">สัดส่วนและปริมาณชั่วโมงสะสม</p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
                         {state.departments.map((dept) => {
                           const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
                           const deptOtHours = Math.round(
@@ -4955,8 +4955,8 @@ export default function App() {
               })()}
 
               {/* Employee OT Contribution Cards List */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">วิเคราะห์การจัดสรร OT รายบุคคล (Employee Contribution)</h4>
                     <p className="text-xs text-slate-500">รายชื่อผู้ที่ทำ OT สูงสุดและพนักงานที่มีความเสี่ยงสะสมชั่วโมงทำงานเกินกฎเกณฑ์ความปลอดภัย</p>
@@ -4964,7 +4964,7 @@ export default function App() {
                   <button 
                     type="button"
                     onClick={handleNavigateToEmployees}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#eff6ff] hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#eff6ff] hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 self-start sm:self-auto min-h-[40px]"
                     title="คลิกเพื่อเปิดตารางรายชื่อพนักงานทั้งหมด"
                   >
                     <span>ดูตารางรายชื่อทั้งหมด</span>
@@ -4972,7 +4972,7 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   {(() => {
                     const filteredEmpContribution = state.employees.filter(emp => {
                       if (!isHrOrFullAccess && currentUser?.deptId) {
@@ -5049,12 +5049,12 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "job_value" && (
             <ErrorBoundary>
-              <div className="space-y-6">
+              <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
                 {/* Header card with database & import/export controls */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-lg font-extrabold text-slate-800">Job Value</h3>
+                      <h3 className="text-base sm:text-lg font-extrabold text-slate-800">Job Value</h3>
                       <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
                         <span>ปี 2026</span>
@@ -5164,7 +5164,7 @@ export default function App() {
                   const diffPct = totalProf25 > 0 ? Math.round(((totalProf26 - totalProf25) / totalProf25) * 100) : 0;
 
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                       {/* 1. Total Revenue */}
                       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                         <div className="flex items-center justify-between">
@@ -5246,7 +5246,7 @@ export default function App() {
                 })()}
 
                 {/* Department Job Value Summary Section */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
                       <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
@@ -5257,7 +5257,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(deptName => {
                       if (isHrOrFullAccess) return true;
                       return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
@@ -5344,9 +5344,9 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
                       {/* Department Selector Filter */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1.5 text-xs font-bold border border-slate-200/60">
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1.5 text-xs font-bold border border-slate-200/60 shrink-0">
                         <span className="text-slate-500 pl-2 font-sans">แผนก:</span>
                         <select
                           value={financialChartDeptFilter}
@@ -5365,11 +5365,11 @@ export default function App() {
                       </div>
 
                       {/* Active Months vs 12 Months Filter */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60">
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60 shrink-0">
                         <button
                           type="button"
                           onClick={() => setFinancialChartOnlyActiveMonths(true)}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                             financialChartOnlyActiveMonths 
                               ? "bg-white text-blue-700 shadow-sm font-extrabold" 
                               : "text-slate-600 hover:text-slate-900"
@@ -5380,7 +5380,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFinancialChartOnlyActiveMonths(false)}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                             !financialChartOnlyActiveMonths 
                               ? "bg-white text-blue-700 shadow-sm font-extrabold" 
                               : "text-slate-600 hover:text-slate-900"
@@ -5391,7 +5391,7 @@ export default function App() {
                       </div>
 
                       {/* Trend Line vs Bar Chart Toggle */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60">
+                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60 shrink-0">
                         <button
                           type="button"
                           onClick={() => setFinancialChartViewType("trend")}
@@ -5846,11 +5846,11 @@ export default function App() {
           {/* VIEW: DEPARTMENT REPORTS */}
           {/* ======================================= */}
           {activeTab === "reports" && (
-            <div className="space-y-6">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card with analytics label and selectors */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">รายงานข้อมูลและงบประมาณรายแผนก</h3>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">รายงานข้อมูลและงบประมาณรายแผนก</h3>
                   <p className="text-xs text-slate-500 mt-1">วิเคราะห์งบการเงิน OT, ความสมดุลของตาราง และการใช้ทรัพยากรส่วนบุคคล</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -5886,7 +5886,7 @@ export default function App() {
                   </div>
                   <button 
                     onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>ส่งออกรายงาน PDF</span>
@@ -5895,10 +5895,10 @@ export default function App() {
               </div>
 
               {/* Row: Main charts split */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Visual Chart representation: Spending correlation */}
-                <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">
@@ -6067,10 +6067,10 @@ export default function App() {
               </div>
 
               {/* Row: Peak Heatmap & KPIs radar simulation & Position Distribution */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Heatmap block */}
-                <div className="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
@@ -6090,49 +6090,51 @@ export default function App() {
                   </div>
 
                   {/* Calendar Heatmap Grid */}
-                  <div className="grid grid-cols-8 gap-1.5 pt-2">
-                    <div></div>
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                      <div key={d} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
-                    ))}
-                    
-                    <div className="text-[10px] font-bold text-slate-500 flex items-center">17:00-19:00</div>
-                    {heatmapGrid[0].map((val, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                        title={`ยอด OT รวม: ${val} ชม.`}
-                      >
-                        {val > 0 ? `${val}h` : ""}
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto no-scrollbar touch-pan-x">
+                    <div className="grid grid-cols-8 gap-1.5 pt-2 min-w-[340px]">
+                      <div></div>
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                        <div key={d} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
+                      ))}
+                      
+                      <div className="text-[10px] font-bold text-slate-500 flex items-center">17:00-19:00</div>
+                      {heatmapGrid[0].map((val, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                          title={`ยอด OT รวม: ${val} ชม.`}
+                        >
+                          {val > 0 ? `${val}h` : ""}
+                        </div>
+                      ))}
 
-                    <div className="text-[10px] font-bold text-slate-500 flex items-center">19:00-21:00</div>
-                    {heatmapGrid[1].map((val, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                        title={`ยอด OT รวม: ${val} ชม.`}
-                      >
-                        {val > 0 ? `${val}h` : ""}
-                      </div>
-                    ))}
+                      <div className="text-[10px] font-bold text-slate-500 flex items-center">19:00-21:00</div>
+                      {heatmapGrid[1].map((val, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                          title={`ยอด OT รวม: ${val} ชม.`}
+                        >
+                          {val > 0 ? `${val}h` : ""}
+                        </div>
+                      ))}
 
-                    <div className="text-[10px] font-bold text-slate-500 flex items-center">21:00-23:00</div>
-                    {heatmapGrid[2].map((val, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                        title={`ยอด OT รวม: ${val} ชม.`}
-                      >
-                        {val > 0 ? `${val}h` : ""}
-                      </div>
-                    ))}
+                      <div className="text-[10px] font-bold text-slate-500 flex items-center">21:00-23:00</div>
+                      {heatmapGrid[2].map((val, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
+                          title={`ยอด OT รวม: ${val} ชม.`}
+                        >
+                          {val > 0 ? `${val}h` : ""}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Radar Chart KPIs */}
-                <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
                     <p className="text-xs text-slate-500 mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
@@ -6188,7 +6190,7 @@ export default function App() {
                 </div>
 
                 {/* OT Distribution by Position */}
-                <div className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
                     <p className="text-[10px] text-slate-500 mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
@@ -6225,7 +6227,7 @@ export default function App() {
               </div>
 
               {/* Row: Cargo Tonnage vs OT Analytics Card */}
-              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4">
+              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-4 sm:p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
@@ -6256,7 +6258,7 @@ export default function App() {
                 </div>
 
                 {/* Vessel Tonnage vs OT Comparison Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
                   {vesselSchedules.length === 0 ? (
                     <div className="col-span-full py-8 text-center bg-white/60 rounded-2xl border border-dashed border-amber-200 text-xs font-bold text-amber-700">
                       ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
@@ -6413,14 +6415,14 @@ export default function App() {
           {/* VIEW: EMPLOYEE LIST */}
           {/* ======================================= */}
           {activeTab === "employees" && (
-            <div className="space-y-6 font-sans">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 font-sans">
               
               {/* Organization Chart Executive Overview Header */}
               <div>
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-4">Organization chart</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight mb-4">Organization chart</h2>
                 
                 {/* Main Grid: 2 Left Stacked Cards + Right Panels */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 font-sans">
                   
                   {/* Left Column: 2 Stacked Minimalist Cards (1/3 Width) */}
                   <div className="space-y-6">
@@ -6620,7 +6622,7 @@ export default function App() {
                       <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
                         
                         {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart */}
-                        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-between">
+                        <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-6 shadow-sm flex-1 flex flex-col justify-between">
                           <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                             <div>
                               <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
@@ -6628,24 +6630,24 @@ export default function App() {
                             </div>
                             
                             {/* Section Legend Pills with Real Live Headcounts */}
-                            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
+                            <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
+                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
                                 <span className="text-slate-700">INTER 2 ({countInter2} คน)</span>
                               </div>
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
+                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
                                 <span className="text-slate-700">INTER 3 ({countInter3} คน)</span>
                               </div>
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
+                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></span>
                                 <span className="text-slate-700">INTER 5 ({countInter5} คน)</span>
                               </div>
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
+                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
                                 <span className="text-slate-700">INTER 7 ({countInter7} คน)</span>
                               </div>
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
+                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>
                                 <span className="text-slate-700">HVM ({countHvm} คน)</span>
                               </div>
@@ -6735,10 +6737,12 @@ export default function App() {
                   })()}
 
                 </div>
-              </div>{/* Header block with employee database controls */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+              </div>
+
+              {/* Header block with employee database controls */}
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
                   <p className="text-xs text-slate-500 mt-1">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -6747,7 +6751,7 @@ export default function App() {
                       {/* Export Button */}
                       <button 
                         onClick={handleExportEmployees}
-                        className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
                         title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
                       >
                         <Download className="w-3.5 h-3.5 text-blue-600" />
@@ -6756,7 +6760,7 @@ export default function App() {
 
                       {/* Import Button */}
                       <label 
-                        className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
                         title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
                       >
                         <Upload className="w-3.5 h-3.5 text-indigo-600" />
@@ -6773,7 +6777,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setIsCsvTemplateHubOpen(true)}
-                        className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200"
+                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200 min-h-[40px]"
                         title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
                       >
                         <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
@@ -6785,7 +6789,7 @@ export default function App() {
                   {isHrOrFullAccess && (
                     <button 
                       onClick={handleOpenAddEmployeeModal}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
                     >
                       <Plus className="w-4 h-4" />
                       <span>เพิ่มพนักงานใหม่</span>
@@ -6795,10 +6799,10 @@ export default function App() {
               </div>
 
               {/* Status Tabs: Active Employees vs Resigned Archive (HR Only) */}
-              <div className="flex items-center gap-2 border-b border-slate-200 px-2">
+              <div className="flex items-center gap-2 border-b border-slate-200 px-2 overflow-x-auto no-scrollbar touch-pan-x">
                 <button
                   onClick={() => setSelectedEmpStatusTab("Active")}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                  className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
                     selectedEmpStatusTab === "Active"
                       ? "border-blue-600 text-blue-600 bg-white shadow-sm"
                       : "border-transparent text-slate-500 hover:text-slate-800 bg-slate-100/50"
@@ -6813,7 +6817,7 @@ export default function App() {
                 {isHrOrFullAccess && (
                   <button
                     onClick={() => setSelectedEmpStatusTab("Resigned")}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                    className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
                       selectedEmpStatusTab === "Resigned"
                         ? "border-rose-600 text-rose-600 bg-white shadow-sm"
                         : "border-transparent text-slate-500 hover:text-rose-700 bg-slate-100/50"
@@ -6830,7 +6834,7 @@ export default function App() {
               {/* Employee roster list */}
               <div id="employee-roster-section"></div>
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-100 space-y-4">
+                <div className="p-4 sm:p-6 border-b border-slate-100 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2.5">
@@ -6852,7 +6856,7 @@ export default function App() {
                           setEmpRoleFilter("ทุกตำแหน่ง");
                           setSearchQuery("");
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto min-h-[36px]"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>ล้างตัวกรองทั้งหมด</span>
@@ -6861,7 +6865,7 @@ export default function App() {
                   </div>
 
                   {/* Filter Toolbar Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
                     {/* 1. Quick Search Box */}
                     <div className="relative">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -6930,7 +6934,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
                       <tr className="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider select-none">
@@ -7231,13 +7235,13 @@ export default function App() {
           {/* VIEW: SHIFT MANAGEMENT */}
           {/* ======================================= */}
           {activeTab === "shifts" && (
-            <div className={`space-y-4 ${isFullScreen ? "fixed inset-0 z-50 bg-white overflow-auto p-4" : ""}`}>
+            <div className={`w-full max-w-full min-w-0 space-y-4 ${isFullScreen ? "fixed inset-0 z-50 bg-white overflow-auto p-2 sm:p-4" : ""}`}>
 
               {/* HEADER TOOLBAR — Clean Minimalist High-Contrast Style */}
               <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
                 {/* Top Row: Department info & View mode / Actions (Equal Height & Perfectly Balanced Centerline) */}
-                <div className="bg-white px-6 py-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 min-h-[56px]">
-                  <div className="flex items-center gap-3 flex-wrap">
+                <div className="bg-white px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 min-h-[56px]">
+                  <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                     {/* Department */}
                     <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-2xl h-10 shadow-2xs">
                       <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
@@ -7300,10 +7304,10 @@ export default function App() {
                   {/* Top Right: Toggle & CTA Buttons (Matching h-10 Height Exactly) */}
                   <div className="flex items-center gap-2.5 flex-wrap">
                     {/* Toggle [ Plan / Actual / Plan+Actual ] */}
-                    <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold h-10 items-center shadow-inner">
+                    <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold h-10 items-center shadow-inner overflow-x-auto no-scrollbar touch-pan-x">
                       {(["plan", "actual", "both"] as const).map(mode => (
                         <button key={mode} onClick={() => setShiftViewMode(mode)}
-                          className={`px-3.5 py-1 rounded-xl transition-all cursor-pointer h-full flex items-center ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-xs font-black" : "text-slate-600 hover:text-slate-900"}`}>
+                          className={`shrink-0 px-3.5 py-1 rounded-xl transition-all cursor-pointer h-full flex items-center ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-xs font-black" : "text-slate-600 hover:text-slate-900"}`}>
                           {mode === "plan" ? "Plan" : mode === "actual" ? "Actual" : "Plan+Actual"}
                         </button>
                       ))}
@@ -7340,11 +7344,11 @@ export default function App() {
                 </div>
 
                 {/* Sub-toolbar: Filters & selects (High Contrast Minimal Style) */}
-                <div className="bg-slate-50/90 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80">
-                  <div className="flex flex-wrap items-center gap-2.5">
+                <div className="bg-slate-50/90 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80">
+                  <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
                     {activeDeptId === "all" && (
                       <select value={currentShiftsDept} onChange={(e) => setShiftsDeptFilter(e.target.value)}
-                        className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                        className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
                         <option value="inter2">INTER 2</option>
                         <option value="inter3">INTER 3</option>
                         <option value="inter5">INTER 5</option>
@@ -7355,22 +7359,22 @@ export default function App() {
                     )}
                     <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
                       onChange={(e) => { const m2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]; const nextM = `${e.target.value}-${m2}`; handleShiftConfigMonthChange(nextM); }}
-                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
                       {[2024,2025,2026,2027].map(y => <option key={y} value={String(y)}>ปี {y}</option>)}
                     </select>
                     <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[1]} 
                       onChange={(e) => { const y2 = (state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]; const nextM = `${y2}-${e.target.value}`; handleShiftConfigMonthChange(nextM); }}
-                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
                       {[["01","มกราคม"],["02","กุมภาพันธ์"],["03","มีนาคม"],["04","เมษายน"],["05","พฤษภาคม"],["06","มิถุนายน"],["07","กรกฎาคม"],["08","สิงหาคม"],["09","กันยายน"],["10","ตุลาคม"],["11","พฤศจิกายน"],["12","ธันวาคม"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                     <select value={selectedWeek} onChange={(e) => { const val = e.target.value; setSelectedWeek(val); setDaysLimit(val === "all" ? 30 : 7); }}
-                      className="h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
+                      className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
                       <option value="all">ทั้งเดือน</option>
                       {weeksList.map((w) => <option key={w.weekNum} value={String(w.weekNum)}>สัปดาห์ {w.weekNum} ({w.startDay}-{w.endDay})</option>)}
                     </select>
 
                     {/* Multi-select Role Filter */}
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       <button
                         type="button"
                         onClick={() => setIsRoleFilterOpen(!isRoleFilterOpen)}
@@ -7477,16 +7481,15 @@ export default function App() {
 
               {/* Shift Legend / Keys explanation matching image exactly */}
               {showShiftLegend && (
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm font-sans">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm font-sans">
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
                       <span>สัญลักษณ์รหัสกะและตารางการจัดการ</span>
                     </h4>
-                    
                   </div>
 
-                  <div className="overflow-x-auto pb-2">
+                  <div className="overflow-x-auto no-scrollbar touch-pan-x pb-2">
                     <div className="flex gap-2.5 min-w-[900px] select-none">
                       {[
                         { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#dce6f1] text-black border-[#b4c6e7]" },
@@ -7558,7 +7561,7 @@ export default function App() {
 
               {/* Master Calendar Grid Canvas */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
                   <div className="inline-block min-w-full">
                     
                     {/* Header: Days labels */}
@@ -8334,18 +8337,18 @@ export default function App() {
           {/* VIEW: SETTINGS */}
           {/* ======================================= */}
           {activeTab === "settings" && (
-            <div className="space-y-6">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 className="text-lg font-extrabold text-slate-800">การตั้งค่ากฎเกณฑ์และการวิเคราะห์ของระบบ</h3>
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-800">การตั้งค่ากฎเกณฑ์และการวิเคราะห์ของระบบ</h3>
                 <p className="text-xs text-slate-500 mt-1">กำหนดเป้าหมาย ขีดจำกัดชั่วโมงโอทีความปลอดภัย และนโยบายการจัดตารางกะ</p>
               </div>
 
               {/* Grid configs */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 
                 {/* Labor laws parameters limits */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-6">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">กฎหมายแรงงานไทยและพารามิเตอร์ความปลอดภัย</h4>
                     <p className="text-xs text-slate-500">กำหนดขีดจำกัดสูงสุดเพื่อให้สอดคล้องกับกฎหมายและสุขภาพของพนักงาน</p>
@@ -8571,17 +8574,17 @@ export default function App() {
           {/* VIEW: ADMIN PERMISSIONS DIRECT TAB */}
           {/* ======================================= */}
           {activeTab === "admin-permissions" && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
                   <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setIsCsvTemplateHubOpen(true)}
-                    className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                    className="px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
                     title="ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับทุกเมนู"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-blue-600" />
@@ -8590,7 +8593,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setShowAddAccountModal(true)}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
                   >
                     <Plus className="w-4 h-4" />
                     <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
@@ -8598,9 +8601,9 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
-                <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
-                  <table className="w-full text-left text-xs text-slate-600">
+              <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-6">
+                <div className="overflow-x-auto no-scrollbar touch-pan-x rounded-2xl border border-slate-100 divide-y divide-slate-100 w-full max-w-full min-w-0">
+                  <table className="w-full text-left text-xs text-slate-600 min-w-[600px]">
                     <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
                       <tr>
                         <th className="p-4">ผู้ใช้งาน (Username)</th>
@@ -8702,23 +8705,23 @@ export default function App() {
           {/* VIEW: PERSONAL PROFILE SETTINGS */}
           {/* ======================================= */}
           {activeTab === "profile" && (
-            <div className="space-y-6">
+            <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
                   <User className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-800">จัดการข้อมูลโปรไฟล์ส่วนตัว</h3>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">จัดการข้อมูลโปรไฟล์ส่วนตัว</h3>
                   <p className="text-xs text-slate-500 mt-1">อัปเดตชื่อแสดงผล ลิงก์รูปภาพโปรไฟล์ และเปลี่ยนรหัสผ่านเพื่อความปลอดภัย</p>
                 </div>
               </div>
 
               {/* Form Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 
                 {/* Left card: Current Profile Preview */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
+                <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
                   <div className="w-24 h-24 rounded-full overflow-hidden shadow-md border-4 border-slate-100 flex-shrink-0">
                     <img 
                       alt="Avatar Preview" 
@@ -8750,7 +8753,7 @@ export default function App() {
                 </div>
 
                 {/* Right card: Form editor */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>

@@ -98,7 +98,7 @@ export const csvTemplatesList = [
         "EMP-101", "สมชาย สายงาน", "inter2",
         "M12", "M12", "A12", "A12", "OFF", "OFF", "N12", "N12", "M12", "M12",
         "OFF", "OFF", "A12", "A12", "N12", "N12", "OFF", "OFF", "M12", "M12",
-        "A12", "A12", "OFF", "OFF", "N12", "N12", "M12", "M12", "OFF"
+        "A12", "A12", "OFF", "OFF", "N12", "N12", "M12", "M12", "OFF", "OFF", "M12"
       ]
     ]
   },
