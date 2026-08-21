@@ -2037,7 +2037,7 @@ export default function App() {
   const [empDeptFilter, setEmpDeptFilter] = useState<string>("ทุกแผนก");
   const [empDivisionFilter, setEmpDivisionFilter] = useState<string>("ทุกฝ่าย");
   const [empRoleFilter, setEmpRoleFilter] = useState<string>("ทุกตำแหน่ง");
-  const [empSortField, setEmpSortField] = useState<string>("id");
+  const [empSortField, setEmpSortField] = useState<string>("dept");
   const [empSortOrder, setEmpSortOrder] = useState<"asc" | "desc">("asc");
 
   const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
@@ -7091,9 +7091,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
-                      {filteredEmployees.map((emp) => {
-                        const dept = state.departments.find(d => d.id === emp.deptId);
-                        
+                      {(() => { let _lastDept = ''; return filteredEmployees.flatMap((emp) => {
                         // Calculate exact monthly OT metrics using single source of truth
                         const breakdown = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
                         const ot1_5 = breakdown.normalOt;
@@ -7101,8 +7099,24 @@ export default function App() {
                         const ot3_0 = breakdown.holidayOt;
                         const totalOtPay = breakdown.totalOtPay;
                         const otPctSalary = Number(breakdown.otPctSalary) || 0;
-
-                        return (
+                        const _deptLabel = getDeptName(emp.deptId, state.departments);
+                        const _rows: React.ReactNode[] = [];
+                        if (_deptLabel !== _lastDept) {
+                          const _cnt = filteredEmployees.filter(e => getDeptName(e.deptId, state.departments) === _deptLabel).length;
+                          _rows.push(
+                            <tr key={'grp-' + _deptLabel} className="bg-slate-50 border-t-2 border-slate-200">
+                              <td colSpan={11} className="px-4 py-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-2 h-2 rounded-full bg-blue-600 inline-block flex-shrink-0"></span>
+                                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider">{_deptLabel}</span>
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200">{_cnt} คน</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                          _lastDept = _deptLabel;
+                        }
+                        _rows.push(
                           <tr key={emp.id} className="group hover:bg-blue-50/40 transition-colors bg-white">
                             {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px) */}
                             <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap min-w-[90px] w-[90px]">
@@ -7195,7 +7209,8 @@ export default function App() {
                             </td>
                           </tr>
                         );
-                      })}
+                        return _rows;
+                      }); })()}
 
                       {filteredEmployees.length === 0 && (
                         <tr>
