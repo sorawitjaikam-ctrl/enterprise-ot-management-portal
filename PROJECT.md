@@ -1,84 +1,82 @@
-# Project: Enterprise OT Management Portal Mobile & Tablet Responsive UI/UX & PWA
+# Project: Enterprise OT Management Portal — Mobile/Tablet Responsive, PWA & E2E Verification
 
 ## Architecture
-- **Frontend Stack**: React 19 (`react` 19.0.1, `react-dom` 19.0.1), TypeScript 5.8.2, Vite 6.2.3, `@tailwindcss/vite` 4.1.14, Tailwind CSS v4, `lucide-react`, `motion`.
-- **Backend / API**: Node.js Express server (`server.ts` bundled with esbuild into `dist/server.cjs`) + Cloudflare Pages D1 API functions (`functions/api/[[path]].ts`).
-- **State & Data Flow**: Central state in `App.tsx` + `localStorage` fallback + REST synchronization.
-- **PWA & Offline Architecture**: `manifest.webmanifest` / `manifest.json`, Service Worker `sw.js` with Cache-First strategy for static assets and Network-First for API data with offline fallback.
-- **Responsive Breakpoints**:
-  - Mobile: 375px–430px (e.g. iPhone SE, iPhone 14/15/16 Pro, Pixel, Galaxy)
-  - Tablet: 768px–1024px (e.g. iPad Mini, iPad Air/Pro portrait & landscape)
-  - Desktop: >=1024px / 1280px / 1440px+ (Standard workstation display)
-- **Desktop Invariants**:
-  - Shift Scheduler right-hand summary block strictly preserved at 368px (`w-[368px]`: 200px breakdown + 96px Cost in Baht + 72px Cost % of Salary).
-  - Shift calculation engine (`getEmpMonthlyOtPayBreakdown`, hourly rate `salary/240 * 1.5`, Plan vs Actual diff, budget utilization vs 150k THB).
-  - 6 CSV Export routines (Shift CSV, Employee CSV, Job Value CSV, Report CSV, OT Record CSV, CsvTemplateHubModal downloads).
+- **Application Shell**: React 19 + TypeScript + Vite + Tailwind CSS v4.
+- **Navigation & Layout**: Dynamic multi-tier header (`Navbar.tsx`), mobile sliding drawer with 11 functional views, responsive main container (`mt-16 sm:mt-20 lg:mt-28`, `p-3 sm:p-4 lg:p-8`).
+- **PWA Infrastructure**: W3C Web App Manifest (`manifest.webmanifest`, `manifest.json`), 10 binary icon assets, 4-tier Service Worker (`sw.js`: shell, runtime, fonts, data), Client lifecycle manager (`registerServiceWorker.ts`), React hook (`usePWA.ts`), PWA UI components (`PWAComponents.tsx`).
+- **Data Tables & Shift Scheduling**: Shift Matrix with sticky pinned worker column (`w-56`, `z-10`), `touch-pan-x` horizontal panning, dynamic day cell sizing, strict 368px desktop summary block (`56px + 64px + 80px + 96px + 72px`). Employee Roster with adaptive responsive sticky columns (1 col mobile, 2 col tablet, 5 col desktop).
+- **Core Calculation Engine**: OT hours extractor (`getShiftOtHours`), Thai payroll breakdown (`getEmpMonthlyOtPayBreakdown`), Plan vs Actual diff engine (`isPlanActualMismatch`), Department 150k THB budget ceiling.
+- **Data Export & Hub**: 6 CSV export routines with UTF-8 BOM `\ufeff` and RFC 4180 escaping, CSV Template Hub modal with 5 templates.
+- **Test Infrastructure**: Vitest test runner, 4-tier test architecture (Tiers 1–4) + Tier 5 adversarial stress harnesses (176/176 tests passing).
+
+---
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Web App Manifest | Standards-compliant manifest with name, short_name, icons, theme_color, background_color, display standalone | M1 | ORIGINAL_REQUEST §R3 |
-| 2 | PWA Viewport & Meta Tags | Viewport configuration, Apple touch icon, apple-mobile-web-app-capable, theme-color in index.html | M1 | ORIGINAL_REQUEST §R3 |
-| 3 | Service Worker Registration | Robust SW registration lifecycle in main.tsx / App.tsx with install/update handlers | M1 | ORIGINAL_REQUEST §R3 |
-| 4 | Offline Shell Cache | Cache-First strategy for HTML, JS, CSS, images, and fonts ensuring instant offline launch | M1 | ORIGINAL_REQUEST §R3 |
-| 5 | PWA Install Banner / Action | In-app "Add to Home Screen" prompt trigger and install status handling | M1 | ORIGINAL_REQUEST §R3 |
-| 6 | Responsive Top Header | Responsive header bar adapting between desktop navigation and mobile compact bar | M2 | ORIGINAL_REQUEST §R1 |
-| 7 | Mobile Navigation Drawer / Menu | Hamburger menu / collapsible drawer for mobile viewports to switch between 11 functional views | M2 | ORIGINAL_REQUEST §R1 |
-| 8 | Fluid Category Nav Pills | Horizontal touch-scrollable category tabs with active indicators | M2 | ORIGINAL_REQUEST §R1 |
-| 9 | Responsive Main Container Spacing | Dynamic margin-top and padding (`mt-16 sm:mt-20 lg:mt-28`, `p-2 sm:p-4 lg:p-8`) preventing navbar overlap | M2 | ORIGINAL_REQUEST §R1 |
-| 10 | Metrics Cards Responsive Grid | Dynamic re-stacking from 1 column (mobile) to 2 columns (tablet) to 4 columns (desktop) without clipping | M2 | ORIGINAL_REQUEST §R1 |
-| 11 | Dashboard & Analytics Responsive Views | Chart containers, summary widgets, and vessel schedules fluidly resizing across viewports | M2 | ORIGINAL_REQUEST §R1 |
-| 12 | Shift Matrix Sticky Left Worker Column | Pinned worker ID/Name column with responsive width (`w-32 sm:w-44 lg:w-56`) remaining readable | M3 | ORIGINAL_REQUEST §R2 |
-| 13 | Shift Matrix Sticky Header & Days Panning | Pinned days header and smooth horizontal touch panning across all monthly calendar days | M3 | ORIGINAL_REQUEST §R2 |
-| 14 | Desktop 368px Summary Block Alignment | Strict preservation of 368px summary widget layout and calculations on desktop viewports | M3 | ORIGINAL_REQUEST Acceptance Criteria |
-| 15 | Roster Table Adaptive Frozen Columns | Responsive sticky columns: 1 pinned col on mobile (<640px), 2 on tablet, 5 on desktop (fixing 700px freeze bug) | M3 | ORIGINAL_REQUEST §R2 |
-| 16 | Roster Table Horizontal Panning | Smooth horizontal panning across all employee profile fields without layout distortion | M3 | ORIGINAL_REQUEST §R2 |
-| 17 | Core OT Calculation Preservation | Weekday (1.5x), Holiday (1.0x), Holiday OT (3.0x), OND (8h), and hourly rate `salary/240 * 1.5` intact | M3 | ORIGINAL_REQUEST Acceptance Criteria |
-| 18 | 6 CSV Export Routines Integrity | All 6 CSV export handlers remain 100% functional and payroll-accurate | M3 | ORIGINAL_REQUEST Acceptance Criteria |
-| 19 | Touch Ergonomics (>=44x44px Targets) | All interactive buttons, action icons, tab switches, and filters satisfy minimum 44x44px tap targets | M4 | ORIGINAL_REQUEST §R4 |
-| 20 | Touch Shift Cell Editor / Bottom Sheet | Interactive shift code picker popover transformed into touch-friendly modal / bottom sheet on mobile/tablet | M4 | ORIGINAL_REQUEST §R4 |
-| 21 | Responsive Modals & Dialogues (19 Modals) | All 19 modals adapt to viewport (full-screen / bottom sheet on mobile, rounded modal on desktop, easy dismiss) | M4 | ORIGINAL_REQUEST §R4 |
-| 22 | Form Controls & Date Pickers Touch Optimization | Touch-friendly input fields, date selectors, department dropdowns, and search bars | M4 | ORIGINAL_REQUEST §R4 |
-| 23 | TypeScript Diagnostic Cleanliness | Resolve ambient type mismatches to ensure `npm run lint` and `npm run build` pass with 0 errors | M4 | ORIGINAL_REQUEST Acceptance Criteria |
-| 24 | E2E Tier 1: Unit & Calculation Test Suite | Vitest tests for OT calculations, budget formulas, Plan vs Actual diff, and CSV generators | M5 | E2E Testing Track |
-| 25 | E2E Tier 2: Responsive & Sticky Columns Suite | Component & DOM tests verifying 375px/768px/1024px responsive layouts and pinned table column styles | M5 | E2E Testing Track |
-| 26 | E2E Tier 3: PWA Manifest & Service Worker Suite | Automated verification of manifest validity, SW lifecycle, and offline asset caching | M5 | E2E Testing Track |
-| 27 | E2E Tier 4: Real-World Workflows & Regression Suite | End-to-end user workflows on mobile/tablet/desktop, 368px desktop alignment, and CSV export regressions | M5 | E2E Testing Track |
-| 28 | E2E Tier 5: Adversarial Hardening | Challenger edge case stress testing for rapid touch gestures, offline toggling, and boundary viewport sizes | M5 | Phase 2 Hardening |
+| 1 | Web App Manifest & Meta Tags | W3C compliant manifest (standalone mode, theme #0f172a, shortcuts), viewport-fit=cover, iOS & Win tiles | M1 | ORIGINAL_REQUEST §R3 |
+| 2 | PWA Icon Suite | 10 binary icons (192, 512, maskable, apple-touch, SVG, favicons) | M1 | ORIGINAL_REQUEST §R3 |
+| 3 | Service Worker & Offline Caching | 4 cache tiers (shell, runtime, fonts, data), pre-caching, SPA offline navigation, 503 API fallback, cache invalidation | M1 | ORIGINAL_REQUEST §R3 |
+| 4 | Client SW Lifecycle & Update UX | Deferred registration, Vite HMR safety, controllerchange auto-reload, `usePWA` hook, install button, offline badge, update toast | M1 | ORIGINAL_REQUEST §R3 |
+| 5 | Responsive Shell & Spacing | Dynamic navbar and main spacing (`mt-16 sm:mt-20 lg:mt-28`, `p-3 sm:p-4 lg:p-8`) across 375px–1024px+ | M2 | ORIGINAL_REQUEST §R1 |
+| 6 | Mobile Navigation Drawer | Sliding drawer with 11 functional views, scroll lock, Escape dismissal, >=44px tap targets | M2 | ORIGINAL_REQUEST §R1 |
+| 7 | Responsive Metric Grids & Views | Grid breakpoints (1/2/3/4 cols) across Dashboard, Reports, Job Value, and Roster summary cards | M2 | ORIGINAL_REQUEST §R1 |
+| 8 | Modals Viewport Bounds & Touch | 19 application dialogs with max-h constraints (85–92vh), backdrop dismiss, internal scrolling | M2 | ORIGINAL_REQUEST §R1 |
+| 9 | Shift Matrix Sticky Columns & Panning | Worker column `sticky left-0` (`w-56`, `z-10`), `touch-pan-x` scrolling, dynamic cell sizing (35px, 48px, 56px) | M3 | ORIGINAL_REQUEST §R2 |
+| 10 | Employee Roster Adaptive Columns | Adaptive sticky frozen columns (1 col mobile, 2 col tablet, 5 col desktop) eliminating 700px mobile freeze bug | M3 | ORIGINAL_REQUEST §R2 |
+| 11 | Desktop 368px Summary Invariant | Strict 368px summary block geometry (`56px + 64px + 80px + 96px + 72px`) preserved on desktop | M3 | ORIGINAL_REQUEST §R2, Acceptance Criteria |
+| 12 | Shift OT Hours Calculation | `getShiftOtHours` logic (M8->0, M12->4, M16->8, OND->8, OFF/O/D->0, dynamic regex) | M4 | ORIGINAL_REQUEST §R4 |
+| 13 | Monthly OT Payroll Calculation | `getEmpMonthlyOtPayBreakdown` (hourly rate `salary/240`, 1.5x weekday, 3.0x holiday OT, 1.0x holiday work) | M4 | ORIGINAL_REQUEST §R4 |
+| 14 | Plan vs Actual Diff Engine | `isPlanActualMismatch` active shift delta detection and color-coded visual cues | M4 | ORIGINAL_REQUEST §R4 |
+| 15 | Department 150k Budget Engine | 150k THB ceiling per department, warning thresholds (>95%), utilization calculation | M4 | ORIGINAL_REQUEST §R4 |
+| 16 | 6 CSV Export Routines & Template Hub | 6 export routines + CsvTemplateHubModal with UTF-8 BOM `\ufeff` and RFC 4180 compliance | M4 | ORIGINAL_REQUEST §R4 |
+| 17 | E2E 4-Tier Test Suite & Pass (100%) | Tiers 1–4 test suite execution, fixing test nits, 100% pass across all test suites (176/176 tests pass) | M5 | ORIGINAL_REQUEST §R4 |
+| 18 | Adversarial Coverage Hardening (Tier 5) | White-box challenger stress tests, edge cases, zero regressions, clean audit verification | M5 | Dual-Track Architecture |
+
+---
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | PWA Infrastructure & Offline App Shell | Manifest, Service Worker, cache strategy, icons, meta tags | none | DONE |
-| M2 | Responsive App Shell, Navigation & Layout Adaptation | Responsive Navbar, Mobile Drawer, Layout spacing, Metrics cards re-stacking | none | PLANNED |
-| M3 | Touch Table Panning & Sticky Columns (Shift Matrix & Roster) | Pinned columns, touch scroll, adaptive Roster columns, desktop 368px & CSV integrity | M2 | PLANNED |
-| M4 | Touch Ergonomics, Interactive Controls & Modals | >=44px tap targets, Shift picker bottom sheet, 19 responsive modals, TS cleanup | M2, M3 | PLANNED |
-| M5 | Final Milestone: E2E Verification & Adversarial Hardening | 100% pass on E2E Test Suite (Tiers 1-4) + Tier 5 Challenger Adversarial Hardening | M1, M2, M3, M4, E2E Track | PLANNED |
+| M1 | PWA & Service Worker Hardening | Manifest, 10 icon assets, sw.js 4-cache architecture, registerServiceWorker, usePWA, PWA UI components | none | DONE |
+| M2 | Responsive UI/UX Layouts & Navigation | App shell spacing, mobile hamburger drawer (11 views), search dropdown, metric card grids, 19 modals touch/scroll bounds | none | DONE |
+| M3 | Touch Tables & Adaptive Frozen Columns | Shift matrix sticky worker column (`w-56`), touch panning, adaptive roster frozen columns, desktop 368px invariant | M2 | DONE |
+| M4 | Core Calculations, CSVs & Desktop Invariants | OT formulas (1.5x/3.0x/1.0x, salary/240), Plan/Actual diffs, 150k budget limit, 6 UTF-8 BOM CSV exports | none | DONE |
+| M5 | E2E Test Suite Pass & Adversarial Hardening | Phase 1: 100% pass across Tiers 1–4 tests. Phase 2: Tier 5 adversarial stress verification and forensic integrity audit | M1, M2, M3, M4 | DONE |
+
+---
 
 ## Interface Contracts
-### PWA Service Worker ↔ Client Application
-- Service Worker file: `/sw.js` registered at root scope `/`.
-- Cache Name: `ot-portal-v1-shell`.
-- Manifest link: `<link rel="manifest" href="/manifest.webmanifest" />` in `index.html`.
-- Theme Color: `#0f172a` (slate-900 matching enterprise dark palette).
 
-### Responsive Viewport Breakpoints Contract
-- Mobile (< 640px, `sm`): Single column cards, compact sticky columns (1 col on roster, w-32 on shift matrix), full-width / bottom sheet modals.
-- Tablet (640px - 1023px, `md`/`lg`): Two column cards, 2 pinned cols on roster, w-44 on shift matrix, centered dialog modals.
-- Desktop (>= 1024px / 1280px, `xl`): Standard 4-column cards, full 5-column sticky roster, w-56 shift matrix, 368px summary widgets.
+### Shift Scheduler & Payroll Engine (`src/App.tsx`)
+- `getShiftOtHours(shift: string): number`
+  - Input: shift code string (e.g., `"M12"`, `"N16"`, `"OND"`, `"OFF"`).
+  - Output: integer OT hours (e.g., 4, 8, 8, 0).
+- `getEmpMonthlyOtPayBreakdown(emp: Employee, shifts: Record<string, string>, year: number, month: number, customSalary?: number): OtPayBreakdown`
+  - Returns: `{ normalOt: number, holidayOt: number, holidayWorkDays: number, totalOtHours: number, salary: number, hourlyRate: number, totalOtPay: number, otPctSalary: string }`
+  - Hourly rate formula: `salary > 0 ? salary / 240 : 62.5`
+- `isPlanActualMismatch(planShift: string, actualShift: string): boolean`
+  - Returns true if `planShift` is an active scheduled shift (`!== ""` and `!== "O"` and `!== "OFF"`) and does not equal `actualShift`.
 
-### Calculation Engine & Desktop 368px Contract
-- Shift Matrix summary block: Exactly 368px width (`w-[368px]`) composed of 200px monthly breakdown + 96px Cost (Baht) + 72px Cost (% of Salary).
-- `getEmpMonthlyOtPayBreakdown(emp, shifts, year, month)` must return exact mathematical values matching existing payroll rules.
-- All CSV download routines must produce valid RFC 4180 CSV files with identical headers and data rows.
+### PWA Controller & Hooks (`src/pwa/registerServiceWorker.ts` & `src/hooks/usePWA.ts`)
+- `registerServiceWorker(options?: { enableInDev?: boolean }): Promise<ServiceWorkerRegistration | null>`
+- `skipWaitingAndReload(registration?: ServiceWorkerRegistration | null): void`
+- `usePWA(): { isInstallable: boolean, isInstalled: boolean, isOffline: boolean, updateAvailable: boolean, promptInstall: () => Promise<void>, applyUpdate: () => void }`
+
+---
 
 ## Code Layout
-- `src/App.tsx`: Main portal application, view router, modals, shift matrix, roster table, calculations.
-- `src/components/Navbar.tsx`: Top header navigation and mobile navigation drawer.
-- `src/components/Sidebar.tsx`: Side navigation menu.
-- `src/components/CsvTemplateHubModal.tsx`: CSV templates download hub.
-- `src/sw.ts` / `public/sw.js`: Service worker implementation and caching rules.
-- `public/manifest.webmanifest` / `public/manifest.json`: Web App Manifest.
-- `public/icons/`: PWA icon assets (192x192, 512x512, apple-touch-icon).
-- `src/index.css`: Tailwind CSS v4 directives and custom touch/scrollbar utility classes.
-- `tests/`: E2E test suites (Tier 1 unit, Tier 2 responsive, Tier 3 PWA, Tier 4 workflows).
+- `public/manifest.webmanifest`, `public/manifest.json`: Web App Manifest files.
+- `public/icons/*`: PWA icon assets (192, 512, maskable, apple-touch, SVG, favicon).
+- `public/sw.js`: Service worker caching implementation.
+- `src/pwa/registerServiceWorker.ts`: Client service worker lifecycle manager.
+- `src/hooks/usePWA.ts`: React PWA state and install/update hook.
+- `src/components/PWAComponents.tsx`: PWA UI badges, banners, and update toasts.
+- `src/components/Navbar.tsx`: Header, mobile drawer, navigation tabs, search dropdown.
+- `src/components/CsvTemplateHubModal.tsx`: CSV Template download modal.
+- `src/App.tsx`: Main application shell, 11 functional views, Shift Scheduler, Roster, 19 modals, calculation engines, CSV exports.
+- `tests/tier1-calculations/*`: Calculation and CSV export unit tests.
+- `tests/tier2-responsive/*`: Responsive layout, sticky table, and touch tests.
+- `tests/tier3-pwa/*`: Manifest, service worker, and caching tests.
+- `tests/tier4-workflows/*`: Real-world workflows, modals, and desktop invariant tests.
+- `scripts/*`: Standalone verification and challenger stress scripts.

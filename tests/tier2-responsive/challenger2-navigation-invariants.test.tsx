@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import Navbar from '../../src/components/Navbar';
 import Sidebar from '../../src/components/Sidebar';
@@ -80,8 +80,9 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
       const hamburger = screen.getByLabelText('เปิดเมนูนำทาง');
       fireEvent.click(hamburger);
 
+      const drawer = screen.getByLabelText('เมนูหลักสำหรับอุปกรณ์เคลื่อนที่');
       // Drawer Profile Card
-      const drawerProfileCard = screen.getByText('Admin Manager').closest('button');
+      const drawerProfileCard = within(drawer).getByText('Admin Manager').closest('button');
       if (drawerProfileCard) {
         fireEvent.click(drawerProfileCard);
         expect(setActiveTab).toHaveBeenCalledWith('profile');
@@ -89,37 +90,26 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
 
       // Check all 10 categorized view buttons in drawer
       const navTargets = [
-        'dashboard',
-        'shifts',
-        'employees',
-        'job_value',
-        'hr-editor',
-        'leave-records',
-        'ot-records',
-        'reports',
-        'admin-permissions',
-        'settings'
+        { id: 'dashboard', label: 'หน้าแรก Dashboard' },
+        { id: 'shifts', label: 'ตารางจัดกะพนักงาน' },
+        { id: 'employees', label: 'รายชื่อพนักงาน' },
+        { id: 'job_value', label: 'Job Value' },
+        { id: 'hr-editor', label: 'จัดการข้อมูลพนักงาน' },
+        { id: 'leave-records', label: 'บันทึกวันลา' },
+        { id: 'ot-records', label: 'ประวัติ OT' },
+        { id: 'reports', label: 'รายงานข้อมูลรายแผนก' },
+        { id: 'admin-permissions', label: 'สิทธิ์ผู้ใช้งาน' },
+        { id: 'settings', label: 'ตั้งค่าระบบ' }
       ];
 
-      navTargets.forEach((targetId) => {
-        // Find buttons in drawer
-        const buttons = screen.getAllByRole('button');
-        const match = buttons.find((btn) => btn.onclick && btn.textContent?.includes(
-          targetId === 'dashboard' ? 'หน้าแรก Dashboard' :
-          targetId === 'shifts' ? 'ตารางจัดกะพนักงาน' :
-          targetId === 'employees' ? 'รายชื่อพนักงาน' :
-          targetId === 'job_value' ? 'Job Value' :
-          targetId === 'hr-editor' ? 'จัดการข้อมูลพนักงาน' :
-          targetId === 'leave-records' ? 'บันทึกวันลา' :
-          targetId === 'ot-records' ? 'ประวัติ OT' :
-          targetId === 'reports' ? 'รายงานข้อมูลรายแผนก' :
-          targetId === 'admin-permissions' ? 'สิทธิ์ผู้ใช้งาน' :
-          'ตั้งค่าระบบ'
-        ));
+      navTargets.forEach(({ id, label }) => {
+        // Find buttons in drawer nav
+        const drawerNavButtons = drawer.querySelectorAll('nav button');
+        const match = Array.from(drawerNavButtons).find((btn) => btn.textContent?.includes(label));
         expect(match).toBeDefined();
         if (match) {
           fireEvent.click(match);
-          expect(setActiveTab).toHaveBeenCalledWith(targetId);
+          expect(setActiveTab).toHaveBeenCalledWith(id);
         }
       });
     });
@@ -147,7 +137,6 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         { label: /ประวัติ OT งานหน้าท่าเรือ/i, id: 'ot-records' },
         { label: /จัดการสิทธิ์ Admin & ผู้ใช้/i, id: 'admin-permissions' },
         { label: /การตั้งค่าระบบ/i, id: 'settings' },
-        { label: /จัดการโปรไฟล์ส่วนตัว/i, id: 'profile' },
       ];
 
       expectedSidebarItems.forEach(({ label, id }) => {
@@ -156,6 +145,11 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         fireEvent.click(btn);
         expect(setActiveTab).toHaveBeenCalledWith(id);
       });
+
+      const profileBtn = screen.getByTitle('จัดการโปรไฟล์ส่วนตัว');
+      expect(profileBtn).toBeInTheDocument();
+      fireEvent.click(profileBtn);
+      expect(setActiveTab).toHaveBeenCalledWith('profile');
     });
 
     it('CH2.1.4: Role-based navigation filtering hides restricted items for standard users', () => {
@@ -194,7 +188,8 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         />
       );
 
-      const brandLogo = screen.getByText('Double A Terminal').closest('div');
+      const brandLogos = screen.getAllByText('Double A Terminal');
+      const brandLogo = brandLogos[0].closest('div');
       expect(brandLogo).not.toBeNull();
       if (brandLogo) {
         fireEvent.click(brandLogo);
@@ -289,8 +284,8 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
 
       const breakdown = getEmpMonthlyOtPayBreakdown(mockEmp, '2026-07');
       expect(breakdown).toBeDefined();
-      expect(typeof breakdown.totalPay).toBe('number');
-      expect(typeof breakdown.otHours).toBe('number');
+      expect(typeof breakdown.totalOtPay).toBe('number');
+      expect(typeof breakdown.totalOtHours).toBe('number');
     });
   });
 

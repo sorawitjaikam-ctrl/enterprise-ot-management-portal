@@ -498,7 +498,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
     return acc;
   }, {} as Record<string, number>);
 
-  const topLeaveTypeEntry = Object.entries(leaveTypeCounts).sort((a, b) => b[1] - a[1])[0];
+  const topLeaveTypeEntry = Object.entries(leaveTypeCounts).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
   const topLeaveTypeName = topLeaveTypeEntry ? (LEAVE_TYPES[topLeaveTypeEntry[0]] || topLeaveTypeEntry[0]) : "ไม่มี";
 
   // Top absentees calculation
@@ -508,7 +508,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
     return acc;
   }, {} as Record<string, { id: string; name: string; count: number; deptId: string }>);
 
-  const topAbsentees = Object.values(empLeaveCounts).sort((a, b) => b.count - a.count).slice(0, 5);
+  const topAbsentees: { id: string; name: string; count: number; deptId: string }[] = (Object.values(empLeaveCounts) as { id: string; name: string; count: number; deptId: string }[]).sort((a, b) => b.count - a.count).slice(0, 5);
   const topAbsenteeUser = topAbsentees[0];
 
   return (
@@ -1314,7 +1314,7 @@ function HrDirectEditorView({
                     <td className="p-2 text-center">
                       <select
                         value={r.status || "Active"}
-                        onChange={(e) => handleCellChange(idx, "status", e.target.value)}
+                        onChange={(e) => handleCellChange(r.empId, "status", e.target.value)}
                         className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-extrabold text-slate-700 font-sans"
                       >
                         <option value="Active">🟢 ปฏิบัติงาน</option>
@@ -1325,7 +1325,7 @@ function HrDirectEditorView({
                       <input
                         type="number"
                         value={r.avgRevenue ?? 0}
-                        onChange={(e) => handleCellChange(idx, "avgRevenue", Number(e.target.value))}
+                        onChange={(e) => handleCellChange(r.empId, "avgRevenue", Number(e.target.value))}
                         className="w-full px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded-lg text-xs font-black text-emerald-700 text-right"
                       />
                     </td>
@@ -1333,7 +1333,7 @@ function HrDirectEditorView({
                       <input
                         type="number"
                         value={r.avgCost ?? 0}
-                        onChange={(e) => handleCellChange(idx, "avgCost", Number(e.target.value))}
+                        onChange={(e) => handleCellChange(r.empId, "avgCost", Number(e.target.value))}
                         className="w-full px-2 py-1 bg-rose-50/50 border border-rose-200 rounded-lg text-xs font-black text-rose-700 text-right"
                       />
                     </td>
@@ -1341,7 +1341,7 @@ function HrDirectEditorView({
                       <input
                         type="number"
                         value={r.profit2025 ?? 0}
-                        onChange={(e) => handleCellChange(idx, "profit2025", Number(e.target.value))}
+                        onChange={(e) => handleCellChange(r.empId, "profit2025", Number(e.target.value))}
                         className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 text-right"
                       />
                     </td>
@@ -1349,7 +1349,7 @@ function HrDirectEditorView({
                       <input
                         type="number"
                         value={r.profit2026 ?? 0}
-                        onChange={(e) => handleCellChange(idx, "profit2026", Number(e.target.value))}
+                        onChange={(e) => handleCellChange(r.empId, "profit2026", Number(e.target.value))}
                         className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-blue-700 text-right"
                       />
                     </td>
@@ -2373,9 +2373,11 @@ export default function App() {
       if (res.ok) {
         const data: AppState & { accounts?: any[]; otRequests?: any[] } = await res.json();
         const targetMonth = monthOverride || state?.shiftConfig?.currentMonth || data?.shiftConfig?.currentMonth || "2026-08";
-        const updatedData = {
+        const updatedData: AppState = {
           ...data,
           shiftConfig: {
+            pattern: data?.shiftConfig?.pattern || "4-on-2-off",
+            currentDept: data?.shiftConfig?.currentDept || "inter2",
             ...(data.shiftConfig || {}),
             currentMonth: targetMonth
           }
@@ -2611,7 +2613,7 @@ export default function App() {
           <h4 className="text-sm font-bold text-slate-800 font-sans">ไม่สามารถโหลดโปรทัลได้</h4>
           <p className="text-xs text-slate-500 mt-1 mb-4 font-sans">{stateError}</p>
           <button 
-            onClick={fetchPortalState}
+            onClick={() => fetchPortalState()}
             className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer font-sans"
           >
             ลองใหม่อีกครั้ง
@@ -5701,7 +5703,7 @@ export default function App() {
                           className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
                         >
                           {isHrOrFullAccess && <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>}
-                          {(["INTER 2", "INTER 3", "INTER 5", "INTER 7"] || []).filter(d => {
+                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(d => {
                             if (isHrOrFullAccess) return true;
                             return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
                           }).map(d => (
@@ -6939,10 +6941,10 @@ export default function App() {
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
                       <tr className="bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider select-none">
-                        {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px) */}
+                        {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px — Mobile, Tablet, Desktop) */}
                         <th 
                           onClick={() => handleRosterSort("id")}
-                          className="sticky left-0 z-20 bg-slate-100 px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[90px] w-[90px]"
+                          className="sticky left-0 z-20 bg-slate-100 px-4 py-3.5 font-mono cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[90px] w-[90px] border-r border-slate-200 sm:border-r-0 shadow-sm sm:shadow-none"
                           title="คลิกเพื่อเรียงตามรหัสพนักงาน"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6955,10 +6957,10 @@ export default function App() {
                           </div>
                         </th>
 
-                        {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px) */}
+                        {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px — Tablet, Desktop) */}
                         <th 
                           onClick={() => handleRosterSort("name")}
-                          className="sticky left-[90px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[190px] w-[190px]"
+                          className="static sm:sticky sm:left-[90px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[190px] w-[190px] sm:border-r sm:border-slate-200 lg:border-r-0 sm:shadow-sm lg:shadow-none"
                           title="คลิกเพื่อเรียงตามชื่อ-นามสกุล"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6971,10 +6973,10 @@ export default function App() {
                           </div>
                         </th>
 
-                        {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px) */}
+                        {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px — Desktop only) */}
                         <th 
                           onClick={() => handleRosterSort("role")}
-                          className="sticky left-[280px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[160px] w-[160px]"
+                          className="static lg:sticky lg:left-[280px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[160px] w-[160px]"
                           title="คลิกเพื่อเรียงตามตำแหน่ง"
                         >
                           <div className="flex items-center gap-1.5">
@@ -6987,10 +6989,10 @@ export default function App() {
                           </div>
                         </th>
 
-                        {/* 4. แผนก (Sticky Col 4: 440px - 550px) */}
+                        {/* 4. แผนก (Sticky Col 4: 440px - 550px — Desktop only) */}
                         <th 
                           onClick={() => handleRosterSort("dept")}
-                          className="sticky left-[440px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[110px] w-[110px]"
+                          className="static lg:sticky lg:left-[440px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[110px] w-[110px]"
                           title="คลิกเพื่อเรียงตามแผนก"
                         >
                           <div className="flex items-center gap-1.5">
@@ -7003,10 +7005,10 @@ export default function App() {
                           </div>
                         </th>
 
-                        {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px) — DIVIDER BORDER & SHADOW */}
+                        {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px — Desktop only) — DIVIDER BORDER & SHADOW */}
                         <th 
                           onClick={() => handleRosterSort("division")}
-                          className="sticky left-[550px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[150px] w-[150px] border-r-2 border-slate-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]"
+                          className="static lg:sticky lg:left-[550px] z-20 bg-slate-100 px-4 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[150px] w-[150px] lg:border-r-2 lg:border-slate-300 lg:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]"
                           title="คลิกเพื่อเรียงตามฝ่าย"
                         >
                           <div className="flex items-center gap-1.5">
@@ -7119,31 +7121,31 @@ export default function App() {
                         }
                         _rows.push(
                           <tr key={emp.id} className="group hover:bg-blue-50/40 transition-colors bg-white">
-                            {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px) */}
-                            <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap min-w-[90px] w-[90px]">
+                            {/* 1. รหัสพนักงาน (Sticky Col 1: 0 - 90px — Mobile, Tablet, Desktop) */}
+                            <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-mono font-bold text-slate-500 whitespace-nowrap min-w-[90px] w-[90px] border-r border-slate-100 sm:border-r-0 shadow-sm sm:shadow-none">
                               {emp.id}
                             </td>
 
-                            {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px) */}
-                            <td className="sticky left-[90px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap min-w-[190px] w-[190px]" onClick={() => setViewingEmployeeDetails(emp)}>
+                            {/* 2. ชื่อ-นามสกุล (Sticky Col 2: 90px - 280px — Tablet, Desktop) */}
+                            <td className="static sm:sticky sm:left-[90px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors whitespace-nowrap min-w-[190px] w-[190px] sm:border-r sm:border-slate-100 lg:border-r-0 sm:shadow-sm lg:shadow-none" onClick={() => setViewingEmployeeDetails(emp)}>
                               <div className="flex items-center gap-2.5">
                                 <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-8 h-8 flex-shrink-0" />
                                 <span className="whitespace-nowrap font-extrabold">{emp.name}</span>
                               </div>
                             </td>
 
-                            {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px) */}
-                            <td className="sticky left-[280px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-medium text-slate-700 whitespace-nowrap min-w-[160px] w-[160px]">
+                            {/* 3. ตำแหน่ง (Sticky Col 3: 280px - 440px — Desktop only) */}
+                            <td className="static lg:sticky lg:left-[280px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-medium text-slate-700 whitespace-nowrap min-w-[160px] w-[160px]">
                               {emp.role}
                             </td>
 
-                            {/* 4. แผนก (Sticky Col 4: 440px - 550px) */}
-                            <td className="sticky left-[440px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-700 whitespace-nowrap min-w-[110px] w-[110px]">
+                            {/* 4. แผนก (Sticky Col 4: 440px - 550px — Desktop only) */}
+                            <td className="static lg:sticky lg:left-[440px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 font-bold text-slate-700 whitespace-nowrap min-w-[110px] w-[110px]">
                               {getDeptName(emp.deptId, state.departments)}
                             </td>
 
-                            {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px) — DIVIDER BORDER & SHADOW */}
-                            <td className="sticky left-[550px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap min-w-[150px] w-[150px] border-r-2 border-slate-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                            {/* 5. ฝ่าย (Sticky Col 5: 550px - 700px — Desktop only) — DIVIDER BORDER & SHADOW */}
+                            <td className="static lg:sticky lg:left-[550px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap min-w-[150px] w-[150px] lg:border-r-2 lg:border-slate-300 lg:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]">
                               {emp.division || emp.groupName || "-"}
                             </td>
                             {/* 6. OT วันทำงาน (x1.5) */}

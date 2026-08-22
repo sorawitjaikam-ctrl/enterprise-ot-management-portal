@@ -2,6 +2,8 @@ interface Env {
   DB: any;
 }
 
+type PagesFunction<T = any> = (context: { request: Request; env: T; [key: string]: any }) => Promise<Response>;
+
 const getShiftOt = (shiftCode: string): number => {
   if (shiftCode === "OND") return 8;
   const match = shiftCode.match(/\d+$/);

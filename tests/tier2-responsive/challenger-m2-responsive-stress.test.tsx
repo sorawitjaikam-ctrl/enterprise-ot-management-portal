@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import Navbar from '../../src/components/Navbar';
 import App from '../../src/App';
@@ -45,7 +45,7 @@ describe('Milestone 2 Challenger Empirical Stress Suite', () => {
     ];
 
     viewports.forEach(vp => {
-      it(Renders layout and navigation correctly on , async () => {
+      it(`Renders layout and navigation correctly on ${vp.name}`, async () => {
         setViewport(vp.width, vp.height);
         const { container, unmount } = render(<App />);
 
@@ -249,7 +249,8 @@ describe('Milestone 2 Challenger Empirical Stress Suite', () => {
       fireEvent.click(hamburgerBtn);
 
       // Click profile card in drawer
-      const profileCard = screen.getByText('Supervisor').closest('button');
+      const drawer = screen.getByLabelText('เมนูหลักสำหรับอุปกรณ์เคลื่อนที่');
+      const profileCard = within(drawer).getByText('Supervisor').closest('button');
       expect(profileCard).not.toBeNull();
       fireEvent.click(profileCard!);
       expect(setActiveTab).toHaveBeenCalledWith('profile');

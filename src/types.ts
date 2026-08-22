@@ -19,20 +19,22 @@ export interface Employee {
   id: string;
   name: string;
   deptId: string;
+  department?: string;
   role: string;
   targetOt: number;
   actualOt: number;
   otPct: number;
-  status: "On Track" | "Warning";
+  status: "On Track" | "Warning" | string;
   groupName: string;
-  shifts: string[];     // Actual shifts — กะที่เข้าทำงานจริง (ใช้คำนวณ OT)
-  planShifts?: string[]; // Plan shifts — ตารางที่วางล่วงหน้า (ไม่ใช้คำนวณ OT)
+  shifts: any;     // Actual shifts — กะที่เข้าทำงานจริง (ใช้คำนวณ OT)
+  planShifts?: any; // Plan shifts — ตารางที่วางล่วงหน้า (ไม่ใช้คำนวณ OT)
   
   // New fields from Data .csv
   prefix?: string;
   firstName?: string;
   lastName?: string;
   nickname?: string;
+  avatar?: string;
   division?: string;
   salary?: number;
   birthday?: string;
@@ -43,7 +45,10 @@ export interface Employee {
   probationDate?: string;
   calendarType?: string;
   resignationDate?: string;
-  employmentStatus?: "Active" | "Resigned" | "ทำงานปกติ" | "ลาออก";
+  employmentStatus?: "Active" | "Resigned" | "Inactive" | "Retired" | "ทำงานปกติ" | "ลาออก" | "เกษียณ" | "พ้นสภาพ" | string;
+  sickLeaveUsed?: number;
+  personalLeaveUsed?: number;
+  vacationLeaveUsed?: number;
 }
 
 export interface ShiftConfig {
@@ -62,6 +67,7 @@ export interface JobValueRecord {
   id: string;
   empId: string;
   empName: string;
+  deptId?: string;
   department: string;
   position: string;
   status?: string;
