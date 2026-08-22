@@ -31,7 +31,7 @@ import {
   Anchor,
   Ship,
   Search,
-  RotateCcw,
+  RotateCcw, Zap, Repeat, Layers, CheckSquare, AlertOctagon,
   Building2,
   Briefcase,
   UserCheck,
@@ -57,6 +57,16 @@ import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { AppState, Employee, Department, JobValueRecord } from "./types";
+import { 
+  getComplementaryShift, 
+  generateTwoTeamPairSchedules, 
+  generateThreeTeamRotatingSchedules, 
+  generate4On2OffSchedule, 
+  auditEmployeeShiftsCompliance, 
+  analyzeDepartmentShiftCoverage,
+  SHIFT_DEFINITIONS,
+  ComplianceAlert
+} from "./utils/shiftRecommendation";
 
 export const SHIFT_OPTIONS = [
   { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#dce6f1]", border: "border-[#b4c6e7]", text: "text-black" },
@@ -2117,6 +2127,331 @@ export default function App() {
   }, []);
 
     const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
+  const [showSmartShiftDrawer, setShowSmartShiftDrawer] = useState<boolean>(false);
+  const [selectedComplianceModalEmp, setSelectedComplianceModalEmp] = useState<{ emp: Employee; alerts: ComplianceAlert[] } | null>(null);
+  const [isAutoPairingLoading, setIsAutoPairingLoading] = useState<boolean>(false);
+  const [smartShiftSuccessToast, setSmartShiftSuccessToast] = useState<string | null>(null);
+
+  const showToastMsg = (msg: string) => {
+    setSmartShiftSuccessToast(msg);
+    setTimeout(() => setSmartShiftSuccessToast(null), 4000);
+  };
+
+  // --- Smart Shift Handlers ---
+  // 1. Auto-Pair a specific role (e.g. 2-Team 12h Day/Night alternating)
+  const handleAutoPairRole = async (roleName: string) => {
+    setIsAutoPairingLoading(true);
+    try {
+      const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+      const [y, m] = monthKey.split("-");
+      const totalDays = new Date(Number(y), Number(m), 0).getDate();
+
+      const empsInRole = (isEditingShifts ? tempEmployees : state.employees)
+        .filter(e => e.deptId === currentShiftsDept && (e.role || "Operator") === roleName)
+        .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
+      if (empsInRole.length < 2) {
+        alert(`ตำแหน่ง "${roleName}" มีพนักงานเพียง 1 คน แนะนำให้ใช้วิธีจัดกะมาตรฐาน 4-on-2-off หรือเพิ่มพนักงานคู่กะ`);
+        setIsAutoPairingLoading(false);
+        return;
+      }
+
+      const { teamA, teamB } = generateTwoTeamPairSchedules(totalDays);
+
+      const updatedEmployees = (isEditingShifts ? tempEmployees : state.employees).map(emp => {
+        const empRole = emp.role || "Operator";
+        if (emp.deptId === currentShiftsDept && empRole === roleName && emp.employmentStatus !== "Resigned") {
+          const roleIndex = empsInRole.findIndex(e => e.id === emp.id);
+          const chosenSchedule = roleIndex % 2 === 0 ? teamA : teamB;
+          
+          return {
+            ...emp,
+            shifts: {
+              ...(typeof emp.shifts === "object" && !Array.isArray(emp.shifts) ? emp.shifts : {}),
+              [monthKey]: chosenSchedule
+            },
+            planShifts: {
+              ...(typeof emp.planShifts === "object" && !Array.isArray(emp.planShifts) ? emp.planShifts : {}),
+              [monthKey]: chosenSchedule
+            }
+          };
+        }
+        return emp;
+      });
+
+      if (isEditingShifts) {
+        setTempEmployees(updatedEmployees);
+      } else {
+        setState(prev => prev ? ({ ...prev, employees: updatedEmployees }) : prev);
+        await fetch("/api/save-shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+        }).catch(err => console.error("Error saving auto-pair shifts:", err));
+      }
+
+      showToastMsg(`⚡ จัดคู่กะ Day/Night อัจฉริยะสำหรับตำแหน่ง "${roleName}" สำเร็จ (${empsInRole.length} คน)`);
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการจัดคู่กะ");
+    } finally {
+      setIsAutoPairingLoading(false);
+    }
+  };
+
+  // 2. Auto-balance all roles in the current department
+  const handleAutoBalanceAllRoles = async () => {
+    setIsAutoPairingLoading(true);
+    try {
+      const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+      const [y, m] = monthKey.split("-");
+      const totalDays = new Date(Number(y), Number(m), 0).getDate();
+
+      const deptEmps = (isEditingShifts ? tempEmployees : state.employees)
+        .filter(e => e.deptId === currentShiftsDept)
+        .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
+      const roleGroups: Record<string, Employee[]> = {};
+      deptEmps.forEach(emp => {
+        const r = emp.role || "Operator";
+        if (!roleGroups[r]) roleGroups[r] = [];
+        roleGroups[r].push(emp);
+      });
+
+      const { teamA, teamB } = generateTwoTeamPairSchedules(totalDays);
+      const default4on2 = generate4On2OffSchedule(totalDays, "M12");
+
+      const updatedEmployees = (isEditingShifts ? tempEmployees : state.employees).map(emp => {
+        if (emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned") {
+          const r = emp.role || "Operator";
+          const empsInThisRole = roleGroups[r] || [];
+          let chosenSchedule: string[];
+
+          if (empsInThisRole.length >= 2) {
+            const idx = empsInThisRole.findIndex(e => e.id === emp.id);
+            chosenSchedule = idx % 2 === 0 ? teamA : teamB;
+          } else {
+            chosenSchedule = default4on2;
+          }
+
+          return {
+            ...emp,
+            shifts: {
+              ...(typeof emp.shifts === "object" && !Array.isArray(emp.shifts) ? emp.shifts : {}),
+              [monthKey]: chosenSchedule
+            },
+            planShifts: {
+              ...(typeof emp.planShifts === "object" && !Array.isArray(emp.planShifts) ? emp.planShifts : {}),
+              [monthKey]: chosenSchedule
+            }
+          };
+        }
+        return emp;
+      });
+
+      if (isEditingShifts) {
+        setTempEmployees(updatedEmployees);
+      } else {
+        setState(prev => prev ? ({ ...prev, employees: updatedEmployees }) : prev);
+        await fetch("/api/save-shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+        }).catch(err => console.error("Error saving auto-balance:", err));
+      }
+
+      showToastMsg(`✨ จัดคู่กะ Day/Night และตารางทำงานอัตโนมัติครบทุกตำแหน่งในแผนกเรียบร้อย (${deptEmps.length} คน)`);
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการจัดตารางกะอัตโนมัติ");
+    } finally {
+      setIsAutoPairingLoading(false);
+    }
+  };
+
+  // 3. Sync Plan to Actual for all department employees
+  const handleSyncPlanToActual = async () => {
+    try {
+      const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+      const [y, m] = monthKey.split("-");
+
+      const updatedEmployees = (isEditingShifts ? tempEmployees : state.employees).map(emp => {
+        if (emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned") {
+          const planArr = getEmpPlanShiftsArray(emp, monthKey);
+          return {
+            ...emp,
+            shifts: {
+              ...(typeof emp.shifts === "object" && !Array.isArray(emp.shifts) ? emp.shifts : {}),
+              [monthKey]: [...planArr]
+            }
+          };
+        }
+        return emp;
+      });
+
+      if (isEditingShifts) {
+        setTempEmployees(updatedEmployees);
+      } else {
+        setState(prev => prev ? ({ ...prev, employees: updatedEmployees }) : prev);
+        await fetch("/api/save-shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+        }).catch(err => console.error("Error syncing plan to actual:", err));
+      }
+
+      showToastMsg("🔄 คัดลอกตารางกะ Plan ไปเป็น Actual ทั้งแผนกเรียบร้อย");
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการคัดลอกตารางกะ");
+    }
+  };
+
+  // 4. Export Shift Schedule Matrix CSV
+  const handleExportShiftMatrixCsv = () => {
+    const activeList = isEditingShifts ? tempEmployees : state.employees;
+    const currentDept = currentShiftsDept || (activeDeptId !== "all" ? activeDeptId : undefined);
+    const filtered = activeList
+      .filter(e => !currentDept || currentDept === "all" || normalizeDeptId(e.deptId) === normalizeDeptId(currentDept))
+      .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
+    if (filtered.length === 0) { alert("ไม่มีข้อมูลพนักงานสำหรับส่งออก"); return; }
+
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const [y, m] = currentMonthKey.split("-");
+    const totalDaysInMonth = new Date(Number(y), Number(m), 0).getDate();
+    const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const dayHeaders = Array.from({ length: totalDaysInMonth }, (_, i) => {
+      const dNum = i + 1;
+      const dObj = new Date(Number(y), Number(m) - 1, dNum);
+      const daysTh = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+      return esc(`${dNum} (${daysTh[dObj.getDay()]})`);
+    }).join(",");
+
+    let csv = "\ufeff";
+    csv += `รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ตำแหน่ง,รูปแบบปฏิทิน,${dayHeaders},รวมกะเช้า (ครั้ง),รวมกะบ่าย (ครั้ง),รวมกะดึก (ครั้ง),รวมวันหยุด O (วัน),รวมชั่วโมง OT (ชม.)\n`;
+
+    filtered.forEach(emp => {
+      const shifts = getEmpShiftsArray(emp.shifts, currentMonthKey, emp.calendarType);
+      const deptLabel = getDeptName(emp.deptId, state?.departments) || emp.deptId;
+      
+      let morningCount = 0;
+      let afternoonCount = 0;
+      let nightCount = 0;
+      let offCount = 0;
+      let totalOtHrs = 0;
+
+      const dailyShifts = Array.from({ length: totalDaysInMonth }, (_, i) => {
+        const code = shifts[i] || "O";
+        if (code === "M8" || code === "M12" || code === "M16" || code === "D") morningCount++;
+        else if (code === "A8" || code === "A12") afternoonCount++;
+        else if (code === "N8" || code === "N12" || code === "N16") nightCount++;
+        else if (code === "O" || code === "OFF") offCount++;
+        totalOtHrs += getShiftOtHours(code);
+        return esc(code);
+      });
+
+      const row = [
+        esc(emp.id),
+        esc(emp.name),
+        esc(deptLabel),
+        esc(emp.role || "-"),
+        esc(emp.calendarType || "ปฏิทิน 2 ทีม"),
+        ...dailyShifts,
+        morningCount,
+        afternoonCount,
+        nightCount,
+        offCount,
+        totalOtHrs
+      ];
+      csv += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ตารางกะรายเดือน_${currentMonthKey}_${currentDept ? (getDeptName(currentDept, state?.departments) || currentDept) : "ทุกแผนก"}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // 5. Export Labor Law & Safety Compliance Audit CSV
+  const handleExportLaborComplianceCsv = () => {
+    const activeList = isEditingShifts ? tempEmployees : state.employees;
+    const currentDept = currentShiftsDept || (activeDeptId !== "all" ? activeDeptId : undefined);
+    const filtered = activeList
+      .filter(e => !currentDept || currentDept === "all" || normalizeDeptId(e.deptId) === normalizeDeptId(currentDept))
+      .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+
+    if (filtered.length === 0) { alert("ไม่มีข้อมูลพนักงานสำหรับส่งออก"); return; }
+
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    let csv = "\ufeff";
+    csv += "รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ตำแหน่ง,OT สัปดาห์สูงสุด (ชม.),สถานะ OT <=36h,ทำงานติดต่อกันสูงสุด (วัน),สถานะวันหยุดประจำสัปดาห์,การพักผ่อน <11h (ครั้ง),ผลการตรวจประเมินความปลอดภัย,รายละเอียดข้อควรระวัง\n";
+
+    filtered.forEach(emp => {
+      const shifts = getEmpShiftsArray(emp.shifts, currentMonthKey, emp.calendarType);
+      const alerts = auditEmployeeShiftsCompliance(shifts, currentMonthKey);
+      const deptLabel = getDeptName(emp.deptId, state?.departments) || emp.deptId;
+
+      // Max weekly OT
+      let maxWeekOt = 0;
+      for (let i = 0; i < shifts.length; i += 7) {
+        const slice = shifts.slice(i, i + 7);
+        let wOt = 0;
+        slice.forEach(c => {
+          if (c === "OND") wOt += 8;
+          else if (c === "M12" || c === "A12" || c === "N12") wOt += 4;
+          else if (c === "M16" || c === "N16") wOt += 8;
+        });
+        if (wOt > maxWeekOt) maxWeekOt = wOt;
+      }
+
+      // Max consecutive days
+      let maxConsecutive = 0;
+      let currConsecutive = 0;
+      shifts.forEach(c => {
+        if (c !== "O" && c !== "OFF") {
+          currConsecutive++;
+          if (currConsecutive > maxConsecutive) maxConsecutive = currConsecutive;
+        } else {
+          currConsecutive = 0;
+        }
+      });
+
+      const restViolations = alerts.filter(a => a.type === "rest_period").length;
+      const statusOverall = alerts.length === 0 ? "ผ่านเกณฑ์มาตรฐานความปลอดภัย (Safe)" : alerts.some(a => a.level === "danger") ? "พบข้อผิดระเบียบแรงงานระดับรุนแรง (Danger)" : "พบข้อควรระวัง (Warning)";
+      const detailsMsg = alerts.map(a => a.message).join(" | ") || "ไม่พบความเสี่ยง";
+
+      const row = [
+        esc(emp.id),
+        esc(emp.name),
+        esc(deptLabel),
+        esc(emp.role || "-"),
+        maxWeekOt,
+        maxWeekOt <= 36 ? "ผ่าน (<= 36 ชม.)" : "เกินขีดจำกัด (> 36 ชม.) ⚠️",
+        maxConsecutive,
+        maxConsecutive <= 6 ? "ผ่าน (ได้หยุดทุก 6 วัน)" : "เกิน 6 วันติดต่อกัน ⚠️",
+        restViolations,
+        esc(statusOverall),
+        esc(detailsMsg)
+      ];
+      csv += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `รายงานตรวจความปลอดภัยและกฎหมายแรงงาน_${currentMonthKey}_${currentDept ? (getDeptName(currentDept, state?.departments) || currentDept) : "ทุกแผนก"}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const [viewingSalaryFormulaEmployee, setViewingSalaryFormulaEmployee] = useState<any | null>(null);
 
   const handleDirectSaveShift = async (emp: any, dayIdx: number, target: "plan" | "actual", newShiftCode: string) => {
@@ -7342,19 +7677,53 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 h-10">
+                        {/* Smart Shift Assistant Toggle Button */}
+                        <button 
+                          onClick={() => setShowSmartShiftDrawer(!showSmartShiftDrawer)}
+                          className={`h-10 px-3.5 rounded-2xl text-xs font-black flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all ${
+                            showSmartShiftDrawer 
+                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/20" 
+                              : "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
+                          }`}
+                          title="เปิด/ปิด แผงเครื่องมือจัดคู่กะอัจฉริยะ และเครื่องมือจัดกะอัตโนมัติ"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>จัดกะอัจฉริยะ</span>
+                        </button>
+
+                        {/* Export Dropdown / Buttons */}
                         <button 
                           onClick={handleExportShiftsCsv}
-                          className="h-10 px-3.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all hover:scale-105 active:scale-95"
+                          className="h-10 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
                           title="ส่งออกไฟล์สรุปยอดทำจ่ายค่าล่วงเวลา (OT Payroll-Ready CSV) ประจำเดือน"
                         >
                           <FileText className="w-4 h-4 text-emerald-700" />
-                          <span>CSV ทำจ่าย OT</span>
+                          <span className="hidden sm:inline">CSV ทำจ่าย OT</span>
+                          <span className="sm:hidden">ทำจ่าย OT</span>
+                        </button>
+
+                        <button 
+                          onClick={handleExportShiftMatrixCsv}
+                          className="h-10 px-3 bg-slate-100 border border-slate-300 text-slate-800 rounded-2xl text-xs font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
+                          title="ส่งออกไฟล์ตารางกะทั้งเดือน (Shift Matrix CSV)"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-slate-600" />
+                          <span className="hidden sm:inline">CSV ตารางกะ</span>
+                        </button>
+
+                        <button 
+                          onClick={handleExportLaborComplianceCsv}
+                          className="h-10 px-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
+                          title="ส่งออกรายงานตรวจสอบความปลอดภัยและกฎหมายแรงงาน (OT > 36h, Rest Period)"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-amber-700" />
+                          <span className="hidden md:inline">รายงานแรงงาน</span>
                         </button>
                         
                         <button onClick={() => setShowVesselModal(true)}
                           className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
                           <Ship className="w-4 h-4 text-white" />
-                          <span>ตารางเรือ/เครน</span>
+                          <span>ตารางเรือ</span>
                         </button>
                       </div>
                     )}
@@ -7576,6 +7945,116 @@ export default function App() {
                 }
                 return null;
               })()}
+
+              {/* Smart Shift Recommendation & Quick Fill Assistant Panel */}
+              {showSmartShiftDrawer && (
+                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-700/60 animate-in fade-in slide-in-from-top-4 duration-200">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-inner">
+                        <Sparkles className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black tracking-wide flex items-center gap-2">
+                          <span>ระบบแนะนำคู่กะอัจฉริยะ & เครื่องมือจัดกะด่วน (Smart Shift Assistant)</span>
+                          <span className="text-[10px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full">AI Powered</span>
+                        </h3>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          วิเคราะห์พนักงานในตำแหน่งเดียวกัน แนะนำคู่กะสลับ Day/Night เพื่อความต่อเนื่องของงาน 24 ชม. และตรวจเช็กกฎหมายแรงงาน
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleAutoBalanceAllRoles}
+                        disabled={isAutoPairingLoading}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>{isAutoPairingLoading ? "กำลังคำนวณ..." : "⚡ จัดคู่กะ Day/Night ครบทุกตำแหน่ง"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSyncPlanToActual}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer transition-all flex items-center gap-1.5"
+                        title="คัดลอกค่าในช่อง Plan ทั้งหมดไปไว้ในช่อง Actual"
+                      >
+                        <Repeat className="w-3.5 h-3.5 text-blue-400" />
+                        <span>คัดลอก Plan → Actual</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Position Pair Cards */}
+                  <div className="mt-4">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-blue-400" />
+                      <span>สถานะการจับคู่กะรายตำแหน่ง (ในแผนก {currentDeptObj?.nameTh || currentShiftsDept})</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {(() => {
+                        const deptEmps = (isEditingShifts ? tempEmployees : state.employees)
+                          .filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+                        
+                        const roleMap: Record<string, typeof deptEmps> = {};
+                        deptEmps.forEach(e => {
+                          const r = e.role || "Operator";
+                          if (!roleMap[r]) roleMap[r] = [];
+                          roleMap[r].push(e);
+                        });
+
+                        return Object.entries(roleMap).map(([role, emps]) => {
+                          const isEvenPair = emps.length >= 2;
+                          return (
+                            <div key={role} className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5 flex flex-col justify-between gap-2.5 hover:border-blue-500/50 transition-colors">
+                              <div>
+                                <div className="flex items-center justify-between">
+                                  <span className="font-extrabold text-xs text-white truncate max-w-[180px]" title={role}>{role}</span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    isEvenPair 
+                                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                                      : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                  }`}>
+                                    {emps.length} คน
+                                  </span>
+                                </div>
+                                <div className="mt-2 text-[11px] text-slate-300 leading-snug">
+                                  {isEvenPair ? (
+                                    <p>💡 มี {emps.length} คนในตำแหน่งนี้: แนะนำแบ่งเข้าคู่กะ Day 12h (M12) และ Night 12h (N12) สลับทีม 4-on-2-off</p>
+                                  ) : (
+                                    <p>⚠️ มีพนักงาน 1 คน: แนะนำจัดกะเช้าเดี่ยว M12 / D หรือเพิ่มพนักงานคู่กะเสริม</p>
+                                  )}
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {emps.map(e => (
+                                    <span key={e.id} className="text-[10px] bg-slate-900/80 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700 font-mono">
+                                      {e.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {isEvenPair && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAutoPairRole(role)}
+                                  disabled={isAutoPairingLoading}
+                                  className="w-full py-1.5 bg-blue-600/30 hover:bg-blue-600 text-blue-200 hover:text-white border border-blue-500/40 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  <span>จัดคู่กะตำแหน่งนี้ (Day / Night สลับ)</span>
+                                </button>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Master Calendar Grid Canvas */}
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -7871,6 +8350,17 @@ export default function App() {
                                 <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
                                   {roleEmps.length} คน
                                 </span>
+                                {roleEmps.length >= 2 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAutoPairRole(roleName)}
+                                    className="text-[10px] font-black text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-2xs hover:scale-105 active:scale-95"
+                                    title="จัดตารางกะสลับ เช้า(M12)/ดึก(N12) ให้อัตโนมัติสำหรับพนักงานในตำแหน่งนี้"
+                                  >
+                                    <Zap className="w-3 h-3 text-blue-600" />
+                                    <span>⚡ จับคู่กะ Day/Night อัตโนมัติ</span>
+                                  </button>
+                                )}
                               </div>
                               <div className="h-0.5 flex-1 bg-slate-200 mx-4 rounded-full"></div>
                             </div>
@@ -7889,8 +8379,33 @@ export default function App() {
                                     <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1">
-                                          <p className="text-xs font-bold text-slate-800 truncate" title={emp.name}>{emp.name}</p>
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          <p className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={emp.name}>{emp.name}</p>
+                                          {(() => {
+                                            const shiftsArr = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
+                                            const complianceAlerts = auditEmployeeShiftsCompliance(shiftsArr, state?.shiftConfig?.currentMonth || "2026-08");
+                                            if (complianceAlerts.length === 0) return null;
+
+                                            const hasDanger = complianceAlerts.some(a => a.level === "danger");
+                                            return (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedComplianceModalEmp({ emp, alerts: complianceAlerts });
+                                                }}
+                                                className={`px-1.5 py-0.5 rounded text-[8.5px] font-black flex items-center gap-0.5 cursor-pointer shadow-2xs border transition-all hover:scale-105 ${
+                                                  hasDanger 
+                                                    ? "bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100" 
+                                                    : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                                                }`}
+                                                title="คลิกดูรายงานข้อควรระวังตามกฎหมายแรงงานไทย (OT > 36h / พักผ่อน < 11h / ทำงานติดต่อกัน)"
+                                              >
+                                                <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                                                <span>{complianceAlerts.length} ข้อระวัง</span>
+                                              </button>
+                                            );
+                                          })()}
                                           {(() => {
                                             const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
                                             let maxWeekOt = 0;
@@ -11165,16 +11680,67 @@ export default function App() {
             className="bg-slate-900/95 text-white backdrop-blur-md rounded-2xl shadow-[0_10px_35px_rgba(0,0,0,0.3)] p-3 border border-slate-700/50 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 select-none"
           >
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-              <span className="text-[10px] font-black text-slate-400 truncate max-w-[200px]">
-                {activeCellEditor.emp.name} (วันที่ {activeCellEditor.dayIdx + 1})
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-white truncate max-w-[220px]">
+                  {activeCellEditor.emp.name}
+                </span>
+                <span className="text-[9px] text-slate-400 font-mono">
+                  วันที่ {activeCellEditor.dayIdx + 1} • {activeCellEditor.emp.role || "Operator"}
+                </span>
+              </div>
               <button 
                 onClick={() => setActiveCellEditor(null)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5 rounded hover:bg-white/5"
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1 rounded hover:bg-white/10"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {/* Smart Pair Suggestion inside Cell Popover */}
+            {(() => {
+              const activeList = isEditingShifts ? tempEmployees : state.employees;
+              const peerEmp = activeList.find(
+                (e: Employee) => e.deptId === activeCellEditor.emp.deptId &&
+                     (e.role || "Operator") === (activeCellEditor.emp.role || "Operator") &&
+                     e.id !== activeCellEditor.emp.id &&
+                     e.employmentStatus !== "Resigned" &&
+                     e.employmentStatus !== "ลาออก"
+              );
+              if (!peerEmp) return null;
+
+              const peerShifts = getEmpShiftsArray(peerEmp.shifts, state?.shiftConfig?.currentMonth, peerEmp.calendarType);
+              const peerShift = peerShifts[activeCellEditor.dayIdx] || "O";
+              const suggestion = getComplementaryShift(peerShift);
+
+              return (
+                <div className="bg-blue-950/70 border border-blue-500/40 rounded-xl p-2.5 flex flex-col gap-1.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-blue-300 text-[10px] font-black">
+                      <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />
+                      <span>คำแนะนำคู่กะ (Smart Pair)</span>
+                    </div>
+                    <span className="text-[9px] text-blue-300 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-400/20">
+                      คู่กะ: {peerEmp.name.split(" ")[0]} ({peerShift})
+                    </span>
+                  </div>
+                  <p className="text-[9.5px] text-slate-300 leading-tight font-sans">
+                    {suggestion.rationale}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = activeCellEditor.target === "both" ? "actual" : activeCellEditor.target;
+                      handleDirectSaveShift(activeCellEditor.emp, activeCellEditor.dayIdx, target, suggestion.suggestedCode);
+                      setActiveCellEditor(null);
+                    }}
+                    className="w-full py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-[10px] font-black cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Zap className="w-3 h-3" />
+                    <span>ใส่กะแนะนำ: {suggestion.suggestedCode} ทันที</span>
+                  </button>
+                </div>
+              );
+            })()}
 
             <div className="flex flex-col gap-2">
               {/* Plan editing row */}
@@ -11576,6 +12142,101 @@ export default function App() {
                 className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-sm"
               >
                 ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Shift Floating Success Toast */}
+      {smartShiftSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-[9999] bg-slate-950/95 text-white border border-blue-500/40 rounded-2xl px-5 py-3.5 shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-400/30">
+            <Sparkles className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-white">{smartShiftSuccessToast}</p>
+            <p className="text-[10px] text-slate-400">ระบบบันทึกและซิงค์ตารางกะเรียบร้อยแล้ว</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSmartShiftSuccessToast(null)}
+            className="text-slate-400 hover:text-white p-1 ml-2 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Labor Law & Safety Compliance Audit Modal */}
+      {selectedComplianceModalEmp && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black">รายงานการตรวจความปลอดภัยและกฎหมายแรงงาน</h3>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                    {selectedComplianceModalEmp.emp.name} ({selectedComplianceModalEmp.emp.id}) • {selectedComplianceModalEmp.emp.role}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedComplianceModalEmp(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900 leading-relaxed">
+                  <span className="font-extrabold block mb-1">พบข้อควรระวังจำนวน {selectedComplianceModalEmp.alerts.length} รายการ</span>
+                  ระบบตรวจสอบพบเงื่อนไขการจัดกะที่อาจไม่สอดคล้องกับ พ.ร.บ. คุ้มครองแรงงาน หรือเกณฑ์ความปลอดภัยของการทำงานท่าเรือ
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                {selectedComplianceModalEmp.alerts.map((alert, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`p-3.5 rounded-2xl border flex items-start gap-3 ${
+                      alert.level === "danger" 
+                        ? "bg-rose-50/70 border-rose-200 text-rose-900" 
+                        : "bg-slate-50 border-slate-200 text-slate-800"
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      alert.level === "danger" ? "bg-rose-600 text-white" : "bg-amber-500 text-white"
+                    }`}>
+                      <span className="text-xs font-black">{idx + 1}</span>
+                    </div>
+                    <div className="text-xs leading-relaxed flex-1">
+                      <p className="font-extrabold">{alert.message}</p>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {alert.type === "weekly_ot" && "คำแนะนำ: ลดชั่วโมงทำงานล่วงหน้า หรือจัดพนักงานสำรองเพื่อแบ่งเบาภาระงาน"}
+                        {alert.type === "consecutive_days" && "คำแนะนำ: กฎหมายแรงงานกำหนดให้มีวันหยุดประจำสัปดาห์อย่างน้อย 1 วัน หลังทำงานติดต่อกัน 6 วัน"}
+                        {alert.type === "rest_period" && "คำแนะนำ: เว้นช่วงการเข้างานหลังออกกะดึกอย่างน้อย 11-12 ชั่วโมง เพื่อป้องกันความเหนื่อยล้าสะสม"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedComplianceModalEmp(null)}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                รับทราบและปิดหน้าต่าง
               </button>
             </div>
           </div>
