@@ -1001,28 +1001,67 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
 }
 
 function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { empId: string; empName?: string; avatarUrl?: string; className?: string }) {
-  const [error, setError] = useState(false);
+  const cleanId = String(empId || "").trim();
   
+  // Build candidate image URLs list
+  const candidates: string[] = [];
+  if (avatarUrl && !avatarUrl.includes("ui-avatars.com")) {
+    candidates.push(avatarUrl);
+  }
+  if (cleanId) {
+    candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg`);
+    if (/^\d+$/.test(cleanId) && cleanId.length < 7) {
+      candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.padStart(7, '0')}.jpg`);
+    }
+    const noLeadingZeros = cleanId.replace(/^0+/, '');
+    if (noLeadingZeros && noLeadingZeros !== cleanId) {
+      candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${noLeadingZeros}.jpg`);
+    }
+    candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.toUpperCase()}.jpg`);
+  }
+
+  const [candidateIndex, setCandidateIndex] = useState(0);
+
   useEffect(() => {
-    setError(false);
+    setCandidateIndex(0);
   }, [empId, avatarUrl]);
 
-  const initials = empName ? empName.substring(0, 2) : (empId ? empId.substring(0, 2).toUpperCase() : "??");
-  const cleanId = String(empId || "").trim();
-  const defaultImgUrl = cleanId ? `https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg` : "";
-  // Strictly filter out ui-avatars.com and use intranet.advanceagro.net corporate image URL
-  const srcUrl = (avatarUrl && !avatarUrl.includes("ui-avatars.com")) ? avatarUrl : defaultImgUrl;
+  // Clean name without Thai honorific prefixes for nice monogram initials
+  const cleanName = (empName || "")
+    .replace(/^(นาย|นางสาว|นาง|น\.ส\.|นส\.|Mr\.|Mrs\.|Miss|Ms\.)\s*/gi, "")
+    .trim();
+  
+  const initials = cleanName.length >= 2 
+    ? cleanName.substring(0, 2) 
+    : (cleanName.length === 1 ? cleanName : (cleanId ? cleanId.substring(0, 2).toUpperCase() : "??"));
 
-  return (error || !srcUrl) ? (
-    <div className={`${className} rounded-full bg-blue-600 border border-blue-200 text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0 shadow-sm`}>
-      {initials}
-    </div>
-  ) : (
+  // Deterministic avatar gradient
+  const gradients = [
+    "from-blue-600 to-indigo-700",
+    "from-teal-600 to-emerald-700",
+    "from-cyan-600 to-blue-700",
+    "from-indigo-600 to-violet-700",
+    "from-sky-600 to-blue-800"
+  ];
+  const colorHash = (cleanId + (empName || "")).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const selectedGradient = gradients[colorHash % gradients.length];
+
+  const currentSrc = candidates[candidateIndex];
+
+  if (!currentSrc || candidateIndex >= candidates.length) {
+    return (
+      <div className={`${className} rounded-full bg-gradient-to-br ${selectedGradient} border-2 border-white/60 text-white font-black flex items-center justify-center text-xs flex-shrink-0 shadow-md select-none`}>
+        {initials}
+      </div>
+    );
+  }
+
+  return (
     <img 
-      src={srcUrl} 
+      src={currentSrc} 
       alt={empName || empId}
-      onError={() => setError(true)}
-      className={`${className} rounded-full object-cover border border-slate-200 flex-shrink-0 shadow-sm`}
+      onError={() => setCandidateIndex(prev => prev + 1)}
+      className={`${className} rounded-full object-cover border-2 border-white/80 flex-shrink-0 shadow-md`}
     />
   );
 }
@@ -5647,14 +5686,14 @@ export default function App() {
                         >
                           <div className="flex items-center gap-3 mb-4">
                             <div className="relative">
-                              <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-11 h-11" />
+                              <EmployeeAvatar empId={emp.id} empName={emp.name} avatarUrl={emp.avatar} className="w-11 h-11" />
                               <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
                                 isOver ? "bg-red-500" : "bg-green-500"
                               }`}></span>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                              <h5 className={`text-xs font-bold truncate ${isOver ? "group-hover:text-red-600" : "group-hover:text-blue-600"}`}>{emp.name}</h5>
-                              <p className="text-[10px] text-slate-500 truncate font-medium">{emp.role}</p>
+                              <h5 className={`text-xs font-black truncate text-slate-900 ${isOver ? "group-hover:text-red-600" : "group-hover:text-blue-600"}`} title={emp.name}>{emp.name}</h5>
+                              <p className="text-[10px] text-slate-600 truncate font-bold mt-0.5">{emp.role}</p>
                             </div>
                           </div>
 
