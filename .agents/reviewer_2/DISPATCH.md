@@ -1,26 +1,17 @@
-## 2026-08-22T09:17:17Z
-You are Reviewer 2.
-Review the codebase for Progressive Web App (PWA) architecture, calculation engines, and CSV export integrity.
+## 2026-08-23T12:42:37Z
+You are reviewer_2.
+Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2
+Original Request File: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
+Project Document: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
+Test Infra Document: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\TEST_INFRA.md
+Worker Handoff: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_1\handoff.md
 
-Workspace Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
-Working Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2
-Original Request: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
-Project Plan: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
-Test Infra: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\TEST_INFRA.md
-
-Instructions:
-1. Read ORIGINAL_REQUEST.md, PROJECT.md, and TEST_INFRA.md.
-2. Objectively and adversarially review the codebase for:
-   - Web App Manifest (`manifest.webmanifest`, `manifest.json`), HTML meta tags (`viewport-fit=cover`, theme-color, iOS PWA tags), and 10 binary icon assets.
-   - Service Worker (`sw.js` 4-cache architecture: shell, runtime, fonts, data; pre-caching, SPA navigate fallback, 503 API fallback, stale cache invalidation).
-   - Client SW lifecycle (`registerServiceWorker.ts`), React hook (`usePWA.ts`), and PWA UI components (`PWAComponents.tsx`).
-   - Calculation engines: `getShiftOtHours`, `getEmpMonthlyOtPayBreakdown` (hourly rate `salary/240`, 1.5x weekday, 3.0x holiday OT, 1.0x holiday work), Plan vs Actual diff engine, 150k department budget ceiling.
-   - 6 CSV export routines and CSV Template Hub with UTF-8 BOM `\ufeff` and RFC 4180 escaping.
-   - Desktop 368px summary block invariant (`56px + 64px + 80px + 96px + 72px = 368px`).
-3. Run verification commands:
-   - `npm run test:tier1`
-   - `npm run test:tier3`
-   - `npm test`
-   - `npm run build`
-4. State your definitive verdict (APPROVE or REQUEST_CHANGES) in your handoff report at `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2\handoff.md`.
-5. Send completion message to parent with your verdict and path to handoff.md.
+Task:
+Perform comprehensive, independent review of:
+1. R3: Circadian 24-Hour Timeline Visualizer (src/utils/circadianEngine.ts & src/components/CircadianTimelineModal.tsx) for continuous 24-hour day/night bands, cross-midnight shift splits (N8, N12, N16, A12), and 24-slot hourly staffing density heatmap.
+2. R3: Live Overtime & Cost Simulation Engine & HUD (src/utils/costSimulationEngine.ts & src/components/LiveSimulationHUD.tsx) for real-time delta OT hours, THB cost calculation (salary/240 base rate, 1.5x/3.0x/1.0x multipliers), 150k department budget ceiling, and rolling 7-day <=36h labor compliance audits.
+3. Invariants: Strict desktop 368px summary block width (56+64+80+96+72px) and 6 UTF-8 BOM CSV exports.
+4. Run 
+pm test and 
+pm run build.
+Write your detailed review to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2\review.md and handoff report to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2\handoff.md with an explicit verdict (APPROVE or REQUEST_CHANGES). Send completion message when done.

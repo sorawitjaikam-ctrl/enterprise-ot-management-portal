@@ -2,10 +2,18 @@
 
 @theme {
   --font-sans: "Sarabun", "Noto Sans Thai", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 body, html {
   font-family: 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+  background-color: #070d18;
+  color: #f1f5f9;
+}
+
+/* 24-Column Grid for Circadian Timeline */
+.grid-cols-24 {
+  grid-template-columns: repeat(24, minmax(0, 1fr));
 }
 
 /* Custom Scrollbars */
@@ -14,17 +22,50 @@ body, html {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.6);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
+  background: rgba(56, 189, 248, 0.25);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+  background: rgba(56, 189, 248, 0.5);
 }
 
-/* Ocean Wave & Maritime Loading Keyframes */
+/* Industrial Maritime Cockpit Glass Surfaces */
+.maritime-glass-dark {
+  background: rgba(11, 19, 34, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.maritime-glass-light {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Tactile Control Bezel & Inset Shadow */
+.cockpit-bezel {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cockpit-bezel:active {
+  transform: scale(0.985);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Physical Segmented Switch Track */
+.switch-track-recessed {
+  background: linear-gradient(180deg, #070d18 0%, #0f172a 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Ocean Wave & Maritime Keyframes */
 @keyframes waveFlow1 {
   0% { transform: translateX(0) translateZ(0) scaleY(1); }
   50% { transform: translateX(-25%) translateZ(0) scaleY(1.15); }
@@ -54,6 +95,22 @@ body, html {
   75% { transform: translateY(4px) rotate(1.5deg); }
 }
 
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes radarPing {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+@keyframes sonarPulse {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 .animate-wave-1 {
   animation: waveFlow1 12s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
 }
@@ -72,6 +129,18 @@ body, html {
 
 .animate-water-pulse {
   animation: waterPulse 3s ease-in-out infinite;
+}
+
+.animate-radar-sweep {
+  animation: radarSweep 4s linear infinite;
+}
+
+.animate-radar-ping {
+  animation: radarPing 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-sonar-pulse {
+  animation: sonarPulse 3s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 /* Touch-friendly horizontal scroll & no-scrollbar utilities */
@@ -110,4 +179,3 @@ body, html {
   align-items: center;
   justify-content: center;
 }
-

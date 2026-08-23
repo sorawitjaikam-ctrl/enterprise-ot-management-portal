@@ -1,94 +1,61 @@
-# Handoff Report — Survey Explorer 3
-
-**Agent**: Survey Explorer 3  
-**Role**: Build Scripts, Test Infrastructure, State Management & Test Coverage Investigation  
-**Working Directory**: `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3`  
-**Date**: 2026-08-22  
-**Handoff Type**: Hard (Investigation Complete)  
-
----
+# Handoff Report: Codebase Survey of R3 & R4
 
 ## 1. Observation
-
-1. **Build Scripts & Configuration (`package.json`)**:
-   - `package.json` contains scripts: `"dev": "tsx server.ts"`, `"build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs"`, `"start": "node dist/server.cjs"`, `"clean": "rm -rf dist server.js"`, `"lint": "tsc --noEmit"`.
-   - **No test script or test runner** is configured in `package.json`.
-   - Dependencies include `@google/genai` (^2.4.0), `@tailwindcss/vite` (^4.1.14), `@vitejs/plugin-react` (^5.0.4), `lucide-react` (^0.546.0), `react` (^19.0.1), `react-dom` (^19.0.1), `vite` (^6.2.3), `express` (^4.21.2), `dotenv` (^17.2.3), `motion` (^12.23.24).
-
-2. **Build and Lint Execution Results**:
-   - Running `npm run build` executed `vite build` + `esbuild server.ts` successfully (exit code `0`, output bundles `dist/assets/index-*.js` ~648KB, `dist/assets/index-*.css` ~104KB, `dist/server.cjs` ~75.2KB).
-   - Running `npm run lint` (`tsc --noEmit`) exited with code `1` and emitted 21 TypeScript diagnostic errors:
-     - `functions/api/[[path]].ts:16`: `Cannot find name 'PagesFunction'`
-     - `src/App.tsx:55`: `Cannot find module './assets/login-bg.jpg'`
-     - `src/App.tsx:341,353,361,373`: `Property 'state'/'props' does not exist on type 'ErrorBoundary'`
-     - `src/App.tsx:4385`: `Type ... is not assignable to type 'NavbarProps'. Property 'isNavbarCollapsed' does not exist on type 'NavbarProps'`
-     - `src/main.tsx:57`: `Property 'props' does not exist on type 'GlobalErrorBoundary'`
-     - `src/App.tsx:501, 511, 557, 595, 600, 607`: Property access on `unknown` types.
-
-3. **Test Files & Runner Status**:
-   - Searching the workspace (`find_by_name` excluding `node_modules` and `.git`) for `*test*` and `*spec*` returned **0 results**.
-   - Current test coverage across the repository is **0%**.
-
-4. **State Management & Data Models**:
-   - State management is implemented using React 19 hooks (`useState`, `useEffect`, `useMemo`) in `src/App.tsx` and child components (`Navbar.tsx`, `Sidebar.tsx`, `CsvTemplateHubModal.tsx`), paired with `localStorage` persistence and REST synchronization with Cloudflare D1 / Express endpoints (`/api/portal-state`, `/api/save-shifts`, `/api/add-employee`, `/api/job-value`, etc.).
-   - Data models defined in `src/types.ts`: `Department`, `Employee`, `ShiftConfig`, `OtTrendData`, `JobValueRecord`, `LeaveRecord`, `VesselSchedule`, `AppState`.
-   - Core shift OT logic is implemented in `getShiftOt(shiftCode)` and `getShiftOtHours(shiftCode)`: `M8`/`A8`/`N8` (0h), `M12`/`A12`/`N12` (4h), `M16`/`N16` (8h), `OND` (8h), `D`/`O` (0h).
-   - 368px Desktop Summary Alignment is maintained in `App.tsx:7593, 7719-7746, 7784-7814`: 200px monthly breakdown + 96px Cost (Baht) + 72px Cost (%) = 368px.
-
-5. **Responsive UI & PWA Assets**:
-   - `index.html` has `<meta name="viewport" content="width=device-width, initial-scale=1.0" />` but lacks `manifest.webmanifest`, `theme-color`, and Apple touch icons.
-   - `public/` directory contains only `login-bg.jpg` (no `manifest.json`, no PWA icons, no `sw.js`).
+- **Original Requirements**: Read `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md`:
+  - R3: Circadian & Timeline Shift Visualizer (24-Hour Timeline / Gantt Matrix view showing day/night circadian coverage across 24 hours, Live Overtime & Cost Simulation calculating real-time budget and weekly safety limits during painting/editing).
+  - R4: Comprehensive Automated Verification & Integrity (unit/integration test suites in tests/, Vitest config, test coverage across calculation engine, UI components, interaction hooks, and build pipeline).
+- **Test Infrastructure & Status**:
+  - Executed `npm test` via terminal: Vitest v4.1.11 executed 25 test files with 184 tests passed (100% success rate, duration 33.95s).
+  - Executed `npm run build`: `vite build && esbuild server.ts ...` transformed 1680 modules, built client bundle (index-XPoD0V_q.js 697.22 kB, index-BTwqW-Hk.css 122.97 kB) and node server (`dist/server.cjs` 75.2 kB) with 0 errors.
+- **Existing Shift Architecture & Files**:
+  - `src/App.tsx`: Lines 7590–8838 contain the `activeTab === "shifts"` view with calendar day matrix, vessel schedules, plan/actual view modes, CSV exports, smart pair drawer, and compliance badges.
+  - `src/utils/shiftRecommendation.ts`: Contains `SHIFT_DEFINITIONS` (M8, M12, M16, A8, A12, N8, N12, N16, D, OND, O), `getComplementaryShift`, `generateTwoTeamPairSchedules`, `generateThreeTeamRotatingSchedules`, `generate4On2OffSchedule`, `auditEmployeeShiftsCompliance`, and `analyzeDepartmentShiftCoverage`.
+  - `src/components/`: `Navbar.tsx`, `Sidebar.tsx`, `CsvTemplateHubModal.tsx`, `PWAComponents.tsx`.
+- **Existing Test Suites**:
+  - `tests/tier1-calculations/`: `shift-ot-hours.test.ts` (7 tests), `payroll-breakdown.test.ts` (7 tests), `plan-actual-diff.test.ts` (6 tests), `budget-utilization.test.ts` (6 tests), `csv-exports.test.ts` (6 tests), `smart-shift-recommendations.test.ts` (8 tests).
+  - `tests/tier2-responsive/`: 8 test files, 73 tests for 375px/768px/1024px layouts, sticky worker column `w-56`, and $\ge 44\text{px}$ touch targets.
+  - `tests/tier3-pwa/`: 6 test files, 46 tests for manifest, service worker caching, and PWA hooks.
+  - `tests/tier4-workflows/`: 5 test files, 25 tests for supervisor workflow, roster, 19 modals, and desktop 368px invariants.
 
 ---
 
 ## 2. Logic Chain
-
-1. From **Observation 1 & 3**, no test runner (Vitest/Jest/Playwright) is installed, and 0 test files exist in the codebase.
-2. From **Observation 2**, `npm run build` succeeds, but `tsc --noEmit` fails due to 21 ambient type / prop mismatches. Implementing unit and E2E testing will prevent future regressions and enforce clean type integrity.
-3. From **Observation 4**, the portal's calculations (Shift OT, hourly rate `salary/240 * 1.5`, budget utilization vs 150,000 THB limit, Plan vs Actual match rate %, and 368px fixed column alignment) are critical domain invariants that must be protected by automated unit tests.
-4. From **Observation 5**, mobile (375px–430px) and tablet (768px–1024px) responsive layouts and PWA capabilities (Manifest, Service Worker, 44x44px touch targets, sticky frozen column table panning) currently lack infrastructure, verification suites, and asset definitions.
-5. Therefore, introducing **Vitest** for Tier 1 Unit & Tier 2 Component tests, alongside **Playwright** for Tier 3 PWA & Tier 4 Responsive E2E suites, provides complete coverage and regression safety.
+1. **Observation 1 & 2** establish that the project's testing foundation is healthy: Vitest and TypeScript build pipelines are functioning with 100% test pass rate across 184 tests and 0 build errors.
+2. **Observation 3** shows that shift definitions exist with standard start/end hours and OT hours, but there is currently no 24-hour Gantt visualizer view or live cost simulation during painting/drag interactions.
+3. Therefore, implementing R3 requires:
+   - Constructing a 24-Hour Timeline / Gantt matrix component displaying continuous time (00:00–24:00), day/night circadian bands, midnight-split shift blocks, and hourly concurrent staffing density heatmaps.
+   - Constructing a Live Overtime & Cost Simulation Engine calculating real-time delta OT hours, delta cost (THB), department 150k ceiling impact, and instant labor law compliance audits (36h weekly limit, rest turnaround) presented via a cockpit HUD during shift editing.
+4. **Observation 4** reveals that while existing calculation and workflow tests are robust, test suites specifically covering 24-hour Gantt calculations, live cost simulation under drag-paint, keyboard hotkeys, and shift swaps are missing.
+5. Therefore, R4 requires adding unit and workflow integration tests for the new simulation engine, 24-hour Gantt calculations, and interactive visualizer components to preserve 100% automated test coverage.
 
 ---
 
 ## 3. Caveats
-
-- **No Caveats**: All build scripts, dependencies, TypeScript configs, server endpoints, state architectures, and responsive invariants have been thoroughly examined directly from source files and build logs.
+- The investigation was conducted in read-only mode; no application source code was modified.
+- Full application state and mock data are currently contained inside `App.tsx` and `tests/mocks/mockData.ts`. When implementing new engines, modular utils (`src/utils/circadianEngine.ts`, `src/utils/costSimulationEngine.ts`) should be cleanly imported to avoid code bloat.
 
 ---
 
 ## 4. Conclusion
-
-1. **Build Toolchain**: Vite 6.2 + React 19 + Tailwind v4 + esbuild provides high-speed compilation, but TypeScript typings (`tsc --noEmit`) require minor cleanup.
-2. **State & Architecture**: Client state is centralized in `App.tsx` + `localStorage` and synchronizes with REST/D1.
-3. **Test Infrastructure Recommendation**:
-   - Install **Vitest** for Tier 1 (Calculations & Data models) and Tier 2 (Component & Layout) tests.
-   - Install **Playwright** for Tier 3 (PWA & Service Worker) and Tier 4 (Cross-device responsive E2E & Desktop 368px layout regression).
-4. Full survey analysis and actionable recommendations have been compiled in `.agents/explorer_survey_3/test_survey_report.md`.
+1. **R3 Status & Architecture**:
+   - The underlying shift definitions and compliance logic in `src/utils/shiftRecommendation.ts` provide a strong basis.
+   - A dedicated 24-Hour Timeline / Gantt Visualizer and Live Cost Simulation Engine need to be built with maritime cockpit aesthetics and integrated seamlessly into the shift scheduler tab.
+2. **R4 Status & Architecture**:
+   - The test infrastructure (Vitest + JSDOM) is fully functional and passes all 184 tests.
+   - Comprehensive test suites should be added to `tests/tier1-calculations/` and `tests/tier4-workflows/` covering the 24-hour circadian calculations, live simulation engine, and interactive UI workflows.
 
 ---
 
 ## 5. Verification Method
-
-To independently verify the findings in this report:
-
-1. **Verify TypeScript Errors**:
+1. **Run full automated test suite**:
    ```bash
-   npm run lint
+   npm test
    ```
-   *Expected Result*: Emits 21 errors matching Observation 2.
-
-2. **Verify Production Build**:
+   *Expected result*: All 25 test files pass with 100% success rate (exit code 0).
+2. **Run production build**:
    ```bash
    npm run build
    ```
-   *Expected Result*: Successfully outputs `dist/` bundle and `dist/server.cjs` with exit code 0.
-
-3. **Verify Absence of Test Suites**:
-   ```pwsh
-   Get-ChildItem -Path . -Recurse -Include *test*,*spec* -Exclude node_modules,.git
-   ```
-   *Expected Result*: Returns 0 test files in workspace source code.
-
-4. **Inspect Detailed Survey Report**:
-   - Open `file:///C:/Users/ssrwj/Documents/antigravity/mysterious-einstein/.agents/explorer_survey_3/test_survey_report.md` to review the full 4-tier test architecture and implementation plan.
+   *Expected result*: TypeScript type check and bundle compilation exit with code 0.
+3. **Inspect detailed analysis document**:
+   `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3\analysis.md`

@@ -1,39 +1,48 @@
 # Original User Request
 
-## 2026-08-22T09:01:35Z
+## 2026-08-23T12:23:44Z
 
-<USER_REQUEST>
-Enhance the Enterprise OT Management Portal with comprehensive Mobile & Tablet responsive UI/UX, Progressive Web App (PWA) capabilities, and complete E2E testing suite.
+Redesign the Enterprise OT Management Portal with a bespoke, human-crafted industrial maritime aesthetic (moving away from generic AI templates) and engineer a state-of-the-art interactive shift scheduling and rapid data entry system with drag-to-paint, hotkey entry, timeline circadian views, and live budget feedback.
 
 Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
 Integrity mode: development
 
 ## Requirements
 
-### R1. Mobile & Tablet Responsive Layout Adaptation & Verification
-Continue and complete responsive optimizations across all application views (Navbar, Shift Scheduler, Analytics Dashboards, Employee Roster, and Modals) across mobile (375px–430px) and tablet (768px–1024px) viewports with touch-friendly spacing and fluid navigation.
+### R1. Bespoke Industrial Maritime UI/UX Design Overhaul
+Re-engineer the portal visual language away from generic template layouts:
+- Modern industrial maritime cockpit design system: tactile control bars, high-contrast terminal indicators, refined typography, custom glassmorphism surfaces, and distinct status badges.
+- Micro-interactions: Fluid state transitions, tactile press states, dynamic ocean radar/telemetry accents, and polished empty/loading states.
+- Clean visual hierarchy across all 11 application views.
 
-### R2. Touch-Optimized Table Panning & Sticky Frozen Columns
-Verify and ensure sticky left identity columns and sticky headers in the Shift Scheduler and Roster List remain rock-solid during horizontal touch gestures on small screens without layout distortion.
+### R2. Advanced Interactive Shift Entry & Scheduling Engine
+Build a fluid and intuitive shift scheduling workflow:
+- Drag-to-Paint & Range Selection: Click-and-drag across multiple consecutive days or workers to mass-assign shifts effortlessly.
+- Keyboard Hotkeys: Rapid single-key shift input (M for M12/M8, N for N12/N8, D for Day, O for Off, etc.) with arrow-key grid navigation.
+- Radial / Floating Quick Picker: One-touch quick picker with instant complementary pair suggestions.
+- Drag-and-Drop Shift Swap: Seamlessly swap shifts between paired colleagues with immediate validation.
 
-### R3. Progressive Web App (PWA) & Offline Shell Support
-Ensure Web App Manifest, mobile viewport configurations, app icons, and Service Worker caching are fully verified, robust, and installable on field devices.
+### R3. Circadian & Timeline Shift Visualizer
+Provide alternative high-utility visualization modes for shift planning:
+- 24-Hour Timeline / Gantt Matrix view showing day/night circadian coverage across 24 hours.
+- Live Overtime & Cost Simulation: Instant real-time calculation of overtime cost and weekly safety limits as shifts are being painted or edited.
 
-### R4. Automated Testing & Verification
-Execute the test suites across calculations, responsive layouts, PWA lifecycle, and workflows. Ensure all tests pass cleanly.
+### R4. Comprehensive Automated Verification & Integrity
+- Unit & integration tests for drag-fill logic, hotkey events, schedule generation, and cost simulation.
+- npm test runs and passes all test suites (100%).
+- npm run build compiles with 0 TypeScript and bundle errors.
 
 ## Acceptance Criteria
 
-### Responsive Layout & Viewports
-- [ ] Application header, sidebar/navbar, and metrics cards re-stack neatly on tablet and mobile viewports without horizontal clipping.
-- [ ] Shift scheduling matrix and employee roster table support touch scrolling with pinned sticky columns remaining readable.
+### Design & Aesthetic
+- [ ] Application exhibits a distinctive, custom-crafted industrial maritime interface with zero generic template feel.
+- [ ] Navbar, Dashboard, Shift Scheduler, and Modals have unified tactile design and responsive fluid layout.
 
-### PWA & Installation
-- [ ] Web App Manifest is correctly linked with appropriate metadata, theme color, display standalone mode, and icons.
-- [ ] Service worker initializes properly and serves cached app shell assets for reliable on-field loading.
+### Shift Scheduling & Rapid Entry
+- [ ] Drag-to-paint allows multi-day and multi-cell shift assignment with instant feedback.
+- [ ] Keyboard navigation and hotkey entry operates smoothly on the calendar matrix.
+- [ ] Live overtime and labor law safety compliance recalculates in real-time during shift edits.
 
-### Desktop & Feature Integrity & Quality
-- [ ] Desktop layout, 368px aligned summary widgets, Plan/Actual/Diff calculations, and CSV exports remain 100% functional without regressions.
-- [ ] Automated tests run and pass cleanly.
-- [ ] `npm run build` compiles cleanly with zero TypeScript and build errors.
-</USER_REQUEST>
+### Build & Test Integrity
+- [ ] All automated tests pass cleanly with 100% success rate.
+- [ ] npm run build compiles cleanly with zero TypeScript errors.

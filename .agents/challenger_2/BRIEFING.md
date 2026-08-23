@@ -1,48 +1,64 @@
-﻿# BRIEFING — 2026-08-22T16:22:00+07:00
+# BRIEFING — 2026-08-23T12:46:40Z
 
 ## Mission
-Empirically and adversarially stress-test Service Worker caching, offline shell fallback, PWA install lifecycle, OT calculation boundary conditions, and Desktop 368px invariants.
+Perform empirical adversarial stress testing on R3: Circadian Timeline & Live Cost Simulation, stress testing boundary conditions, calculation edge cases, budget thresholds, cross-month/midnight carryovers, multi-shift overlaps, and regression testing.
 
 ## 🔒 My Identity
-- Archetype: EMPIRICAL CHALLENGER
+- Archetype: empirical challenger
 - Roles: critic, specialist
 - Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\challenger_2
-- Original parent: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Milestone: milestone_2
+- Original parent: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Milestone: R3: Circadian Timeline & Live Cost Simulation
 - Instance: 2 of 2
 
 ## 🔒 Key Constraints
-- Review-only — do NOT modify implementation code (find and report bugs/empirical verification only)
-- Must run verification code directly; do not trust claims or logs
-- State empirical verdict (APPROVE or REQUEST_CHANGES) with concrete evidence
+- Review-only — do NOT modify implementation code directly
+- Must execute verification code empirically; do not trust worker logs or claims
+- Maintain layout compliance: test files in project test dirs, .agents holds only metadata
 
 ## Current Parent
-- Conversation ID: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Updated: 2026-08-22T16:22:00+07:00
+- Conversation ID: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Updated: 2026-08-23T12:46:40Z
 
 ## Review Scope
-- **Files to review**: Service Worker (public/sw.js, dist/sw.js), Manifest (public/manifest.webmanifest, public/manifest.json), calculation engine (src/App.tsx), Desktop 368px summary block width invariant, CSV export routines (src/components/CsvTemplateHubModal.tsx, src/App.tsx).
+- **Files reviewed**:
+  - `src/utils/circadianEngine.ts`
+  - `src/utils/costSimulationEngine.ts`
+  - `src/utils/shiftRecommendation.ts`
+  - `src/components/CircadianTimelineModal.tsx`
+  - `src/components/LiveSimulationHUD.tsx`
+  - `src/types.ts`
 - **Interface contracts**: PROJECT.md, TEST_INFRA.md, ORIGINAL_REQUEST.md
-- **Review criteria**: Empirical correctness, offline fallback 200 / 503, schema validation, icon headers/dimensions, corner cases (0 salary, leap year, OND shift, multipliers), desktop invariants, UTF-8 BOM CSV.
+- **Review criteria**: correctness under adversarial stress, edge cases (cross-midnight, cross-month, 0/high salary, budget threshold crossings, rolling 7-day 36h OT limit), 0 regressions, clean build
 
 ## Key Decisions Made
-- Executed npm run test:tier1 (32/32 passed).
-- Executed npm run test:tier3 (46/46 passed).
-- Executed node scripts/verify-pwa.mjs (PASSED).
-- Executed node scripts/challenge-m1-pwa.mjs (48/48 passed).
-- Executed node scripts/challenger-sw-stress.mjs (86/86 passed across public and dist).
-- Executed npx vitest run tests/tier4-workflows/desktop-368px-invariants.test.tsx (5/5 passed).
-- Executed npm run lint and npm run build (zero TypeScript errors, clean bundle).
-
-## Attack Surface
-- **Hypotheses tested**: SW offline navigation fallback, SW 503 API fallback, Manifest schema, Icon PNG format & dimensions, Calculation boundary conditions, Desktop 368px invariant, CSV UTF-8 BOM & RFC4180.
-- **Vulnerabilities found**: None in core implementation. Note on Challenger 1 viewport modal test regex expecting py-2.5 instead of py-2 on CsvTemplateHubModal download button.
-- **Untested angles**: None.
-
-## Loaded Skills
-- None required
+- Authored two dedicated test suites:
+  * `tests/tier1-calculations/challenger2-r3-adversarial-stress.test.ts` (10 tests)
+  * `tests/tier4-workflows/challenger2-r3-modal-stress.test.tsx` (6 tests)
+- Evaluated domain math: Thai labor law hourly rate `salary / 240`, OT multiplier 1.5x (normal), 3.0x (holiday OT), 1.0x (holiday work days).
+- Empirically identified TypeScript compilation diagnostics in test files under `npm run lint`.
 
 ## Artifact Index
-- .agents/challenger_2/handoff.md — Final 5-component handoff report
-- .agents/challenger_2/progress.md — Progress tracker and heartbeat
-- .agents/challenger_2/DISPATCH.md — Inbound dispatch record
+- `.agents/challenger_2/challenge.md` — Detailed stress test findings & challenge report
+- `.agents/challenger_2/handoff.md` — Self-contained handoff report with verdict
+- `.agents/challenger_2/progress.md` — Execution progress and liveness heartbeat
+
+## Attack Surface
+- **Hypotheses tested**:
+  * Cross-midnight segment splitting precision across edge hours (00:00, 23:59, 24:00, negative, >24). [PASS]
+  * Carryover shifts from previous month Day 31 into Day 1 at 00:00–07:00/11:00. [PASS]
+  * Dense 20-worker simultaneous multi-shift overlap and heatmap aggregation. [PASS]
+  * Zero / negative salary fallback to 15,000 THB default. [PASS]
+  * High salary up to 2.4M THB/mo math precision. [PASS]
+  * Mixed holiday / weekday paint simulation and OT pay formula. [PASS]
+  * 150k THB budget limit crossings at 94.9%, 95.1%, 100.0%, 100.1%. [PASS]
+  * Weekly OT > 36h, consecutive workdays > 6, rest period < 11h compliance audits. [PASS]
+  * Full test suite execution and production build. [PASS]
+  * TypeScript type check (`tsc --noEmit` / `npm run lint`). [FAIL - 8 errors in worker test files]
+- **Vulnerabilities found**:
+  * 8 TypeScript compiler type errors in `tests/tier4-workflows/circadian-timeline-workflows.test.tsx` and `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx`.
+- **Untested angles**:
+  * Server-side node process persistence under multi-tenant load (outside frontend scope).
+
+## Loaded Skills
+- None

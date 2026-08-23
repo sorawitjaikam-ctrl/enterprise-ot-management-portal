@@ -50,12 +50,23 @@ import {
   Trash2,
   Settings,
   UserX,
-  Globe
+  Globe,
+  Paintbrush,
+  Undo2,
+  Redo2,
+  MousePointer2,
+  Radio,
+  Compass
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
+import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
+import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
+import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
+import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
+import { getShiftCircadianSegments } from "./utils/circadianEngine";
 import { AppState, Employee, Department, JobValueRecord } from "./types";
 import { 
   getComplementaryShift, 
@@ -2126,15 +2137,91 @@ export default function App() {
     fetchJobValueRecords();
   }, []);
 
-    const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
+  const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
   const [showSmartShiftDrawer, setShowSmartShiftDrawer] = useState<boolean>(false);
   const [selectedComplianceModalEmp, setSelectedComplianceModalEmp] = useState<{ emp: Employee; alerts: ComplianceAlert[] } | null>(null);
   const [isAutoPairingLoading, setIsAutoPairingLoading] = useState<boolean>(false);
   const [smartShiftSuccessToast, setSmartShiftSuccessToast] = useState<string | null>(null);
 
+  // --- Interactive Shift Scheduling & Simulation State ---
+  const [isCircadianModalOpen, setIsCircadianModalOpen] = useState<boolean>(false);
+  const [isRadialPickerOpen, setIsRadialPickerOpen] = useState<boolean>(false);
+  const [radialPickerProps, setRadialPickerProps] = useState<{
+    x: number;
+    y: number;
+    emp: Employee;
+    dayIdx: number;
+    currentShift: string;
+    pairedEmp?: Employee;
+    pairedShift?: string;
+  } | null>(null);
+
+  const [focusedCell, setFocusedCell] = useState<{ empId: string; dayIdx: number } | null>(null);
+  const [activeBrushShift, setActiveBrushShift] = useState<string | null>(null);
+  const [isDragPainting, setIsDragPainting] = useState<boolean>(false);
+  const [dragStartCell, setDragStartCell] = useState<{ empId: string; dayIdx: number; empIdx: number } | null>(null);
+  const [selectedRangeCells, setSelectedRangeCells] = useState<Array<{ empId: string; dayIdx: number }>>([]);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
+  const [undoStack, setUndoStack] = useState<Array<Employee[]>>([]);
+  const [redoStack, setRedoStack] = useState<Array<Employee[]>>([]);
+  const [draggedShiftCell, setDraggedShiftCell] = useState<{ empId: string; dayIdx: number; shiftCode: string } | null>(null);
+  const [dropTargetCell, setDropTargetCell] = useState<{ empId: string; dayIdx: number } | null>(null);
+
   const showToastMsg = (msg: string) => {
     setSmartShiftSuccessToast(msg);
     setTimeout(() => setSmartShiftSuccessToast(null), 4000);
+  };
+
+  const formatEmpShiftsObj = (empOrigin: any, newActualArr: string[], newPlanArr: string[], monthKey: string) => {
+    let dbShifts: any = {};
+    try {
+      dbShifts = empOrigin.shifts ? (typeof empOrigin.shifts === "string" ? JSON.parse(empOrigin.shifts) : empOrigin.shifts) : {};
+    } catch { dbShifts = {}; }
+    if (Array.isArray(dbShifts)) { dbShifts = { "2026-08": dbShifts }; }
+
+    let dbPlanShifts: any = {};
+    try {
+      dbPlanShifts = empOrigin.planShifts ? (typeof empOrigin.planShifts === "string" ? JSON.parse(empOrigin.planShifts) : empOrigin.planShifts) : {};
+    } catch { dbPlanShifts = {}; }
+    if (Array.isArray(dbPlanShifts)) { dbPlanShifts = { "2026-08": dbPlanShifts }; }
+
+    dbShifts[monthKey] = newActualArr;
+    dbPlanShifts[monthKey] = newPlanArr;
+
+    return {
+      ...empOrigin,
+      shifts: JSON.stringify(dbShifts),
+      planShifts: JSON.stringify(dbPlanShifts)
+    };
+  };
+
+  const pushUndoSnapshot = () => {
+    setUndoStack(prev => [...prev.slice(-20), state?.employees || []]);
+    setRedoStack([]);
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) {
+      showToastMsg("ไม่มีประวัติที่สามารถยกเลิกได้");
+      return;
+    }
+    const prev = undoStack[undoStack.length - 1];
+    setRedoStack(r => [...r, state?.employees || []]);
+    setUndoStack(u => u.slice(0, -1));
+    setState((s: any) => ({ ...s, employees: prev }));
+    showToastMsg("↩ เลิกทำ (Undo) สำเร็จ");
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) {
+      showToastMsg("ไม่มีประวัติที่สามารถทำซ้ำได้");
+      return;
+    }
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack(u => [...u, state?.employees || []]);
+    setRedoStack(r => r.slice(0, -1));
+    setState((s: any) => ({ ...s, employees: next }));
+    showToastMsg("↪ ทำซ้ำ (Redo) สำเร็จ");
   };
 
   // --- Smart Shift Handlers ---
@@ -2615,6 +2702,223 @@ export default function App() {
   useEffect(() => {
     setMismatchAlertDismissed(false);
   }, [currentShiftsDept, shiftViewMode]);
+
+  const handleBatchAssignShifts = (cells: Array<{ empId: string; dayIdx: number }>, shiftCode: string, target: "plan" | "actual" | "both" = "actual") => {
+    if (!cells || cells.length === 0) return;
+    pushUndoSnapshot();
+    const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const currentEmps = state?.employees || [];
+    const updatedEmployees = currentEmps.map((emp: Employee) => {
+      const empCells = cells.filter(c => c.empId === emp.id);
+      if (empCells.length === 0) return emp;
+
+      const curShifts = [...getEmpShiftsArray(emp.shifts, monthKey, emp.calendarType)];
+      const curPlan = [...getEmpPlanShiftsArray(emp, monthKey)];
+
+      empCells.forEach(cell => {
+        while (curShifts.length <= cell.dayIdx) curShifts.push("O");
+        while (curPlan.length <= cell.dayIdx) curPlan.push("O");
+
+        if (target === "plan" || target === "both") {
+          curPlan[cell.dayIdx] = shiftCode;
+        }
+        if (target === "actual" || target === "both") {
+          curShifts[cell.dayIdx] = shiftCode;
+        }
+      });
+
+      return formatEmpShiftsObj(emp, curShifts, curPlan, monthKey);
+    });
+
+    setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+    showToastMsg(`✅ ทาสีกะ ${shiftCode} จำนวน ${cells.length} ช่องสำเร็จ`);
+    setSelectedRangeCells([]);
+    setSimulationResult(null);
+  };
+
+  const handleShiftSwap = (
+    source: { empId: string; dayIdx: number; shiftCode: string },
+    target: { empId: string; dayIdx: number; shiftCode: string }
+  ) => {
+    if (source.empId === target.empId && source.dayIdx === target.dayIdx) return;
+    pushUndoSnapshot();
+    const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const currentEmps = state?.employees || [];
+    const sourceEmp = currentEmps.find((e: Employee) => e.id === source.empId);
+    const targetEmp = currentEmps.find((e: Employee) => e.id === target.empId);
+    if (!sourceEmp || !targetEmp) return;
+
+    const sourceShifts = [...getEmpShiftsArray(sourceEmp.shifts, monthKey, sourceEmp.calendarType)];
+    const targetShifts = [...getEmpShiftsArray(targetEmp.shifts, monthKey, targetEmp.calendarType)];
+
+    const temp = sourceShifts[source.dayIdx] || "O";
+    sourceShifts[source.dayIdx] = targetShifts[target.dayIdx] || "O";
+    targetShifts[target.dayIdx] = temp;
+
+    const sourceAlerts = auditEmployeeShiftsCompliance(sourceShifts, monthKey);
+    const targetAlerts = auditEmployeeShiftsCompliance(targetShifts, monthKey);
+
+    const updatedEmployees = currentEmps.map((e: Employee) => {
+      if (e.id === sourceEmp.id) {
+        return formatEmpShiftsObj(e, sourceShifts, getEmpPlanShiftsArray(e, monthKey), monthKey);
+      }
+      if (e.id === targetEmp.id) {
+        return formatEmpShiftsObj(e, targetShifts, getEmpPlanShiftsArray(e, monthKey), monthKey);
+      }
+      return e;
+    });
+
+    setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+
+    if (sourceAlerts.length > 0 || targetAlerts.length > 0) {
+      showToastMsg(`⚠️ สลับกะเรียบร้อย: ${sourceEmp.name} ⇄ ${targetEmp.name} (พบข้อควรระวัง ${sourceAlerts.length + targetAlerts.length} ข้อ)`);
+    } else {
+      showToastMsg(`⚡ สลับกะสำเร็จ: ${sourceEmp.name} (${sourceShifts[source.dayIdx]}) ⇄ ${targetEmp.name} (${targetShifts[target.dayIdx]}) สอดคล้องกฎหมาย 100%`);
+    }
+  };
+
+  // --- Keyboard Hotkeys & Grid Navigation ---
+  useEffect(() => {
+    if (activeTab !== "shifts") return;
+
+    const handleGridKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y" || ((e.key === "z" || e.key === "Z") && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        setFocusedCell(null);
+        setSelectedRangeCells([]);
+        setSimulationResult(null);
+        setIsRadialPickerOpen(false);
+        setActiveCellEditor(null);
+        return;
+      }
+
+      const activeList = (isEditingShifts ? tempEmployees : (state?.employees || []))
+        .filter((emp: Employee) => emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก");
+
+      const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+      const [y, m] = monthKey.split("-");
+      const totalDays = new Date(Number(y), Number(m), 0).getDate();
+
+      if (!focusedCell) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key) && activeList.length > 0) {
+          e.preventDefault();
+          setFocusedCell({ empId: activeList[0].id, dayIdx: 0 });
+        }
+        return;
+      }
+
+      const currentEmpIdx = activeList.findIndex((emp: Employee) => emp.id === focusedCell.empId);
+      if (currentEmpIdx === -1) return;
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const nextEmpIdx = Math.max(0, currentEmpIdx - 1);
+        setFocusedCell({ empId: activeList[nextEmpIdx].id, dayIdx: focusedCell.dayIdx });
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextEmpIdx = Math.min(activeList.length - 1, currentEmpIdx + 1);
+        setFocusedCell({ empId: activeList[nextEmpIdx].id, dayIdx: focusedCell.dayIdx });
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const nextDayIdx = Math.max(0, focusedCell.dayIdx - 1);
+        setFocusedCell({ empId: focusedCell.empId, dayIdx: nextDayIdx });
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const nextDayIdx = Math.min(totalDays - 1, focusedCell.dayIdx + 1);
+        setFocusedCell({ empId: focusedCell.empId, dayIdx: nextDayIdx });
+        return;
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        setFocusedCell({ empId: focusedCell.empId, dayIdx: 0 });
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        setFocusedCell({ empId: focusedCell.empId, dayIdx: totalDays - 1 });
+        return;
+      }
+
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        const curEmp = activeList[currentEmpIdx];
+        const curShifts = getEmpShiftsArray(curEmp.shifts, monthKey, curEmp.calendarType);
+        const curShift = curShifts[focusedCell.dayIdx] || "O";
+
+        const peerEmp = activeList.find((p: Employee) => p.id !== curEmp.id && (p.role || "Operator") === (curEmp.role || "Operator"));
+        const peerShifts = peerEmp ? getEmpShiftsArray(peerEmp.shifts, monthKey, peerEmp.calendarType) : [];
+        const peerShift = peerShifts[focusedCell.dayIdx] || "O";
+
+        setRadialPickerProps({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          emp: curEmp,
+          dayIdx: focusedCell.dayIdx,
+          currentShift: curShift,
+          pairedEmp: peerEmp,
+          pairedShift: peerShift
+        });
+        setIsRadialPickerOpen(true);
+        return;
+      }
+
+      const key = e.key.toUpperCase();
+      const targetCells = selectedRangeCells.length > 0 ? selectedRangeCells : [focusedCell];
+
+      let targetShiftCode: string | null = null;
+      const curEmp = activeList[currentEmpIdx];
+      const curShifts = getEmpShiftsArray(curEmp.shifts, monthKey, curEmp.calendarType);
+      const curShift = curShifts[focusedCell.dayIdx] || "O";
+
+      if (key === "M") {
+        e.preventDefault();
+        targetShiftCode = curShift === "M12" ? "M8" : curShift === "M8" ? "M16" : "M12";
+      } else if (key === "N") {
+        e.preventDefault();
+        targetShiftCode = curShift === "N12" ? "N8" : curShift === "N8" ? "N16" : "N12";
+      } else if (key === "A") {
+        e.preventDefault();
+        targetShiftCode = curShift === "A8" ? "A12" : "A8";
+      } else if (key === "D") {
+        e.preventDefault();
+        targetShiftCode = "D";
+      } else if (key === "O" || e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        targetShiftCode = "O";
+      } else if (key === "H") {
+        e.preventDefault();
+        targetShiftCode = "OND";
+      }
+
+      if (targetShiftCode) {
+        handleBatchAssignShifts(targetCells, targetShiftCode, shiftViewMode === "both" ? "actual" : shiftViewMode);
+      }
+    };
+
+    window.addEventListener("keydown", handleGridKeyDown);
+    return () => window.removeEventListener("keydown", handleGridKeyDown);
+  }, [activeTab, focusedCell, selectedRangeCells, shiftViewMode, state?.employees, isEditingShifts, tempEmployees, currentShiftsDept, undoStack, redoStack]);
 
   // Sort and display filters for report
   const [reportSortBy, setReportSortBy] = useState<string>("OT Hours (High to Low)");
@@ -8433,7 +8737,7 @@ export default function App() {
                                     {/* Shift Cells */}
                                     <div className="flex">
                                       {(() => {
-                                        const empActualShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
+                                        const empActualShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
                                         const empPlanShifts = getEmpPlanShiftsArray(emp, state?.shiftConfig?.currentMonth);
                                         return currentDays.map((day) => {
                                           const dayIdx = day.n - 1;
@@ -8447,10 +8751,84 @@ export default function App() {
                                           const cellW = daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px";
                                           const cellH = daysLimit === 30 ? "40px" : daysLimit === 14 ? "48px" : "56px";
 
+                                          const isFocused = focusedCell?.empId === emp.id && focusedCell?.dayIdx === dayIdx;
+                                          const isSelected = selectedRangeCells.some(c => c.empId === emp.id && c.dayIdx === dayIdx);
+                                          const isDropTarget = dropTargetCell?.empId === emp.id && dropTargetCell?.dayIdx === dayIdx;
+
                                           return (
                                             <div 
                                               key={dayIdx} 
                                               style={{ width: cellW, height: cellH }}
+                                              data-emp-id={emp.id}
+                                              data-day-idx={dayIdx}
+                                              onPointerDown={(e) => {
+                                                e.stopPropagation();
+                                                const isManager = currentUser?.role === "Section Manager" && normalizeDeptId(currentUser?.deptId) === normalizeDeptId(emp.deptId);
+                                                const isAllowed = isHrOrFullAccess || isManager;
+                                                if (!isAllowed) return;
+
+                                                setFocusedCell({ empId: emp.id, dayIdx });
+                                                setIsDragPainting(true);
+
+                                                if (activeBrushShift) {
+                                                  setSelectedRangeCells([{ empId: emp.id, dayIdx }]);
+                                                  const sim = simulateShiftPaintingDelta(
+                                                    {},
+                                                    [{ empId: emp.id, dateStr: `${day.n}`, newShift: activeBrushShift }],
+                                                    (isEditingShifts ? tempEmployees : state.employees).filter((e: Employee) => e.deptId === currentShiftsDept)
+                                                  );
+                                                  setSimulationResult(sim);
+                                                } else {
+                                                  setDragStartCell({ empId: emp.id, dayIdx, empIdx: roleEmps.findIndex((r: Employee) => r.id === emp.id) });
+                                                  setSelectedRangeCells([{ empId: emp.id, dayIdx }]);
+                                                }
+                                              }}
+                                              onPointerEnter={() => {
+                                                if (!isDragPainting) return;
+                                                const deptEmps = (isEditingShifts ? tempEmployees : state.employees).filter((e: Employee) => e.deptId === currentShiftsDept);
+
+                                                if (activeBrushShift) {
+                                                  setSelectedRangeCells(prev => {
+                                                    if (prev.some(c => c.empId === emp.id && c.dayIdx === dayIdx)) return prev;
+                                                    const next = [...prev, { empId: emp.id, dayIdx }];
+                                                    const sim = simulateShiftPaintingDelta(
+                                                      {},
+                                                      next.map(c => ({ empId: c.empId, dateStr: `${c.dayIdx + 1}`, newShift: activeBrushShift })),
+                                                      deptEmps
+                                                    );
+                                                    setSimulationResult(sim);
+                                                    return next;
+                                                  });
+                                                } else if (dragStartCell) {
+                                                  const startDay = Math.min(dragStartCell.dayIdx, dayIdx);
+                                                  const endDay = Math.max(dragStartCell.dayIdx, dayIdx);
+                                                  const startIdx = Math.min(dragStartCell.empIdx, roleEmps.findIndex((r: Employee) => r.id === emp.id));
+                                                  const endIdx = Math.max(dragStartCell.empIdx, roleEmps.findIndex((r: Employee) => r.id === emp.id));
+
+                                                  const range: Array<{ empId: string; dayIdx: number }> = [];
+                                                  for (let ei = startIdx; ei <= endIdx; ei++) {
+                                                    const eObj = roleEmps[ei];
+                                                    if (eObj) {
+                                                      for (let di = startDay; di <= endDay; di++) {
+                                                        range.push({ empId: eObj.id, dayIdx: di });
+                                                      }
+                                                    }
+                                                  }
+                                                  setSelectedRangeCells(range);
+                                                  const sim = simulateShiftPaintingDelta(
+                                                    {},
+                                                    range.map(c => ({ empId: c.empId, dateStr: `${c.dayIdx + 1}`, newShift: "M12" })),
+                                                    deptEmps
+                                                  );
+                                                  setSimulationResult(sim);
+                                                }
+                                              }}
+                                              onPointerUp={() => {
+                                                if (isDragPainting && activeBrushShift && selectedRangeCells.length > 0) {
+                                                  handleBatchAssignShifts(selectedRangeCells, activeBrushShift, shiftViewMode === "both" ? "actual" : shiftViewMode);
+                                                }
+                                                setIsDragPainting(false);
+                                              }}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 const isManager = currentUser?.role === "Section Manager" && normalizeDeptId(currentUser?.deptId) === normalizeDeptId(emp.deptId);
@@ -8458,41 +8836,111 @@ export default function App() {
                                                 if (!isAllowed) return;
 
                                                 const rect = e.currentTarget.getBoundingClientRect();
-                                                setActiveCellEditor({
+                                                const activeList = isEditingShifts ? tempEmployees : state.employees;
+                                                const peerEmp = activeList.find(
+                                                  (pe: Employee) => pe.deptId === emp.deptId &&
+                                                       (pe.role || "Operator") === (emp.role || "Operator") &&
+                                                       pe.id !== emp.id &&
+                                                       pe.employmentStatus !== "Resigned" &&
+                                                       pe.employmentStatus !== "ลาออก"
+                                                );
+                                                const peerShifts = peerEmp ? getEmpShiftsArray(peerEmp.shifts, state?.shiftConfig?.currentMonth, peerEmp.calendarType) : [];
+                                                const peerShift = peerShifts[dayIdx] || "O";
+
+                                                setRadialPickerProps({
+                                                  x: rect.left + rect.width / 2,
+                                                  y: rect.bottom + window.scrollY,
                                                   emp,
                                                   dayIdx,
-                                                  target: shiftViewMode,
-                                                  x: rect.left + window.scrollX,
-                                                  y: rect.bottom + window.scrollY
+                                                  currentShift: actualShift,
+                                                  pairedEmp: peerEmp,
+                                                  pairedShift: peerShift
                                                 });
+                                                setIsRadialPickerOpen(true);
                                               }}
                                               className={[
-                                                "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none cursor-pointer hover:bg-blue-50/60 transition-colors",
+                                                "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none cursor-pointer transition-all",
+                                                isFocused ? "ring-2 ring-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)] z-30" : "",
+                                                isSelected ? "ring-2 ring-blue-500/90 bg-blue-500/20 z-20" : "",
+                                                isDropTarget ? "border-dashed border-2 border-cyan-400 bg-cyan-500/30 animate-pulse z-20" : "",
                                                 mismatch ? "outline outline-2 outline-red-500 outline-offset-[-1px] z-[1]" : "",
-                                                day.weekend ? "bg-red-50/20" : ""
+                                                day.weekend ? "bg-red-50/20" : "",
+                                                "hover:bg-blue-50/60"
                                               ].join(" ")}>
                                               {/* Plan sub-row */}
                                               {(shiftViewMode === "plan" || shiftViewMode === "both") && (
-                                                <div className={[
-                                                  "w-full flex items-center justify-center font-extrabold relative rounded",
-                                                  planStyle,
-                                                  shiftViewMode === "both"
-                                                    ? "h-[19px] text-[8px]"
-                                                    : "h-full border text-[9px] md:text-xs"
-                                                ].join(" ")}>
+                                                <div 
+                                                  draggable={true}
+                                                  onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedShiftCell({ empId: emp.id, dayIdx, shiftCode: planShift });
+                                                  }}
+                                                  onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setDropTargetCell({ empId: emp.id, dayIdx });
+                                                  }}
+                                                  onDragLeave={(e) => {
+                                                    e.stopPropagation();
+                                                    if (dropTargetCell?.empId === emp.id && dropTargetCell?.dayIdx === dayIdx) {
+                                                      setDropTargetCell(null);
+                                                    }
+                                                  }}
+                                                  onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (draggedShiftCell) {
+                                                      handleShiftSwap(draggedShiftCell, { empId: emp.id, dayIdx, shiftCode: planShift });
+                                                    }
+                                                    setDraggedShiftCell(null);
+                                                    setDropTargetCell(null);
+                                                  }}
+                                                  className={[
+                                                    "w-full flex items-center justify-center font-extrabold relative rounded cursor-grab active:cursor-grabbing",
+                                                    planStyle,
+                                                    shiftViewMode === "both"
+                                                      ? "h-[19px] text-[8px]"
+                                                      : "h-full border text-[9px] md:text-xs"
+                                                  ].join(" ")}>
                                                   {shiftViewMode === "both" && <span className="absolute top-0 left-0.5 text-[5px] text-black/30 font-black font-sans">P</span>}
                                                   {planShift !== "O" ? planShift : ""}
                                                 </div>
                                               )}
                                               {/* Actual sub-row */}
                                               {(shiftViewMode === "actual" || shiftViewMode === "both") && (
-                                                <div className={[
-                                                  "w-full flex items-center justify-center font-extrabold relative rounded",
-                                                  actualStyle,
-                                                  shiftViewMode === "both"
-                                                    ? "h-[19px] text-[8px] mt-0.5 border-t border-slate-100"
-                                                    : "h-full border text-[9px] md:text-xs"
-                                                ].join(" ")}>
+                                                <div 
+                                                  draggable={true}
+                                                  onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedShiftCell({ empId: emp.id, dayIdx, shiftCode: actualShift });
+                                                  }}
+                                                  onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setDropTargetCell({ empId: emp.id, dayIdx });
+                                                  }}
+                                                  onDragLeave={(e) => {
+                                                    e.stopPropagation();
+                                                    if (dropTargetCell?.empId === emp.id && dropTargetCell?.dayIdx === dayIdx) {
+                                                      setDropTargetCell(null);
+                                                    }
+                                                  }}
+                                                  onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (draggedShiftCell) {
+                                                      handleShiftSwap(draggedShiftCell, { empId: emp.id, dayIdx, shiftCode: actualShift });
+                                                    }
+                                                    setDraggedShiftCell(null);
+                                                    setDropTargetCell(null);
+                                                  }}
+                                                  className={[
+                                                    "w-full flex items-center justify-center font-extrabold relative rounded cursor-grab active:cursor-grabbing",
+                                                    actualStyle,
+                                                    shiftViewMode === "both"
+                                                      ? "h-[19px] text-[8px] mt-0.5 border-t border-slate-100"
+                                                      : "h-full border text-[9px] md:text-xs"
+                                                  ].join(" ")}>
                                                   {shiftViewMode === "both" && <span className="absolute top-0 left-0.5 text-[5px] text-black/30 font-black font-sans">A</span>}
                                                   {actualShift !== "O" ? (actualShift === "⚠" ? "[เกินขีด]" : actualShift) : ""}
                                                 </div>
@@ -11640,6 +12088,58 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 24-Hour Circadian Timeline Matrix Modal */}
+      <CircadianTimelineModal
+        isOpen={isCircadianModalOpen}
+        onClose={() => setIsCircadianModalOpen(false)}
+        employees={(isEditingShifts ? tempEmployees : state.employees).filter((e: Employee) => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก")}
+        currentMonth={state?.shiftConfig?.currentMonth || "2026-08"}
+        departmentName={currentDeptObj?.nameTh || currentDeptObj?.name || currentShiftsDept}
+        onSelectCell={(empId, dayNumber) => {
+          setIsCircadianModalOpen(false);
+          setFocusedCell({ empId, dayIdx: dayNumber - 1 });
+        }}
+      />
+
+      {/* Radial / Speed-Dial Shift Picker */}
+      {isRadialPickerOpen && radialPickerProps && (
+        <ShiftRadialPicker
+          isOpen={isRadialPickerOpen}
+          position={{ x: radialPickerProps.x, y: radialPickerProps.y }}
+          currentShift={radialPickerProps.currentShift}
+          employee={radialPickerProps.emp}
+          dayNumber={radialPickerProps.dayIdx + 1}
+          pairedEmployee={radialPickerProps.pairedEmp}
+          pairedShift={radialPickerProps.pairedShift}
+          onSelectShift={(code) => {
+            const target = shiftViewMode === "both" ? "actual" : shiftViewMode;
+            handleDirectSaveShift(radialPickerProps.emp, radialPickerProps.dayIdx, target, code);
+            setIsRadialPickerOpen(false);
+          }}
+          onClose={() => setIsRadialPickerOpen(false)}
+        />
+      )}
+
+      {/* Live Overtime & Cost Simulation HUD */}
+      <LiveSimulationHUD
+        simulation={simulationResult}
+        activePaintShift={activeBrushShift}
+        onApply={() => {
+          if (selectedRangeCells.length > 0) {
+            handleBatchAssignShifts(selectedRangeCells, activeBrushShift || "M12", shiftViewMode === "both" ? "actual" : shiftViewMode);
+          }
+        }}
+        onCancel={() => {
+          setSelectedRangeCells([]);
+          setSimulationResult(null);
+        }}
+        onSelectShift={(code) => {
+          if (selectedRangeCells.length > 0) {
+            handleBatchAssignShifts(selectedRangeCells, code, shiftViewMode === "both" ? "actual" : shiftViewMode);
+          }
+        }}
+      />
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: CSV TEMPLATE HUB */}

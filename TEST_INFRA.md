@@ -1,43 +1,33 @@
-# E2E Test Infra: Enterprise OT Management Portal
+# E2E Test Infra: Enterprise OT Management Portal Redesign & Scheduling Engine
 
 ## Test Philosophy
-- Opaque-box, requirement-driven. No dependency on implementation design.
-- Methodology: Category-Partition + Boundary Value Analysis (BVA) + Pairwise Combinatorial Testing + Real-World Workload Testing.
+- Requirement-driven, opaque-box & white-box multi-tier verification.
+- 100% test pass rate across unit calculations, interaction workflows, responsive design, and stress tests.
+- Zero TypeScript compile errors (`tsc --noEmit`) and clean production build (`npm run build`).
 
-## Feature Inventory & Test Mapping
-| # | Feature | Source (requirement) | Tier 1 (Calc & Data) | Tier 2 (Responsive & Tables) | Tier 3 (PWA) | Tier 4 (Workflows) |
-|---|---------|---------------------|:--------------------:|:----------------------------:|:------------:|:------------------:|
-| 1 | Web App Manifest | ORIGINAL_REQUEST §R3 | - | - | 6 | - |
-| 2 | HTML Meta Tags & Icons | ORIGINAL_REQUEST §R3 | - | - | 5 | - |
-| 3 | Service Worker & Offline Caching | ORIGINAL_REQUEST §R3 | - | - | 10 | - |
-| 4 | Client SW Lifecycle & Hook | ORIGINAL_REQUEST §R3 | - | - | 5 | - |
-| 5 | Mobile 375px Viewport & Spacing | ORIGINAL_REQUEST §R1 | - | 5 | - | - |
-| 6 | Tablet 768px Viewport & Grids | ORIGINAL_REQUEST §R1 | - | 5 | - | - |
-| 7 | Mobile Nav Drawer & 11 Views | ORIGINAL_REQUEST §R1 | - | 5 | - | 5 |
-| 8 | Shift Matrix Sticky Columns & Panning | ORIGINAL_REQUEST §R2 | - | 4 | - | 5 |
-| 9 | Employee Roster Adaptive Columns | ORIGINAL_REQUEST §R2 | - | 4 | - | 5 |
-| 10 | Touch Ergonomics (44px/48px) | ORIGINAL_REQUEST §R1 | - | 4 | - | - |
-| 11 | Shift OT Hours Calculation | ORIGINAL_REQUEST §R4 | 7 | - | - | - |
-| 12 | Monthly Payroll Breakdown | ORIGINAL_REQUEST §R4 | 7 | - | - | - |
-| 13 | Plan vs Actual Diff Engine | ORIGINAL_REQUEST §R4 | 6 | - | - | 5 |
-| 14 | Department 150k Budget Engine | ORIGINAL_REQUEST §R4 | 6 | - | - | - |
-| 15 | 6 CSV Exports & Template Hub | ORIGINAL_REQUEST §R4 | 6 | - | - | 5 |
-| 16 | 19 Modals Lifecycle & Scroll | ORIGINAL_REQUEST §R1 | - | - | - | 5 |
-| 17 | Desktop 368px Summary Invariant | ORIGINAL_REQUEST §R2 | - | - | - | 5 |
+## Feature Inventory & Test Coverage Mapping
+| # | Feature | Requirement | Tier 1 (Unit) | Tier 2 (Responsive) | Tier 3 (PWA/Infra) | Tier 4 (Workflows) | Tier 5 (Adversarial) |
+|---|---------|-------------|:-------------:|:-------------------:|:------------------:|:------------------:|:--------------------:|
+| 1 | Maritime Cockpit UI & 11 Views | ORIGINAL_REQUEST §R1 | - | ✓ | - | ✓ | ✓ |
+| 2 | Drag-to-Paint & Range Selection | ORIGINAL_REQUEST §R2 | - | ✓ | - | ✓ | ✓ |
+| 3 | Keyboard Hotkeys & Navigation | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
+| 4 | Radial / Speed-Dial Quick Picker | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
+| 5 | Drag-and-Drop Shift Swap | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
+| 6 | 24-Hour Continuous Timeline / Gantt | ORIGINAL_REQUEST §R3 | ✓ | ✓ | - | ✓ | ✓ |
+| 7 | Live Overtime & Cost Simulation | ORIGINAL_REQUEST §R3 | ✓ | - | - | ✓ | ✓ |
+| 8 | Calculation Engines & 6 CSV Exports | Baseline & ORIGINAL_REQUEST | ✓ | - | - | ✓ | ✓ |
+| 9 | PWA & Offline Support | Baseline & ORIGINAL_REQUEST | - | - | ✓ | - | ✓ |
 
-## Test Architecture
-- **Test Runner**: Vitest v4.1.11 with JSDOM environment, polyfills in `tests/setup.ts`.
-- **Test Suites Structure**:
-  - `tests/tier1-calculations/`: Unit & mathematical formula verification.
-  - `tests/tier2-responsive/`: Viewport simulation (375px, 768px, 1024px), sticky tables, touch targets.
-  - `tests/tier3-pwa/`: Manifest schema, HTML meta, Service worker, offline mock, install hook.
-  - `tests/tier4-workflows/`: End-to-end user workflows, 19 modals, 368px desktop invariant.
-  - `scripts/`: Standalone scripts (`verify-pwa.mjs`, `challenge-m1-pwa.mjs`, `challenger-sw-stress.mjs`).
-
-## Acceptance Thresholds
-- **Tier 1**: 32/32 tests pass (100%).
-- **Tier 2**: 35+/35+ tests pass (100%).
-- **Tier 3**: 46/46 tests pass (100%).
-- **Tier 4**: 25/25 tests pass (100%).
-- **Build**: `npm run build` zero TypeScript errors, clean bundle.
-- **Integrity**: Clean Forensic Audit verdict with zero fabricated or hardcoded results.
+## Test Directory Architecture
+- `tests/tier1-calculations/`:
+  - `circadian-engine.test.ts`: 24-hour shift splits, midnight segment handling, and hourly density.
+  - `cost-simulation-engine.test.ts`: Delta OT hours, monetary cost impact, 150k limit, and weekly compliance.
+  - `shift-ot-hours.test.ts`, `payroll-breakdown.test.ts`, `budget-utilization.test.ts`, `plan-actual-diff.test.ts`, `csv-exports.test.ts`, `smart-shift-recommendations.test.ts`.
+- `tests/tier2-responsive/`:
+  - Viewport tests (375px mobile, 768px tablet, 1024px+ desktop), sticky table columns, touch panning.
+- `tests/tier3-pwa/`:
+  - Manifest validation, service worker caching, and offline state handling.
+- `tests/tier4-workflows/`:
+  - `interactive-shift-engine-workflows.test.tsx`: Drag-to-paint, hotkey entries, radial picker, and shift swapping workflows.
+  - `circadian-timeline-workflows.test.tsx`: 24-hour visualizer and live simulation HUD workflows.
+  - `supervisor-shift-workflow.test.tsx`, `employee-roster-workflow.test.tsx`, `modal-lifecycle-workflows.test.tsx`, `desktop-368px-invariants.test.tsx`, `csv-template-hub-workflow.test.tsx`.

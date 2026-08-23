@@ -1,31 +1,23 @@
-## 2026-08-22T09:08:01Z
-You are Worker 1.
-Your task is to implement the necessary fixes and verifications across Responsive Layouts, Adaptive Frozen Columns, PWA lifecycle, and Test Suites (Tiers 1–4) for the Enterprise OT Management Portal.
+## 2026-08-23T12:28:45Z
 
-Workspace Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
-Working Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_1
-Original Request: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
-Project Plan: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
-Test Infra: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\TEST_INFRA.md
-
-MANDATORY INTEGRITY WARNING:
-DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
-
-Scope & Specific Tasks:
-1. Read ORIGINAL_REQUEST.md, PROJECT.md, and TEST_INFRA.md.
-2. Review findings from Explorer 1, 2, and 3 reports:
-   - `tests/tier2-responsive/challenger-m2-responsive-stress.test.tsx`: Fix syntax error at line 48 (missing quotes in `it(...)`).
-   - `tests/tier2-responsive/challenger2-navigation-invariants.test.tsx`: Fix assertions querying `breakdown.totalPay` -> use `breakdown.totalOtPay`, and disambiguate queries for text that appears in both desktop header and mobile drawer (e.g. use `getAllByText` or container-scoped queries).
-   - Verify `src/App.tsx` Employee Roster table adaptive frozen column classes (1 col mobile, 2 col tablet, 5 col desktop).
-   - Verify PWA assets (`public/manifest.webmanifest`, `public/sw.js`, `src/pwa/registerServiceWorker.ts`, `src/hooks/usePWA.ts`, `src/components/PWAComponents.tsx`).
-   - Verify Shift Matrix sticky column (`w-56`, `z-10`) and Desktop 368px summary block invariants.
-3. Run all verification commands:
-   - `npm run test:tier1`
-   - `npm run test:tier2`
-   - `npm run test:tier3`
-   - `npm run test:tier4`
-   - `npm test` (full test suite)
-   - `npm run lint` (`tsc --noEmit`)
-   - `npm run build`
-4. Document all changes, verification output, and test results in your working directory at `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_1\handoff.md`.
-5. Send completion message to parent when done.
+Scope & Implementation Objectives:
+1. R1: Bespoke Industrial Maritime UI/UX Design Overhaul
+   - Maritime cockpit design system (deep navy #070d18, tactical slate #0f172a, ocean cyan #06b6d4, radar green, alert amber) in src/index.css and components.
+   - Tactile control bars, radar telemetry sweep accents, high-contrast monospace indicators, glassmorphism surface panels, and polished micro-interactions across all 11 application views.
+2. R2: Advanced Interactive Shift Entry & Scheduling Engine
+   - Drag-to-Paint & Range Selection: click-and-drag across consecutive days or workers to mass-assign shifts with live selection box feedback.
+   - Keyboard Hotkeys: arrow-key navigation (ArrowUp/Down/Left/Right), single-key shift input (M for M12/M8, N for N12/N8, D for Day, O for Off, A for A8/A12, H for Holiday), and undo/redo support.
+   - Radial / Floating Quick Picker: tactile circular speed-dial picker with instant 1-touch complementary pair suggestions.
+   - Drag-and-Drop Shift Swap: drag shift chip from one worker cell to another with instant labor compliance safety validation.
+3. R3: Circadian 24-Hour Timeline Visualizer & Live Cost Simulator
+   - Circadian Timeline / Gantt matrix (src/utils/circadianEngine.ts & src/components/CircadianTimelineModal.tsx) displaying 24-hour day (08:00–20:00) vs night (20:00–08:00) circadian bands, cross-midnight split shift blocks, and hourly headcount density heatmap.
+   - Live Overtime & Cost Simulation HUD (src/utils/costSimulationEngine.ts) calculating delta OT hours, monetary cost (THB via salary/240), department 150k budget ceiling, and rolling 7-day <=36h labor compliance live during editing/painting.
+4. R4: Automated Verification & Invariants
+   - Add unit and workflow integration test suites in tests/tier1-calculations/ and tests/tier4-workflows/.
+   - Preserve existing invariants: Desktop 368px summary block width, 6 CSV export routines with UTF-8 BOM, responsive mobile/tablet layout.
+   - Run `npm test` and verify 100% tests pass.
+   - Run `npm run build` and verify 0 TypeScript and bundle errors.
+5. Deliverables:
+   - Complete implementation across source files.
+   - Write full handoff report to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_1\handoff.md detailing all modifications, verification commands, and test outputs.
+   - Send completion message to parent when done.

@@ -1,66 +1,69 @@
-# BRIEFING — 2026-08-22T09:20:05Z
+# BRIEFING — 2026-08-23T12:44:45Z
 
 ## Mission
-Objective and adversarial review of PWA architecture, calculation engines, and CSV export integrity.
+Comprehensive, independent quality review and adversarial challenge of R3 (Circadian Timeline & Cost Simulation Engine/HUD) and core invariants (desktop 368px width, 6 UTF-8 BOM CSV exports, build & test integrity).
 
 ## 🔒 My Identity
-- Archetype: Reviewer & Adversarial Critic
+- Archetype: reviewer_and_critic
 - Roles: reviewer, critic
 - Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_2
-- Original parent: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Milestone: Review 2
+- Original parent: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Milestone: Review of M3 & Invariants
 - Instance: 1 of 1
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
-- Check for integrity violations (hardcoding, facade implementations, bypassed tasks, fake test outputs)
-- Objective & adversarial verification of PWA, calculation engines, and CSV exports
+- Evidence-based review and adversarial challenge
+- Verify all claims, build, and tests
+- Issue explicit verdict: APPROVE or REQUEST_CHANGES
 
 ## Current Parent
-- Conversation ID: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Updated: 2026-08-22T09:20:05Z
+- Conversation ID: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Updated: 2026-08-23T12:44:45Z
 
 ## Review Scope
-- **Files to review**:
-  - `manifest.webmanifest`, `manifest.json`, `index.html`, icon assets (`public/icons/*`, `public/apple-touch-icon.png`, `public/favicon.ico`)
-  - `sw.js`, `registerServiceWorker.ts`, `usePWA.ts`, `PWAComponents.tsx`
-  - Calculation engines: `getShiftOtHours`, `getEmpMonthlyOtPayBreakdown`, Plan vs Actual diff engine, 150k department budget ceiling
-  - 6 CSV export routines, CSV Template Hub (`csvExport.ts`, `csvTemplates.ts`, `CsvTemplateHubModal.tsx`), UTF-8 BOM `\ufeff`, RFC 4180 escaping
-  - Desktop 368px summary block invariant (`56px + 64px + 80px + 96px + 72px = 368px`)
-- **Interface contracts**: `PROJECT.md`, `TEST_INFRA.md`, `ORIGINAL_REQUEST.md`
-- **Review criteria**: correctness, completeness, quality, adversarial robustness, integrity
+- **Files reviewed**:
+  - src/utils/circadianEngine.ts
+  - src/components/CircadianTimelineModal.tsx
+  - src/utils/costSimulationEngine.ts
+  - src/components/LiveSimulationHUD.tsx
+  - src/App.tsx (invariants & integration)
+  - 	ests/tier1-calculations/circadian-engine.test.ts
+  - 	ests/tier1-calculations/cost-simulation-engine.test.ts
+  - 	ests/tier4-workflows/circadian-timeline-workflows.test.tsx
+  - 	ests/tier4-workflows/interactive-shift-engine-workflows.test.tsx
+  - 	ests/tier4-workflows/desktop-368px-invariants.test.tsx
+  - 	ests/tier1-calculations/csv-exports.test.ts
+- **Interface contracts**: PROJECT.md, TEST_INFRA.md, ORIGINAL_REQUEST.md
+- **Review criteria**: correctness, completeness, quality, risk & integrity, stress-testing edge cases
 
 ## Review Checklist
 - **Items reviewed**:
-  - Web App Manifest & HTML Meta tags: 100% compliant with W3C & Apple specifications.
-  - 10 Binary Icon Assets: Verified genuine PNG headers and dimensions (192, 512, maskable, 180, 32, 16, SVG, ICO).
-  - Service Worker (`sw.js`): 4-cache architecture, pre-caching with `Promise.allSettled`, SPA navigate fallback, 503 JSON fallback, SWR for fonts, Cache-First for assets.
-  - Client SW Lifecycle (`registerServiceWorker.ts`) & Hook (`usePWA.ts`): HMR safety, update listeners, install prompt deferral, offline state sync.
-  - UI Components (`PWAComponents.tsx`): Min 44px tap targets, update toast, install button, offline status badge.
-  - Calculation Engines: `getShiftOtHours`, `getEmpMonthlyOtPayBreakdown` (salary/240, 1.5x weekday, 3.0x holiday OT, 1.0x holiday work), `isPlanActualMismatch`, 150k budget ceiling.
-  - CSV Exports & Hub: 6 export routines + CsvTemplateHubModal with UTF-8 BOM `\ufeff` and RFC 4180 quote escaping.
-  - Desktop Invariant: Strict 368px geometry (`56px + 64px + 80px + 96px + 72px`).
+  - R3 Circadian Timeline Visualizer (24-hour bands, cross-midnight splits N8/N12/N16/A12, 24-slot density heatmap)
+  - R3 Live Overtime & Cost Simulation Engine & HUD (delta OT hours, THB cost with salary/240 & 1.5x/3.0x/1.0x multipliers, 150k ceiling, rolling 7-day <=36h audits)
+  - Invariants: Strict desktop 368px summary block width (56+64+80+96+72px) and 6 UTF-8 BOM CSV exports (\uFEFF)
+  - Full automated test suite (npm test -> 29 files, 204 tests, 100% pass)
+  - Production build (npm run build -> clean Vite + esbuild bundle)
 - **Verdict**: APPROVE
-- **Unverified claims**: None; all claims empirically verified via tests, builds, and source review.
+- **Unverified claims**: None (all claims verified directly)
 
 ## Attack Surface
 - **Hypotheses tested**:
-  - Partial precache network drops -> Handled gracefully by `Promise.allSettled`.
-  - Non-GET and Vite HMR bypass -> SW ignores `@vite`, `__vite_ping`, `hot-update` and non-GET requests.
-  - Leap years & variable month lengths -> Handled dynamically by `new Date(yr, mn, 0).getDate()`.
-  - Excel Thai character corruption -> Handled by UTF-8 BOM `\ufeff`.
-  - CSV quote injection and multi-line breaks -> Handled by RFC 4180 escaping.
-  - Desktop summary layout misalignment -> Handled by exact 368px constraint.
-- **Vulnerabilities found**: None.
-- **Untested angles**: None within specified review scope.
+  - Day 1 boundary carryover logic (prevDayIdx >= 0 safe check) -> PASSED
+  - Extreme OT budget overload (>150k THB ceiling detection) -> PASSED
+  - Zero/undefined salary fallback (defaults to 15,000 THB to prevent NaN) -> PASSED
+  - Polymorphic shift data parsing (JSON string, Array, Record) -> PASSED
+  - RFC 4180 special character escaping in UTF-8 BOM CSV exports -> PASSED
+- **Vulnerabilities found**: None
+- **Untested angles**: None within requested scope
 
 ## Key Decisions Made
-- Confirmed full compliance with all acceptance criteria in ORIGINAL_REQUEST.md and PROJECT.md.
-- Verified 0 integrity violations across the codebase.
-- Issued APPROVE verdict.
+- Confirmed full compliance with domain rules, legal multipliers, and layout invariants
+- Issued unanimous APPROVE verdict
 
 ## Artifact Index
-- `.agents/reviewer_2/DISPATCH.md` — Inbound instructions log
-- `.agents/reviewer_2/BRIEFING.md` — Persistent context and state
-- `.agents/reviewer_2/progress.md` — Heartbeat and step tracking
-- `.agents/reviewer_2/handoff.md` — Final review and challenge report
+- .agents/reviewer_2/DISPATCH.md — Inbound instructions log
+- .agents/reviewer_2/BRIEFING.md — Situational awareness
+- .agents/reviewer_2/progress.md — Liveness & progress tracker
+- .agents/reviewer_2/review.md — Detailed review & critique report
+- .agents/reviewer_2/handoff.md — 5-Component handoff report

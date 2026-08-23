@@ -1,22 +1,27 @@
-# Progress — Worker 1
+# Worker 1 Progress Log
 
-**Last visited**: 2026-08-22T09:16:50Z
-**Status**: All tasks completed. 100% tests passing across Tiers 1-4, lint clean, build clean.
+Last visited: 2026-08-23T12:43:00Z
 
-## Steps
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Read ORIGINAL_REQUEST.md, PROJECT.md, TEST_INFRA.md, and explorer reports
-- [x] Inspected and fixed `tests/tier2-responsive/challenger-m2-responsive-stress.test.tsx` (syntax & query scoping)
-- [x] Inspected and fixed `tests/tier2-responsive/challenger2-navigation-invariants.test.tsx` (sidebar, brand logo, breakdown assertions)
-- [x] Verified Employee Roster table adaptive frozen column classes (1 col mobile, 2 col tablet, 5 col desktop)
-- [x] Verified PWA assets, hooks, components (`manifest.webmanifest`, `sw.js`, `registerServiceWorker.ts`, `usePWA.ts`, `PWAComponents.tsx`)
-- [x] Verified Shift Matrix sticky column (`w-56`, `z-10`) & desktop 368px summary block invariants
-- [x] Run test:tier1 (32/32 passed)
-- [x] Run test:tier2 (59/59 passed)
-- [x] Run test:tier3 (46/46 passed)
-- [x] Run test:tier4 (25/25 passed)
-- [x] Run full test suite `npm test` (162/162 passed across 23 test files)
-- [x] Run lint `npm run lint` (`tsc --noEmit` clean, 0 errors)
-- [x] Run build `npm run build` (clean Vite + esbuild bundle)
-- [x] Wrote handoff.md
-- [ ] Send completion message to parent
+## Status: COMPLETE (M1–M4 Realized & Verified)
+
+### Milestones Completed:
+1. **R1: Bespoke Industrial Maritime UI/UX Design System**:
+   - Abyssal navy `#070d18`, tactical slate `#0f172a`, ocean cyan `#06b6d4`, radar green `#22c55e`, alert amber `#f59e0b`.
+   - Tactile control bars, radar telemetry sweep accents (`@keyframes radarSweep`, `radarPing`, `sonarPulse`), glassmorphism surface panels (`maritime-glass-dark`, `maritime-glass-light`, `cockpit-bezel`).
+   - Monospace metrics badges and high-contrast typography across all 11 application views.
+
+2. **R2: Advanced Interactive Shift Entry & Scheduling Engine**:
+   - Drag-to-Paint & Range Selection across consecutive days / workers with live bounding feedback and brush toggle palette.
+   - Comprehensive Keyboard Hotkeys (`ArrowUp/Down/Left/Right`, `Home`, `End`, `M`, `N`, `D`, `O`, `A`, `H`, `Space`/`Enter` for quick picker, `Ctrl+Z` undo, `Ctrl+Y` redo).
+   - Radial / Floating Quick Picker (`src/components/ShiftRadialPicker.tsx`) with one-touch complementary pair recommendations.
+   - HTML5 Drag-and-Drop Shift Swap with safety audit validation and instant labor compliance feedback.
+
+3. **R3: Circadian 24-Hour Timeline Visualizer & Live Cost Simulator**:
+   - Circadian 24-Hour Timeline Gantt Matrix (`src/utils/circadianEngine.ts` & `src/components/CircadianTimelineModal.tsx`) with Day (08:00–20:00) / Night (20:00–08:00) bands, cross-midnight shift splits (`N12`, `N8`, `N16`, `A12`), and 24-hour hourly staffing density heatmap.
+   - Live Overtime & Cost Simulation HUD (`src/utils/costSimulationEngine.ts` & `src/components/LiveSimulationHUD.tsx`) calculating delta OT hours, monetary cost impact in THB (`salary / 240`), department 150,000 THB budget ceiling tracking, and rolling 7-day $\le 36\text{h}$ labor compliance audit.
+
+4. **R4: Automated Verification & Invariants**:
+   - Added 4 test suites: `tests/tier1-calculations/circadian-engine.test.ts`, `tests/tier1-calculations/cost-simulation-engine.test.ts`, `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx`, and `tests/tier4-workflows/circadian-timeline-workflows.test.tsx`.
+   - 100% tests passing: `npm test` runs 29 test files, 204 tests (204 passed, 0 failed).
+   - 0 TypeScript / bundle errors: `npm run build` succeeds in 3.5s (`dist/server.cjs` and Vite client bundle).
+   - Invariants strictly preserved: `w-[368px]` desktop summary block width, sticky columns (`w-56`, `sticky left-0`, `z-10`), 6 CSV export routines with UTF-8 BOM (`\uFEFF`).

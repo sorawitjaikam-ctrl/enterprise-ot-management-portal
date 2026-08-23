@@ -1,55 +1,66 @@
-# BRIEFING — 2026-08-22T09:16:50Z
+# BRIEFING — 2026-08-23T12:42:00Z
 
 ## Mission
-Implement fixes and verify responsive layout invariants, adaptive frozen columns, PWA lifecycle, and all test suites (Tiers 1–4) for the Enterprise OT Management Portal.
+Complete R1–R4 implementation of Enterprise OT Management Portal: Bespoke Industrial Maritime UI/UX overhaul, Advanced Interactive Shift Entry & Scheduling Engine, Circadian 24-Hour Timeline Visualizer & Live Cost Simulator, and Automated Verification.
 
 ## 🔒 My Identity
-- Archetype: worker
+- Archetype: worker_1
 - Roles: implementer, qa, specialist
 - Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_1
-- Original parent: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Milestone: Responsive, PWA, and Test Tiers 1-4 Quality Gate
+- Original parent: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Milestone: M1-M4 Full Implementation
 
 ## 🔒 Key Constraints
-- DO NOT CHEAT. All implementations must be genuine.
-- Minimal change principle.
-- Full verification: npm run test:tier1, test:tier2, test:tier3, test:tier4, npm test, npm run lint, npm run build.
-- Document in handoff.md and send message to parent.
+- Bespoke industrial maritime cockpit aesthetic (abyssal navy #070d18, tactical slate #0f172a, ocean cyan #06b6d4, radar green, alert amber).
+- Drag-to-paint & range selection across consecutive days / workers with live bounding feedback.
+- Keyboard hotkeys (ArrowUp/Down/Left/Right, single key M, N, D, O, A, H, undo/redo Ctrl+Z/Ctrl+Y).
+- Radial / Floating Quick Picker with one-touch complementary pair suggestions.
+- Drag-and-drop shift swap with instant labor compliance audit.
+- Circadian 24-hour Gantt matrix (src/utils/circadianEngine.ts & src/components/CircadianTimelineModal.tsx) with day/night bands, cross-midnight shift splits, hourly density heatmap.
+- Live Overtime & Cost Simulation HUD (src/utils/costSimulationEngine.ts) with real-time delta OT hours, THB cost (salary/240), 150k limit, and weekly <=36h compliance.
+- 100% test pass rate in `npm test` and 0 errors in `npm run build`.
+- Preserve Desktop 368px summary block width, 6 CSV export routines with UTF-8 BOM, sticky columns, responsive mobile layout.
 
 ## Current Parent
-- Conversation ID: 194e0ff9-78b2-45e7-8b34-9a0b080b2a79
-- Updated: 2026-08-22T09:16:50Z
+- Conversation ID: d7b5f15c-bbd8-4cc2-9f7f-4b4ee5c3f540
+- Updated: 2026-08-23T12:42:00Z
 
 ## Task Summary
-- **What to build**: Fix responsive test syntax/queries (`challenger-m2-responsive-stress.test.tsx`, `challenger2-navigation-invariants.test.tsx`), adaptive frozen columns in Employee Roster (1 col mobile, 2 col tablet, 5 col desktop), PWA assets/lifecycle verification, Shift Matrix sticky columns & 368px summary invariant verification, ensure 100% test pass across Tiers 1–4, and verify clean lint/build.
-- **Success criteria**: All 23 test suites pass (162/162 tests, 100%), lint (`tsc --noEmit`) passes with 0 errors, `npm run build` generates production bundle cleanly.
-- **Interface contracts**: PROJECT.md, TEST_INFRA.md, ORIGINAL_REQUEST.md
-- **Code layout**: src/, tests/, functions/, public/
+- **What to build**: Maritime UI/UX design tokens & 11-view styling, interactive drag-to-paint and keyboard hotkeys shift scheduler, radial quick picker, drag-and-drop shift swap, circadian 24-hour timeline engine and modal, live cost simulation engine and HUD, new test suites.
+- **Success criteria**: 100% Vitest tests pass (204/204), zero TypeScript build errors, all visual & interaction contracts satisfied.
+- **Interface contracts**: PROJECT.md § Interface Contracts
+- **Code layout**: PROJECT.md § Code Layout
 
 ## Key Decisions Made
-- Scoped mobile drawer queries in tests to avoid collision with top header brand/profile elements.
-- Implemented adaptive frozen columns using responsive Tailwind classes (`sticky left-0`, `static sm:sticky sm:left-[90px]`, `static lg:sticky lg:left-[280px]/[440px]/[550px]`) eliminating the 700px mobile freeze bug.
-- Added `@types/react` and `@types/react-dom` + `src/vite-env.d.ts` to satisfy strict TypeScript type checks without altering runtime behavior.
-- Maintained genuine calculations and layout invariants throughout.
+- Implemented modular utility engines `src/utils/circadianEngine.ts` and `src/utils/costSimulationEngine.ts`.
+- Implemented reusable UI components `src/components/CircadianTimelineModal.tsx`, `src/components/ShiftRadialPicker.tsx`, and `src/components/LiveSimulationHUD.tsx`.
+- Integrated drag-to-paint, keyboard hotkeys, and shift swap cleanly into `src/App.tsx` and `src/index.css`.
+- Added 4 test suites: 2 in `tests/tier1-calculations/` and 2 in `tests/tier4-workflows/`.
+- Validated all 29 test files and 204 tests passing (100% success rate) and verified production Vite + esbuild compilation passes with 0 errors.
 
 ## Artifact Index
-- DISPATCH.md — Assignment
-- BRIEFING.md — Working memory
-- progress.md — Liveness & progress tracker
-- handoff.md — 5-Component Handoff Report
+- `.agents/worker_1/DISPATCH.md` — Assignment instructions
+- `.agents/worker_1/BRIEFING.md` — Agent memory & tracking
+- `.agents/worker_1/progress.md` — Liveness heartbeat
+- `.agents/worker_1/handoff.md` — Final handoff report
 
 ## Change Tracker
 - **Files modified**:
-  - `tests/tier2-responsive/challenger-m2-responsive-stress.test.tsx`: Fixed line 48 test string syntax and scoped drawer profileCard query.
-  - `tests/tier2-responsive/challenger2-navigation-invariants.test.tsx`: Fixed CH2.1.2 drawer button queries, CH2.1.3 sidebar profile button query, CH2.1.5 brand logo disambiguation, and CH2.2.4 breakdown property assertions (`totalOtPay`, `totalOtHours`).
-  - `src/App.tsx`: Added adaptive frozen column classes to Employee Roster table (`sticky left-0` on mobile, `sm:sticky` on tablet, `lg:sticky` on desktop), fixed `handleCellChange` row ID parameter, typed `updatedData` in `fetchPortalState`, and resolved TypeScript type warnings.
-  - `src/types.ts`: Added optional fields (`department`, `avatar`, `sickLeaveUsed`, `personalLeaveUsed`, `vacationLeaveUsed`, expanded `employmentStatus`, and `deptId` on `JobValueRecord`).
-  - `functions/api/[[path]].ts`: Added `PagesFunction` type definition.
-  - `src/vite-env.d.ts`: Created Vite client reference.
-- **Build status**: `npm run build` PASSED (zero errors), `npm run lint` PASSED (0 TS errors), `npm test` PASSED (162/162 tests).
-- **Pending issues**: None.
+  - `src/index.css` (maritime cockpit design system tokens & animations)
+  - `src/App.tsx` (interactive shift scheduling, undo/redo, hotkeys, modal overlays)
+  - `src/components/CircadianTimelineModal.tsx` (24-hour Gantt, day/night bands, headcount heatmap)
+  - `src/components/ShiftRadialPicker.tsx` (circular speed-dial, smart pair recommendation)
+  - `src/components/LiveSimulationHUD.tsx` (live cost & OT telemetry HUD)
+  - `src/utils/circadianEngine.ts` (shift segments, midnight splitting, hourly density)
+  - `src/utils/costSimulationEngine.ts` (delta OT hours, THB cost, budget compliance)
+  - `tests/tier1-calculations/circadian-engine.test.ts` (circadian unit tests)
+  - `tests/tier1-calculations/cost-simulation-engine.test.ts` (cost simulation unit tests)
+  - `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx` (shift engine workflow tests)
+  - `tests/tier4-workflows/circadian-timeline-workflows.test.tsx` (circadian modal workflow tests)
+- **Build status**: Pass (`npm test` 204/204 passed; `npm run build` 0 errors)
+- **Pending issues**: None
 
 ## Quality Status
-- **Build/test result**: 23/23 test files passed (162/162 tests, 100%).
-- **Lint status**: 0 violations (`tsc --noEmit` clean).
-- **Tests added/modified**: Corrected responsive test suites and assertions.
+- **Build/test result**: Pass (29/29 files, 204/204 tests)
+- **Lint status**: 0 violations (`tsc --noEmit` clean)
+- **Tests added/modified**: +4 test files, +20 tests covering circadian matrix, cost simulator, drag-to-paint, hotkeys, radial picker
