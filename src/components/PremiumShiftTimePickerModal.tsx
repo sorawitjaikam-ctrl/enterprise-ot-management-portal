@@ -12,11 +12,7 @@ import {
   RotateCcw,
   LogIn,
   LogOut,
-  Moon,
-  Sun,
-  Sunrise,
-  Sunset,
-  Zap
+  Moon
 } from "lucide-react";
 import { Employee } from "../types";
 import { getComplementaryShift, SHIFT_DEFINITIONS } from "../utils/shiftRecommendation";
@@ -40,15 +36,20 @@ export interface PremiumShiftTimePickerProps {
 }
 
 /**
- * คำนวณรหัสกะและชั่วโมงการทำงานแบบ Dynamic ตามเวลาเริ่มเข้างานและออกงานจริง (รองรับกะคร่อมวัน 100%)
+ * คำนวณรหัสกะและชั่วโมงการทำงานแบบ Dynamic ตามเวลาเริ่มเข้างานและออกงานจริง
+ * รองรับทั้งกะปกติ 1-24 ชม., กะคร่อมวันข้ามคืน (20:00-08:00), และกะชนเวลา 24 ชม. เต็ม (08:00-08:00 = M24)
  */
-export function computeDynamicShift(sH: number, sM: number, eH: number, eM: number): {
+export function computeDynamicShift(sH: number, sM: number, eH: number, eM: number, isManualOff = false): {
   code: string;
   name: string;
   duration: number;
   otHours: number;
   isOvernight: boolean;
 } {
+  if (isManualOff) {
+    return { code: "O", name: "วันหยุดพักผ่อน (OFF)", duration: 0, otHours: 0, isOvernight: false };
+  }
+
   const startMins = sH * 60 + sM;
   const endMins = eH * 60 + eM;
 
@@ -57,22 +58,19 @@ export function computeDynamicShift(sH: number, sM: number, eH: number, eM: numb
   let isOvernight = false;
 
   if (sH === eH && sM === eM) {
-    if (sH === 0 && sM === 0) {
-      duration = 24;
-      isOvernight = true;
-    } else {
-      return { code: "O", name: "วันหยุดพักผ่อน (OFF)", duration: 0, otHours: 0, isOvernight: false };
-    }
+    // 8 to 8, 7 to 7, 20 to 20, 00 to 00 -> 24 hours full shift!
+    duration = 24;
+    isOvernight = true;
   } else if (eH === 0 && eM === 0 && (sH !== 0 || sM !== 0)) {
     // End is midnight (24:00 of the same day)
     duration = 24 - (sH + sM / 60);
     isOvernight = false;
   } else if (endMins > startMins) {
-    // Same day shift
+    // Same day shift (e.g. 07:00 -> 19:00 = 12h)
     duration = (endMins - startMins) / 60;
     isOvernight = false;
   } else {
-    // Cross-day / Overnight shift (e.g. 20:00 -> 08:00 = 12h)
+    // Cross-day / Overnight shift (e.g. 20:00 -> 08:00 = 12h, 08:00 -> 07:00 = 23h)
     duration = ((24 * 60 - startMins) + endMins) / 60;
     isOvernight = true;
   }
@@ -138,9 +136,10 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const [startMinute, setStartMinute] = useState<number>(0);
   const [endHour, setEndHour] = useState<number>(19);
   const [endMinute, setEndMinute] = useState<number>(0);
+  const [isManualOff, setIsManualOff] = useState<boolean>(false);
 
   // Dynamic Shift Computation
-  const dynamicShift = computeDynamicShift(startHour, startMinute, endHour, endMinute);
+  const dynamicShift = computeDynamicShift(startHour, startMinute, endHour, endMinute, isManualOff);
   const [selectedShiftCode, setSelectedShiftCode] = useState<string>("M12");
 
   // Track initial shift for Reset button
@@ -165,40 +164,47 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
           shiftsArr = [];
         }
         const currentDayShift = shiftsArr[(initialDay || 1) - 1] || "M12";
-        setSelectedShiftCode(currentDayShift);
         setInitialShiftCode(currentDayShift);
         applyShiftToTime(currentDayShift);
       }
     }
   }, [isOpen, initialDay, currentMonthKey, employee]);
 
-  // Keep selectedShiftCode in sync with dynamic calculation
-  useEffect(() => {
-    if (selectedShiftCode !== "OND" && selectedShiftCode !== "D" && selectedShiftCode !== "O") {
-      setSelectedShiftCode(dynamicShift.code);
-    } else if (selectedShiftCode === "D" && (startHour !== 8 || endHour !== 17)) {
-      setSelectedShiftCode(dynamicShift.code);
-    }
-  }, [startHour, startMinute, endHour, endMinute]);
-
   // Parse existing or requested shift code to times
   const applyShiftToTime = (code: string) => {
-    setSelectedShiftCode(code);
+    if (code === "O" || code === "OFF") {
+      setIsManualOff(true);
+      setSelectedShiftCode("O");
+      setStartHour(0); setStartMinute(0); setEndHour(0); setEndMinute(0);
+      return;
+    }
+
+    setIsManualOff(false);
     
     if (code === "M12") {
-      setStartHour(7); setStartMinute(0); setEndHour(19); setEndMinute(0); return;
+      setStartHour(7); setStartMinute(0); setEndHour(19); setEndMinute(0);
+      setSelectedShiftCode("M12");
+      return;
     } else if (code === "N12") {
-      setStartHour(19); setStartMinute(0); setEndHour(7); setEndMinute(0); return;
+      setStartHour(19); setStartMinute(0); setEndHour(7); setEndMinute(0);
+      setSelectedShiftCode("N12");
+      return;
     } else if (code === "M8") {
-      setStartHour(7); setStartMinute(0); setEndHour(15); setEndMinute(0); return;
+      setStartHour(7); setStartMinute(0); setEndHour(15); setEndMinute(0);
+      setSelectedShiftCode("M8");
+      return;
     } else if (code === "A8") {
-      setStartHour(15); setStartMinute(0); setEndHour(23); setEndMinute(0); return;
+      setStartHour(15); setStartMinute(0); setEndHour(23); setEndMinute(0);
+      setSelectedShiftCode("A8");
+      return;
     } else if (code === "N8") {
-      setStartHour(23); setStartMinute(0); setEndHour(7); setEndMinute(0); return;
+      setStartHour(23); setStartMinute(0); setEndHour(7); setEndMinute(0);
+      setSelectedShiftCode("N8");
+      return;
     } else if (code === "D" || code === "OND") {
-      setStartHour(8); setStartMinute(0); setEndHour(17); setEndMinute(0); return;
-    } else if (code === "O" || code === "OFF") {
-      setStartHour(0); setStartMinute(0); setEndHour(0); setEndMinute(0); return;
+      setStartHour(8); setStartMinute(0); setEndHour(17); setEndMinute(0);
+      setSelectedShiftCode(code);
+      return;
     }
 
     const def = SHIFT_DEFINITIONS[code];
@@ -211,6 +217,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
         setEndHour(Number(eh) || 19);
         setEndMinute(Number(em) || 0);
       }
+      setSelectedShiftCode(code);
       return;
     }
 
@@ -225,24 +232,39 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
       const endH = (defaultStartH + hours) % 24;
       setEndHour(endH);
       setEndMinute(0);
+      setSelectedShiftCode(code);
       return;
     }
+
+    setSelectedShiftCode(code);
+  };
+
+  // Stepper handlers: Instantly update times & compute new shift code
+  const updateTimes = (newSH: number, newSM: number, newEH: number, newEM: number) => {
+    setIsManualOff(false);
+    setStartHour(newSH);
+    setStartMinute(newSM);
+    setEndHour(newEH);
+    setEndMinute(newEM);
+    const computed = computeDynamicShift(newSH, newSM, newEH, newEM, false);
+    setSelectedShiftCode(computed.code);
   };
 
   // Start Time Stepper Handlers
-  const incStartHour = () => setStartHour(prev => (prev >= 23 ? 0 : prev + 1));
-  const decStartHour = () => setStartHour(prev => (prev <= 0 ? 23 : prev - 1));
-  const incStartMinute = () => setStartMinute(prev => (prev >= 45 ? 0 : prev + 15));
-  const decStartMinute = () => setStartMinute(prev => (prev <= 0 ? 45 : prev - 15));
+  const incStartHour = () => updateTimes(startHour >= 23 ? 0 : startHour + 1, startMinute, endHour, endMinute);
+  const decStartHour = () => updateTimes(startHour <= 0 ? 23 : startHour - 1, startMinute, endHour, endMinute);
+  const incStartMinute = () => updateTimes(startHour, startMinute >= 45 ? 0 : startMinute + 15, endHour, endMinute);
+  const decStartMinute = () => updateTimes(startHour, startMinute <= 0 ? 45 : startMinute - 15, endHour, endMinute);
 
   // End Time Stepper Handlers
-  const incEndHour = () => setEndHour(prev => (prev >= 23 ? 0 : prev + 1));
-  const decEndHour = () => setEndHour(prev => (prev <= 0 ? 23 : prev - 1));
-  const incEndMinute = () => setEndMinute(prev => (prev >= 45 ? 0 : prev + 15));
-  const decEndMinute = () => setEndMinute(prev => (prev <= 0 ? 45 : prev - 15));
+  const incEndHour = () => updateTimes(startHour, startMinute, endHour >= 23 ? 0 : endHour + 1, endMinute);
+  const decEndHour = () => updateTimes(startHour, startMinute, endHour <= 0 ? 23 : endHour - 1, endMinute);
+  const incEndMinute = () => updateTimes(startHour, startMinute, endHour, endMinute >= 45 ? 0 : endMinute + 15);
+  const decEndMinute = () => updateTimes(startHour, startMinute, endHour, endMinute <= 0 ? 45 : endMinute - 15);
 
   // Quick Preset Shortcuts
   const setQuickOff = () => {
+    setIsManualOff(true);
     setSelectedShiftCode("O");
     setStartHour(0); setStartMinute(0);
     setEndHour(0); setEndMinute(0);
@@ -251,7 +273,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   // Reset Button Handler
   const handleReset = () => {
     setSelectedDays([initialDay || 1]);
-    setSelectedShiftCode(initialShiftCode);
     applyShiftToTime(initialShiftCode);
   };
 
@@ -335,9 +356,9 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     onSaveShift({
       employeeId: employee.id,
       dayNumbers: selectedDays,
-      shiftCode: selectedShiftCode,
-      startTime: formattedStartTime,
-      endTime: formattedEndTime,
+      shiftCode: isManualOff ? "O" : selectedShiftCode,
+      startTime: isManualOff ? "-" : formattedStartTime,
+      endTime: isManualOff ? "-" : formattedEndTime,
       isOvernight: dynamicShift.isOvernight,
       target: targetType
     });
@@ -351,7 +372,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const headerDateStr = `${monthNames[viewMonth - 1].substring(0, 3)} ${String(firstSelectedDay).padStart(2, "0")}, ${viewYear}` + 
     (selectedDays.length > 1 ? ` (+${selectedDays.length - 1} วัน)` : "");
   
-  const headerTimeStr = selectedShiftCode === "O" 
+  const headerTimeStr = isManualOff || selectedShiftCode === "O"
     ? "วันหยุด (OFF)" 
     : `${formattedStartTime} - ${formattedEndTime}${dynamicShift.isOvernight ? ' (+1 วัน)' : ''} น.`;
 
@@ -398,14 +419,14 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
             </div>
 
             <div className="flex items-center gap-1.5">
-              {dynamicShift.isOvernight && (
+              {!isManualOff && dynamicShift.isOvernight && (
                 <span className="px-2 py-0.5 rounded-md bg-purple-100 border border-purple-300 text-purple-700 font-black text-[10px] flex items-center gap-1">
                   <Moon className="w-3 h-3 text-purple-600" />
                   <span>คร่อมวัน (+1 วัน)</span>
                 </span>
               )}
               <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-mono font-black text-xs shadow-sm">
-                {selectedShiftCode}
+                {isManualOff ? "O" : selectedShiftCode}
               </span>
               <span className="text-[11px] text-indigo-700 font-black hidden sm:inline">
                 {dynamicShift.name}
@@ -545,7 +566,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
                     <span>เวลาเข้า - ออกงาน (24 ชม.)</span>
                   </span>
-                  {dynamicShift.isOvernight && (
+                  {!isManualOff && dynamicShift.isOvernight && (
                     <span className="text-[9px] text-purple-700 font-black bg-purple-100 px-1.5 py-0.5 rounded border border-purple-300 flex items-center gap-0.5">
                       <Moon className="w-2.5 h-2.5 text-purple-600" />
                       <span>คร่อมวัน (+1 วัน)</span>
@@ -632,19 +653,21 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     <div className="flex items-center gap-1.5 font-bold text-slate-700">
                       <span className="text-[10px] text-slate-500 uppercase">รหัสกะ:</span>
                       <span className="font-mono font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-md shadow-2xs border border-indigo-200 text-sm">
-                        {selectedShiftCode}
+                        {isManualOff ? "O" : selectedShiftCode}
                       </span>
                     </div>
                     <span className="text-xs font-black text-indigo-900">
-                      {dynamicShift.duration} ชม. {dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
+                      {isManualOff ? "0 ชม." : `${dynamicShift.duration} ชม.`} {!isManualOff && dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
                     </span>
                   </div>
 
                   <div className="text-[11px] text-slate-600 flex items-center justify-between pt-0.5 border-t border-indigo-100">
                     <span className="font-medium">
-                      {formattedStartTime} ➜ {formattedEndTime} น.{dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}
+                      {isManualOff 
+                        ? "วันหยุดพักผ่อนประจำสัปดาห์" 
+                        : `${formattedStartTime} ➜ ${formattedEndTime} น.${dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}`}
                     </span>
-                    {dynamicShift.isOvernight && (
+                    {!isManualOff && dynamicShift.isOvernight && (
                       <span className="text-purple-700 font-bold text-[10px]">
                         🌙 กะข้ามคืน
                       </span>
