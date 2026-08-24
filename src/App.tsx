@@ -2747,17 +2747,24 @@ export default function App() {
     setMismatchAlertDismissed(false);
   }, [currentShiftsDept, shiftViewMode]);
 
-  const getShiftHoverTooltip = (shiftCode: string, empName: string, dayNum: number) => {
+    const getShiftHoverTooltip = (shiftCode: string, empName: string, dayNum: number) => {
     const code = (shiftCode || "O").toUpperCase().trim();
-    const def = SHIFT_DEFINITIONS[code];
-    if (!def || code === "O" || code === "OFF" || def.startTime === "-") {
-      return `👤 ${empName} (วันที่ ${dayNum})
-🏖️ วันหยุดพักผ่อน (OFF)`;
+    if (code === "O" || code === "OFF") {
+      return `👤 ${empName} (วันที่ ${dayNum})\n🏖️ วันหยุดพักผ่อน (OFF)`;
     }
-    return `👤 ${empName} (วันที่ ${dayNum})
-🟢 เวลาเข้างาน: ${def.startTime} น.
-🔴 เวลาออกงาน: ${def.endTime} น.
-🏷️ ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;
+    const def = SHIFT_DEFINITIONS[code];
+    if (def && def.startTime !== "-") {
+      return `👤 ${empName} (วันที่ ${dayNum})\n🟢 เวลาเข้างาน: ${def.startTime} น.\n🔴 เวลาออกงาน: ${def.endTime} น.\n🏷️ ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;
+    }
+    const match = code.match(/^([MAN])(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const hours = parseInt(match[2]);
+      const ot = Math.max(0, hours - 8);
+      const timeLabel = prefix === "M" ? "กะเช้า" : prefix === "A" ? "กะบ่าย" : "กะดึก";
+      return `👤 ${empName} (วันที่ ${dayNum})\n🏷️ ${timeLabel} ${hours} ชม.${ot > 0 ? ` • OT ${ot} ชม.` : ''} (${code})`;
+    }
+    return `👤 ${empName} (วันที่ ${dayNum})\n🏷️ กะ ${code}`;
   };
 
   const handleSaveFromPremiumPicker = ({

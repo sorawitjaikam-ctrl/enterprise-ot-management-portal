@@ -12,6 +12,7 @@ import {
   RotateCcw,
   LogIn,
   LogOut,
+  Zap,
   Users
 } from "lucide-react";
 import { Employee } from "../types";
@@ -40,10 +41,69 @@ export const PRESET_SHIFTS = [
   { code: "M8", label: "M8", name: "เช้า 8h", start: "07:00", end: "15:00", startH: 7, startM: 0, endH: 15, endM: 0, ot: 0 },
   { code: "A8", label: "A8", name: "บ่าย 8h", start: "15:00", end: "23:00", startH: 15, startM: 0, endH: 23, endM: 0, ot: 0 },
   { code: "N8", label: "N8", name: "ดึก 8h", start: "23:00", end: "07:00", startH: 23, startM: 0, endH: 7, endM: 0, ot: 0 },
+  { code: "M16", label: "M16", name: "เช้า 16h", start: "07:00", end: "23:00", startH: 7, startM: 0, endH: 23, endM: 0, ot: 8 },
   { code: "D", label: "D", name: "กลางวัน", start: "08:00", end: "17:00", startH: 8, startM: 0, endH: 17, endM: 0, ot: 0 },
   { code: "OND", label: "OND", name: "วันหยุด", start: "08:00", end: "17:00", startH: 8, startM: 0, endH: 17, endM: 0, ot: 8 },
   { code: "O", label: "OFF", name: "วันหยุดพัก", start: "-", end: "-", startH: 0, startM: 0, endH: 0, endM: 0, ot: 0 }
 ];
+
+/**
+ * คำนวณรหัสกะและชั่วโมงการทำงานแบบ Dynamic ตามเวลาเริ่มเข้างานและออกงานจริง
+ */
+export function computeDynamicShift(sH: number, sM: number, eH: number, eM: number): {
+  code: string;
+  name: string;
+  duration: number;
+  otHours: number;
+} {
+  if (sH === eH && sM === eM) {
+    return { code: "O", name: "วันหยุดพักผ่อน", duration: 0, otHours: 0 };
+  }
+
+  // 1. Calculate duration in hours
+  let duration = 0;
+  if (eH === 0 && eM === 0 && (sH !== 0 || sM !== 0)) {
+    // End is midnight (24:00)
+    duration = 24 - (sH + sM / 60);
+  } else {
+    const startMins = sH * 60 + sM;
+    const endMins = eH * 60 + eM;
+    if (endMins > startMins) {
+      duration = (endMins - startMins) / 60;
+    } else {
+      // Crosses midnight
+      duration = ((24 * 60 - startMins) + endMins) / 60;
+    }
+  }
+
+  const roundedDuration = Math.round(duration);
+  const otHours = Math.max(0, roundedDuration - 8);
+
+  // 2. Determine prefix based on Start Hour
+  let prefix = "M";
+  let timeLabel = "เช้า";
+
+  if (sH >= 6 && sH <= 11) {
+    prefix = "M";
+    timeLabel = "เช้า";
+  } else if (sH >= 12 && sH <= 17) {
+    prefix = "A";
+    timeLabel = "บ่าย";
+  } else {
+    prefix = "N";
+    timeLabel = "ดึก";
+  }
+
+  // Handle standard 08:00 - 17:00 office day shift
+  if (sH === 8 && eH === 17 && sM === 0 && eM === 0) {
+    return { code: "D", name: "กลางวันปกติ (8h)", duration: 8, otHours: 0 };
+  }
+
+  const code = `${prefix}${roundedDuration}`;
+  const name = `${timeLabel} ${roundedDuration} ชม.${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;
+
+  return { code, name, duration: roundedDuration, otHours };
+}
 
 export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> = ({
   isOpen,
@@ -55,7 +115,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   onSaveShift
 }) => {
   const [selectedDays, setSelectedDays] = useState<number[]>([initialDay]);
-  const [selectedShiftCode, setSelectedShiftCode] = useState<string>("M12");
   const [targetType, setTargetType] = useState<"plan" | "actual" | "both">("actual");
 
   // Parse month & year
@@ -71,6 +130,10 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const [startMinute, setStartMinute] = useState<number>(0);
   const [endHour, setEndHour] = useState<number>(19);
   const [endMinute, setEndMinute] = useState<number>(0);
+
+  // Dynamic Shift Computation
+  const dynamicShift = computeDynamicShift(startHour, startMinute, endHour, endMinute);
+  const [selectedShiftCode, setSelectedShiftCode] = useState<string>("M12");
 
   // Track initial shift for Reset button
   const [initialShiftCode, setInitialShiftCode] = useState<string>("M12");
@@ -101,8 +164,18 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     }
   }, [isOpen, initialDay, currentMonthKey, employee]);
 
+  // Keep selectedShiftCode in sync with dynamic calculation
+  useEffect(() => {
+    if (selectedShiftCode !== "OND" && selectedShiftCode !== "D" && selectedShiftCode !== "O") {
+      setSelectedShiftCode(dynamicShift.code);
+    } else if (selectedShiftCode === "D" && (startHour !== 8 || endHour !== 17)) {
+      setSelectedShiftCode(dynamicShift.code);
+    }
+  }, [startHour, startMinute, endHour, endMinute]);
+
   // 1. LINK: Shift Preset -> Updates Start & End 24h Times
   const applyShiftToTime = (code: string) => {
+    setSelectedShiftCode(code);
     const preset = PRESET_SHIFTS.find(p => p.code === code);
     if (preset && preset.code !== "O") {
       setStartHour(preset.startH);
@@ -126,67 +199,21 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     }
   };
 
-  // 2. LINK: Time Steppers -> Auto-detect matching Shift Preset
-  const autoDetectShiftFromTime = (sH: number, eH: number) => {
-    if (sH === 7 && eH === 19) {
-      setSelectedShiftCode("M12");
-    } else if (sH === 19 && eH === 7) {
-      setSelectedShiftCode("N12");
-    } else if (sH === 7 && eH === 15) {
-      setSelectedShiftCode("M8");
-    } else if (sH === 15 && eH === 23) {
-      setSelectedShiftCode("A8");
-    } else if (sH === 23 && eH === 7) {
-      setSelectedShiftCode("N8");
-    } else if (sH === 8 && eH === 17) {
-      setSelectedShiftCode(selectedShiftCode === "OND" ? "OND" : "D");
-    }
-  };
-
   const handleSelectShiftPreset = (code: string) => {
-    setSelectedShiftCode(code);
     applyShiftToTime(code);
   };
 
   // Start Time Stepper Handlers
-  const incStartHour = () => {
-    const nextH = startHour >= 23 ? 0 : startHour + 1;
-    setStartHour(nextH);
-    autoDetectShiftFromTime(nextH, endHour);
-  };
-  const decStartHour = () => {
-    const nextH = startHour <= 0 ? 23 : startHour - 1;
-    setStartHour(nextH);
-    autoDetectShiftFromTime(nextH, endHour);
-  };
-  const incStartMinute = () => {
-    const nextM = startMinute >= 45 ? 0 : startMinute + 15;
-    setStartMinute(nextM);
-  };
-  const decStartMinute = () => {
-    const nextM = startMinute <= 0 ? 45 : startMinute - 15;
-    setStartMinute(nextM);
-  };
+  const incStartHour = () => setStartHour(prev => (prev >= 23 ? 0 : prev + 1));
+  const decStartHour = () => setStartHour(prev => (prev <= 0 ? 23 : prev - 1));
+  const incStartMinute = () => setStartMinute(prev => (prev >= 45 ? 0 : prev + 15));
+  const decStartMinute = () => setStartMinute(prev => (prev <= 0 ? 45 : prev - 15));
 
   // End Time Stepper Handlers
-  const incEndHour = () => {
-    const nextH = endHour >= 23 ? 0 : endHour + 1;
-    setEndHour(nextH);
-    autoDetectShiftFromTime(startHour, nextH);
-  };
-  const decEndHour = () => {
-    const nextH = endHour <= 0 ? 23 : endHour - 1;
-    setEndHour(nextH);
-    autoDetectShiftFromTime(startHour, nextH);
-  };
-  const incEndMinute = () => {
-    const nextM = endMinute >= 45 ? 0 : endMinute + 15;
-    setEndMinute(nextM);
-  };
-  const decEndMinute = () => {
-    const nextM = endMinute <= 0 ? 45 : endMinute - 15;
-    setEndMinute(nextM);
-  };
+  const incEndHour = () => setEndHour(prev => (prev >= 23 ? 0 : prev + 1));
+  const decEndHour = () => setEndHour(prev => (prev <= 0 ? 23 : prev - 1));
+  const incEndMinute = () => setEndMinute(prev => (prev >= 45 ? 0 : prev + 15));
+  const decEndMinute = () => setEndMinute(prev => (prev <= 0 ? 45 : prev - 15));
 
   // Reset Button Handler
   const handleReset = () => {
@@ -289,7 +316,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const firstSelectedDay = selectedDays[0] || 1;
   const headerDateStr = `${monthNames[viewMonth - 1].substring(0, 3)} ${String(firstSelectedDay).padStart(2, "0")}, ${viewYear}` + 
     (selectedDays.length > 1 ? ` (+${selectedDays.length - 1} วัน)` : "");
-  const currentPreset = PRESET_SHIFTS.find(p => p.code === selectedShiftCode);
   const headerTimeStr = selectedShiftCode === "O" ? "วันหยุด (OFF)" : `${formattedStartTime} - ${formattedEndTime} น.`;
 
   return (
@@ -312,7 +338,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
           <div className="flex items-center justify-between pr-8 border-b border-slate-100 pb-2">
             <div className="flex items-center gap-2 truncate">
               <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono">
-                24H Shift & Time
+                24H Dynamic Shift
               </span>
               <span className="text-xs text-slate-700 font-bold truncate">
                 {employee.name} <span className="text-slate-400 font-normal">({employee.role || "Operator"} • {employee.id})</span>
@@ -320,7 +346,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
             </div>
           </div>
 
-          {/* Top Capsule Display Box */}
+          {/* Top Capsule Display Box (Dynamic Shift Code & Name) */}
           <div className="relative border-2 border-indigo-500 rounded-2xl p-2.5 sm:p-3 bg-indigo-50/20 flex flex-wrap items-center justify-between gap-2 shadow-inner">
             <span className="absolute -top-2.5 left-5 px-2.5 py-0.2 rounded-full bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider shadow-sm">
               Date & Shift Time (24h)
@@ -338,8 +364,8 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
               <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-mono font-black text-xs shadow-sm">
                 {selectedShiftCode}
               </span>
-              <span className="text-[11px] text-slate-600 font-bold hidden sm:inline">
-                {currentPreset?.name || selectedShiftCode}
+              <span className="text-[11px] text-indigo-700 font-black hidden sm:inline">
+                {dynamicShift.name}
               </span>
             </div>
           </div>
@@ -458,7 +484,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
             </div>
 
-            {/* RIGHT: Start & End Time Steppers & Shift Presets (Cols 5) */}
+            {/* RIGHT: Start & End Time Steppers & Dynamic Shifts (Cols 5) */}
             <div className="md:col-span-5 space-y-2">
               
               {/* TIME BOX: 2 Steppers (เวลาเข้างาน & เวลาออกงาน) */}
@@ -468,7 +494,9 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
                     <span>เวลาเข้า - ออกงาน (24 ชม.)</span>
                   </span>
-                  <span className="text-[9px] text-indigo-600 font-bold">ซิงค์กับกะ ⚡</span>
+                  <span className="text-[9px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                    คำนวณกะอัตโนมัติ ⚡
+                  </span>
                 </div>
 
                 {/* 2 Sub-boxes: [ เวลาเข้างาน ] & [ เวลาออกงาน ] */}
@@ -542,6 +570,19 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     </div>
                   </div>
 
+                </div>
+
+                {/* Dynamic Shift Result Banner */}
+                <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                    <span className="text-[10px] text-slate-400 uppercase">กะที่คำนวณได้:</span>
+                    <span className="font-mono font-black text-indigo-700 bg-white px-2 py-0.5 rounded shadow-2xs border border-indigo-100">
+                      {selectedShiftCode}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-black text-indigo-800">
+                    {dynamicShift.duration} ชม. {dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
+                  </span>
                 </div>
 
                 {/* Action Buttons: [ รีเซ็ต ] + [ ตกลง ] */}
