@@ -2747,6 +2747,19 @@ export default function App() {
     setMismatchAlertDismissed(false);
   }, [currentShiftsDept, shiftViewMode]);
 
+  const getShiftHoverTooltip = (shiftCode: string, empName: string, dayNum: number) => {
+    const code = (shiftCode || "O").toUpperCase().trim();
+    const def = SHIFT_DEFINITIONS[code];
+    if (!def || code === "O" || code === "OFF" || def.startTime === "-") {
+      return `👤 ${empName} (วันที่ ${dayNum})
+🏖️ วันหยุดพักผ่อน (OFF)`;
+    }
+    return `👤 ${empName} (วันที่ ${dayNum})
+🟢 เวลาเข้างาน: ${def.startTime} น.
+🔴 เวลาออกงาน: ${def.endTime} น.
+🏷️ ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;
+  };
+
   const handleSaveFromPremiumPicker = ({
     employeeId,
     dayNumbers,
@@ -8897,8 +8910,9 @@ export default function App() {
                                                 setPremiumPickerPairedEmp(peerEmp || null);
                                                 setIsPremiumPickerOpen(true);
                                               }}
-                                              className={[
-                                                "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none cursor-pointer transition-all",
+                                               title={getShiftHoverTooltip(actualShift, emp.name, dayIdx + 1)}
+                                               className={[
+                                                 "group/cell flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center relative select-none cursor-pointer transition-all",
                                                 isFocused ? "ring-2 ring-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)] z-30" : "",
                                                 isSelected ? "ring-2 ring-blue-500/90 bg-blue-500/20 z-20" : "",
                                                 isDropTarget ? "border-dashed border-2 border-cyan-400 bg-cyan-500/30 animate-pulse z-20" : "",
