@@ -3,7 +3,9 @@ import {
   Users, 
   Calendar, 
   TrendingUp, 
+  TrendingDown,
   AlertTriangle, 
+  AlertCircle,
   CheckCircle, 
   CheckCircle2, 
   XCircle, 
@@ -18,6 +20,7 @@ import {
   Info, 
   ArrowUpRight, 
   ArrowDownRight,
+  ArrowRight,
   Clock,
   ShieldAlert,
   SlidersHorizontal,
@@ -28,6 +31,7 @@ import {
   Eye,
   EyeOff,
   User,
+  UserPlus,
   Anchor,
   Ship,
   Search,
@@ -56,7 +60,13 @@ import {
   Redo2,
   MousePointer2,
   Radio,
-  Compass
+  Compass,
+  Key,
+  Edit2,
+  Package,
+  Moon,
+  Lightbulb,
+  Loader2
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
@@ -81,62 +91,47 @@ import {
 } from "./utils/shiftRecommendation";
 
 export const SHIFT_OPTIONS = [
-  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#dce6f1]", border: "border-[#b4c6e7]", text: "text-black" },
-  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#fff2cc]", border: "border-[#ffd966]", text: "text-black" },
-  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#fce4d6]", border: "border-[#f8cbad]", text: "text-black" },
-  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#9cc2e5]", text: "text-[#4472c4]" },
-  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#fff2cc]", border: "border-[#ffd966]", text: "text-black" },
-  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#fce4d6]", border: "border-[#f8cbad]", text: "text-[#ff0000]" },
-  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#1f4e79]", border: "border-[#1f4e79]", text: "text-white font-bold" },
-  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#ff0000]", border: "border-[#ff0000]", text: "text-white font-bold" },
-  { code: "D", label: "D", desc: "ทอดสมอ", bg: "bg-[#aeaaaa]", border: "border-[#7f7f7f]", text: "text-[#595959]" },
-  { code: "OND", label: "OND", desc: "ON DUTY", bg: "bg-[#00ffff]", border: "border-[#00ffff]", text: "text-black" },
-  { code: "O", label: "O", desc: "วันหยุด O", bg: "bg-white", border: "border-slate-200", text: "text-slate-400" }
+  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
+  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
+  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
+  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
+  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
+  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
+  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0b1a3a]", border: "border-[#0b1a3a]", text: "text-white font-bold" },
+  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#0b1a3a]", border: "border-[#0b1a3a]", text: "text-white font-bold" },
+  { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-700" },
+  { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#1d3ec7]", border: "border-[#1d3ec7]", text: "text-white font-bold" },
+  { code: "O", label: "O", desc: "วันหยุดพักผ่อน", bg: "bg-white", border: "border-slate-200", text: "text-slate-400" }
 ];
 
 export const getShiftStyle = (shift: string) => {
   switch (shift) {
     case "M8":
-      return "bg-[#dce6f1] text-black border-[#b4c6e7] font-extrabold";
     case "A8":
-      return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
     case "N8":
-      return "bg-[#fce4d6] text-black border-[#f8cbad] font-extrabold";
+      return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
     case "M12":
-      return "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5] font-extrabold";
     case "A12":
-      return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
     case "N12":
-      return "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad] font-extrabold";
+      return "bg-[#ddebf7] text-[#1d3ec7] border-[#6d93fc]/60 font-extrabold";
     case "M16":
-      return "bg-[#1f4e79] text-white border-[#1f4e79] font-extrabold";
     case "N16":
-      return "bg-[#ff0000] text-white border-[#ff0000] font-extrabold";
+      return "bg-[#0b1a3a] text-white border-[#0b1a3a] font-extrabold";
     case "D":
-      return "bg-[#aeaaaa] text-slate-800 border-[#7f7f7f] font-extrabold";
+      return "bg-slate-100 text-slate-800 border-slate-300 font-extrabold";
     case "OND":
-      return "bg-[#00ffff] text-black border-[#00ffff] font-extrabold";
+      return "bg-[#1d3ec7] text-white border-[#1d3ec7] font-extrabold";
     case "O":
       return "bg-white text-slate-400 border-slate-200 font-medium";
     default:
-      if (shift.startsWith("M")) {
+      if (shift.startsWith("M") || shift.startsWith("A") || shift.startsWith("N")) {
         const ot = getShiftOtHours(shift);
-        if (ot > 4) return "bg-[#1f4e79] text-white border-[#1f4e79] font-extrabold";
-        if (ot > 0) return "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5] font-extrabold";
-        return "bg-[#dce6f1] text-black border-[#b4c6e7] font-extrabold";
+        if (ot > 4) return "bg-[#0b1a3a] text-white border-[#0b1a3a] font-extrabold";
+        if (ot > 0) return "bg-[#ddebf7] text-[#1d3ec7] border-[#6d93fc]/60 font-extrabold";
+        return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
       }
-      if (shift.startsWith("A")) {
-        return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
-      }
-      if (shift.startsWith("N")) {
-        const ot = getShiftOtHours(shift);
-        if (ot > 4) return "bg-[#ff0000] text-white border-[#ff0000] font-extrabold";
-        if (ot > 0) return "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad] font-extrabold";
-        return "bg-[#fce4d6] text-black border-[#f8cbad] font-extrabold";
-      }
-      if (shift === "A") return "bg-[#fff2cc] text-black border-[#ffd966] font-extrabold";
-      if (shift === "N") return "bg-[#fce4d6] text-black border-[#f8cbad] font-extrabold";
-      if (shift === "⚠") return "bg-red-50 text-red-700 border-[#ff0000] font-extrabold animate-pulse";
+      if (shift === "A" || shift === "N") return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
+      if (shift === "ALERT") return "bg-rose-50 text-rose-700 border-rose-400 font-extrabold animate-pulse";
       return "bg-slate-50 text-slate-400 border-slate-200";
   }
 };
@@ -375,8 +370,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
     if (this.state.hasError) {
       return (
         <div className="p-8 max-w-2xl mx-auto my-12 bg-white rounded-3xl border border-rose-200 shadow-xl text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
-            ⚠️
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6 text-amber-500" />
           </div>
           <h2 className="text-lg font-extrabold text-slate-800">เกิดข้อผิดพลาดในการแสดงผลหน้าต่างนี้</h2>
           <p className="text-xs text-slate-500 font-mono bg-slate-50 p-3 rounded-xl border border-slate-200 text-left overflow-x-auto">
@@ -538,8 +533,8 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
       {/* Header */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-white text-lg">📝</span>
+          <div className="w-10 h-10 bg-[#1d3ec7] rounded-xl flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ประวัติและการวิเคราะห์การลางานพนักงาน (Leave Analytics)</h3>
@@ -553,9 +548,10 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
             }
             setShowAddModal(true);
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/10 cursor-pointer min-h-[40px] shrink-0 self-stretch sm:self-auto justify-center"
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#1d3ec7] hover:bg-[#0b1a3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer min-h-[40px] shrink-0 self-stretch sm:self-auto justify-center"
         >
-          <span>+ บันทึกการลาใหม่</span>
+          <Plus className="w-4 h-4" />
+          <span>บันทึกการลาใหม่</span>
         </button>
       </div>
 
@@ -564,15 +560,18 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
         
         {/* KPI Cards */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">📊 สถิติรวมการลางาน</h4>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4 text-[#1d3ec7]" />
+            <span>สถิติรวมการลางาน</span>
+          </h4>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
               <span className="text-xs text-slate-600 font-medium">จำนวนครั้งการลาทั้งหมด:</span>
-              <span className="text-2xl font-black text-indigo-600 font-mono">{totalLeaveCount} <span className="text-xs font-bold text-slate-400">ครั้ง</span></span>
+              <span className="text-2xl font-black text-[#1d3ec7] font-mono">{totalLeaveCount} <span className="text-xs font-bold text-slate-400">ครั้ง</span></span>
             </div>
             <div className="flex justify-between items-baseline pt-2 border-t border-slate-100">
               <span className="text-xs text-slate-600 font-medium">ประเภทการลาสูงสุด:</span>
-              <span className="text-xs font-extrabold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">{topLeaveTypeName} ({topLeaveTypeEntry ? topLeaveTypeEntry[1] : 0} ครั้ง)</span>
+              <span className="text-xs font-extrabold text-[#0b1a3a] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">{topLeaveTypeName} ({topLeaveTypeEntry ? topLeaveTypeEntry[1] : 0} ครั้ง)</span>
             </div>
             <div className="flex justify-between items-baseline pt-2 border-t border-slate-100">
               <span className="text-xs text-slate-600 font-medium">พนักงานที่ลาสูงสุด:</span>
@@ -583,13 +582,16 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
 
         {/* Leave Types Breakdown Bar Chart */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">📈 สัดส่วนประเภทการลา (Leave Types)</h4>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-[#1d3ec7]" />
+            <span>สัดส่วนประเภทการลา (Leave Types)</span>
+          </h4>
           <div className="space-y-2.5 pt-1">
             {[
-              { type: "sick", label: "ลาป่วย (Sick Leave)", color: "bg-red-500", count: leaveTypeCounts["sick"] || 0 },
-              { type: "personal", label: "ลากิจ (Personal Leave)", color: "bg-amber-500", count: leaveTypeCounts["personal"] || 0 },
-              { type: "vacation", label: "พักร้อน (Vacation)", color: "bg-emerald-500", count: leaveTypeCounts["vacation"] || 0 },
-              { type: "other", label: "อื่นๆ (Other)", color: "bg-indigo-500", count: leaveTypeCounts["other"] || 0 }
+              { type: "sick", label: "ลาป่วย (Sick Leave)", color: "bg-[#0b1a3a]", count: leaveTypeCounts["sick"] || 0 },
+              { type: "personal", label: "ลากิจ (Personal Leave)", color: "bg-[#1d3ec7]", count: leaveTypeCounts["personal"] || 0 },
+              { type: "vacation", label: "พักร้อน (Vacation)", color: "bg-[#6d93fc]", count: leaveTypeCounts["vacation"] || 0 },
+              { type: "other", label: "อื่นๆ (Other)", color: "bg-[#a9cdfc]", count: leaveTypeCounts["other"] || 0 }
             ].map(item => {
               const pct = totalLeaveCount > 0 ? Math.round((item.count / totalLeaveCount) * 100) : 0;
               return (
@@ -609,14 +611,17 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
 
         {/* Top Absentees Leaderboard */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">🏆 พนักงานที่มีสถิติการลางานสูงสุด (Top Absentees)</h4>
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Award className="w-4 h-4 text-[#1d3ec7]" />
+            <span>พนักงานที่มีสถิติการลางานสูงสุด (Top Absentees)</span>
+          </h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {topAbsentees.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">ไม่มีประวัติการลางาน</p>
             ) : topAbsentees.map((emp, idx) => (
               <div key={emp.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <span className={`w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center ${idx === 0 ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-600"}`}>
+                  <span className={`w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center ${idx === 0 ? "bg-[#1d3ec7] text-white" : "bg-slate-200 text-slate-600"}`}>
                     {idx + 1}
                   </span>
                   <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
@@ -625,7 +630,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                     <p className="text-[9px] text-slate-400 font-mono">{emp.id}</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-red-600 font-mono bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">
+                <span className="text-xs font-black text-[#1d3ec7] font-mono bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
                   {emp.count} ครั้ง
                 </span>
               </div>
@@ -678,7 +683,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
           className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none w-56 placeholder-slate-400"
         />
         
-        <div className="ml-auto bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 text-xs font-bold text-indigo-700">
+        <div className="ml-auto bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs font-bold text-[#1d3ec7]">
           วันลาทั้งหมด: <span className="text-lg font-black">{filteredRecords.length}</span> ครั้ง
         </div>
       </div>
@@ -705,9 +710,9 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-4xl">📝</span>
+                      <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่พบประวัติการลางาน</p>
-                      <p className="text-xs text-slate-400">กดปุ่ม "+ บันทึกการลาใหม่" เพื่อเริ่มต้นบันทึกการลาพนักงาน</p>
+                      <p className="text-xs text-slate-400">กดปุ่ม "บันทึกการลาใหม่" เพื่อเริ่มต้นบันทึกการลาพนักงาน</p>
                     </div>
                   </td>
                 </tr>
@@ -888,8 +893,8 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
       {/* Header */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-white text-lg">📋</span>
+          <div className="w-10 h-10 bg-[#1d3ec7] rounded-xl flex items-center justify-center shrink-0">
+            <ClipboardList className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ประวัติ OT จากกะทำงาน</h3>
@@ -930,15 +935,15 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
         )}
 
         <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-between sm:justify-end gap-2">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 sm:px-4 py-2 text-xs font-bold text-blue-700">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 sm:px-4 py-2 text-xs font-bold text-[#1d3ec7]">
             OT รวม: <span className="text-base sm:text-lg font-black">{totalOt.toFixed(1)}</span> ชม.
           </div>
           <button
             onClick={handleExportOtRecordsCsv}
-            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer min-h-[40px]"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#1d3ec7] hover:bg-[#0b1a3a] text-white rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer min-h-[40px]"
             title="ส่งออกรายการ OT เป็นไฟล์ CSV"
           >
-            <span>⬇</span>
+            <Download className="w-4 h-4" />
             <span>Export CSV</span>
           </button>
         </div>
@@ -965,7 +970,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-4xl">📋</span>
+                      <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
                       <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" เพื่อให้ข้อมูลปรากฏที่นี่</p>
                     </div>
@@ -1378,8 +1383,8 @@ function HrDirectEditorView({
                         onChange={(e) => handleCellChange(r.empId, "status", e.target.value)}
                         className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-extrabold text-slate-700 font-sans"
                       >
-                        <option value="Active">🟢 ปฏิบัติงาน</option>
-                        <option value="Inactive">🔴 พ้นสภาพ</option>
+                        <option value="Active">ปฏิบัติงาน (Active)</option>
+                        <option value="Inactive">พ้นสภาพ (Inactive)</option>
                       </select>
                     </td>
                     <td className="p-2 text-right">
@@ -1387,7 +1392,7 @@ function HrDirectEditorView({
                         type="number"
                         value={r.avgRevenue ?? 0}
                         onChange={(e) => handleCellChange(r.empId, "avgRevenue", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-emerald-50/50 border border-emerald-200 rounded-lg text-xs font-black text-emerald-700 text-right"
+                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
                       />
                     </td>
                     <td className="p-2 text-right">
@@ -1395,7 +1400,7 @@ function HrDirectEditorView({
                         type="number"
                         value={r.avgCost ?? 0}
                         onChange={(e) => handleCellChange(r.empId, "avgCost", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-rose-50/50 border border-rose-200 rounded-lg text-xs font-black text-rose-700 text-right"
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-black text-slate-700 text-right"
                       />
                     </td>
                     <td className="p-2 text-right">
@@ -1411,7 +1416,7 @@ function HrDirectEditorView({
                         type="number"
                         value={r.profit2026 ?? 0}
                         onChange={(e) => handleCellChange(r.empId, "profit2026", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-blue-700 text-right"
+                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
                       />
                     </td>
                     <td className="p-2 text-center">
@@ -1436,12 +1441,15 @@ function HrDirectEditorView({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-              <h3 className="text-base font-black text-slate-900">➕ เพิ่มพนักงานและผลตอบแทนใหม่</h3>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-1.5">
+                <UserPlus className="w-5 h-5 text-[#1d3ec7]" />
+                <span>เพิ่มพนักงานและผลตอบแทนใหม่</span>
+              </h3>
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1822,7 +1830,7 @@ export default function App() {
   };
 
   const handleDeleteAccount = async (targetUsername: string) => {
-    if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี "${targetUsername}" ออกจากระบบ?`)) {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี "${targetUsername}" ออกจากระบบ?`)) {
       return;
     }
     try {
@@ -2253,7 +2261,7 @@ export default function App() {
     setRedoStack(r => [...r, state?.employees || []]);
     setUndoStack(u => u.slice(0, -1));
     setState((s: any) => ({ ...s, employees: prev }));
-    showToastMsg("↩ เลิกทำ (Undo) สำเร็จ");
+    showToastMsg("เลิกทำ (Undo) สำเร็จ");
   };
 
   const handleRedo = () => {
@@ -2265,7 +2273,7 @@ export default function App() {
     setUndoStack(u => [...u, state?.employees || []]);
     setRedoStack(r => r.slice(0, -1));
     setState((s: any) => ({ ...s, employees: next }));
-    showToastMsg("↪ ทำซ้ำ (Redo) สำเร็จ");
+    showToastMsg("ทำซ้ำ (Redo) สำเร็จ");
   };
 
   // --- Smart Shift Handlers ---
@@ -2321,7 +2329,7 @@ export default function App() {
         }).catch(err => console.error("Error saving auto-pair shifts:", err));
       }
 
-      showToastMsg(`⚡ จัดคู่กะ Day/Night อัจฉริยะสำหรับตำแหน่ง "${roleName}" สำเร็จ (${empsInRole.length} คน)`);
+      showToastMsg(`จัดคู่กะ Day/Night อัจฉริยะสำหรับตำแหน่ง "${roleName}" สำเร็จ (${empsInRole.length} คน)`);
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการจัดคู่กะ");
@@ -2391,7 +2399,7 @@ export default function App() {
         }).catch(err => console.error("Error saving auto-balance:", err));
       }
 
-      showToastMsg(`✨ จัดคู่กะ Day/Night และตารางทำงานอัตโนมัติครบทุกตำแหน่งในแผนกเรียบร้อย (${deptEmps.length} คน)`);
+      showToastMsg(`จัดคู่กะ Day/Night และตารางทำงานอัตโนมัติครบทุกตำแหน่งในแผนกเรียบร้อย (${deptEmps.length} คน)`);
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการจัดตารางกะอัตโนมัติ");
@@ -2431,7 +2439,7 @@ export default function App() {
         }).catch(err => console.error("Error syncing plan to actual:", err));
       }
 
-      showToastMsg("🔄 คัดลอกตารางกะ Plan ไปเป็น Actual ทั้งแผนกเรียบร้อย");
+      showToastMsg("คัดลอกตารางกะ Plan ไปเป็น Actual ทั้งแผนกเรียบร้อย");
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการคัดลอกตารางกะ");
@@ -2564,9 +2572,9 @@ export default function App() {
         esc(deptLabel),
         esc(emp.role || "-"),
         maxWeekOt,
-        maxWeekOt <= 36 ? "ผ่าน (<= 36 ชม.)" : "เกินขีดจำกัด (> 36 ชม.) ⚠️",
+        maxWeekOt <= 36 ? "ผ่าน (<= 36 ชม.)" : "เกินขีดจำกัด (> 36 ชม.) [แจ้งเตือน]",
         maxConsecutive,
-        maxConsecutive <= 6 ? "ผ่าน (ได้หยุดทุก 6 วัน)" : "เกิน 6 วันติดต่อกัน ⚠️",
+        maxConsecutive <= 6 ? "ผ่าน (ได้หยุดทุก 6 วัน)" : "เกิน 6 วันติดต่อกัน [แจ้งเตือน]",
         restViolations,
         esc(statusOverall),
         esc(detailsMsg)
@@ -2585,77 +2593,37 @@ export default function App() {
 
   const [viewingSalaryFormulaEmployee, setViewingSalaryFormulaEmployee] = useState<any | null>(null);
 
-  const handleDirectSaveShift = async (emp: any, dayIdx: number, target: "plan" | "actual", newShiftCode: string) => {
+  const handleDirectSaveShift = async (emp: any, dayIdx: number, target: "plan" | "actual" | "both", newShiftCode: string) => {
     try {
       const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
       const [y, m] = monthKey.split("-");
 
-      // Get existing arrays
-      const currentShifts = getEmpShiftsArray(emp.shifts, monthKey);
-      const currentPlan = getEmpPlanShiftsArray(emp, monthKey);
+      const currentEmps = isEditingShifts ? tempEmployees : (state?.employees || []);
+      const updatedEmployees = currentEmps.map((e: Employee) => {
+        if (e.id !== emp.id) return e;
+        const curShifts = [...getEmpShiftsArray(e.shifts, monthKey, e.calendarType)];
+        const curPlan = [...getEmpPlanShiftsArray(e, monthKey)];
+        while (curShifts.length <= dayIdx) curShifts.push("O");
+        while (curPlan.length <= dayIdx) curPlan.push("O");
 
-      // Create copies and update the target day
-      const updatedShifts = [...currentShifts];
-      while (updatedShifts.length <= dayIdx) updatedShifts.push("O");
+        if (target === "plan" || target === "both") curPlan[dayIdx] = newShiftCode;
+        if (target === "actual" || target === "both") curShifts[dayIdx] = newShiftCode;
 
-      const updatedPlan = [...currentPlan];
-      while (updatedPlan.length <= dayIdx) updatedPlan.push("O");
-
-      if (target === "plan") {
-        updatedPlan[dayIdx] = newShiftCode;
-      } else {
-        updatedShifts[dayIdx] = newShiftCode;
-      }
-
-      // Format as JSON object for database
-      const formatEmpShiftsObj = (empOrigin: any, newActualArr: string[], newPlanArr: string[]) => {
-        let dbShifts: any = {};
-        try {
-          dbShifts = empOrigin.shifts ? (typeof empOrigin.shifts === "string" ? JSON.parse(empOrigin.shifts) : empOrigin.shifts) : {};
-        } catch { dbShifts = {}; }
-        if (Array.isArray(dbShifts)) { dbShifts = { "2026-08": dbShifts }; }
-
-        let dbPlanShifts: any = {};
-        try {
-          dbPlanShifts = empOrigin.planShifts ? (typeof empOrigin.planShifts === "string" ? JSON.parse(empOrigin.planShifts) : empOrigin.planShifts) : {};
-        } catch { dbPlanShifts = {}; }
-        if (Array.isArray(dbPlanShifts)) { dbPlanShifts = { "2026-08": dbPlanShifts }; }
-
-        dbShifts[monthKey] = newActualArr;
-        dbPlanShifts[monthKey] = newPlanArr;
-
-        return {
-          ...empOrigin,
-          shifts: JSON.stringify(dbShifts),
-          planShifts: JSON.stringify(dbPlanShifts)
-        };
-      };
-
-      const enrichedEmp = formatEmpShiftsObj(emp, updatedShifts, updatedPlan);
-
-      // Update state immediately for instant feedback
-      const updatedEmployees = state.employees.map((e: any) => e.id === emp.id ? enrichedEmp : e);
-      setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
-
-      // Save to D1 database in background
-      const res = await fetch("/api/save-shifts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employees: [enrichedEmp],
-          year: y ? Number(y) : undefined,
-          month: m ? Number(m) : undefined
-        })
+        return formatEmpShiftsObj(e, curShifts, curPlan, monthKey);
       });
 
-      if (res.ok) {
-        showToast("บันทึกตารางกะสำเร็จ!", "success");
+      if (isEditingShifts) {
+        setTempEmployees(updatedEmployees);
       } else {
-        showToast("เกิดข้อผิดพลาดในการบันทึกตารางกะ", "error");
+        setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+        fetch("/api/save-shifts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+        }).catch(err => console.error("Error saving direct shift:", err));
       }
     } catch (err) {
-      console.error(err);
-      showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
+      console.error("Direct shift change error:", err);
     }
   };
 
@@ -2747,14 +2715,14 @@ export default function App() {
     setMismatchAlertDismissed(false);
   }, [currentShiftsDept, shiftViewMode]);
 
-    const getShiftHoverTooltip = (shiftCode: string, empName: string, dayNum: number) => {
+  const getShiftHoverTooltip = (shiftCode: string, empName: string, dayNum: number) => {
     const code = (shiftCode || "O").toUpperCase().trim();
     if (code === "O" || code === "OFF") {
-      return `👤 ${empName} (วันที่ ${dayNum})\n🏖️ วันหยุดพักผ่อน (OFF)`;
+      return `${empName} (วันที่ ${dayNum})\nวันหยุดพักผ่อน (OFF)`;
     }
     const def = SHIFT_DEFINITIONS[code];
     if (def && def.startTime !== "-") {
-      return `👤 ${empName} (วันที่ ${dayNum})\n🟢 เวลาเข้างาน: ${def.startTime} น.\n🔴 เวลาออกงาน: ${def.endTime} น.\n🏷️ ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;
+      return `${empName} (วันที่ ${dayNum})\nเวลาเข้างาน: ${def.startTime} น.\nเวลาออกงาน: ${def.endTime} น.\nกะ: ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;
     }
     const match = code.match(/^([MAN])(\d+)$/);
     if (match) {
@@ -2762,9 +2730,9 @@ export default function App() {
       const hours = parseInt(match[2]);
       const ot = Math.max(0, hours - 8);
       const timeLabel = prefix === "M" ? "กะเช้า" : prefix === "A" ? "กะบ่าย" : "กะดึก";
-      return `👤 ${empName} (วันที่ ${dayNum})\n🏷️ ${timeLabel} ${hours} ชม.${ot > 0 ? ` • OT ${ot} ชม.` : ''} (${code})`;
+      return `${empName} (วันที่ ${dayNum})\n${timeLabel} ${hours} ชม.${ot > 0 ? ` • OT ${ot} ชม.` : ''} (${code})`;
     }
-    return `👤 ${empName} (วันที่ ${dayNum})\n🏷️ กะ ${code}`;
+    return `${empName} (วันที่ ${dayNum})\nกะ: ${code}`;
   };
 
   const handleSaveFromPremiumPicker = ({
@@ -2816,7 +2784,7 @@ export default function App() {
       body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
     }).catch(err => console.error("Error saving shifts:", err));
 
-    showToastMsg(`✨ บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);
+    showToastMsg(`บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);
   };
 
   const handleBatchAssignShifts = (cells: Array<{ empId: string; dayIdx: number }>, shiftCode: string, target: "plan" | "actual" | "both" = "actual") => {
@@ -2847,7 +2815,7 @@ export default function App() {
     });
 
     setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
-    showToastMsg(`✅ ทาสีกะ ${shiftCode} จำนวน ${cells.length} ช่องสำเร็จ`);
+    showToastMsg(`บันทึกทาสีกะ ${shiftCode} จำนวน ${cells.length} ช่องสำเร็จ`);
     setSelectedRangeCells([]);
     setSimulationResult(null);
   };
@@ -2887,9 +2855,9 @@ export default function App() {
     setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
 
     if (sourceAlerts.length > 0 || targetAlerts.length > 0) {
-      showToastMsg(`⚠️ สลับกะเรียบร้อย: ${sourceEmp.name} ⇄ ${targetEmp.name} (พบข้อควรระวัง ${sourceAlerts.length + targetAlerts.length} ข้อ)`);
+      showToastMsg(`สลับกะเรียบร้อย: ${sourceEmp.name} <-> ${targetEmp.name} (พบข้อควรระวัง ${sourceAlerts.length + targetAlerts.length} ข้อ)`);
     } else {
-      showToastMsg(`⚡ สลับกะสำเร็จ: ${sourceEmp.name} (${sourceShifts[source.dayIdx]}) ⇄ ${targetEmp.name} (${targetShifts[target.dayIdx]}) สอดคล้องกฎหมาย 100%`);
+      showToastMsg(`สลับกะสำเร็จ: ${sourceEmp.name} (${sourceShifts[source.dayIdx]}) <-> ${targetEmp.name} (${targetShifts[target.dayIdx]}) สอดคล้องกฎหมาย 100%`);
     }
   };
 
@@ -3353,7 +3321,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center max-w-sm">
-          <p className="text-red-500 text-3xl mb-2">⚠️</p>
+          <div className="flex justify-center mb-2">
+            <AlertTriangle className="w-8 h-8 text-amber-500" />
+          </div>
           <h4 className="text-sm font-bold text-slate-800 font-sans">ไม่สามารถโหลดโปรทัลได้</h4>
           <p className="text-xs text-slate-500 mt-1 mb-4 font-sans">{stateError}</p>
           <button 
@@ -3451,7 +3421,9 @@ export default function App() {
 
           {/* Footer Terminal Metadata */}
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-mono tracking-wider">
-            <span className="text-cyan-400">🌊 Maritime Port Sync</span>
+            <span className="text-[#a9cdfc] flex items-center gap-1">
+              <Ship className="w-3 h-3 text-[#6d93fc] inline" /> Maritime Port Sync
+            </span>
             <span>•</span>
             <span>Real-time Operations</span>
             <span>•</span>
@@ -3859,7 +3831,7 @@ export default function App() {
 
   // Handle clearing mock data
   const handleClearMockData = async () => {
-    if (!window.confirm("⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและ OT records ทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้")) {
+    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและ OT records ทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้")) {
       return;
     }
     try {
@@ -4132,7 +4104,7 @@ export default function App() {
           return;
         }
 
-        if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
+        if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
           return;
         }
 
@@ -4509,7 +4481,7 @@ export default function App() {
 
   // Export shift schedule as Payroll-Ready OT Payment CSV (รูปแบบทำจ่ายค่าล่วงเวลา)
   const handleRestoreEmployee = async (emp: any) => {
-    if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการคืนสภาพพนักงาน "${emp.name}" กลับเป็นพนักงานปกติ (Active)?`)) {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการคืนสภาพพนักงาน "${emp.name}" กลับเป็นพนักงานปกติ (Active)?`)) {
       return;
     }
     try {
@@ -4549,7 +4521,7 @@ export default function App() {
           ...prev,
           employees: prev.employees.map(e => e.id === emp.id ? { ...e, employmentStatus: "Active", resignationDate: "" } : e)
         }));
-        showToast(`คืนสภาพพนักงาน "${emp.name}" สำเร็จแล้ว! 🎉`, "success");
+        showToast(`คืนสภาพพนักงาน "${emp.name}" สำเร็จแล้ว`, "success");
       } else {
         showToast("เกิดข้อผิดพลาดในการคืนสภาพพนักงาน", "error");
       }
@@ -5268,8 +5240,8 @@ export default function App() {
               {fatiguedEmployees.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 font-bold text-lg">
-                      ⚠️
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 font-bold">
+                      <AlertTriangle className="w-5 h-5 text-amber-700" />
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-amber-950">ตรวจพบพนักงานกลุ่มเสี่ยงความล้าสะสม ({fatiguedEmployees.length} คน)</h4>
@@ -5644,7 +5616,7 @@ export default function App() {
                             <span className="text-xs font-semibold text-slate-500">per employee</span>
                           </div>
                           <p className="text-xs font-extrabold text-amber-600 pt-1">
-                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "⚠️ เกินเป้าหมาย 36 ชม./เดือน" : "✓ อยู่ในเกณฑ์มาตรฐาน") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
+                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "เกินเป้าหมาย 36 ชม./เดือน" : "อยู่ในเกณฑ์มาตรฐาน") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
                           </p>
                         </div>
 
@@ -5962,7 +5934,8 @@ export default function App() {
                             {totalProf26.toLocaleString()}
                           </h4>
                           <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            <span>{diffPct >= 0 ? `▲ +${diffPct}%` : `▼ ${diffPct}%`}</span>
+                            {diffPct >= 0 ? <TrendingUp className="w-3.5 h-3.5 inline" /> : <TrendingDown className="w-3.5 h-3.5 inline" />}
+                            <span>{diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`}</span>
                             <span className="text-slate-400 font-normal">เทียบปี 2025</span>
                           </p>
                         </div>
@@ -6470,7 +6443,7 @@ export default function App() {
                           <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[130px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
                           <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2568</th>
                           <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">กำไรสะสม 2569</th>
-                          <th className="px-3.5 py-3 text-center min-w-[130px]">ผลงาน 68 ➔ 69</th>
+                          <th className="px-3.5 py-3 text-center min-w-[130px]">ผลงาน 68 -&gt; 69</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
@@ -6670,7 +6643,7 @@ export default function App() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 bg-red-500 rounded-sm"></span>
-                            <span className="text-[10px] font-bold text-slate-500">เกินเป้าความปลอดภัย ⚠️</span>
+                            <span className="text-[10px] font-bold text-slate-500">เกินเป้าความปลอดภัย</span>
                           </div>
                         </>
                       ) : (
@@ -6890,7 +6863,7 @@ export default function App() {
                   <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
                     {dashboardEmployees.length === 0 && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-2xl z-20">
-                        <span className="text-3xl mb-2">📊</span>
+                        <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                         <p className="text-xs font-bold text-slate-500">ยังไม่มีข้อมูลพนักงาน</p>
                         <p className="text-[10px] text-slate-400 mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
                       </div>
@@ -6978,7 +6951,8 @@ export default function App() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
-                      <span>🚢</span> การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)
+                      <Ship className="w-5 h-5 text-amber-600 inline" />
+                      <span>การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)</span>
                     </h4>
                     <p className="text-xs text-amber-800/80 mt-0.5">
                       วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
@@ -7030,11 +7004,15 @@ export default function App() {
 
                         <div className="space-y-2 pt-2 border-t border-slate-100">
                           <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600">📦 ปริมาณงาน:</span>
+                            <span className="text-slate-600 flex items-center gap-1">
+                              <Package className="w-3.5 h-3.5 text-amber-500 inline" /> ปริมาณงาน:
+                            </span>
                             <span className="text-amber-600 font-mono">{ton.toLocaleString()} ตัน</span>
                           </div>
                           <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600">⏱️ OT สะสมแผนก:</span>
+                            <span className="text-slate-600 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-blue-500 inline" /> OT สะสมแผนก:
+                            </span>
                             <span className="text-blue-600 font-mono">{deptOt} ชม.</span>
                           </div>
                         </div>
@@ -7657,7 +7635,7 @@ export default function App() {
                         onChange={(e) => setEmpDivisionFilter(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
                       >
-                        <option value="ทุกฝ่าย">💼 ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
+                        <option value="ทุกฝ่าย">ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
                         {uniqueRosterDivisions.map(div => (
                           <option key={div} value={div}>ฝ่าย {div}</option>
                         ))}
@@ -7672,7 +7650,7 @@ export default function App() {
                         onChange={(e) => setEmpRoleFilter(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
                       >
-                        <option value="ทุกตำแหน่ง">👤 ตำแหน่งทั้งหมด (ทุกตำแหน่ง)</option>
+                        <option value="ทุกตำแหน่ง">ตำแหน่งทั้งหมด (ทุกตำแหน่ง)</option>
                         {uniqueRosterRoles.map(role => (
                           <option key={role} value={role}>{role}</option>
                         ))}
@@ -8345,9 +8323,10 @@ export default function App() {
                       
                       <button 
                         onClick={() => setMismatchAlertDismissed(true)} 
-                        className="ml-auto text-red-600 hover:text-red-800 text-[11px] font-black cursor-pointer bg-red-100/50 hover:bg-red-100 border border-red-300 px-2.5 py-1 rounded-xl transition-all select-none"
+                        className="ml-auto text-red-600 hover:text-red-800 text-[11px] font-black cursor-pointer bg-red-100/50 hover:bg-red-100 border border-red-300 px-2.5 py-1 rounded-xl transition-all select-none flex items-center gap-1"
                       >
-                        ✕ ปิดแจ้งเตือน
+                        <X className="w-3.5 h-3.5" />
+                        <span>ปิดแจ้งเตือน</span>
                       </button>
                     </div>
                   );
@@ -8381,7 +8360,7 @@ export default function App() {
                         className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <Zap className="w-3.5 h-3.5" />
-                        <span>{isAutoPairingLoading ? "กำลังคำนวณ..." : "⚡ จัดคู่กะ Day/Night ครบทุกตำแหน่ง"}</span>
+                        <span>{isAutoPairingLoading ? "กำลังคำนวณ..." : "จัดคู่กะ Day/Night ครบทุกตำแหน่ง"}</span>
                       </button>
                       <button
                         type="button"
@@ -8431,9 +8410,15 @@ export default function App() {
                                 </div>
                                 <div className="mt-2 text-[11px] text-slate-300 leading-snug">
                                   {isEvenPair ? (
-                                    <p>💡 มี {emps.length} คนในตำแหน่งนี้: แนะนำแบ่งเข้าคู่กะ Day 12h (M12) และ Night 12h (N12) สลับทีม 4-on-2-off</p>
+                                    <p className="flex items-center gap-1">
+                                      <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0 inline" />
+                                      <span>มี {emps.length} คนในตำแหน่งนี้: แนะนำแบ่งเข้าคู่กะ Day 12h (M12) และ Night 12h (N12) สลับทีม 4-on-2-off</span>
+                                    </p>
                                   ) : (
-                                    <p>⚠️ มีพนักงาน 1 คน: แนะนำจัดกะเช้าเดี่ยว M12 / D หรือเพิ่มพนักงานคู่กะเสริม</p>
+                                    <p className="flex items-center gap-1">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 inline" />
+                                      <span>มีพนักงาน 1 คน: แนะนำจัดกะเช้าเดี่ยว M12 / D หรือเพิ่มพนักงานคู่กะเสริม</span>
+                                    </p>
                                   )}
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-1">
@@ -8767,7 +8752,7 @@ export default function App() {
                                     title="จัดตารางกะสลับ เช้า(M12)/ดึก(N12) ให้อัตโนมัติสำหรับพนักงานในตำแหน่งนี้"
                                   >
                                     <Zap className="w-3 h-3 text-blue-600" />
-                                    <span>⚡ จับคู่กะ Day/Night อัตโนมัติ</span>
+                                    <span>จับคู่กะ Day/Night อัตโนมัติ</span>
                                   </button>
                                 )}
                               </div>
@@ -8995,7 +8980,7 @@ export default function App() {
                                                       : "h-full border text-[9px] md:text-xs"
                                                   ].join(" ")}>
                                                   {shiftViewMode === "both" && <span className="absolute top-0 left-0.5 text-[5px] text-black/30 font-black font-sans">A</span>}
-                                                  {actualShift !== "O" ? (actualShift === "⚠" ? "[เกินขีด]" : actualShift) : ""}
+                                                  {actualShift !== "O" ? (actualShift === "ALERT" ? "[เกินขีด]" : actualShift) : ""}
                                                 </div>
                                               )}
                                             </div>
@@ -9553,9 +9538,10 @@ export default function App() {
                                     setEditAccountCanBackup(acc.canBackup === 1);
                                     setShowEditAccountModal(true);
                                   }}
-                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
+                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer flex items-center gap-1"
                                 >
-                                  ✏️ แก้ไขข้อมูล
+                                  <Edit2 className="w-3 h-3 text-amber-600" />
+                                  <span>แก้ไขข้อมูล</span>
                                 </button>
                                 <button
                                   type="button"
@@ -9564,16 +9550,18 @@ export default function App() {
                                     setNewResetPassword("");
                                     setShowResetPasswordModal(true);
                                   }}
-                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
+                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer flex items-center gap-1"
                                 >
-                                  🔑 รีเซ็ตรหัสผ่าน
+                                  <Key className="w-3 h-3 text-blue-600" />
+                                  <span>รีเซ็ตรหัสผ่าน</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteAccount(acc.username)}
-                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-[10px] font-bold text-red-600 transition-all cursor-pointer"
+                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-[10px] font-bold text-red-600 transition-all cursor-pointer flex items-center gap-1"
                                 >
-                                  🗑️ ลบ
+                                  <Trash2 className="w-3 h-3 text-red-600" />
+                                  <span>ลบ</span>
                                 </button>
                               </div>
                             </td>
@@ -9709,9 +9697,10 @@ export default function App() {
                                   setEditAccountCanBackup(acc.canBackup === 1);
                                   setShowEditAccountModal(true);
                                 }}
-                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer"
+                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer flex items-center gap-1"
                               >
-                                ✏️ แก้ไขข้อมูล
+                                <Edit2 className="w-3 h-3 text-amber-600" />
+                                <span>แก้ไขข้อมูล</span>
                               </button>
                               <button
                                 type="button"
@@ -9720,9 +9709,10 @@ export default function App() {
                                   setNewResetPassword("");
                                   setShowResetPasswordModal(true);
                                 }}
-                                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer"
+                                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer flex items-center gap-1"
                               >
-                                🔑 รีเซ็ตรหัสผ่าน
+                                <Key className="w-3 h-3 text-blue-600" />
+                                <span>รีเซ็ตรหัสผ่าน</span>
                               </button>
                             </div>
                           </td>
@@ -9880,7 +9870,7 @@ export default function App() {
             <div className="bg-slate-950 p-6 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-xl">
-                  🚢
+                  <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold font-sans">จัดการตารางเทียบเรือ & เครนตักสินค้า</h3>
@@ -9889,9 +9879,9 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setShowVesselModal(false)}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white text-lg font-bold"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-white cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -10035,8 +10025,9 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <p className="text-xs font-bold text-slate-800 font-sans">{vs.name}</p>
                               {vs.tonnage > 0 && (
-                                <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[10px] font-extrabold font-mono">
-                                  📦 {Number(vs.tonnage).toLocaleString()} ตัน
+                                <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[10px] font-extrabold font-mono flex items-center gap-1">
+                                  <Package className="w-3 h-3 text-amber-600 inline" />
+                                  <span>{Number(vs.tonnage).toLocaleString()} ตัน</span>
                                 </span>
                               )}
                             </div>
@@ -10052,7 +10043,7 @@ export default function App() {
                           className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="ลบรายการ"
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
@@ -10089,9 +10080,9 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setShowAddEmployeeModal(false)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -10293,8 +10284,9 @@ export default function App() {
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     ) : (
-                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400">
-                        🔒 เฉพาะสิทธิ์กลุ่ม HR
+                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>เฉพาะสิทธิ์กลุ่ม HR</span>
                       </div>
                     )}
                   </div>
@@ -10411,7 +10403,7 @@ export default function App() {
                 >
                   {addEmpLoading ? (
                     <>
-                      <span className="text-sm animate-spin inline-block">🌐</span>
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       <span>กำลังบันทึก...</span>
                     </>
                   ) : (
@@ -10440,9 +10432,9 @@ export default function App() {
                   setShowEditEmployeeModal(false);
                   setEditingEmployee(null);
                 }}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -10629,8 +10621,9 @@ export default function App() {
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     ) : (
-                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400">
-                        🔒 เฉพาะสิทธิ์กลุ่ม HR
+                      <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>เฉพาะสิทธิ์กลุ่ม HR</span>
                       </div>
                     )}
                   </div>
@@ -10804,7 +10797,7 @@ export default function App() {
                 onClick={() => setViewingEmployeeDetails(null)}
                 className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -10937,8 +10930,9 @@ export default function App() {
                           สัดส่วนค่า OT สะสมเทียบฐานเงินเดือน
                         </span>
                         {isMax ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black shadow-sm animate-pulse">
-                            🚨 MAX ({otSalaryPct}%)
+                          <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black shadow-sm animate-pulse flex items-center gap-1">
+                            <AlertOctagon className="w-3.5 h-3.5" />
+                            <span>MAX ({otSalaryPct}%)</span>
                           </span>
                         ) : (
                           <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-extrabold">
@@ -10958,7 +10952,7 @@ export default function App() {
 
                       {isMax && (
                         <div className="p-2.5 rounded-xl bg-rose-100/90 border border-rose-300 text-rose-950 text-[11px] font-bold flex items-center gap-2 mt-1.5 shadow-sm">
-                          <span className="text-base">⚠️</span>
+                          <AlertTriangle className="w-4 h-4 text-rose-700 inline flex-shrink-0" />
                           <span>แจ้งเตือนผู้จัดการ: สัดส่วนค่า OT ของพนักงานเกิน 100% ของฐานเงินเดือนแล้ว! (สถิติปัจจุบัน {otSalaryPct}%)</span>
                         </div>
                       )}
@@ -10984,15 +10978,16 @@ export default function App() {
                     <div className="space-y-2.5 pt-2">
                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                         <h4 className="font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-                          📈 โครงสร้างตำแหน่ง Job Value (Job Value Structure & Growth 68/69)
+                          <TrendingUp className="w-4 h-4 text-blue-600" />
+                          <span>โครงสร้างตำแหน่ง Job Value (Job Value Structure & Growth 68/69)</span>
                         </h4>
                         {isGrowth ? (
                           <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black border border-emerald-300 shadow-sm">
-                            🟢 ต่อยอด (+{diff.toLocaleString()})
+                            ต่อยอด (+{diff.toLocaleString()})
                           </span>
                         ) : (
                           <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black border border-rose-300 shadow-sm">
-                            🔴 ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
+                            ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
                           </span>
                         )}
                       </div>
@@ -11021,10 +11016,12 @@ export default function App() {
                         isGrowth ? "bg-emerald-50/90 border-emerald-200 text-emerald-950" : "bg-rose-50/90 border-rose-200 text-rose-950"
                       }`}>
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{isGrowth ? "🚀" : "📉"}</span>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isGrowth ? "bg-emerald-200/80 text-emerald-800" : "bg-rose-200/80 text-rose-800"}`}>
+                            {isGrowth ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                          </div>
                           <div>
                             <div className="text-xs font-black">
-                              ผลการเปรียบเทียบกำไรปี 2568 ➔ 2569: {isGrowth ? "เติบโตต่อยอด (Positive Growth)" : "ลดลงไม่ต่อยอด (Performance Decline)"}
+                              ผลการเปรียบเทียบกำไรปี 2568 -&gt; 2569: {isGrowth ? "เติบโตต่อยอด (Positive Growth)" : "ลดลงไม่ต่อยอด (Performance Decline)"}
                             </div>
                             <div className="text-[11px] font-semibold opacity-85 mt-0.5">
                               ส่วนต่างผลงานสะสม: {isGrowth ? `เพิ่มขึ้น +${diff.toLocaleString()}` : `ลดลง -${Math.abs(diff).toLocaleString()}`}
@@ -11034,7 +11031,7 @@ export default function App() {
                         <div className={`px-3 py-1.5 rounded-xl font-mono font-black text-xs self-start sm:self-auto ${
                           isGrowth ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
                         }`}>
-                          {isGrowth ? `🟢 ต่อยอด (+${diff.toLocaleString()})` : `🔴 ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
+                          {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
                         </div>
                       </div>
                     </div>
@@ -11050,14 +11047,15 @@ export default function App() {
                   setViewingEmployeeDetails(null);
                   startEditEmployee(viewingEmployeeDetails);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
-                ✏️ แก้ไขข้อมูลโปรไฟล์
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>แก้ไขข้อมูลโปรไฟล์</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewingEmployeeDetails(null)}
-                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 text-xs font-bold rounded-xl transition-colors"
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 ปิดหน้าต่าง
               </button>
@@ -11085,9 +11083,9 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setShowAiAuditModal(false)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 hover:text-slate-600 transition-colors font-bold"
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11129,14 +11127,17 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">➕ เพิ่มผู้ใช้งาน / Admin ใหม่</h3>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <UserPlus className="w-5 h-5 text-blue-600 inline" />
+                  <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                </h3>
                 <p className="text-xs text-slate-500">สร้างบัญชีผู้ใช้ใหม่และกำหนดสิทธิ์เข้าถึงระบบ</p>
               </div>
               <button 
                 onClick={() => setShowAddAccountModal(false)}
                 className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11258,9 +11259,10 @@ export default function App() {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 cursor-pointer"
+                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  ➕ เพิ่มบัญชีผู้ใช้ใหม่
+                  <UserPlus className="w-4 h-4" />
+                  <span>เพิ่มบัญชีผู้ใช้ใหม่</span>
                 </button>
               </div>
             </form>
@@ -11276,14 +11278,17 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">✏️ แก้ไขข้อมูลบัญชีผู้ใช้</h3>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <Edit2 className="w-5 h-5 text-amber-600 inline" />
+                  <span>แก้ไขข้อมูลบัญชีผู้ใช้</span>
+                </h3>
                 <p className="text-xs text-slate-500">แก้ไขข้อมูล Username, ชื่อแสดงผล, บทบาท หรือแผนกของพนักงาน</p>
               </div>
               <button 
                 onClick={() => setShowEditAccountModal(false)}
                 className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11408,14 +11413,17 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
-                <h3 className="text-base font-bold text-slate-900">🔑 รีเซ็ตรหัสผ่านบัญชีผู้ใช้</h3>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                  <Key className="w-5 h-5 text-blue-600 inline" />
+                  <span>รีเซ็ตรหัสผ่านบัญชีผู้ใช้</span>
+                </h3>
                 <p className="text-xs text-slate-500">บัญชีเป้าหมาย: <strong className="font-mono text-blue-600">{resetTargetUsername}</strong></p>
               </div>
               <button 
                 onClick={() => setShowResetPasswordModal(false)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400"
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11460,13 +11468,15 @@ export default function App() {
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-indigo-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="text-xl">⚡</span>
+                <Zap className="w-5 h-5 text-amber-400" />
                 <div>
                   <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม (Bulk Shift Setter)</h3>
                   <p className="text-[10px] text-indigo-300">กำหนดกะงานให้พนักงานทั้งกลุ่มพร้อมกันในคลิกเดียว</p>
                 </div>
               </div>
-              <button onClick={() => setShowBulkShiftModal(false)} className="text-white hover:opacity-80 font-bold">✕</button>
+              <button onClick={() => setShowBulkShiftModal(false)} className="text-white hover:opacity-80 cursor-pointer p-1 rounded-full hover:bg-white/10">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-6 space-y-4 text-xs">
@@ -11516,11 +11526,12 @@ export default function App() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex gap-2">
-                <button onClick={() => setShowBulkShiftModal(false)} className="w-1/2 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">
+                <button onClick={() => setShowBulkShiftModal(false)} className="w-1/2 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 cursor-pointer">
                   ยกเลิก
                 </button>
-                <button onClick={handleApplyBulkShift} className="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-500/10">
-                  ⚡ ปรับกะยกกลุ่ม
+                <button onClick={handleApplyBulkShift} className="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-500/10 cursor-pointer flex items-center justify-center gap-1.5">
+                  <Zap className="w-4 h-4" />
+                  <span>ปรับกะยกกลุ่ม</span>
                 </button>
               </div>
             </div>
@@ -11537,15 +11548,15 @@ export default function App() {
             <div className="p-6 border-b border-slate-100 bg-slate-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
-                  🔴
+                  <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">รายการใบคำขอทำล่วงเวลา (OT Request & Approval Pipeline)</h3>
                   <p className="text-[10px] text-slate-400">ยื่นขอทำ OT และอนุมัติใบคำขอออนไลน์ก่อนการปฏิบัติงานจริง</p>
                 </div>
               </div>
-              <button onClick={() => setShowOtRequestModal(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 text-white font-bold">
-                ✕
+              <button onClick={() => setShowOtRequestModal(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 text-white font-bold cursor-pointer">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11554,7 +11565,8 @@ export default function App() {
               {/* Form to submit OT request */}
               <form onSubmit={handleSubmitOtRequest} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                 <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <span>➕</span> ยื่นใบคำขอทำ OT ออนไลน์ใหม่
+                  <Plus className="w-4 h-4 text-blue-600" />
+                  <span>ยื่นใบคำขอทำ OT ออนไลน์ใหม่</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
@@ -11606,8 +11618,9 @@ export default function App() {
                 </div>
 
                 <div className="flex justify-end pt-1">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 cursor-pointer">
-                    📤 ยื่นคำขอทำ OT
+                  <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 cursor-pointer flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5" />
+                    <span>ยื่นคำขอทำ OT</span>
                   </button>
                 </div>
               </form>
@@ -11635,7 +11648,7 @@ export default function App() {
                               req.status === "rejected" ? "bg-red-50 text-red-700 border border-red-200" :
                               "bg-amber-50 text-amber-700 border border-amber-200"
                             }`}>
-                              {req.status === "approved" ? "✅ อนุมัติแล้ว" : req.status === "rejected" ? "❌ ไม่อนุมัติ" : "⏳ รอพิจารณา"}
+                              {req.status === "approved" ? "อนุมัติแล้ว" : req.status === "rejected" ? "ไม่อนุมัติ" : "รอพิจารณา"}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-500 mt-0.5">
@@ -11648,15 +11661,17 @@ export default function App() {
                         <div className="flex items-center gap-1.5 self-end sm:self-auto">
                           <button
                             onClick={() => handleApproveOtRequest(req.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm cursor-pointer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm cursor-pointer flex items-center gap-1"
                           >
-                            ✅ อนุมัติ
+                            <Check className="w-3.5 h-3.5" />
+                            <span>อนุมัติ</span>
                           </button>
                           <button
                             onClick={() => handleRejectOtRequest(req.id)}
-                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-[11px] font-bold cursor-pointer"
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-xl text-[11px] font-bold cursor-pointer flex items-center gap-1"
                           >
-                            ❌ ปฏิเสธ
+                            <X className="w-3.5 h-3.5" />
+                            <span>ปฏิเสธ</span>
                           </button>
                         </div>
                       )}
@@ -11691,7 +11706,7 @@ export default function App() {
                 onClick={() => setViewingJobValueModal(null)}
                 className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -11813,7 +11828,7 @@ export default function App() {
                   onClick={handleDismissBirthdayPopup}
                   className="absolute top-3 right-3 text-white/80 hover:text-white p-1 rounded-full text-lg cursor-pointer"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -12233,7 +12248,9 @@ export default function App() {
                     className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 font-sans"
                   />
                   {resignedSearchQuery && (
-                    <button onClick={() => setResignedSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+                    <button onClick={() => setResignedSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
 

@@ -1,87 +1,68 @@
-# Project: Enterprise OT Management Portal Redesign & Interactive Shift Scheduling Engine
+# Project: Enterprise OT Management Portal Overhaul
 
 ## Architecture
-- **Design System & Shell**: Bespoke Industrial Maritime Cockpit aesthetic in React 19 + TypeScript + Vite + Tailwind CSS v4. Custom maritime palette (deep abyssal navy `#070d18`, tactical slate `#0f172a`, ocean cyan `#06b6d4`, emergency amber `#f59e0b`, sonar green `#10b981`), high-contrast telemetry status badges, tactile toggle bars, radar sweep accents, and backdrop blur glassmorphism across all 11 application views.
-- **Interactive Shift Scheduling Engine (`src/components/ShiftScheduler/` or `src/App.tsx`)**:
-  - Drag-to-Paint & 2D Range Selection: Pointer drag events across consecutive days and worker rows with live rectangular bounding cues.
-  - Keyboard Hotkeys: Arrow-key grid navigation (`ArrowUp/Down/Left/Right`, `Home`, `End`), single-key direct shift placement (`M` for M12/M8, `N` for N12/N8, `D` for Day, `O` for Off, `A` for Afternoon, `H` for Holiday), and undo/redo (`Ctrl+Z`, `Ctrl+Y`).
-  - Radial / Floating Quick Picker: One-touch speed-dial circular interface anchored to active cell with 1-click complementary pair suggestions (`src/components/ShiftRadialPicker.tsx`).
-  - Drag-and-Drop Shift Swap: HTML5 / pointer drag chip swapping between workers with instant safety compliance audit (`auditEmployeeShiftsCompliance`).
-- **Circadian & Timeline Shift Visualizer (`src/utils/circadianEngine.ts` & `src/components/CircadianTimelineModal.tsx`)**:
-  - 24-Hour Continuous Timeline / Gantt matrix showing day (08:00–20:00) vs night (20:00–08:00) circadian bands.
-  - Cross-midnight shift segment splitting (e.g., N12: 20:00–24:00 + 00:00–08:00 next day).
-  - Real-time hourly concurrent headcount density heatmap and understaffing threshold alerts.
-- **Live Overtime & Cost Simulation Engine (`src/utils/costSimulationEngine.ts` & `src/components/LiveSimulationHUD.tsx`)**:
-  - Real-time delta OT hours, monetary cost impact (THB) computed via hourly rate `salary/240` (1.5x, 3.0x, 1.0x), and department 150k THB budget ceiling tracking.
-  - Real-time Thai labor law safety compliance check (rolling 7-day $\le 36\text{h}$ OT limit, consecutive workdays, rest intervals) displayed via live telemetry HUD during painting/editing.
-- **Automated Verification Track**: Vitest test runner, 32 test files, 243 tests (100% pass rate), 0 TypeScript errors (`tsc --noEmit`), 0 build bundle errors (`npm run build`).
+- **Framework & Bundler**: React 18 + TypeScript + Vite + Tailwind CSS v4.
+- **Backend & Persistence**: Node.js + Express (`server.ts`) with Cloudflare D1 integration and local fallback simulation (`db.json`).
+- **Design System & Palette**: Monochromatic 4-tone industrial blue:
+  - Deep Navy Blue (`#0b1a3a` / primary dark & headers)
+  - Royal Cobalt Blue (`#1d3ec7` / active accents & primary actions)
+  - Soft Cornflower Blue (`#6d93fc` / secondary accents & highlights)
+  - Light Ice Blue (`#a9cdfc` / subtle backgrounds, borders & pill badges)
+  - Crisp white (`#ffffff`) and neutral minimalist grays (`#f8fafc` / `#e2e8f0`).
+- **Iconography**: 100% Lucide React SVG vector icons (Zero Emojis).
+- **Core Modules**:
+  - `src/App.tsx`: Central portal views (Dashboard, Shift Matrix, Crew Roster, Job Value, Reports, HR Editor, OT Records, Leave Records, Settings, Admin Permissions, User Profile) and modals.
+  - `src/components/Navbar.tsx`: Executive navigation bar with touch-ergonomic actions, notification drawer, and language switch.
+  - `src/components/PremiumShiftTimePickerModal.tsx`: Dynamic 24h shift time scheduler with 1..24h calculation, overnight handling, and drag/preset interactions.
+  - `src/components/ShiftRadialPicker.tsx`: Fast radial shift selection modal.
+  - `src/components/CircadianTimelineModal.tsx`: 24h circadian workload & staffing density visualizer.
+  - `src/components/CsvTemplateHubModal.tsx`: RFC 4180 CSV export and template generation hub.
+  - `src/utils/shiftRecommendation.ts`: Shift definitions, auto-pairing algorithms, rotating schedule generator, and labor law compliance auditing.
+  - `src/utils/costSimulationEngine.ts`: OT salary formulas, department budget ceiling, and cost simulation.
+  - `src/utils/circadianEngine.ts`: 24h time-segment splitting, circadian fatigue indexes, and staffing gap detectors.
 
----
+## Code Layout
+- `src/`: Core application source code
+  - `src/components/`: Reusable modular components and overlays
+  - `src/utils/`: Calculation engines, validators, export generators
+  - `src/index.css`: Global styles, Tailwind v4 directives, custom utility classes
+- `server.ts`: Backend API and persistence server
+- `tests/`: Automated test suite (34 test files, 273 tests)
+  - `tests/tier1-shifts/`: Shift computation unit tests
+  - `tests/tier2-responsive/`: Responsive UI and touch target tests
+  - `tests/tier3-compliance/`: Labor compliance rule tests
+  - `tests/tier4-workflows/`: End-to-end user workflows
+  - `tests/tier5-adversarial/`: Stress testing, edge cases, and adversarial oracles
 
 ## Feature Inventory
-| # | Feature | Description | Milestone | Source | Status |
-|---|---------|-------------|-----------|--------|:------:|
-| 1 | Maritime Cockpit Design Tokens & Surfaces | Abyssal navy theme, custom glassmorphism panels, tactile control bars, radar accents, and terminal typography | M1 | ORIGINAL_REQUEST §R1 | DONE |
-| 2 | 11-View Industrial Maritime UI Overhaul | Complete visual redesign across all 11 views (Dashboard, Scheduler, Roster, Payroll, Attendance, Analytics, Approvals, Audit, Job Value, Export Hub, Settings) | M1 | ORIGINAL_REQUEST §R1 | DONE |
-| 3 | Tactile Telemetry & Status Badges | Dynamic ocean radar indicators, high-contrast operational status badges, fluid press/hover states | M1 | ORIGINAL_REQUEST §R1 | DONE |
-| 4 | Drag-to-Paint & Range Selection | Click-and-drag multi-cell shift assignment across consecutive days and worker rows with real-time visual bounds | M2 | ORIGINAL_REQUEST §R2 | DONE |
-| 5 | Keyboard Hotkeys & Grid Navigation | Arrow key navigation + single-key hotkeys (`M`, `N`, `D`, `O`, `A`, `H`) and undo/redo support | M2 | ORIGINAL_REQUEST §R2 | DONE |
-| 6 | Radial / Floating Quick Picker | One-touch radial speed-dial modal with instant smart complementary pair suggestions | M2 | ORIGINAL_REQUEST §R2 | DONE |
-| 7 | Drag-and-Drop Shift Swap Engine | Interactive shift swapping between workers with instant labor compliance safety validation | M2 | ORIGINAL_REQUEST §R2 | DONE |
-| 8 | 24-Hour Continuous Timeline / Gantt Matrix | 24-hour visualizer displaying circadian day/night bands, cross-midnight shift splits, and staffing heatmap | M3 | ORIGINAL_REQUEST §R3 | DONE |
-| 9 | Live Overtime & Cost Simulation Engine | Real-time calculation of OT hours, THB cost impact, 150k department ceiling, and safety compliance HUD during painting | M3 | ORIGINAL_REQUEST §R3 | DONE |
-| 10 | Unit & Integration Test Suite Pass (100%) | Automated Vitest test suites (32 test files, 243 tests) passing cleanly with 100% success rate | M4 | ORIGINAL_REQUEST §R4 | DONE |
-| 11 | Production Build & TypeScript Clean Pass | Zero TypeScript compilation errors (`tsc --noEmit`) and clean production bundle compilation (`npm run build`) | M4 | ORIGINAL_REQUEST §R4 | DONE |
-
----
+| # | Feature | Description | Milestone | Source |
+|---|---------|-------------|-----------|--------|
+| 1 | 4-Tone Blue Palette & Minimalist Aesthetic | Refactor global styles and theme to strictly use #0b1a3a, #1d3ec7, #6d93fc, #a9cdfc | M1 | ORIGINAL_REQUEST §R1 |
+| 2 | Executive Typography & Hairline Borders | Clean hairline borders, generous spacing, high contrast typography | M1 | ORIGINAL_REQUEST §R1 |
+| 3 | 100% Codebase Emoji Elimination | Eliminate all emojis across all UI, tooltips, toasts, modals, options | M2 | ORIGINAL_REQUEST §R2 |
+| 4 | Lucide Iconography Standardization | Replace emoji glyphs with crisp Lucide React SVG vector icons | M2 | ORIGINAL_REQUEST §R2 |
+| 5 | Navbar Notification Title Fix | Fix `Navbar.tsx:263` title to `การแจ้งเตือน` to resolve failing tests | M3 | survey report 3 |
+| 6 | 24H Dynamic Shift Calculation Engine | Dynamic 1..24h shifts (M1..M24, A1..A24, N1..N24, D, OND, OFF, 24h 08:00-08:00, overnight 20:00-08:00) | M3 | ORIGINAL_REQUEST §R3 |
+| 7 | Shift Matrix Interaction Engine | Cell clicks, tooltip previews, sticky columns/headers, Plan/Actual/Both toggle | M3 | ORIGINAL_REQUEST §R3 |
+| 8 | Labor Law Compliance & Bell Notifications | Rolling 7-day <=36h OT limit, <=6 consecutive workdays, rest >=11h, notification dropdown | M4 | ORIGINAL_REQUEST §R3 |
+| 9 | Vessel & Crane Schedule Timeline | Plan vs Actual vessel timeline, tonnage calculation, crane deployment | M4 | ORIGINAL_REQUEST §R3 |
+| 10 | Executive Analytics & OT Costing | OT salary breakdown (1.5x, 3.0x), department budget tracking, KPI cards | M4 | ORIGINAL_REQUEST §R3 |
+| 11 | CSV Hub & Data Export/Import | 5 standardized RFC 4180 CSV export templates with UTF-8 BOM | M4 | ORIGINAL_REQUEST §R3 |
+| 12 | Opaque-Box E2E Testing Suite (Tiers 1-4) | Comprehensive requirement-driven test verification across all features | M5 | ORIGINAL_REQUEST §R4 |
+| 13 | Adversarial Coverage Hardening (Tier 5) | White-box stress tests, boundary conditions, edge cases | M5 | Project Orchestration Pattern |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
-|---|------|-------|-------------|:------:|
-| M1 | Bespoke Industrial Maritime UI/UX Overhaul | Maritime cockpit tokens, tactile controls, radar telemetry, 11-view visual redesign | none | DONE |
-| M2 | Advanced Interactive Shift Entry & Scheduling Engine | Drag-to-paint, keyboard hotkeys & navigation, radial speed-dial picker, drag-and-drop swap | M1 | DONE |
-| M3 | Circadian 24-Hour Timeline Visualizer & Live Cost Simulator | 24-hr Gantt matrix, circadian bands, midnight shift splitting, live OT & cost simulation HUD | M2 | DONE |
-| M4 | Comprehensive Verification & Build Integrity | Tiers 1–4 + Tier 5 test suite pass (243/243 tests pass), clean TypeScript, zero-error production build | M1, M2, M3 | DONE |
+|---|------|-------|-------------|--------|
+| M1 | Design System & 4-Tone Blue Palette | `src/index.css`, Tailwind styling, UI theme overhaul | none | DONE |
+| M2 | 100% Emoji Elimination & Icon Standardization | All views, modals, toasts, tooltips, dropdowns, tests | M1 | DONE |
+| M3 | 24H Shift Engine & Matrix Interaction | `PremiumShiftTimePickerModal.tsx`, `Navbar.tsx`, `App.tsx` matrix | M1, M2 | DONE |
+| M4 | Compliance, Vessel, Analytics & CSV Modules | `shiftRecommendation.ts`, `costSimulationEngine.ts`, `CsvTemplateHubModal.tsx` | M3 | DONE |
+| M5 | E2E Test Pass & Adversarial Hardening | Full test suite execution (Tiers 1-5, 273/273 pass), 0 TS/bundle errors | M4 | DONE |
 
----
-
-## Interface Contracts
-
-### Circadian Timeline Engine (`src/utils/circadianEngine.ts`)
-- `getShiftCircadianSegments(shiftCode: string, dateStr: string): CircadianSegment[]`
-  - Returns array of active hour segments `[startHour, endHour, isNight, otHours]`.
-- `calculateHourlyStaffingDensity(shifts: Record<string, string>, dateStr: string, employees: Employee[]): HourlyStaffingHeatmap`
-  - Returns 24-hour array with headcount per hour, morning/afternoon/night distribution, and coverage warnings.
-
-### Live OT & Cost Simulation Engine (`src/utils/costSimulationEngine.ts`)
-- `simulateShiftPaintingDelta(currentShifts: Record<string, string>, paintedCells: Array<{ empId: string, dateStr: string, newShift: string }>, employees: Employee[], year: number, month: number, departmentBudgetLimit: number): SimulationResult`
-  - Returns:
-    * `deltaOtHours`: number
-    * `deltaCostThb`: number
-    * `newTotalCostThb`: number
-    * `budgetUtilizationPct`: number
-    * `isBudgetExceeded`: boolean
-    * `complianceViolations`: Array<{ empId: string, empName: string, reason: string }>
-
-### Shift Drag & Hotkey Engine
-- `handleBatchAssignShifts(selectedCells: Array<{ empId: string, dayIdx: number }>, shiftCode: string): void`
-- `handleShiftSwap(sourceEmpId: string, sourceDayIdx: number, targetEmpId: string, targetDayIdx: number): { success: boolean, reason?: string }`
-- `handleGridKeyDown(e: KeyboardEvent): void`
-
----
-
-## Code Layout
-- `src/App.tsx`: Main application shell, view routing, state orchestration.
-- `src/components/Navbar.tsx`: Maritime cockpit telemetry header, search bar, navigation drawer.
-- `src/components/CircadianTimelineModal.tsx`: 24-Hour Gantt timeline matrix and hourly heatmap.
-- `src/components/LiveSimulationHUD.tsx`: Real-time live cost & compliance simulation HUD.
-- `src/components/ShiftRadialPicker.tsx`: Radial speed-dial shift selector.
-- `src/utils/circadianEngine.ts`: 24-hour shift splitting and hourly density calculations.
-- `src/utils/costSimulationEngine.ts`: Delta OT hours, monetary cost, and labor compliance simulation.
-- `src/utils/shiftRecommendation.ts`: Shift definitions, complementary pair algorithms, and compliance audits.
-- `src/index.css`: Maritime industrial styling, radar animations, glassmorphism surface tokens.
-- `tests/tier1-calculations/*`: Core math, circadian, and cost simulation unit tests.
-- `tests/tier2-responsive/*`: Responsive layouts and viewport stress tests.
-- `tests/tier3-pwa/*`: PWA, service worker, and manifest tests.
-- `tests/tier4-workflows/*`: Interactive shift scheduling, hotkeys, drag-to-paint, timeline, and modal workflows.
-- `tests/tier5-adversarial/*` (or within tier2/tier4): Adversarial stress verification suites.
+## Verification Summary
+- `npm run lint` (`tsc --noEmit`): 0 TypeScript errors (Exit code 0).
+- `npm run build`: Production bundle built in 3.48s with 0 errors (Exit code 0).
+- `npm test`: 34 test files, 273/273 tests passing (100% pass rate, Exit code 0).
+- Emoji scan: 0 emojis across all source files, public files, server, and templates.
+- Forensic integrity: CLEAN verdict, zero hardcoded facades.

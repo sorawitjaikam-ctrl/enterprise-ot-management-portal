@@ -27,10 +27,10 @@ function test(name, fn) {
   try {
     fn();
     passedTests++;
-    console.log(`  ✅ PASS: ${name}`);
+    console.log(`  [PASS] ${name}`);
   } catch (err) {
     failedTests++;
-    const errMsg = `❌ FAIL: ${name} -> ${err.message}`;
+    const errMsg = `[FAIL] ${name} -> ${err.message}`;
     console.error(`  ${errMsg}`);
     failureLogs.push({ name, error: err.message });
   }
@@ -100,7 +100,7 @@ function parseIcoOrPngFavicon(buffer) {
 
 function runEmpiricalSuite() {
   console.log('================================================================');
-  console.log('🚀 CHALLENGER 2: EMPIRICAL PWA STRESS TEST SUITE (MILESTONE 1)');
+  console.log('[CHALLENGER 2] EMPIRICAL PWA STRESS TEST SUITE (MILESTONE 1)');
   console.log('================================================================\n');
 
   // --------------------------------------------------------------------------
@@ -378,17 +378,17 @@ function runEmpiricalSuite() {
   });
 
   console.log('\n================================================================');
-  console.log(`📊 CHALLENGER EMPIRICAL TEST SUMMARY:`);
+  console.log(`[SUMMARY] CHALLENGER EMPIRICAL TEST SUMMARY:`);
   console.log(`   Total Asserts / Checks: ${totalTests}`);
   console.log(`   Passed:                 ${passedTests}`);
   console.log(`   Failed:                 ${failedTests}`);
   console.log('================================================================\n');
 
   if (failedTests > 0) {
-    console.error(`🚨 VERDICT: REJECT (${failedTests} failures detected)`);
+    console.error(`[VERDICT] REJECT (${failedTests} failures detected)`);
     process.exit(1);
   } else {
-    console.log(`🎉 VERDICT: APPROVE (All ${passedTests} empirical stress checks PASSED 100%)`);
+    console.log(`[VERDICT] APPROVE (All ${passedTests} empirical stress checks PASSED 100%)`);
     process.exit(0);
   }
 }

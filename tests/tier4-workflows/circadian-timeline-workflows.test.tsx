@@ -16,7 +16,7 @@ describe('Tier 4: Circadian 24-Hour Timeline & Heatmap Workflows', () => {
       actualOt: 0,
       otPct: 0,
       status: 'On Track',
-      groupName: 'G1',
+      groupName: 'A',
       shifts: JSON.stringify({
         '2026-08': ['M12', 'M12', 'M12', 'M12', 'O', 'O', 'N12', 'N12', 'N12', 'N12']
       })
@@ -31,7 +31,7 @@ describe('Tier 4: Circadian 24-Hour Timeline & Heatmap Workflows', () => {
       actualOt: 0,
       otPct: 0,
       status: 'On Track',
-      groupName: 'G1',
+      groupName: 'A',
       shifts: JSON.stringify({
         '2026-08': ['N12', 'N12', 'N12', 'N12', 'O', 'O', 'M12', 'M12', 'M12', 'M12']
       })
@@ -46,7 +46,7 @@ describe('Tier 4: Circadian 24-Hour Timeline & Heatmap Workflows', () => {
       actualOt: 0,
       otPct: 0,
       status: 'On Track',
-      groupName: 'G1',
+      groupName: 'A',
       shifts: JSON.stringify({
         '2026-08': ['D', 'D', 'D', 'D', 'D', 'O', 'O', 'D', 'D', 'D']
       })

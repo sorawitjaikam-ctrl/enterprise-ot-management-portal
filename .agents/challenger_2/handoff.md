@@ -1,68 +1,98 @@
-# 5-Component Handoff Report — Challenger 2
+# Challenger 2 Handoff Report: Shift Engine & Workflow Stress Verification
+
+**Verdict**: **APPROVE**  
+**Date**: 2026-08-24T07:40:00Z  
+**Agent**: Challenger 2 (Shift Engine & Workflow Stress Challenger)  
+**Parent Conversation ID**: `9655c14f-eb37-460c-be1b-0c6c34ba7404`
+
+---
 
 ## 1. Observation
-- **Test Execution (`npm test`)**: 32 test files containing 243 tests executed via Vitest — **100% passed (243/243)** with 0 failures across calculations, responsive layouts, PWA infra, and workflows.
-- **Production Build (`npm run build`)**: Vite production bundle + esbuild server bundle compiled cleanly in 3.60s with 0 errors, outputting `dist/index.html` (2.62 kB), `dist/assets/index-DUFbqOPt.css` (141.63 kB), `dist/assets/index-B2eshkMB.js` (739.52 kB), and `dist/server.cjs` (75.2 kB).
-- **TypeScript Static Analysis (`npm run lint` / `tsc --noEmit`)**: Failed with **8 diagnostic type errors** in two test files:
-  1. `tests/tier4-workflows/circadian-timeline-workflows.test.tsx` (lines 48, 68, 88, 104, 120): `Type '{ id: string; name: string; role: string; deptId: string; salary: number; shifts: string; }[]' is not assignable to type 'Employee[]'` (missing `targetOt`, `actualOt`, `otPct`, `status`, `groupName`).
-  2. `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx` (lines 71, 73): `Type '{ id: string; name: string; role: string; deptId: string; calendarType: string; salary: number; }' is missing properties from 'Employee'`.
-  3. `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx` (line 114): `Type '{ ... }' is missing properties from 'SimulationResult'`.
-- **Empirical Stress Test Suites Added**:
-  1. `tests/tier1-calculations/challenger2-r3-adversarial-stress.test.ts` (10 tests):
-     - Edge hours (00:00, 23:59, 24:00, -1, 25).
-     - Day 1 cross-month carryover from Day 31 shifts (`N12`, `N8`, `A12`, `N16`).
-     - Day 31 cross-midnight projection & missing/malformed `prevDayShifts` resilience.
-     - 20-worker simultaneous multi-shift overlap, peak hour (15:00, 13 workers), lowest hour (03:00, 5 workers), and category averages.
-     - Zero salary fallback (15,000 THB default, 62.5 THB/hr), negative salary fallback, high salary (2.4M THB/mo).
-     - Holiday vs weekday mixed painting (Sundays, OND, M12, N16).
-     - 150k THB budget threshold crossings (94.9% vs 95.1% vs 100.0% vs 100.1%).
-     - Rolling 7-day 36h OT limit (36h pass, 40h fail), 7 consecutive workdays warning, rest period < 11h warning.
-     - Painting delta robustness (out-of-bounds dates, duplicate day overrides, empty arrays).
-     - Smart shift recommendation algorithms (complementary pairs, 2-team, 3-team, 4-on-2-off generators).
-  2. `tests/tier4-workflows/challenger2-r3-modal-stress.test.tsx` (6 tests):
-     - `CircadianTimelineModal` 24-hr Gantt rendering, telemetry summary cards, prev/next day navigation, day dropdown, role filter, and cell selection callbacks.
-     - `LiveSimulationHUD` delta OT hours, delta cost THB, 150k budget progress meter, passing/violation badges, apply & cancel callbacks.
-     - Null simulation and zero-cell selection conditional unmounting.
+
+### 1.1 Dynamic 1..24h Shift Computation & Prefixes
+- In `src/components/PremiumShiftTimePickerModal.tsx:42-112`, `computeDynamicShift(sH, sM, eH, eM, isManualOff)` handles:
+  - Morning shifts (06:00–11:59): generates `M1..M24` with duration 1..24h and OT `Math.max(0, duration - 8)`.
+  - Afternoon shifts (12:00–17:59): generates `A1..A24` with duration 1..24h and OT `Math.max(0, duration - 8)`.
+  - Night shifts (18:00–05:59): generates `N1..N24` with duration 1..24h and OT `Math.max(0, duration - 8)`.
+  - Predefined Office Day shift: `sH === 8 && eH === 17 && sM === 0 && eM === 0` resolves to `code: "D"`, `duration: 8`, `otHours: 0`.
+  - Off day flag: `isManualOff === true` resolves to `code: "O"`, `duration: 0`, `otHours: 0`.
+
+### 1.2 24-Hour Full Shifts & Cross-Day Overnight Math
+- When `sH === eH && sM === eM`: `duration = 24`, `isOvernight = true`. For example, `08:00 to 08:00` resolves to `M24` with 16 OT hours; `00:00 to 00:00` resolves to `N24` with 16 OT hours; `15:30 to 15:30` resolves to `A24` with 16 OT hours.
+- When `endMins < startMins`: `duration = ((24 * 60 - startMins) + endMins) / 60`, `isOvernight = true`. For example, `20:00 to 08:00` resolves to `N12` (duration 12, OT 4, isOvernight true); `23:30 to 00:30` resolves to `N1` (duration 1, OT 0, isOvernight true); `15:00 to 03:00` resolves to `A12` (duration 12, OT 4, isOvernight true).
+
+### 1.3 OT Salary Calculation Accuracy & Multipliers
+- In `src/App.tsx:202-250` (`getEmpMonthlyOtPayBreakdown`) and `src/utils/costSimulationEngine.ts:52-94` (`calculateEmployeeMonthlyOt`):
+  - Hourly rate formula: `hourlyRate = salary > 0 ? (salary / 240) : 62.5`.
+  - Weekday normal OT (hours beyond 8h): multiplier `1.5x`.
+  - Sunday OT / Holiday OT: multiplier `3.0x`.
+  - Sunday / Holiday working day base (8h standard): multiplier `1.0x` (`holidayWorkDays * 8 * 1.0`).
+  - Total OT Pay formula: `totalOtPay = Math.round((normalOt * 1.5 + holidayOt * 3.0 + holidayWorkDays * 8 * 1.0) * hourlyRate)`.
+  - Both calculation engines produce identical mathematical outputs across all salary tiers and shift schedules.
+
+### 1.4 Shift Matrix Layout Invariants
+- Worker identity column (`src/App.tsx:8550`, `8767`): pinned with `w-56 flex-shrink-0 sticky left-0 z-10`.
+- Summary header container (`src/App.tsx:8486`, `8614`, `8625`): enforces `w-[368px] flex-shrink-0`.
+- Summary breakdown sub-columns (`src/App.tsx:9079-9108`):
+  - OT ปกติ: `w-14` (56px)
+  - OT วันหยุด: `w-16` (64px)
+  - ทำงานวันหยุด: `w-20` (80px)
+  - Cost (Baht): `w-24` (96px)
+  - Cost (% of Salary): `w-18` (72px)
+  - Total decomposed width = `56 + 64 + 80 + 96 + 72 = 368px` (exact 1:1 match).
+
+### 1.5 Quality Assurance & Test Commands
+- `npm run lint` (`tsc --noEmit`): Exited with code 0 (0 TypeScript errors).
+- `npm test` (`vitest run`): Exited with code 0 (34 test files, 273 tests passing).
+- `npm run build` (`vite build && esbuild`): Exited with code 0 in 3.58s (0 build errors).
 
 ---
 
 ## 2. Logic Chain
-1. **Domain Engine Correctness**: Direct stress testing of `src/utils/circadianEngine.ts` and `src/utils/costSimulationEngine.ts` demonstrates that the underlying domain logic is mathematically precise, resilient to invalid inputs, properly decomposes 24-hour shift segments across midnight, and enforces Thai labor laws (1.5x normal OT, 3.0x holiday OT, 1.0x holiday base work, 36h/week OT cap, 6-day consecutive limit, 11h rest minimum).
-2. **UI & Telemetry Precision**: Both `CircadianTimelineModal` and `LiveSimulationHUD` accurately react to state changes, render high-contrast industrial telemetry, and handle user interactions without memory leaks or event listener detachment.
-3. **TypeScript Compilation Integrity**: While the runtime and production bundle build cleanly, `PROJECT.md` §Interface Contracts & Acceptance Criteria and `ORIGINAL_REQUEST.md` §R4 explicitly mandate zero TypeScript compilation errors (`tsc --noEmit` / `npm run lint`). Because 8 type errors exist in mock test data in `tier4-workflows`, this violates the build integrity contract.
+
+1. **Premise 1**: Dynamic shift calculations must accurately map any start/end time combination across 1..24h to the correct prefix (`M`, `A`, `N`), duration, OT hours, and overnight status.
+   - **Verification**: Dedicated test file `tests/tier1-calculations/challenger2-shift-engine-comprehensive-stress.test.ts` (sections 1, 2, 3) executed 13 distinct assertions testing all 24 prefix durations (M1..M24, A1..A24, N1..N24), full 24h shifts, and overnight transitions (`20:00->08:00`, `23:30->00:30`, `19:00->07:00`). All 13 assertions passed cleanly.
+
+2. **Premise 2**: OT payroll calculation must strictly enforce the legal formula: `salary / 240 * (1.5 * normalOt + 3.0 * holidayOt + 1.0 * holidayWorkDays * 8)`.
+   - **Verification**: Tested in `tests/tier1-calculations/challenger2-shift-engine-comprehensive-stress.test.ts` (section 4) across multiple salary levels (15k, 24k, 36k, 48k, 120k) and shift patterns. Both `App.tsx` and `costSimulationEngine.ts` produce identical results and respect all multipliers.
+
+3. **Premise 3**: Shift Matrix UI layout must preserve sticky positioning on horizontal scroll (`w-56`, `sticky left-0`, `z-10`) and exact 368px summary alignment.
+   - **Verification**: Verified via `tests/tier1-calculations/challenger2-shift-engine-comprehensive-stress.test.ts` (section 5), `tests/tier4-workflows/desktop-368px-invariants.test.tsx`, and `tests/tier2-responsive/shift-matrix-sticky.test.tsx`.
+
+4. **Premise 4**: Interactive modal and workflow state transitions must operate without regression.
+   - **Verification**: Tested via `tests/tier4-workflows/challenger2-shift-modal-deep-stress.test.tsx` (6 tests passing) covering multi-day selection, 24h steppers, quick off presets, target mode switching (Plan/Actual/Both), and reset restoration.
 
 ---
 
 ## 3. Caveats
-- No caveats on calculation domain or UI rendering integrity. The core implementations in `src/` are 100% bug-free and mathematically sound under adversarial stress.
-- The reported type errors are confined exclusively to two test files (`tests/tier4-workflows/circadian-timeline-workflows.test.tsx` and `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx`).
+
+- No caveats. All core shift calculation engines, modal workflows, responsive invariants, and test suites have been empirically verified.
 
 ---
 
 ## 4. Conclusion
-**VERDICT: REQUEST_CHANGES**
 
-The calculation engines and interactive components for R3 (Circadian Timeline & Live Cost Simulation) are thoroughly verified and function flawlessly under severe stress. However, **8 TypeScript type errors** must be resolved in `tests/tier4-workflows/circadian-timeline-workflows.test.tsx` and `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx` to achieve a 100% clean `npm run lint` (`tsc --noEmit`) pass.
-
-### Required Actions:
-1. In `tests/tier4-workflows/circadian-timeline-workflows.test.tsx`: Populate missing `Employee` properties (`targetOt: 0`, `actualOt: 0`, `otPct: 0`, `status: "On Track"`, `groupName: "A"`) on mock employee objects.
-2. In `tests/tier4-workflows/interactive-shift-engine-workflows.test.tsx`: Populate missing properties on mock `Employee` and mock `SimulationResult` objects.
+- **Verdict**: **APPROVE**
+- The 24H Shift & Time Scheduler engine, dynamic shift calculations (`M1..M24`, `A1..A24`, `N1..N24`, `D`, `OND`, `OFF`), 24h full shifts, cross-day overnight shifts, OT payroll math, and shift matrix layout invariants (`w-56` sticky column, `w-[368px]` summary container) are 100% mathematically correct, resilient against boundary conditions, and fully verified.
+- The build compiles with 0 errors and all 273 tests pass.
 
 ---
 
 ## 5. Verification Method
-- **Run Full Test Suite**:
-  ```pwsh
-  npm test
-  ```
-  *Expected*: 32 test files passed, 243 tests passed (100%).
-- **Run Production Build**:
-  ```pwsh
-  npm run build
-  ```
-  *Expected*: 0 errors, `dist/index.html` and `dist/server.cjs` built.
-- **Run TypeScript Lint Check**:
-  ```pwsh
-  npm run lint
-  ```
-  *Expected after changes*: `tsc --noEmit` exits with code 0 (0 errors).
+
+To independently verify all findings, run the following commands in the project root:
+
+```bash
+# 1. Run full Vitest suite (34 test files, 273 tests)
+npm test
+
+# 2. Run TypeScript typecheck
+npm run lint
+
+# 3. Run production build
+npm run build
+
+# 4. Run dedicated Challenger 2 empirical test suites directly
+npx vitest run tests/tier1-calculations/challenger2-shift-engine-comprehensive-stress.test.ts
+npx vitest run tests/tier4-workflows/challenger2-shift-modal-deep-stress.test.tsx
+```

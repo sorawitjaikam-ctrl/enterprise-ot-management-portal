@@ -3,10 +3,10 @@ import path from 'path';
 
 function assert(condition, message) {
   if (!condition) {
-    console.error(`❌ Assertion Failed: ${message}`);
+    console.error(`[FAIL] Assertion Failed: ${message}`);
     process.exit(1);
   }
-  console.log(`✅ Passed: ${message}`);
+  console.log(`[PASS] Passed: ${message}`);
 }
 
 console.log('--- Verifying Progressive Web App (PWA) Infrastructure ---\n');
@@ -93,4 +93,4 @@ assert(fs.existsSync(distSwPath), 'dist/sw.js generated');
 assert(fs.existsSync(distManifestPath), 'dist/manifest.webmanifest copied');
 assert(fs.existsSync(distIndexHtml), 'dist/index.html generated');
 
-console.log('\n🎉 ALL PWA VERIFICATION CHECKS PASSED PERFECTLY!');
+console.log('\n[PASS] ALL PWA VERIFICATION CHECKS PASSED PERFECTLY!');

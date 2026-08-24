@@ -1585,12 +1585,12 @@ app.post("/api/audit-report", async (req, res) => {
 
     if (!ai) {
       const overOt = employeesData.filter(e => e.actualOt > e.targetOt);
-      const report = `### 📊 รายงานวิเคราะห์การทำงานชั่วโมงเกิน (OT Audit Report)
+      const report = `### รายงานวิเคราะห์การทำงานชั่วโมงเกิน (OT Audit Report)
       
 #### 1. สรุปความเสี่ยงและพนักงาน OT เกินเป้าหมาย
 - พนักงานทั้งหมด: ${employeesData.length} คน
 - พนักงานที่มีชั่วโมง OT เกินขีดจำกัด: **${overOt.length} คน**
-${overOt.map(e => `  - ⚠️ **${e.name}** (${e.deptId}): OT สะสม ${e.actualOt} ชม. (เป้าหมาย ${e.targetOt} ชม.)`).join("\n")}
+${overOt.map(e => `  - **${e.name}** (${e.deptId}): OT สะสม ${e.actualOt} ชม. (เป้าหมาย ${e.targetOt} ชม.) [เกินเป้าหมาย]`).join("\n")}
 
 #### 2. สถานะแผนก
 ${deptsData.map((d: any) => `- **${d.nameTh || d.name}**: ผู้ดูแล ${d.manager || "-"}`).join("\n")}

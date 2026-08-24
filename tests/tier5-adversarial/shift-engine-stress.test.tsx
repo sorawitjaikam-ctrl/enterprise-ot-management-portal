@@ -369,7 +369,7 @@ describe('Tier 5 Adversarial Stress Suite: Interactive Shift Engine & Scheduling
       );
 
       // Verify smart recommendation card is not displayed when no paired employee
-      expect(screen.queryByText(/⚡ แนะนำคู่กะอัตโนมัติ/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/แนะนำคู่กะอัตโนมัติ/i)).not.toBeInTheDocument();
 
       // Verify all primary shifts exist and can be clicked
       const expectedCodes = ['M12', 'M8', 'M16', 'A8', 'A12', 'N12', 'N8', 'N16', 'D', 'OND', 'O'];
@@ -406,7 +406,7 @@ describe('Tier 5 Adversarial Stress Suite: Interactive Shift Engine & Scheduling
       );
 
       // When peer has M12, recommendation for this employee is N12
-      expect(screen.getByText(/⚡ แนะนำคู่กะอัตโนมัติ/i)).toBeInTheDocument();
+      expect(screen.getByText(/แนะนำคู่กะอัตโนมัติ/i)).toBeInTheDocument();
       const oneTouchBtn = screen.getByText(/ใส่กะแนะนำ: N12/i);
       fireEvent.click(oneTouchBtn);
 

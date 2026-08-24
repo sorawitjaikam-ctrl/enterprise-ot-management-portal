@@ -112,8 +112,8 @@ export default function Navbar({
   const categories = [
     {
       name: "ภาพรวม & แผนงาน",
-      color: "bg-blue-50/90 text-blue-900 border-blue-200/90",
-      activeBadgeColor: "bg-blue-600 text-white",
+      color: "bg-blue-50/90 text-[#0b1a3a] border-blue-200/90",
+      activeBadgeColor: "bg-[#1d3ec7] text-white",
       items: [
         { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
         { id: "shifts", label: "ตารางจัดกะพนักงาน", icon: Calendar },
@@ -121,8 +121,8 @@ export default function Navbar({
     },
     {
       name: "การจัดการบุคลากร",
-      color: "bg-emerald-50/90 text-emerald-900 border-emerald-200/90",
-      activeBadgeColor: "bg-emerald-600 text-white",
+      color: "bg-slate-50 text-[#0b1a3a] border-slate-200/90",
+      activeBadgeColor: "bg-[#1d3ec7] text-white",
       items: [
         { id: "employees", label: "รายชื่อพนักงาน", icon: Users },
         { id: "job_value", label: "Job Value", icon: TrendingUp },
@@ -131,8 +131,8 @@ export default function Navbar({
     },
     {
       name: "วันลา & ประวัติ OT",
-      color: "bg-amber-50/90 text-amber-900 border-amber-200/90",
-      activeBadgeColor: "bg-amber-600 text-white",
+      color: "bg-blue-50/60 text-[#0b1a3a] border-blue-200/60",
+      activeBadgeColor: "bg-[#1d3ec7] text-white",
       items: [
         { id: "leave-records", label: "บันทึกวันลา", icon: ClipboardList },
         { id: "ot-records", label: "ประวัติ OT จากกะ", icon: Calendar },
@@ -140,16 +140,16 @@ export default function Navbar({
     },
     {
       name: "รายงาน & วิเคราะห์",
-      color: "bg-indigo-50/90 text-indigo-900 border-indigo-200/90",
-      activeBadgeColor: "bg-indigo-600 text-white",
+      color: "bg-slate-50 text-[#0b1a3a] border-slate-200/90",
+      activeBadgeColor: "bg-[#1d3ec7] text-white",
       items: [
         { id: "reports", label: "รายงานข้อมูลรายแผนก", icon: BarChart3 },
       ]
     },
     ...(isHrOrFullAccess ? [{
       name: "บริหารจัดการระบบ",
-      color: "bg-purple-50/90 text-purple-900 border-purple-200/90",
-      activeBadgeColor: "bg-purple-600 text-white",
+      color: "bg-slate-100/90 text-[#0b1a3a] border-slate-300/80",
+      activeBadgeColor: "bg-[#1d3ec7] text-white",
       items: [
         { id: "admin-permissions", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
         { id: "settings", label: "ตั้งค่าระบบ", icon: Settings },
@@ -260,7 +260,7 @@ export default function Navbar({
                 type="button" 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-2xl transition-all relative shadow-xs cursor-pointer"
-                title="การแจ้งเตือนข้อควรระวังและกฎหมายแรงงาน"
+                title="การแจ้งเตือน"
               >
                 <Bell className="w-4 h-4" />
                 {complianceNotifications.length > 0 && (
@@ -476,12 +476,12 @@ export default function Navbar({
         {/* Drawer Header */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-700 text-white flex items-center justify-center font-black text-xs shadow-md border border-sky-400/30">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0b1a3a] via-[#1d3ec7] to-[#0b1a3a] text-white flex items-center justify-center font-black text-xs shadow-md border border-[#6d93fc]/30">
               <span className="tracking-tighter font-mono">DA</span>
             </div>
             <div>
               <h2 className="font-extrabold text-white leading-tight text-sm tracking-tight">Double A Terminal</h2>
-              <p className="text-[10px] font-bold text-sky-400 tracking-wider uppercase">Port & Logistics OT</p>
+              <p className="text-[10px] font-bold text-[#a9cdfc] tracking-wider uppercase">Port & Logistics OT</p>
             </div>
           </div>
           <button
@@ -501,7 +501,7 @@ export default function Navbar({
             onClick={() => handleTabSelect("profile")}
             className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer ${
               activeTab === "profile" 
-                ? "bg-blue-600/20 border-sky-500/50 text-white" 
+                ? "bg-[#1d3ec7]/20 border-[#6d93fc]/50 text-white" 
                 : "bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-200"
             }`}
           >
@@ -509,12 +509,12 @@ export default function Navbar({
               {currentUser?.avatar ? (
                 <img alt="Profile" className="w-full h-full object-cover" src={currentUser.avatar} />
               ) : (
-                <span className="text-sm font-bold text-sky-400">{(currentUser?.name || "U")[0]}</span>
+                <span className="text-sm font-bold text-[#a9cdfc]">{(currentUser?.name || "U")[0]}</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white truncate">{currentUser?.name || "ผู้ใช้งาน"}</p>
-              <p className="text-[10px] text-sky-400 truncate font-medium">{currentUser?.role || "-"}</p>
+              <p className="text-[10px] text-[#a9cdfc] truncate font-medium">{currentUser?.role || "-"}</p>
             </div>
             <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
           </button>
@@ -543,13 +543,13 @@ export default function Navbar({
                       onClick={() => handleTabSelect(item.id)}
                       className={`w-full flex items-center gap-3 px-3.5 py-3 min-h-[48px] rounded-xl text-left text-sm font-bold transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? "bg-blue-600 text-white shadow-md ring-1 ring-blue-400/40"
+                          ? "bg-blue-600 bg-[#1d3ec7] text-white shadow-md ring-1 ring-[#6d93fc]/40"
                           : "text-slate-300 hover:text-white hover:bg-slate-800/80 active:bg-slate-800"
                       }`}
                     >
                       <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {isActive && <CheckCircle2 className="w-4 h-4 text-sky-300 flex-shrink-0" />}
+                      {isActive && <CheckCircle2 className="w-4 h-4 text-[#a9cdfc] flex-shrink-0" />}
                     </button>
                   );
                 })}

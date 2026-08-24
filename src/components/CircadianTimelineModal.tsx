@@ -1,4 +1,13 @@
 import React, { useState, useMemo } from "react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  X, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Activity, 
+  CornerDownLeft 
+} from "lucide-react";
 import { Employee } from "../types";
 import {
   calculateHourlyStaffingDensity,
@@ -149,10 +158,10 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
                 type="button"
                 onClick={() => setSelectedDay(d => Math.max(1, d - 1))}
                 disabled={activeDay <= 1}
-                className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300"
+                className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 flex items-center justify-center"
                 aria-label="Previous Day"
               >
-                ◀
+                <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="px-3 text-center">
                 <div className="text-xs font-mono font-bold text-cyan-400">
@@ -166,10 +175,10 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
                 type="button"
                 onClick={() => setSelectedDay(d => Math.min(totalDays, d + 1))}
                 disabled={activeDay >= totalDays}
-                className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300"
+                className="p-1.5 rounded hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 flex items-center justify-center"
                 aria-label="Next Day"
               >
-                ▶
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
@@ -209,7 +218,7 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
               aria-label="Close"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -248,8 +257,18 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
           </div>
           <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
             <span className="text-slate-400 block text-[11px]">สถานะความปลอดภัย</span>
-            <span className={`text-xs font-bold ${density.coverageWarnings.length === 0 ? "text-emerald-400" : "text-amber-400"}`}>
-              {density.coverageWarnings.length === 0 ? "🟢 ครอบคลุม 100%" : `⚠️ เตือน (${density.coverageWarnings.length})`}
+            <span className={`text-xs font-bold inline-flex items-center gap-1 ${density.coverageWarnings.length === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+              {density.coverageWarnings.length === 0 ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>ครอบคลุม 100%</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>เตือน ({density.coverageWarnings.length})</span>
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -260,7 +279,7 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
           <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <span>⚡</span> ความหนาแน่นกำลังพลรายชั่วโมง (Hourly Staffing Density Heatmap)
+                <Activity className="w-4 h-4 text-cyan-400" /> ความหนาแน่นกำลังพลรายชั่วโมง (Hourly Staffing Density Heatmap)
               </span>
               <div className="flex items-center gap-3 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1">
@@ -385,7 +404,10 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
                             className="absolute top-1.5 bottom-1.5 rounded bg-purple-600/80 border border-purple-400 shadow-sm flex items-center px-1.5 text-[10px] font-mono font-bold text-white truncate z-10"
                             title={`ต่อกะดึกจากเมื่อวาน: ${seg.shiftCode} (00:00 - ${String(seg.endHour).padStart(2, "0")}:00)`}
                           >
-                            <span className="truncate">◀ {seg.shiftCode} (ต่อกะดึก)</span>
+                            <span className="truncate flex items-center gap-1">
+                              <CornerDownLeft className="w-3 h-3 inline shrink-0" />
+                              <span>{seg.shiftCode} (ต่อกะดึก)</span>
+                            </span>
                           </div>
                         );
                       })}
@@ -429,7 +451,7 @@ export const CircadianTimelineModal: React.FC<CircadianTimelineModalProps> = ({
           {density.coverageWarnings.length > 0 && (
             <div className="p-3 rounded-lg bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs space-y-1">
               <div className="font-bold flex items-center gap-1.5">
-                <span>⚠️</span> ข้อความแจ้งเตือนความคุ้มครองกำลังพล
+                <AlertTriangle className="w-4 h-4 text-amber-400 inline shrink-0" /> ข้อความแจ้งเตือนความคุ้มครองกำลังพล
               </div>
               <ul className="list-disc list-inside space-y-0.5 text-slate-300 text-[11px]">
                 {density.coverageWarnings.map((w, i) => (

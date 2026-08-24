@@ -1,33 +1,37 @@
-# E2E Test Infra: Enterprise OT Management Portal Redesign & Scheduling Engine
+# E2E Test Infra: Enterprise OT Management Portal
 
 ## Test Philosophy
-- Requirement-driven, opaque-box & white-box multi-tier verification.
-- 100% test pass rate across unit calculations, interaction workflows, responsive design, and stress tests.
-- Zero TypeScript compile errors (`tsc --noEmit`) and clean production build (`npm run build`).
+- Opaque-box, requirement-driven. No dependency on implementation design.
+- Methodology: Category-Partition + BVA + Pairwise + Real-World Workload Testing.
+- Target: 100% test pass rate with 0 TypeScript and 0 Vite bundle errors.
 
-## Feature Inventory & Test Coverage Mapping
-| # | Feature | Requirement | Tier 1 (Unit) | Tier 2 (Responsive) | Tier 3 (PWA/Infra) | Tier 4 (Workflows) | Tier 5 (Adversarial) |
-|---|---------|-------------|:-------------:|:-------------------:|:------------------:|:------------------:|:--------------------:|
-| 1 | Maritime Cockpit UI & 11 Views | ORIGINAL_REQUEST §R1 | - | ✓ | - | ✓ | ✓ |
-| 2 | Drag-to-Paint & Range Selection | ORIGINAL_REQUEST §R2 | - | ✓ | - | ✓ | ✓ |
-| 3 | Keyboard Hotkeys & Navigation | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
-| 4 | Radial / Speed-Dial Quick Picker | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
-| 5 | Drag-and-Drop Shift Swap | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |
-| 6 | 24-Hour Continuous Timeline / Gantt | ORIGINAL_REQUEST §R3 | ✓ | ✓ | - | ✓ | ✓ |
-| 7 | Live Overtime & Cost Simulation | ORIGINAL_REQUEST §R3 | ✓ | - | - | ✓ | ✓ |
-| 8 | Calculation Engines & 6 CSV Exports | Baseline & ORIGINAL_REQUEST | ✓ | - | - | ✓ | ✓ |
-| 9 | PWA & Offline Support | Baseline & ORIGINAL_REQUEST | - | - | ✓ | - | ✓ |
+## Feature Inventory & Test Mapping
+| # | Feature | Source | Tier 1 (Coverage) | Tier 2 (Boundary) | Tier 3 (Cross-Feature) | Tier 4 (Real-World) |
+|---|---------|--------|:-----------------:|:-----------------:|:---------------------:|:-------------------:|
+| 1 | 4-Tone Monochromatic Blue Palette | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
+| 2 | Minimalist Industrial Layout & Zero Clutter | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
+| 3 | 100% Emoji Elimination | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
+| 4 | Lucide Iconography & Text Fallbacks | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
+| 5 | Dynamic 24H Shift Engine (M1..M24, A, N, D, OND, OFF) | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| 6 | Shift Matrix Grid (Click, Sticky, Both View, Filters) | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| 7 | Labor Law Compliance & Notification Bell | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| 8 | Vessel & Crane Operational Schedule | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| 9 | Executive Analytics & OT Cost Formulas | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
+| 10 | CSV Hub & Data Export/Import | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
 
-## Test Directory Architecture
-- `tests/tier1-calculations/`:
-  - `circadian-engine.test.ts`: 24-hour shift splits, midnight segment handling, and hourly density.
-  - `cost-simulation-engine.test.ts`: Delta OT hours, monetary cost impact, 150k limit, and weekly compliance.
-  - `shift-ot-hours.test.ts`, `payroll-breakdown.test.ts`, `budget-utilization.test.ts`, `plan-actual-diff.test.ts`, `csv-exports.test.ts`, `smart-shift-recommendations.test.ts`.
-- `tests/tier2-responsive/`:
-  - Viewport tests (375px mobile, 768px tablet, 1024px+ desktop), sticky table columns, touch panning.
-- `tests/tier3-pwa/`:
-  - Manifest validation, service worker caching, and offline state handling.
-- `tests/tier4-workflows/`:
-  - `interactive-shift-engine-workflows.test.tsx`: Drag-to-paint, hotkey entries, radial picker, and shift swapping workflows.
-  - `circadian-timeline-workflows.test.tsx`: 24-hour visualizer and live simulation HUD workflows.
-  - `supervisor-shift-workflow.test.tsx`, `employee-roster-workflow.test.tsx`, `modal-lifecycle-workflows.test.tsx`, `desktop-368px-invariants.test.tsx`, `csv-template-hub-workflow.test.tsx`.
+## Test Architecture
+- Test runner: Vitest (`npx vitest run`) + Vite Build (`npm run build`) + TypeScript (`npm run lint`).
+- Test suite structure:
+  - `tests/tier1-shifts/`: Shift calculations, time formulas, overnight splits.
+  - `tests/tier2-responsive/`: Responsive layouts, sticky columns, touch targets, navbar actions.
+  - `tests/tier3-compliance/`: Labor compliance rule enforcement (7-day OT, consecutive days, rest interval).
+  - `tests/tier4-workflows/`: End-to-end full portal workflows, summary invariants (e.g. 368px summary block), CSV exports.
+  - `tests/tier5-adversarial/`: Stress testing, adversarial shift transitions, circadian density limits.
+
+## Coverage Thresholds
+- Tier 1: >= 5 tests per feature
+- Tier 2: >= 5 tests per feature
+- Tier 3: Pairwise combination coverage
+- Tier 4: >= 5 realistic workflow application scenarios
+- Tier 5: Adversarial white-box edge tests
+- Final criteria: 100% test pass rate + 0 compiler errors.

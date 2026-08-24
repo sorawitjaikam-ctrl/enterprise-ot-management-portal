@@ -1,5 +1,6 @@
 import React, { StrictMode, Component, ErrorInfo, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { AlertTriangle } from 'lucide-react';
 import App from './App.tsx';
 import './index.css';
 import { registerServiceWorker } from './pwa/registerServiceWorker';
@@ -31,8 +32,8 @@ class GlobalErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center">
           <div className="bg-slate-800 border border-slate-700 rounded-3xl p-8 max-w-lg shadow-2xl space-y-4">
-            <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
-              ⚠️
+            <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8 text-amber-400" />
             </div>
             <h1 className="text-xl font-extrabold text-white">เกิดข้อผิดพลาดของระบบ (Application Error)</h1>
             <p className="text-xs text-slate-400 font-mono bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-left overflow-x-auto">

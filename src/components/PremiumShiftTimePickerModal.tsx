@@ -106,7 +106,7 @@ export function computeDynamicShift(sH: number, sM: number, eH: number, eM: numb
   }
 
   const code = `${prefix}${roundedDuration}`;
-  const name = `${timeLabel} ${roundedDuration} ชม.${isOvernight ? ' (🌙 คร่อมวัน)' : ''}${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;
+  const name = `${timeLabel} ${roundedDuration} ชม.${isOvernight ? ' (คร่อมวัน)' : ''}${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;
 
   return { code, name, duration: roundedDuration, otHours, isOvernight };
 }
@@ -648,28 +648,29 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                 </div>
 
                 {/* Dynamic Shift Result Card */}
-                <div className="p-2.5 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl space-y-1">
+                <div className="p-2.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-slate-700">
                       <span className="text-[10px] text-slate-500 uppercase">รหัสกะ:</span>
-                      <span className="font-mono font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-md shadow-2xs border border-indigo-200 text-sm">
+                      <span className="font-mono font-black text-[#1d3ec7] bg-white px-2.5 py-0.5 rounded-md shadow-2xs border border-blue-200 text-sm">
                         {isManualOff ? "O" : selectedShiftCode}
                       </span>
                     </div>
-                    <span className="text-xs font-black text-indigo-900">
+                    <span className="text-xs font-black text-[#0b1a3a]">
                       {isManualOff ? "0 ชม." : `${dynamicShift.duration} ชม.`} {!isManualOff && dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-slate-600 flex items-center justify-between pt-0.5 border-t border-indigo-100">
+                  <div className="text-[11px] text-slate-600 flex items-center justify-between pt-0.5 border-t border-blue-100">
                     <span className="font-medium">
                       {isManualOff 
                         ? "วันหยุดพักผ่อนประจำสัปดาห์" 
-                        : `${formattedStartTime} ➜ ${formattedEndTime} น.${dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}`}
+                        : `${formattedStartTime} - ${formattedEndTime} น.${dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}`}
                     </span>
                     {!isManualOff && dynamicShift.isOvernight && (
-                      <span className="text-purple-700 font-bold text-[10px]">
-                        🌙 กะข้ามคืน
+                      <span className="text-[#1d3ec7] font-bold text-[10px] flex items-center gap-1">
+                        <Moon className="w-3 h-3 text-[#1d3ec7] inline" />
+                        <span>กะข้ามคืน</span>
                       </span>
                     )}
                   </div>
@@ -690,7 +691,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="py-2 px-3 rounded-xl bg-[#1d3ec7] hover:bg-[#0b1a3a] border border-[#1d3ec7] text-white font-black text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     title="ยืนยันการบันทึกกะ"
                   >
                     <Check className="w-4 h-4" />
@@ -701,20 +702,20 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
               {/* AI Smart Complementary Pair Suggestion */}
               {recommendation && pairedEmployee && (
-                <div className="p-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-[10px] space-y-1">
+                <div className="p-2 rounded-xl bg-blue-50/70 border border-blue-200/80 text-[10px] space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#1d3ec7] flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-[#1d3ec7]" />
                       คู่กะ: {pairedEmployee.name.split(" ")[0]} ({peerCurrentShift})
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => applyShiftToTime(recommendation.suggestedCode)}
-                    className="w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[10px] flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.98]"
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-[#1d3ec7] hover:bg-[#0b1a3a] text-white font-bold text-[10px] flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.98]"
                   >
                     <span>ใส่กะคู่แนะนำ: {recommendation.suggestedCode}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono">1-Click ⚡</span>
+                    <span className="px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono">1-Click Quick</span>
                   </button>
                 </div>
               )}

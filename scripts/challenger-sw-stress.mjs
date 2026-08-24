@@ -159,10 +159,10 @@ function assert(condition, title, details = '') {
   totalTests++;
   if (condition) {
     passedTests++;
-    console.log(`  ✅ [PASS] ${title}`);
+    console.log(`  [PASS] ${title}`);
   } else {
     failedTests++;
-    console.error(`  ❌ [FAIL] ${title}`);
+    console.error(`  [FAIL] ${title}`);
     if (details) console.error(`     Details: ${details}`);
   }
 }

@@ -1,0 +1,1882 @@
+[
+  {
+    "file": ".agents/ORIGINAL_REQUEST.md",
+    "line": 22,
+    "matches": [
+      "⚡",
+      "🏖",
+      "️",
+      "👤",
+      "🟢",
+      "🔴",
+      "🏷",
+      "️",
+      "🌙",
+      "⚠",
+      "️",
+      "🔄",
+      "✅",
+      "💡",
+      "📊",
+      "🚢"
+    ],
+    "codePoints": [
+      "U+26A1",
+      "U+1F3D6",
+      "U+FE0F",
+      "U+1F464",
+      "U+1F7E2",
+      "U+1F534",
+      "U+1F3F7",
+      "U+FE0F",
+      "U+1F319",
+      "U+26A0",
+      "U+FE0F",
+      "U+1F504",
+      "U+2705",
+      "U+1F4A1",
+      "U+1F4CA",
+      "U+1F6A2"
+    ],
+    "content": "- Eliminate all emojis (such as ⚡, 🏖️, 👤, 🟢, 🔴, 🏷️, 🌙, ⚠️, 🔄, ✅, 💡, 📊, 🚢, etc.) from all UI strings, tooltips, buttons, modal headers, toast notifications, badges, and export tables."
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 30,
+    "matches": [
+      "✅"
+    ],
+    "codePoints": [
+      "U+2705"
+    ],
+    "content": "console.log(`  ✅ PASS: ${name}`);"
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 33,
+    "matches": [
+      "❌"
+    ],
+    "codePoints": [
+      "U+274C"
+    ],
+    "content": "const errMsg = `❌ FAIL: ${name} -> ${err.message}`;"
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 103,
+    "matches": [
+      "🚀"
+    ],
+    "codePoints": [
+      "U+1F680"
+    ],
+    "content": "console.log('🚀 CHALLENGER 2: EMPIRICAL PWA STRESS TEST SUITE (MILESTONE 1)');"
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 381,
+    "matches": [
+      "📊"
+    ],
+    "codePoints": [
+      "U+1F4CA"
+    ],
+    "content": "console.log(`📊 CHALLENGER EMPIRICAL TEST SUMMARY:`);"
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 388,
+    "matches": [
+      "🚨"
+    ],
+    "codePoints": [
+      "U+1F6A8"
+    ],
+    "content": "console.error(`🚨 VERDICT: REJECT (${failedTests} failures detected)`);"
+  },
+  {
+    "file": "scripts/challenge-m1-pwa.mjs",
+    "line": 391,
+    "matches": [
+      "🎉"
+    ],
+    "codePoints": [
+      "U+1F389"
+    ],
+    "content": "console.log(`🎉 VERDICT: APPROVE (All ${passedTests} empirical stress checks PASSED 100%)`);"
+  },
+  {
+    "file": "scripts/challenger-sw-stress.mjs",
+    "line": 162,
+    "matches": [
+      "✅"
+    ],
+    "codePoints": [
+      "U+2705"
+    ],
+    "content": "console.log(`  ✅ [PASS] ${title}`);"
+  },
+  {
+    "file": "scripts/challenger-sw-stress.mjs",
+    "line": 165,
+    "matches": [
+      "❌"
+    ],
+    "codePoints": [
+      "U+274C"
+    ],
+    "content": "console.error(`  ❌ [FAIL] ${title}`);"
+  },
+  {
+    "file": "scripts/verify-pwa.mjs",
+    "line": 6,
+    "matches": [
+      "❌"
+    ],
+    "codePoints": [
+      "U+274C"
+    ],
+    "content": "console.error(`❌ Assertion Failed: ${message}`);"
+  },
+  {
+    "file": "scripts/verify-pwa.mjs",
+    "line": 9,
+    "matches": [
+      "✅"
+    ],
+    "codePoints": [
+      "U+2705"
+    ],
+    "content": "console.log(`✅ Passed: ${message}`);"
+  },
+  {
+    "file": "scripts/verify-pwa.mjs",
+    "line": 96,
+    "matches": [
+      "🎉"
+    ],
+    "codePoints": [
+      "U+1F389"
+    ],
+    "content": "console.log('\\n🎉 ALL PWA VERIFICATION CHECKS PASSED PERFECTLY!');"
+  },
+  {
+    "file": "server.ts",
+    "line": 37,
+    "matches": [
+      "→"
+    ],
+    "codePoints": [
+      "U+2192"
+    ],
+    "content": "// Shift Code → OT Hours mapping"
+  },
+  {
+    "file": "server.ts",
+    "line": 862,
+    "matches": [
+      "→"
+    ],
+    "codePoints": [
+      "U+2192"
+    ],
+    "content": "// Save Shifts → auto-write OT daily records"
+  },
+  {
+    "file": "server.ts",
+    "line": 1588,
+    "matches": [
+      "📊"
+    ],
+    "codePoints": [
+      "U+1F4CA"
+    ],
+    "content": "const report = `### 📊 รายงานวิเคราะห์การทำงานชั่วโมงเกิน (OT Audit Report)"
+  },
+  {
+    "file": "server.ts",
+    "line": 1593,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "${overOt.map(e => `  - ⚠️ **${e.name}** (${e.deptId}): OT สะสม ${e.actualOt} ชม. (เป้าหมาย ${e.targetOt} ชม.)`).join(\"\\n\")}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 139,
+    "matches": [
+      "⚠"
+    ],
+    "codePoints": [
+      "U+26A0"
+    ],
+    "content": "if (shift === \"⚠\") return \"bg-red-50 text-red-700 border-[#ff0000] font-extrabold animate-pulse\";"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 379,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "⚠️"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 542,
+    "matches": [
+      "📝"
+    ],
+    "codePoints": [
+      "U+1F4DD"
+    ],
+    "content": "<span className=\"text-white text-lg\">📝</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 567,
+    "matches": [
+      "📊"
+    ],
+    "codePoints": [
+      "U+1F4CA"
+    ],
+    "content": "<h4 className=\"text-xs font-bold text-slate-500 uppercase tracking-wider\">📊 สถิติรวมการลางาน</h4>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 586,
+    "matches": [
+      "📈"
+    ],
+    "codePoints": [
+      "U+1F4C8"
+    ],
+    "content": "<h4 className=\"text-xs font-bold text-slate-500 uppercase tracking-wider\">📈 สัดส่วนประเภทการลา (Leave Types)</h4>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 612,
+    "matches": [
+      "🏆"
+    ],
+    "codePoints": [
+      "U+1F3C6"
+    ],
+    "content": "<h4 className=\"text-xs font-bold text-slate-500 uppercase tracking-wider\">🏆 พนักงานที่มีสถิติการลางานสูงสุด (Top Absentees)</h4>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 708,
+    "matches": [
+      "📝"
+    ],
+    "codePoints": [
+      "U+1F4DD"
+    ],
+    "content": "<span className=\"text-4xl\">📝</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 892,
+    "matches": [
+      "📋"
+    ],
+    "codePoints": [
+      "U+1F4CB"
+    ],
+    "content": "<span className=\"text-white text-lg\">📋</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 941,
+    "matches": [
+      "⬇"
+    ],
+    "codePoints": [
+      "U+2B07"
+    ],
+    "content": "<span>⬇</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 968,
+    "matches": [
+      "📋"
+    ],
+    "codePoints": [
+      "U+1F4CB"
+    ],
+    "content": "<span className=\"text-4xl\">📋</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 1381,
+    "matches": [
+      "🟢"
+    ],
+    "codePoints": [
+      "U+1F7E2"
+    ],
+    "content": "<option value=\"Active\">🟢 ปฏิบัติงาน</option>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 1382,
+    "matches": [
+      "🔴"
+    ],
+    "codePoints": [
+      "U+1F534"
+    ],
+    "content": "<option value=\"Inactive\">🔴 พ้นสภาพ</option>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 1439,
+    "matches": [
+      "➕"
+    ],
+    "codePoints": [
+      "U+2795"
+    ],
+    "content": "<h3 className=\"text-base font-black text-slate-900\">➕ เพิ่มพนักงานและผลตอบแทนใหม่</h3>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 1444,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 1825,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี \"${targetUsername}\" ออกจากระบบ?`)) {"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2256,
+    "matches": [
+      "↩"
+    ],
+    "codePoints": [
+      "U+21A9"
+    ],
+    "content": "showToastMsg(\"↩ เลิกทำ (Undo) สำเร็จ\");"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2268,
+    "matches": [
+      "↪"
+    ],
+    "codePoints": [
+      "U+21AA"
+    ],
+    "content": "showToastMsg(\"↪ ทำซ้ำ (Redo) สำเร็จ\");"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2324,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "showToastMsg(`⚡ จัดคู่กะ Day/Night อัจฉริยะสำหรับตำแหน่ง \"${roleName}\" สำเร็จ (${empsInRole.length} คน)`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2394,
+    "matches": [
+      "✨"
+    ],
+    "codePoints": [
+      "U+2728"
+    ],
+    "content": "showToastMsg(`✨ จัดคู่กะ Day/Night และตารางทำงานอัตโนมัติครบทุกตำแหน่งในแผนกเรียบร้อย (${deptEmps.length} คน)`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2434,
+    "matches": [
+      "🔄"
+    ],
+    "codePoints": [
+      "U+1F504"
+    ],
+    "content": "showToastMsg(\"🔄 คัดลอกตารางกะ Plan ไปเป็น Actual ทั้งแผนกเรียบร้อย\");"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2567,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "maxWeekOt <= 36 ? \"ผ่าน (<= 36 ชม.)\" : \"เกินขีดจำกัด (> 36 ชม.) ⚠️\","
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2569,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "maxConsecutive <= 6 ? \"ผ่าน (ได้หยุดทุก 6 วัน)\" : \"เกิน 6 วันติดต่อกัน ⚠️\","
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2753,
+    "matches": [
+      "👤",
+      "🏖",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F464",
+      "U+1F3D6",
+      "U+FE0F"
+    ],
+    "content": "return `👤 ${empName} (วันที่ ${dayNum})\\n🏖️ วันหยุดพักผ่อน (OFF)`;"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2757,
+    "matches": [
+      "👤",
+      "🟢",
+      "🔴",
+      "🏷",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F464",
+      "U+1F7E2",
+      "U+1F534",
+      "U+1F3F7",
+      "U+FE0F"
+    ],
+    "content": "return `👤 ${empName} (วันที่ ${dayNum})\\n🟢 เวลาเข้างาน: ${def.startTime} น.\\n🔴 เวลาออกงาน: ${def.endTime} น.\\n🏷️ ${def.name} (${def.startTime} - ${def.endTime})${def.otHours > 0 ? ` • OT ${def.otHours} ชม.` : ''}`;"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2765,
+    "matches": [
+      "👤",
+      "🏷",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F464",
+      "U+1F3F7",
+      "U+FE0F"
+    ],
+    "content": "return `👤 ${empName} (วันที่ ${dayNum})\\n🏷️ ${timeLabel} ${hours} ชม.${ot > 0 ? ` • OT ${ot} ชม.` : ''} (${code})`;"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2767,
+    "matches": [
+      "👤",
+      "🏷",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F464",
+      "U+1F3F7",
+      "U+FE0F"
+    ],
+    "content": "return `👤 ${empName} (วันที่ ${dayNum})\\n🏷️ กะ ${code}`;"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2819,
+    "matches": [
+      "✨"
+    ],
+    "codePoints": [
+      "U+2728"
+    ],
+    "content": "showToastMsg(`✨ บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2850,
+    "matches": [
+      "✅"
+    ],
+    "codePoints": [
+      "U+2705"
+    ],
+    "content": "showToastMsg(`✅ ทาสีกะ ${shiftCode} จำนวน ${cells.length} ช่องสำเร็จ`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2890,
+    "matches": [
+      "⚠",
+      "️",
+      "⇄"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F",
+      "U+21C4"
+    ],
+    "content": "showToastMsg(`⚠️ สลับกะเรียบร้อย: ${sourceEmp.name} ⇄ ${targetEmp.name} (พบข้อควรระวัง ${sourceAlerts.length + targetAlerts.length} ข้อ)`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 2892,
+    "matches": [
+      "⚡",
+      "⇄"
+    ],
+    "codePoints": [
+      "U+26A1",
+      "U+21C4"
+    ],
+    "content": "showToastMsg(`⚡ สลับกะสำเร็จ: ${sourceEmp.name} (${sourceShifts[source.dayIdx]}) ⇄ ${targetEmp.name} (${targetShifts[target.dayIdx]}) สอดคล้องกฎหมาย 100%`);"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 3356,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<p className=\"text-red-500 text-3xl mb-2\">⚠️</p>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 3454,
+    "matches": [
+      "🌊"
+    ],
+    "codePoints": [
+      "U+1F30A"
+    ],
+    "content": "<span className=\"text-cyan-400\">🌊 Maritime Port Sync</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 3862,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "if (!window.confirm(\"⚠️ คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลพนักงานและ OT records ทั้งหมด? การกระทำนี้จะไม่สามารถเรียกคืนข้อมูลกลับมาได้\")) {"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 4135,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 4512,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "if (!window.confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการคืนสภาพพนักงาน \"${emp.name}\" กลับเป็นพนักงานปกติ (Active)?`)) {"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 4552,
+    "matches": [
+      "🎉"
+    ],
+    "codePoints": [
+      "U+1F389"
+    ],
+    "content": "showToast(`คืนสภาพพนักงาน \"${emp.name}\" สำเร็จแล้ว! 🎉`, \"success\");"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 5272,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "⚠️"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 5647,
+    "matches": [
+      "⚠",
+      "️",
+      "✓"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F",
+      "U+2713"
+    ],
+    "content": "{totalOtHrs > 0 ? (avgOtPerEmp > 36 ? \"⚠️ เกินเป้าหมาย 36 ชม./เดือน\" : \"✓ อยู่ในเกณฑ์มาตรฐาน\") : \"(ไม่มีชั่วโมงสะสมในเดือนนี้)\"}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 5965,
+    "matches": [
+      "▲",
+      "▼"
+    ],
+    "codePoints": [
+      "U+25B2",
+      "U+25BC"
+    ],
+    "content": "<span>{diffPct >= 0 ? `▲ +${diffPct}%` : `▼ ${diffPct}%`}</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 6473,
+    "matches": [
+      "➔"
+    ],
+    "codePoints": [
+      "U+2794"
+    ],
+    "content": "<th className=\"px-3.5 py-3 text-center min-w-[130px]\">ผลงาน 68 ➔ 69</th>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 6673,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<span className=\"text-[10px] font-bold text-slate-500\">เกินเป้าความปลอดภัย ⚠️</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 6893,
+    "matches": [
+      "📊"
+    ],
+    "codePoints": [
+      "U+1F4CA"
+    ],
+    "content": "<span className=\"text-3xl mb-2\">📊</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 6981,
+    "matches": [
+      "🚢"
+    ],
+    "codePoints": [
+      "U+1F6A2"
+    ],
+    "content": "<span>🚢</span> การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 7033,
+    "matches": [
+      "📦"
+    ],
+    "codePoints": [
+      "U+1F4E6"
+    ],
+    "content": "<span className=\"text-slate-600\">📦 ปริมาณงาน:</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 7037,
+    "matches": [
+      "⏱",
+      "️"
+    ],
+    "codePoints": [
+      "U+23F1",
+      "U+FE0F"
+    ],
+    "content": "<span className=\"text-slate-600\">⏱️ OT สะสมแผนก:</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 7660,
+    "matches": [
+      "💼"
+    ],
+    "codePoints": [
+      "U+1F4BC"
+    ],
+    "content": "<option value=\"ทุกฝ่าย\">💼 ฝ่ายทั้งหมด (ทุกฝ่าย)</option>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 7675,
+    "matches": [
+      "👤"
+    ],
+    "codePoints": [
+      "U+1F464"
+    ],
+    "content": "<option value=\"ทุกตำแหน่ง\">👤 ตำแหน่งทั้งหมด (ทุกตำแหน่ง)</option>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8350,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕ ปิดแจ้งเตือน"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8384,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span>{isAutoPairingLoading ? \"กำลังคำนวณ...\" : \"⚡ จัดคู่กะ Day/Night ครบทุกตำแหน่ง\"}</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8393,
+    "matches": [
+      "→"
+    ],
+    "codePoints": [
+      "U+2192"
+    ],
+    "content": "<span>คัดลอก Plan → Actual</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8434,
+    "matches": [
+      "💡"
+    ],
+    "codePoints": [
+      "U+1F4A1"
+    ],
+    "content": "<p>💡 มี {emps.length} คนในตำแหน่งนี้: แนะนำแบ่งเข้าคู่กะ Day 12h (M12) และ Night 12h (N12) สลับทีม 4-on-2-off</p>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8436,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<p>⚠️ มีพนักงาน 1 คน: แนะนำจัดกะเช้าเดี่ยว M12 / D หรือเพิ่มพนักงานคู่กะเสริม</p>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8770,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span>⚡ จับคู่กะ Day/Night อัตโนมัติ</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 8998,
+    "matches": [
+      "⚠"
+    ],
+    "codePoints": [
+      "U+26A0"
+    ],
+    "content": "{actualShift !== \"O\" ? (actualShift === \"⚠\" ? \"[เกินขีด]\" : actualShift) : \"\"}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9558,
+    "matches": [
+      "✏",
+      "️"
+    ],
+    "codePoints": [
+      "U+270F",
+      "U+FE0F"
+    ],
+    "content": "✏️ แก้ไขข้อมูล"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9569,
+    "matches": [
+      "🔑"
+    ],
+    "codePoints": [
+      "U+1F511"
+    ],
+    "content": "🔑 รีเซ็ตรหัสผ่าน"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9576,
+    "matches": [
+      "🗑",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F5D1",
+      "U+FE0F"
+    ],
+    "content": "🗑️ ลบ"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9714,
+    "matches": [
+      "✏",
+      "️"
+    ],
+    "codePoints": [
+      "U+270F",
+      "U+FE0F"
+    ],
+    "content": "✏️ แก้ไขข้อมูล"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9725,
+    "matches": [
+      "🔑"
+    ],
+    "codePoints": [
+      "U+1F511"
+    ],
+    "content": "🔑 รีเซ็ตรหัสผ่าน"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9883,
+    "matches": [
+      "🚢"
+    ],
+    "codePoints": [
+      "U+1F6A2"
+    ],
+    "content": "🚢"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 9894,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10039,
+    "matches": [
+      "📦"
+    ],
+    "codePoints": [
+      "U+1F4E6"
+    ],
+    "content": "📦 {Number(vs.tonnage).toLocaleString()} ตัน"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10055,
+    "matches": [
+      "🗑",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F5D1",
+      "U+FE0F"
+    ],
+    "content": "🗑️"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10094,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10297,
+    "matches": [
+      "🔒"
+    ],
+    "codePoints": [
+      "U+1F512"
+    ],
+    "content": "🔒 เฉพาะสิทธิ์กลุ่ม HR"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10414,
+    "matches": [
+      "🌐"
+    ],
+    "codePoints": [
+      "U+1F310"
+    ],
+    "content": "<span className=\"text-sm animate-spin inline-block\">🌐</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10445,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10633,
+    "matches": [
+      "🔒"
+    ],
+    "codePoints": [
+      "U+1F512"
+    ],
+    "content": "🔒 เฉพาะสิทธิ์กลุ่ม HR"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10807,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10941,
+    "matches": [
+      "🚨"
+    ],
+    "codePoints": [
+      "U+1F6A8"
+    ],
+    "content": "🚨 MAX ({otSalaryPct}%)"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10961,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<span className=\"text-base\">⚠️</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10987,
+    "matches": [
+      "📈"
+    ],
+    "codePoints": [
+      "U+1F4C8"
+    ],
+    "content": "📈 โครงสร้างตำแหน่ง Job Value (Job Value Structure & Growth 68/69)"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10991,
+    "matches": [
+      "🟢"
+    ],
+    "codePoints": [
+      "U+1F7E2"
+    ],
+    "content": "🟢 ต่อยอด (+{diff.toLocaleString()})"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 10995,
+    "matches": [
+      "🔴"
+    ],
+    "codePoints": [
+      "U+1F534"
+    ],
+    "content": "🔴 ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11024,
+    "matches": [
+      "🚀",
+      "📉"
+    ],
+    "codePoints": [
+      "U+1F680",
+      "U+1F4C9"
+    ],
+    "content": "<span className=\"text-2xl\">{isGrowth ? \"🚀\" : \"📉\"}</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11027,
+    "matches": [
+      "➔"
+    ],
+    "codePoints": [
+      "U+2794"
+    ],
+    "content": "ผลการเปรียบเทียบกำไรปี 2568 ➔ 2569: {isGrowth ? \"เติบโตต่อยอด (Positive Growth)\" : \"ลดลงไม่ต่อยอด (Performance Decline)\"}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11037,
+    "matches": [
+      "🟢",
+      "🔴"
+    ],
+    "codePoints": [
+      "U+1F7E2",
+      "U+1F534"
+    ],
+    "content": "{isGrowth ? `🟢 ต่อยอด (+${diff.toLocaleString()})` : `🔴 ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11055,
+    "matches": [
+      "✏",
+      "️"
+    ],
+    "codePoints": [
+      "U+270F",
+      "U+FE0F"
+    ],
+    "content": "✏️ แก้ไขข้อมูลโปรไฟล์"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11090,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11132,
+    "matches": [
+      "➕"
+    ],
+    "codePoints": [
+      "U+2795"
+    ],
+    "content": "<h3 className=\"text-base font-extrabold text-slate-900\">➕ เพิ่มผู้ใช้งาน / Admin ใหม่</h3>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11139,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11263,
+    "matches": [
+      "➕"
+    ],
+    "codePoints": [
+      "U+2795"
+    ],
+    "content": "➕ เพิ่มบัญชีผู้ใช้ใหม่"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11279,
+    "matches": [
+      "✏",
+      "️"
+    ],
+    "codePoints": [
+      "U+270F",
+      "U+FE0F"
+    ],
+    "content": "<h3 className=\"text-base font-extrabold text-slate-900\">✏️ แก้ไขข้อมูลบัญชีผู้ใช้</h3>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11286,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11411,
+    "matches": [
+      "🔑"
+    ],
+    "codePoints": [
+      "U+1F511"
+    ],
+    "content": "<h3 className=\"text-base font-bold text-slate-900\">🔑 รีเซ็ตรหัสผ่านบัญชีผู้ใช้</h3>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11418,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11463,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span className=\"text-xl\">⚡</span>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11469,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "<button onClick={() => setShowBulkShiftModal(false)} className=\"text-white hover:opacity-80 font-bold\">✕</button>"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11523,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "⚡ ปรับกะยกกลุ่ม"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11540,
+    "matches": [
+      "🔴"
+    ],
+    "codePoints": [
+      "U+1F534"
+    ],
+    "content": "🔴"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11548,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11557,
+    "matches": [
+      "➕"
+    ],
+    "codePoints": [
+      "U+2795"
+    ],
+    "content": "<span>➕</span> ยื่นใบคำขอทำ OT ออนไลน์ใหม่"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11610,
+    "matches": [
+      "📤"
+    ],
+    "codePoints": [
+      "U+1F4E4"
+    ],
+    "content": "📤 ยื่นคำขอทำ OT"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11638,
+    "matches": [
+      "✅",
+      "❌",
+      "⏳"
+    ],
+    "codePoints": [
+      "U+2705",
+      "U+274C",
+      "U+23F3"
+    ],
+    "content": "{req.status === \"approved\" ? \"✅ อนุมัติแล้ว\" : req.status === \"rejected\" ? \"❌ ไม่อนุมัติ\" : \"⏳ รอพิจารณา\"}"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11653,
+    "matches": [
+      "✅"
+    ],
+    "codePoints": [
+      "U+2705"
+    ],
+    "content": "✅ อนุมัติ"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11659,
+    "matches": [
+      "❌"
+    ],
+    "codePoints": [
+      "U+274C"
+    ],
+    "content": "❌ ปฏิเสธ"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11694,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 11816,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/App.tsx",
+    "line": 12236,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "<button onClick={() => setResignedSearchQuery(\"\")} className=\"absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold\">✕</button>"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 155,
+    "matches": [
+      "◀"
+    ],
+    "codePoints": [
+      "U+25C0"
+    ],
+    "content": "◀"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 172,
+    "matches": [
+      "▶"
+    ],
+    "codePoints": [
+      "U+25B6"
+    ],
+    "content": "▶"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 212,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 252,
+    "matches": [
+      "🟢",
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+1F7E2",
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "{density.coverageWarnings.length === 0 ? \"🟢 ครอบคลุม 100%\" : `⚠️ เตือน (${density.coverageWarnings.length})`}"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 263,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span>⚡</span> ความหนาแน่นกำลังพลรายชั่วโมง (Hourly Staffing Density Heatmap)"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 388,
+    "matches": [
+      "◀"
+    ],
+    "codePoints": [
+      "U+25C0"
+    ],
+    "content": "<span className=\"truncate\">◀ {seg.shiftCode} (ต่อกะดึก)</span>"
+  },
+  {
+    "file": "src/components/CircadianTimelineModal.tsx",
+    "line": 432,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<span>⚠️</span> ข้อความแจ้งเตือนความคุ้มครองกำลังพล"
+  },
+  {
+    "file": "src/components/LiveSimulationHUD.tsx",
+    "line": 35,
+    "matches": [
+      "⚙",
+      "️"
+    ],
+    "codePoints": [
+      "U+2699",
+      "U+FE0F"
+    ],
+    "content": "<span className=\"animate-spin text-lg\">⚙️</span>"
+  },
+  {
+    "file": "src/components/LiveSimulationHUD.tsx",
+    "line": 102,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "<span>⚠️</span>"
+  },
+  {
+    "file": "src/components/LiveSimulationHUD.tsx",
+    "line": 107,
+    "matches": [
+      "🟢"
+    ],
+    "codePoints": [
+      "U+1F7E2"
+    ],
+    "content": "<span>🟢</span>"
+  },
+  {
+    "file": "src/components/PremiumShiftTimePickerModal.tsx",
+    "line": 109,
+    "matches": [
+      "🌙"
+    ],
+    "codePoints": [
+      "U+1F319"
+    ],
+    "content": "const name = `${timeLabel} ${roundedDuration} ชม.${isOvernight ? ' (🌙 คร่อมวัน)' : ''}${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;"
+  },
+  {
+    "file": "src/components/PremiumShiftTimePickerModal.tsx",
+    "line": 668,
+    "matches": [
+      "➜"
+    ],
+    "codePoints": [
+      "U+279C"
+    ],
+    "content": ": `${formattedStartTime} ➜ ${formattedEndTime} น.${dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}`}"
+  },
+  {
+    "file": "src/components/PremiumShiftTimePickerModal.tsx",
+    "line": 672,
+    "matches": [
+      "🌙"
+    ],
+    "codePoints": [
+      "U+1F319"
+    ],
+    "content": "🌙 กะข้ามคืน"
+  },
+  {
+    "file": "src/components/PremiumShiftTimePickerModal.tsx",
+    "line": 717,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span className=\"px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono\">1-Click ⚡</span>"
+  },
+  {
+    "file": "src/components/ShiftRadialPicker.tsx",
+    "line": 103,
+    "matches": [
+      "✕"
+    ],
+    "codePoints": [
+      "U+2715"
+    ],
+    "content": "✕"
+  },
+  {
+    "file": "src/components/ShiftRadialPicker.tsx",
+    "line": 112,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "⚡ แนะนำคู่กะอัตโนมัติ"
+  },
+  {
+    "file": "src/components/ShiftRadialPicker.tsx",
+    "line": 127,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "<span className=\"px-1.5 py-0.5 rounded bg-black/30 text-[10px] font-mono\">1-Touch ⚡</span>"
+  },
+  {
+    "file": "src/main.tsx",
+    "line": 35,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "⚠️"
+  },
+  {
+    "file": "src/utils/circadianEngine.ts",
+    "line": 362,
+    "matches": [
+      "⚠",
+      "️"
+    ],
+    "codePoints": [
+      "U+26A0",
+      "U+FE0F"
+    ],
+    "content": "coverageWarnings.push(`⚠️ ช่องว่างกำลังพล: ไม่มีพนักงานปฏิบัติงานช่วง ${s.label} - ${String((s.hour + 1) % 24).padStart(2, \"0\")}:00`);"
+  },
+  {
+    "file": "src/utils/circadianEngine.ts",
+    "line": 364,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "coverageWarnings.push(`⚡ กำลังพลขั้นต่ำ: มีพนักงานเพียง 1 คนช่วง ${s.label} (${s.employees[0]?.name || \"1 คน\"})`);"
+  },
+  {
+    "file": "tests/tier5-adversarial/shift-engine-stress.test.tsx",
+    "line": 372,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "expect(screen.queryByText(/⚡ แนะนำคู่กะอัตโนมัติ/i)).not.toBeInTheDocument();"
+  },
+  {
+    "file": "tests/tier5-adversarial/shift-engine-stress.test.tsx",
+    "line": 409,
+    "matches": [
+      "⚡"
+    ],
+    "codePoints": [
+      "U+26A1"
+    ],
+    "content": "expect(screen.getByText(/⚡ แนะนำคู่กะอัตโนมัติ/i)).toBeInTheDocument();"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 11,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 1 | Maritime Cockpit UI & 11 Views | ORIGINAL_REQUEST §R1 | - | ✓ | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 12,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 2 | Drag-to-Paint & Range Selection | ORIGINAL_REQUEST §R2 | - | ✓ | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 13,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 3 | Keyboard Hotkeys & Navigation | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 14,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 4 | Radial / Speed-Dial Quick Picker | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 15,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 5 | Drag-and-Drop Shift Swap | ORIGINAL_REQUEST §R2 | - | - | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 16,
+    "matches": [
+      "✓",
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 6 | 24-Hour Continuous Timeline / Gantt | ORIGINAL_REQUEST §R3 | ✓ | ✓ | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 17,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 7 | Live Overtime & Cost Simulation | ORIGINAL_REQUEST §R3 | ✓ | - | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 18,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 8 | Calculation Engines & 6 CSV Exports | Baseline & ORIGINAL_REQUEST | ✓ | - | - | ✓ | ✓ |"
+  },
+  {
+    "file": "TEST_INFRA.md",
+    "line": 19,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| 9 | PWA & Offline Support | Baseline & ORIGINAL_REQUEST | - | - | ✓ | - | ✓ |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 22,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R1: Bespoke Maritime UI/UX (11 Views) | - | ✓ | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 23,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R2: Drag-to-Paint & 2D Selection | - | ✓ | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 24,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R2: Keyboard Hotkeys & Grid Navigation | - | - | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 25,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R2: Radial / Speed-Dial Quick Picker | - | - | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 26,
+    "matches": [
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R2: Drag-and-Drop Shift Swap | - | - | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 27,
+    "matches": [
+      "✓",
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R3: Circadian 24-Hour Timeline Matrix | ✓ | ✓ | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 28,
+    "matches": [
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R3: Live Overtime & Cost Simulator HUD | ✓ | - | - | ✓ | ✓ | PASS |"
+  },
+  {
+    "file": "TEST_READY.md",
+    "line": 29,
+    "matches": [
+      "✓",
+      "✓",
+      "✓",
+      "✓",
+      "✓"
+    ],
+    "codePoints": [
+      "U+2713",
+      "U+2713",
+      "U+2713",
+      "U+2713",
+      "U+2713"
+    ],
+    "content": "| R4: Automated Verification & Invariants | ✓ | ✓ | ✓ | ✓ | ✓ | PASS |"
+  }
+]

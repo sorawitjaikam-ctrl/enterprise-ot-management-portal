@@ -359,9 +359,9 @@ export function calculateHourlyStaffingDensity(
   const coverageWarnings: string[] = [];
   slots.forEach(s => {
     if (s.isGap) {
-      coverageWarnings.push(`⚠️ ช่องว่างกำลังพล: ไม่มีพนักงานปฏิบัติงานช่วง ${s.label} - ${String((s.hour + 1) % 24).padStart(2, "0")}:00`);
+      coverageWarnings.push(`ช่องว่างกำลังพล: ไม่มีพนักงานปฏิบัติงานช่วง ${s.label} - ${String((s.hour + 1) % 24).padStart(2, "0")}:00`);
     } else if (s.isWarning) {
-      coverageWarnings.push(`⚡ กำลังพลขั้นต่ำ: มีพนักงานเพียง 1 คนช่วง ${s.label} (${s.employees[0]?.name || "1 คน"})`);
+      coverageWarnings.push(`กำลังพลขั้นต่ำ: มีพนักงานเพียง 1 คนช่วง ${s.label} (${s.employees[0]?.name || "1 คน"})`);
     }
   });
 

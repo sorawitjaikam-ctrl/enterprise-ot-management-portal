@@ -1,8 +1,13 @@
-## 2026-08-23T12:25:18Z
+## 2026-08-24T07:13:54Z
+You are Explorer 3 (Core Logic & Build Explorer).
+Your working directory is C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3.
+Read ORIGINAL_REQUEST.md at C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md.
+Project Root is C:\Users\ssrwj\Documents\antigravity\mysterious-einstein.
 
-Read ORIGINAL_REQUEST.md and investigate the codebase for:
-1. R3: Circadian & Timeline Shift Visualizer (24-Hour Timeline / Gantt Matrix view showing day/night circadian coverage across 24 hours, Live Overtime & Cost Simulation calculating real-time budget and weekly safety limits during painting/editing).
-2. R4: Comprehensive Automated Verification & Integrity (unit/integration test suites in tests/, Vitest config, test coverage across calculation engine, UI components, interaction hooks, and build pipeline).
-Identify existing tests, missing test coverage, test runner commands, and architecture for live cost simulation and 24-hr Gantt matrix.
-Write your findings to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3\analysis.md and your handoff report to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3\handoff.md.
-Send a message back to parent when complete.
+Task:
+1. Examine the current build and test configuration (package.json, tsconfig, vite.config, test runner). Run build/typecheck/test commands to assess baseline health.
+2. Investigate the 24H Shift & Time Scheduler logic: M1..M24, A1..A24, N1..N24, D, OND, OFF, full 24h shifts (08:00 to 08:00), cross-day overnight shifts (e.g. 20:00 to 08:00), reset, persistence.
+3. Investigate the Shift Matrix Grid: click interactions, tooltip preview, sticky identity column, sticky day headers, Plan/Actual/Both toggle, filters.
+4. Investigate Compliance & Notifications, Vessel & Crane Schedule, Executive Analytics/Reports, and CSV Export/Import.
+5. Identify any existing bugs, performance bottlenecks, or calculation errors.
+6. Write your comprehensive findings to C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_3\handoff.md and report back via send_message to parent.

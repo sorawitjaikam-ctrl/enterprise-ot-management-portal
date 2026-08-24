@@ -1,48 +1,51 @@
 # Original User Request
 
-## 2026-08-23T12:23:44Z
+## 2026-08-24T07:12:57Z
 
-Redesign the Enterprise OT Management Portal with a bespoke, human-crafted industrial maritime aesthetic (moving away from generic AI templates) and engineer a state-of-the-art interactive shift scheduling and rapid data entry system with drag-to-paint, hotkey entry, timeline circadian views, and live budget feedback.
+Overhaul the Enterprise OT Management Portal into an ultra-minimalist, executive industrial design adhering strictly to the provided 4-tone monochromatic blue palette, eliminate 100% of emojis across the entire application in favor of clean Lucide SVG icons and modern typography, and conduct a full end-to-end functionality audit and fix across all portal features.
 
 Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
 Integrity mode: development
 
 ## Requirements
 
-### R1. Bespoke Industrial Maritime UI/UX Design Overhaul
-Re-engineer the portal visual language away from generic template layouts:
-- Modern industrial maritime cockpit design system: tactile control bars, high-contrast terminal indicators, refined typography, custom glassmorphism surfaces, and distinct status badges.
-- Micro-interactions: Fluid state transitions, tactile press states, dynamic ocean radar/telemetry accents, and polished empty/loading states.
-- Clean visual hierarchy across all 11 application views.
+### R1. Strict Minimalist Palette & Aesthetic Overhaul
+- Transform the entire application styling (Navbar, Dashboard, Shift Matrix, Roster, Modals, Forms, and Badges) to strictly conform to the 4-tone industrial blue colorway:
+  - Deep Navy Blue (`#0b1a3a` / primary dark & headers)
+  - Royal Cobalt Blue (`#1d3ec7` / active accents & primary actions)
+  - Soft Cornflower Blue (`#6d93fc` / secondary accents & highlights)
+  - Light Ice Blue (`#a9cdfc` / subtle backgrounds, borders & pill badges)
+  - Complemented by clean crisp white (`#ffffff`) and neutral minimalist grays (`#f8fafc` / `#e2e8f0`).
+- Implement an ultra-minimalist design system: high typographic hierarchy, clean hairline borders, generous spacing, zero decorative clutter, and crisp focus states.
 
-### R2. Advanced Interactive Shift Entry & Scheduling Engine
-Build a fluid and intuitive shift scheduling workflow:
-- Drag-to-Paint & Range Selection: Click-and-drag across multiple consecutive days or workers to mass-assign shifts effortlessly.
-- Keyboard Hotkeys: Rapid single-key shift input (M for M12/M8, N for N12/N8, D for Day, O for Off, etc.) with arrow-key grid navigation.
-- Radial / Floating Quick Picker: One-touch quick picker with instant complementary pair suggestions.
-- Drag-and-Drop Shift Swap: Seamlessly swap shifts between paired colleagues with immediate validation.
+### R2. Complete Emoji Elimination Across 100% of Views & Components
+- Eliminate all emojis (such as ⚡, 🏖️, 👤, 🟢, 🔴, 🏷️, 🌙, ⚠️, 🔄, ✅, 💡, 📊, 🚢, etc.) from all UI strings, tooltips, buttons, modal headers, toast notifications, badges, and export tables.
+- Replace any necessary visual cues with crisp, minimalist vector icons (Lucide React) or clean text labels.
 
-### R3. Circadian & Timeline Shift Visualizer
-Provide alternative high-utility visualization modes for shift planning:
-- 24-Hour Timeline / Gantt Matrix view showing day/night circadian coverage across 24 hours.
-- Live Overtime & Cost Simulation: Instant real-time calculation of overtime cost and weekly safety limits as shifts are being painted or edited.
+### R3. Comprehensive Functionality Audit & Flawless Execution
+- Audit and verify all core portal workflows and ensure zero regressions:
+  - **24H Shift & Time Scheduler**: Dynamic calculation across `M1..M24`, `A1..A24`, `N1..N24`, `D`, `OND`, `OFF`, full 24h shifts (08:00 to 08:00), cross-day overnight shifts (e.g. 20:00 to 08:00), clean reset, and database persistence.
+  - **Shift Matrix Grid**: Smooth click interaction to open 24h scheduler, tooltip preview on hover, sticky left employee identity column, sticky day headers, Plan/Actual/Both toggle, and Department/Role/Month filters.
+  - **Compliance & Notifications**: Labor law compliance auditing, bell notification dropdown in Navbar, and overtime threshold monitors.
+  - **Vessel & Crane Schedule Integration**: Plan vs. Actual vessel scheduling timeline.
+  - **Executive Analytics & Reports**: Department utilization, OT cost charts, and summary KPI metrics.
+  - **Data Export & Import**: CSV template generation and shift exports.
 
-### R4. Comprehensive Automated Verification & Integrity
-- Unit & integration tests for drag-fill logic, hotkey events, schedule generation, and cost simulation.
-- npm test runs and passes all test suites (100%).
-- npm run build compiles with 0 TypeScript and bundle errors.
+### R4. Automated Verification & Quality Assurance
+- Run complete test suite and verification commands.
+- Verify `npm run build` compiles with 0 TypeScript and 0 Vite bundle errors.
 
 ## Acceptance Criteria
 
-### Design & Aesthetic
-- [ ] Application exhibits a distinctive, custom-crafted industrial maritime interface with zero generic template feel.
-- [ ] Navbar, Dashboard, Shift Scheduler, and Modals have unified tactile design and responsive fluid layout.
+### Minimalist Design & Palette
+- [ ] Application strictly adheres to the 4-tone blue palette with zero mismatched random rainbow colors.
+- [ ] Interface exhibits a clean, distraction-free, professional executive aesthetic.
 
-### Shift Scheduling & Rapid Entry
-- [ ] Drag-to-paint allows multi-day and multi-cell shift assignment with instant feedback.
-- [ ] Keyboard navigation and hotkey entry operates smoothly on the calendar matrix.
-- [ ] Live overtime and labor law safety compliance recalculates in real-time during shift edits.
+### Zero-Emoji Enforcement
+- [ ] 0 emojis exist anywhere across the frontend UI, tooltips, modals, notifications, and navigation items.
+- [ ] Clean Lucide vector icons or subtle typography labels are used wherever iconography is required.
 
-### Build & Test Integrity
-- [ ] All automated tests pass cleanly with 100% success rate.
-- [ ] npm run build compiles cleanly with zero TypeScript errors.
+### Functional Integrity
+- [ ] All shift calculations (1..24h, overnight, 24h full shifts, day shifts, off days) work seamlessly.
+- [ ] Shift matrix, roster, vessel schedule, reports, and modals open and operate with zero lag or screen flicker.
+- [ ] `npm run build` compiles cleanly with zero errors.
