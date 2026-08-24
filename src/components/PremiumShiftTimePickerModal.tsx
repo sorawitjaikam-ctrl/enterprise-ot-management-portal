@@ -10,10 +10,7 @@ import {
   X, 
   Check, 
   RotateCcw,
-  Zap,
-  Users,
-  ShieldCheck,
-  AlertCircle
+  Users
 } from "lucide-react";
 import { Employee } from "../types";
 import { getComplementaryShift, SHIFT_DEFINITIONS } from "../utils/shiftRecommendation";
@@ -36,14 +33,14 @@ export interface PremiumShiftTimePickerProps {
 }
 
 export const PRESET_SHIFTS = [
-  { code: "M12", label: "M12", name: "เช้า 12 ชม.", start: "07:00", end: "19:00", hour: 7, minute: 0, ot: 4, desc: "07:00 - 19:00 (OT 4 ชม.)" },
-  { code: "N12", label: "N12", name: "ดึก 12 ชม.", start: "19:00", end: "07:00", hour: 19, minute: 0, ot: 4, desc: "19:00 - 07:00 (OT 4 ชม.)" },
-  { code: "M8", label: "M8", name: "เช้า 8 ชม.", start: "07:00", end: "15:00", hour: 7, minute: 0, ot: 0, desc: "07:00 - 15:00 (งานปกติ)" },
-  { code: "A8", label: "A8", name: "บ่าย 8 ชม.", start: "15:00", end: "23:00", hour: 15, minute: 0, ot: 0, desc: "15:00 - 23:00 (งานปกติ)" },
-  { code: "N8", label: "N8", name: "ดึก 8 ชม.", start: "23:00", end: "07:00", hour: 23, minute: 0, ot: 0, desc: "23:00 - 07:00 (งานปกติ)" },
-  { code: "D", label: "D", name: "กลางวัน", start: "08:00", end: "17:00", hour: 8, minute: 0, ot: 0, desc: "08:00 - 17:00 (ทำการปกติ)" },
-  { code: "OND", label: "OND", name: "ทำงานวันหยุด", start: "08:00", end: "17:00", hour: 8, minute: 0, ot: 8, desc: "08:00 - 17:00 (OT 8 ชม.)" },
-  { code: "O", label: "OFF", name: "วันหยุดพัก", start: "-", end: "-", hour: 0, minute: 0, ot: 0, desc: "วันหยุดพักผ่อนประจำสัปดาห์" }
+  { code: "M12", label: "M12", name: "เช้า 12h", start: "07:00", end: "19:00", hour: 7, minute: 0, ot: 4 },
+  { code: "N12", label: "N12", name: "ดึก 12h", start: "19:00", end: "07:00", hour: 19, minute: 0, ot: 4 },
+  { code: "M8", label: "M8", name: "เช้า 8h", start: "07:00", end: "15:00", hour: 7, minute: 0, ot: 0 },
+  { code: "A8", label: "A8", name: "บ่าย 8h", start: "15:00", end: "23:00", hour: 15, minute: 0, ot: 0 },
+  { code: "N8", label: "N8", name: "ดึก 8h", start: "23:00", end: "07:00", hour: 23, minute: 0, ot: 0 },
+  { code: "D", label: "D", name: "กลางวัน", start: "08:00", end: "17:00", hour: 8, minute: 0, ot: 0 },
+  { code: "OND", label: "OND", name: "วันหยุด", start: "08:00", end: "17:00", hour: 8, minute: 0, ot: 8 },
+  { code: "O", label: "OFF", name: "วันหยุดพัก", start: "-", end: "-", hour: 0, minute: 0, ot: 0 }
 ];
 
 export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> = ({
@@ -67,7 +64,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const [viewYear, setViewYear] = useState<number>(currentYear);
   const [viewMonth, setViewMonth] = useState<number>(currentMonth);
 
-  // 24-Hour Stepper State (00 - 23, 00 - 59)
+  // 24-Hour Stepper State (00 - 23, 00 - 45)
   const [hour24, setHour24] = useState<number>(7);
   const [minute, setMinute] = useState<number>(0);
 
@@ -177,10 +174,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
-  const monthNamesTh = [
-    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-  ];
 
   const handlePrevMonth = () => {
     if (viewMonth === 1) {
@@ -268,79 +261,79 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const headerTimeStr = selectedShiftCode === "O" ? "วันหยุด (OFF)" : `${formattedStartTime} - ${currentPreset?.end || ""} น.`;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-white rounded-[32px] shadow-2xl border border-slate-200/80 max-w-2xl w-full overflow-hidden flex flex-col font-sans relative animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-2xl w-full max-h-[94vh] flex flex-col font-sans relative overflow-hidden animate-in zoom-in-95 duration-150">
         
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+          className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="p-6 sm:p-8 space-y-6">
+        {/* Modal Scrollable Container (Compact Spacing to Fit Any Screen) */}
+        <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto max-h-[94vh]">
           
-          {/* Main Title & Employee Badge */}
-          <div className="text-center">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-2">
-              <span>บันทึกตารางกะ (Premium Date & 24h Shift Picker)</span>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
-                24H
+          {/* Subtitle & Employee Info Bar */}
+          <div className="flex items-center justify-between pr-8 border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2 truncate">
+              <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono">
+                24H Picker
               </span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              บันทึกตารางกะสำหรับ <strong className="text-slate-800 font-bold">{employee.name}</strong> ({employee.role || "Operator"} • {employee.id})
-            </p>
+              <span className="text-xs text-slate-700 font-bold truncate">
+                {employee.name} <span className="text-slate-400 font-normal">({employee.role || "Operator"} • {employee.id})</span>
+              </span>
+            </div>
           </div>
 
-          {/* Top Capsule Display Box (Matching Reference Image in 24-hour format) */}
-          <div className="relative border-2 border-indigo-500/80 rounded-2xl p-3.5 sm:p-4 bg-indigo-50/20 flex flex-wrap items-center justify-between gap-3 shadow-inner">
+          {/* Top Capsule Display Box (Matching Reference Image) */}
+          <div className="relative border-2 border-indigo-500 rounded-2xl p-2.5 sm:p-3 bg-indigo-50/20 flex flex-wrap items-center justify-between gap-2 shadow-inner">
             {/* Pill Label on Top Border */}
-            <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full bg-indigo-600 text-white font-black text-[11px] uppercase tracking-wider shadow-sm">
+            <span className="absolute -top-2.5 left-5 px-2.5 py-0.2 rounded-full bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider shadow-sm">
               Date & Shift Time (24h)
             </span>
 
-            <div className="flex items-center gap-2.5 sm:gap-3 text-slate-800 font-bold text-sm sm:text-base">
-              <CalendarIcon className="w-5 h-5 text-indigo-600" />
+            <div className="flex items-center gap-2 sm:gap-2.5 text-slate-800 font-bold text-xs sm:text-sm">
+              <CalendarIcon className="w-4 h-4 text-indigo-600 shrink-0" />
               <span>{headerDateStr}</span>
               <span className="text-slate-300 font-normal">|</span>
-              <Clock className="w-5 h-5 text-indigo-600" />
+              <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
               <span className="font-mono">{headerTimeStr}</span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-xl bg-indigo-600 text-white font-mono font-black text-xs shadow-md">
+            <div className="flex items-center gap-1.5">
+              <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-mono font-black text-xs shadow-sm">
                 {selectedShiftCode}
               </span>
-              <span className="text-xs text-slate-600 font-bold hidden sm:inline">
+              <span className="text-[11px] text-slate-600 font-bold hidden sm:inline">
                 {currentPreset?.name || selectedShiftCode}
               </span>
             </div>
           </div>
 
-          {/* Two-Column Layout: Calendar Grid on Left | Time & Shift on Right */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+          {/* Two-Column Main Content (Left Calendar 7 cols | Right Time & Presets 5 cols) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-start">
             
-            {/* LEFT: Interactive Monthly Calendar (Cols 7) */}
-            <div className="md:col-span-7 bg-slate-50/60 rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3.5">
+            {/* LEFT: Compact Monthly Calendar Grid (Cols 7) */}
+            <div className="md:col-span-7 bg-slate-50/70 rounded-2xl p-3 border border-slate-200/80 shadow-xs space-y-2">
               
-              {/* Month / Year Navigator Bar */}
+              {/* Month / Year Navigator */}
               <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="w-8 h-8 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                  className="w-7 h-7 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <select
                     value={viewMonth}
                     onChange={(e) => setViewMonth(Number(e.target.value))}
-                    className="px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-slate-800 shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
                   >
                     {monthNames.map((m, idx) => (
                       <option key={m} value={idx + 1}>{m}</option>
@@ -350,7 +343,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   <select
                     value={viewYear}
                     onChange={(e) => setViewYear(Number(e.target.value))}
-                    className="px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-slate-800 shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
                   >
                     {[2025, 2026, 2027].map(yr => (
                       <option key={yr} value={yr}>{yr}</option>
@@ -361,28 +354,28 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="w-8 h-8 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                  className="w-7 h-7 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Day of Week Headers */}
+              {/* Weekday Headers */}
               <div className="grid grid-cols-7 gap-1 text-center">
                 {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day, idx) => (
-                  <div key={day} className={`text-[11px] font-bold py-1 ${idx === 0 || idx === 6 ? "text-rose-500" : "text-slate-400"}`}>
+                  <div key={day} className={`text-[10px] font-bold py-0.5 ${idx === 0 || idx === 6 ? "text-rose-500" : "text-slate-400"}`}>
                     {day}
                   </div>
                 ))}
               </div>
 
-              {/* Day Cells Grid */}
-              <div className="grid grid-cols-7 gap-1.5 text-center">
+              {/* Calendar Days Matrix */}
+              <div className="grid grid-cols-7 gap-1 text-center">
                 {/* Previous month padding */}
                 {Array.from({ length: firstDayOfWeek }).map((_, i) => {
                   const dayNum = prevMonthDays - firstDayOfWeek + i + 1;
                   return (
-                    <div key={`prev-${i}`} className="h-9 flex items-center justify-center text-xs text-slate-300 font-medium select-none">
+                    <div key={`prev-${i}`} className="h-7 sm:h-8 flex items-center justify-center text-[11px] text-slate-300 font-medium select-none">
                       {dayNum}
                     </div>
                   );
@@ -399,11 +392,11 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                       key={`day-${dayNum}`}
                       type="button"
                       onClick={(e) => handleDayClick(dayNum, e.shiftKey || e.ctrlKey || e.metaKey)}
-                      className={`h-9 rounded-xl text-xs font-black transition-all cursor-pointer flex flex-col items-center justify-center relative ${
+                      className={`h-7 sm:h-8 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center relative ${
                         isSelected 
-                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-300 scale-105 z-10" 
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 scale-105 z-10" 
                           : isWeekend
-                            ? "bg-rose-50/50 hover:bg-indigo-50 text-rose-700 hover:text-indigo-700"
+                            ? "bg-rose-50/60 hover:bg-indigo-50 text-rose-700 hover:text-indigo-700 border border-rose-100"
                             : "bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-100"
                       }`}
                     >
@@ -413,21 +406,21 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                 })}
               </div>
 
-              {/* Multi-select and Quick Selection helpers */}
-              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
-                <span>เลือกแล้ว <strong className="text-indigo-600 font-black">{selectedDays.length}</strong> วัน</span>
-                <div className="flex items-center gap-1.5">
+              {/* Selection Bar */}
+              <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
+                <span>เลือก <strong className="text-indigo-600 font-black">{selectedDays.length}</strong> วัน</span>
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={handleSelectToday}
-                    className="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold transition-colors cursor-pointer text-[10px]"
                   >
                     วันนี้
                   </button>
                   <button
                     type="button"
                     onClick={handleSelectWeek}
-                    className="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold transition-colors cursor-pointer text-[10px]"
                   >
                     +7 วัน
                   </button>
@@ -436,99 +429,98 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
             </div>
 
-            {/* RIGHT: Time Stepper (24h) & Shift Presets (Cols 5) */}
-            <div className="md:col-span-5 space-y-4">
+            {/* RIGHT: Time Stepper & Presets & Actions (Cols 5) */}
+            <div className="md:col-span-5 space-y-2.5">
               
-              {/* 24-Hour Stepper Section (Requirement 2: Full 24h format, No AM/PM) */}
-              <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
-                <div className="text-xs font-black uppercase tracking-wider text-slate-700 mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
+              {/* 24-Hour Stepper Box */}
+              <div className="bg-slate-50/70 rounded-2xl p-2.5 border border-slate-200/80 shadow-xs space-y-2">
+                <div className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
                     <span>TIME (เวลา 24 ชม.)</span>
                   </span>
-                  <span className="text-[10px] text-indigo-600 font-bold">เชื่อมโยงกับกะ ⚡</span>
+                  <span className="text-[9px] text-indigo-600 font-bold">ซิงค์กับกะ ⚡</span>
                 </div>
 
-                {/* 2-Column 24h Stepper (Hour 00-23 | Minute 00-45) */}
-                <div className="grid grid-cols-2 gap-3 text-center">
+                {/* 2-Column Stepper */}
+                <div className="grid grid-cols-2 gap-2 text-center">
                   
-                  {/* 24-Hour Stepper */}
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400">ชั่วโมง (00-23)</span>
+                  {/* Hour */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-[9px] font-bold text-slate-400">ชั่วโมง (00-23)</span>
                     <button
                       type="button"
                       onClick={incHour}
-                      className="w-full py-1 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+                      className="w-full py-0.5 rounded-md bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <ChevronUp className="w-4 h-4" />
+                      <ChevronUp className="w-3.5 h-3.5" />
                     </button>
-                    <div className="w-full py-2 bg-white border border-indigo-200 rounded-xl font-mono font-black text-base text-slate-900 shadow-inner">
+                    <div className="w-full py-1 bg-white border border-indigo-200 rounded-lg font-mono font-black text-sm text-slate-900 shadow-inner">
                       {String(hour24).padStart(2, "0")}
                     </div>
                     <button
                       type="button"
                       onClick={decHour}
-                      className="w-full py-1 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+                      className="w-full py-0.5 rounded-md bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  {/* Minute Stepper */}
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400">นาที (00-45)</span>
+                  {/* Minute */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-[9px] font-bold text-slate-400">นาที (00-45)</span>
                     <button
                       type="button"
                       onClick={incMinute}
-                      className="w-full py-1 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+                      className="w-full py-0.5 rounded-md bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <ChevronUp className="w-4 h-4" />
+                      <ChevronUp className="w-3.5 h-3.5" />
                     </button>
-                    <div className="w-full py-2 bg-white border border-indigo-200 rounded-xl font-mono font-black text-base text-slate-900 shadow-inner">
+                    <div className="w-full py-1 bg-white border border-indigo-200 rounded-lg font-mono font-black text-sm text-slate-900 shadow-inner">
                       {String(minute).padStart(2, "0")}
                     </div>
                     <button
                       type="button"
                       onClick={decMinute}
-                      className="w-full py-1 rounded-lg bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-sm active:scale-95"
+                      className="w-full py-0.5 rounded-md bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                 </div>
 
-                {/* Requirement 3: Action Buttons in Red Circle -> [ รีเซ็ต ] + [ ตกลง ] */}
-                <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-200/80">
+                {/* Action Buttons: [ รีเซ็ต ] + [ ตกลง ] */}
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/80">
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-black text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
-                    title="รีเซ็ตกลับเป็นค่าตั้งต้น"
+                    className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    title="รีเซ็ตกลับเป็นค่าตั้งต้นของวันนั้น"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>รีเซ็ต (Reset)</span>
+                    <RotateCcw className="w-3 h-3 text-slate-500" />
+                    <span>รีเซ็ต</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                     title="ยืนยันการบันทึกกะ"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>ตกลง (บันทึก)</span>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>ตกลง</span>
                   </button>
                 </div>
               </div>
 
-              {/* Shift Presets Grid (Requirement 1: Linked with 24h Time Stepper) */}
-              <div className="space-y-1.5">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                  <span>เลือกกะที่ต้องการ (SHIFT PRESETS)</span>
-                  <span className="text-[9px] text-slate-400 font-normal">คลิกเพื่อซิงค์เวลา</span>
+              {/* Shift Presets Grid (2 Columns, Compact) */}
+              <div className="space-y-1">
+                <div className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                  เลือกกะที่ต้องการ (SHIFT PRESETS)
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-1">
                   {PRESET_SHIFTS.map(preset => {
                     const isSelected = selectedShiftCode === preset.code;
                     return (
@@ -536,27 +528,22 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                         key={preset.code}
                         type="button"
                         onClick={() => handleSelectShiftPreset(preset.code)}
-                        className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                        className={`px-2 py-1 rounded-lg text-left border transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200 scale-[1.02] ring-2 ring-indigo-400/40"
-                            : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm"
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm scale-[1.02]"
+                            : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-black text-xs">{preset.code}</span>
-                            <span className={`text-[10px] font-bold ${isSelected ? "text-white/90" : "text-slate-500"}`}>
-                              {preset.name}
-                            </span>
-                          </div>
+                          <span className="font-mono font-black text-xs">{preset.code}</span>
                           {preset.ot > 0 && (
-                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"}`}>
-                              +{preset.ot}h OT
+                            <span className={`text-[8px] font-bold px-1 py-0.2 rounded ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"}`}>
+                              +{preset.ot}h
                             </span>
                           )}
                         </div>
-                        <div className={`text-[10px] font-mono truncate mt-0.5 ${isSelected ? "text-white/80" : "text-slate-400"}`}>
-                          {preset.start === "-" ? "วันหยุด" : `${preset.start} - ${preset.end}`}
+                        <div className={`text-[9px] font-mono truncate ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                          {preset.start === "-" ? "วันหยุด" : `${preset.start}-${preset.end}`}
                         </div>
                       </button>
                     );
@@ -566,41 +553,38 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
               {/* AI Smart Complementary Pair Suggestion */}
               {recommendation && pairedEmployee && (
-                <div className="p-3 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 text-xs space-y-1.5">
+                <div className="p-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-[11px] space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-indigo-600" />
-                      คำแนะนำคู่กะ (AI PAIR)
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      คู่กับ: {pairedEmployee.name.split(" ")[0]} ({peerCurrentShift})
+                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
+                      คู่กะ: {pairedEmployee.name.split(" ")[0]} ({peerCurrentShift})
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleSelectShiftPreset(recommendation.suggestedCode)}
-                    className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center justify-between shadow-sm cursor-pointer transition-all active:scale-[0.98]"
+                    className="w-full py-1 px-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[10px] flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.98]"
                   >
                     <span>ใส่กะคู่แนะนำ: {recommendation.suggestedCode}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-mono">1-Click ⚡</span>
+                    <span className="px-1 py-0.2 rounded bg-black/20 text-[9px] font-mono">1-Click ⚡</span>
                   </button>
                 </div>
               )}
 
               {/* Target Selector: Plan / Actual / Both */}
-              <div className="flex items-center justify-between gap-1 p-1 bg-slate-100 rounded-xl">
+              <div className="flex items-center justify-between gap-1 p-0.5 bg-slate-100 rounded-lg">
                 {[
-                  { id: "actual", label: "Actual (ปฏิบัติจริง)" },
-                  { id: "plan", label: "Plan (แผนงาน)" },
-                  { id: "both", label: "ทั้ง Plan & Actual" }
+                  { id: "actual", label: "Actual" },
+                  { id: "plan", label: "Plan" },
+                  { id: "both", label: "ทั้งคู่" }
                 ].map(t => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setTargetType(t.id as any)}
-                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                    className={`flex-1 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
                       targetType === t.id 
-                        ? "bg-white text-indigo-700 shadow-sm" 
+                        ? "bg-white text-indigo-700 shadow-2xs font-black" 
                         : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
@@ -611,18 +595,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
             </div>
 
-          </div>
-
-          {/* BOTTOM: Full Width Confirm Button */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-black text-sm sm:text-base shadow-xl shadow-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Check className="w-5 h-5" />
-              <span>ตกลง (บันทึกข้อมูลกะ {selectedDays.length} วัน)</span>
-            </button>
           </div>
 
         </div>
