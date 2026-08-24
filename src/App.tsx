@@ -11900,25 +11900,7 @@ export default function App() {
         />
       )}
 
-      {/* Live Overtime & Cost Simulation HUD */}
-      <LiveSimulationHUD
-        simulation={simulationResult}
-        activePaintShift={activeBrushShift}
-        onApply={() => {
-          if (selectedRangeCells.length > 0) {
-            handleBatchAssignShifts(selectedRangeCells, activeBrushShift || "M12", shiftViewMode === "both" ? "actual" : shiftViewMode);
-          }
-        }}
-        onCancel={() => {
-          setSelectedRangeCells([]);
-          setSimulationResult(null);
-        }}
-        onSelectShift={(code) => {
-          if (selectedRangeCells.length > 0) {
-            handleBatchAssignShifts(selectedRangeCells, code, shiftViewMode === "both" ? "actual" : shiftViewMode);
-          }
-        }}
-      />
+{/* Live Simulation HUD removed */}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: CSV TEMPLATE HUB */}
