@@ -64,6 +64,7 @@ import Navbar from "./components/Navbar";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
+import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
 import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
 import { getShiftCircadianSegments } from "./utils/circadianEngine";
@@ -2185,6 +2186,10 @@ export default function App() {
   // --- Interactive Shift Scheduling & Simulation State ---
   const [isCircadianModalOpen, setIsCircadianModalOpen] = useState<boolean>(false);
   const [isRadialPickerOpen, setIsRadialPickerOpen] = useState<boolean>(false);
+  const [isPremiumPickerOpen, setIsPremiumPickerOpen] = useState<boolean>(false);
+  const [premiumPickerEmp, setPremiumPickerEmp] = useState<Employee | null>(null);
+  const [premiumPickerDay, setPremiumPickerDay] = useState<number>(1);
+  const [premiumPickerPairedEmp, setPremiumPickerPairedEmp] = useState<Employee | null>(null);
   const [radialPickerProps, setRadialPickerProps] = useState<{
     x: number;
     y: number;
@@ -2741,6 +2746,54 @@ export default function App() {
   useEffect(() => {
     setMismatchAlertDismissed(false);
   }, [currentShiftsDept, shiftViewMode]);
+
+  const handleSaveFromPremiumPicker = ({
+    employeeId,
+    dayNumbers,
+    shiftCode,
+    target = "actual"
+  }: {
+    employeeId: string;
+    dayNumbers: number[];
+    shiftCode: string;
+    startTime?: string;
+    endTime?: string;
+    target: "plan" | "actual" | "both";
+  }) => {
+    pushUndoSnapshot();
+    const monthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const currentEmps = isEditingShifts ? tempEmployees : (state?.employees || []);
+
+    const updatedEmployees = currentEmps.map((emp: Employee) => {
+      if (emp.id !== employeeId) return emp;
+
+      const curShifts = [...getEmpShiftsArray(emp.shifts, monthKey, emp.calendarType)];
+      const curPlan = [...getEmpPlanShiftsArray(emp, monthKey)];
+
+      dayNumbers.forEach(dayNum => {
+        const dayIdx = dayNum - 1;
+        while (curShifts.length <= dayIdx) curShifts.push("O");
+        while (curPlan.length <= dayIdx) curPlan.push("O");
+
+        if (target === "plan" || target === "both") {
+          curPlan[dayIdx] = shiftCode;
+        }
+        if (target === "actual" || target === "both") {
+          curShifts[dayIdx] = shiftCode;
+        }
+      });
+
+      return formatEmpShiftsObj(emp, curShifts, curPlan, monthKey);
+    });
+
+    if (isEditingShifts) {
+      setTempEmployees(updatedEmployees);
+    } else {
+      setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+    }
+
+    showToastMsg(`✨ บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);
+  };
 
   const handleBatchAssignShifts = (cells: Array<{ empId: string; dayIdx: number }>, shiftCode: string, target: "plan" | "actual" | "both" = "actual") => {
     if (!cells || cells.length === 0) return;
@@ -12129,6 +12182,16 @@ export default function App() {
       )}
 
       {/* 24-Hour Circadian Timeline Matrix Modal */}
+      <PremiumShiftTimePickerModal
+        isOpen={isPremiumPickerOpen}
+        onClose={() => setIsPremiumPickerOpen(false)}
+        employee={premiumPickerEmp}
+        initialDay={premiumPickerDay}
+        currentMonthKey={state?.shiftConfig?.currentMonth || "2026-08"}
+        pairedEmployee={premiumPickerPairedEmp}
+        onSaveShift={handleSaveFromPremiumPicker}
+      />
+
       <CircadianTimelineModal
         isOpen={isCircadianModalOpen}
         onClose={() => setIsCircadianModalOpen(false)}
