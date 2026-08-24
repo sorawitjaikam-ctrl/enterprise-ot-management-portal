@@ -2806,17 +2806,15 @@ export default function App() {
       return formatEmpShiftsObj(emp, curShifts, curPlan, monthKey);
     });
 
-    if (isEditingShifts) {
-      setTempEmployees(updatedEmployees);
-    } else {
-      setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
-      const [y, m] = monthKey.split("-");
-      fetch("/api/save-shifts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
-      }).catch(err => console.error("Error saving shifts:", err));
-    }
+    setTempEmployees(updatedEmployees);
+    setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+
+    const [y, m] = monthKey.split("-");
+    fetch("/api/save-shifts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+    }).catch(err => console.error("Error saving shifts:", err));
 
     showToastMsg(`✨ บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);
   };
@@ -8780,14 +8778,9 @@ export default function App() {
                             <div className="divide-y divide-slate-100">
                               {roleEmps.map((emp) => {
                                 return (
-                                  <div 
-                                    key={emp.id} 
-                                    onClick={() => openModalForEmployee(emp)}
-                                    className="flex hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                                    title="คลิกเพื่อจัดการตารางกะรายวันของพนักงานคนนี้"
-                                  >
-                                    {/* Employee ID & Name head */}
-                                    <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm">
+                                  <div key={emp.id} className="flex hover:bg-blue-50/40 transition-colors group">
+                                     {/* Employee ID & Name head */}
+                                     <div onClick={(e) => { e.stopPropagation(); openModalForEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินบันทึกกะ 24H สำหรับพนักงานคนนี้">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 flex-wrap">
