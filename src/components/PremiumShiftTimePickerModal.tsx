@@ -56,13 +56,16 @@ export function computeDynamicShift(sH: number, sM: number, eH: number, eM: numb
   duration: number;
   otHours: number;
 } {
-  if (sH === eH && sM === eM) {
-    return { code: "O", name: "วันหยุดพักผ่อน", duration: 0, otHours: 0 };
-  }
-
-  // 1. Calculate duration in hours
+  // 1. Calculate duration in hours (1..24 hours)
   let duration = 0;
-  if (eH === 0 && eM === 0 && (sH !== 0 || sM !== 0)) {
+  if (sH === eH && sM === eM) {
+    // If both 00:00 -> 24 hours or Off
+    if (sH === 0 && sM === 0) {
+      duration = 24;
+    } else {
+      return { code: "O", name: "วันหยุดพักผ่อน (OFF)", duration: 0, otHours: 0 };
+    }
+  } else if (eH === 0 && eM === 0 && (sH !== 0 || sM !== 0)) {
     // End is midnight (24:00)
     duration = 24 - (sH + sM / 60);
   } else {
@@ -76,10 +79,17 @@ export function computeDynamicShift(sH: number, sM: number, eH: number, eM: numb
     }
   }
 
-  const roundedDuration = Math.round(duration);
+  // Clamp duration to 1 - 24 hours (M1..M24, A1..A24, N1..N24)
+  let roundedDuration = Math.round(duration);
+  if (roundedDuration <= 0) roundedDuration = 24;
+  if (roundedDuration > 24) roundedDuration = 24;
+
   const otHours = Math.max(0, roundedDuration - 8);
 
   // 2. Determine prefix based on Start Hour
+  // Morning: 06:00 - 11:59 -> M1..M24
+  // Afternoon: 12:00 - 17:59 -> A1..A24
+  // Night: 18:00 - 05:59 -> N1..N24
   let prefix = "M";
   let timeLabel = "เช้า";
 
@@ -184,18 +194,31 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
       setEndMinute(preset.endM);
       return;
     }
-    const def = SHIFT_DEFINITIONS[code];
-    if (def) {
-      if (def.startTime && def.startTime.includes(":")) {
-        const [sh, sm] = def.startTime.split(":");
-        setStartHour(Number(sh) || 7);
-        setStartMinute(Number(sm) || 0);
-      }
+        const def = SHIFT_DEFINITIONS[code];
+    if (def && def.startTime && def.startTime.includes(":")) {
+      const [sh, sm] = def.startTime.split(":");
+      setStartHour(Number(sh) || 7);
+      setStartMinute(Number(sm) || 0);
       if (def.endTime && def.endTime.includes(":")) {
         const [eh, em] = def.endTime.split(":");
         setEndHour(Number(eh) || 19);
         setEndMinute(Number(em) || 0);
       }
+      return;
+    }
+
+    // Dynamic pattern parse: M1..M24, A1..A24, N1..N24
+    const match = code.match(/^([MAN])(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const hours = parseInt(match[2]);
+      const defaultStartH = prefix === "M" ? 7 : prefix === "A" ? 15 : 19;
+      setStartHour(defaultStartH);
+      setStartMinute(0);
+      const endH = (defaultStartH + hours) % 24;
+      setEndHour(endH);
+      setEndMinute(0);
+      return;
     }
   };
 
