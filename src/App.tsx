@@ -2790,6 +2790,12 @@ export default function App() {
       setTempEmployees(updatedEmployees);
     } else {
       setState((prev: any) => ({ ...prev, employees: updatedEmployees }));
+      const [y, m] = monthKey.split("-");
+      fetch("/api/save-shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employees: updatedEmployees, year: Number(y), month: Number(m) })
+      }).catch(err => console.error("Error saving shifts:", err));
     }
 
     showToastMsg(`✨ บันทึกกะ ${shiftCode} ให้คุณ ${currentEmps.find(e => e.id === employeeId)?.name || employeeId} (${dayNumbers.length} วัน) สำเร็จ`);
@@ -2955,23 +2961,12 @@ export default function App() {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
         const curEmp = activeList[currentEmpIdx];
-        const curShifts = getEmpShiftsArray(curEmp.shifts, monthKey, curEmp.calendarType);
-        const curShift = curShifts[focusedCell.dayIdx] || "O";
-
         const peerEmp = activeList.find((p: Employee) => p.id !== curEmp.id && (p.role || "Operator") === (curEmp.role || "Operator"));
-        const peerShifts = peerEmp ? getEmpShiftsArray(peerEmp.shifts, monthKey, peerEmp.calendarType) : [];
-        const peerShift = peerShifts[focusedCell.dayIdx] || "O";
 
-        setRadialPickerProps({
-          x: window.innerWidth / 2,
-          y: window.innerHeight / 2,
-          emp: curEmp,
-          dayIdx: focusedCell.dayIdx,
-          currentShift: curShift,
-          pairedEmp: peerEmp,
-          pairedShift: peerShift
-        });
-        setIsRadialPickerOpen(true);
+        setPremiumPickerEmp(curEmp);
+        setPremiumPickerDay(focusedCell.dayIdx + 1);
+        setPremiumPickerPairedEmp(peerEmp || null);
+        setIsPremiumPickerOpen(true);
         return;
       }
 
@@ -8939,16 +8934,11 @@ export default function App() {
                                                 const peerShifts = peerEmp ? getEmpShiftsArray(peerEmp.shifts, state?.shiftConfig?.currentMonth, peerEmp.calendarType) : [];
                                                 const peerShift = peerShifts[dayIdx] || "O";
 
-                                                setRadialPickerProps({
-                                                  x: rect.left + rect.width / 2,
-                                                  y: rect.bottom + window.scrollY,
-                                                  emp,
-                                                  dayIdx,
-                                                  currentShift: actualShift,
-                                                  pairedEmp: peerEmp,
-                                                  pairedShift: peerShift
-                                                });
-                                                setIsRadialPickerOpen(true);
+                                                // Open Premium Date & Shift Time Picker Modal directly
+                                                setPremiumPickerEmp(emp);
+                                                setPremiumPickerDay(dayIdx + 1);
+                                                setPremiumPickerPairedEmp(peerEmp || null);
+                                                setIsPremiumPickerOpen(true);
                                               }}
                                               className={[
                                                 "flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center overflow-hidden relative select-none cursor-pointer transition-all",
