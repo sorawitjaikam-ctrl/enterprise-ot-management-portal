@@ -52,11 +52,9 @@ export async function registerServiceWorker(
     return null;
   }
 
-  // 3. Listen for controllerchange to reload page when new SW takes control
+  // 3. Listen for controllerchange without forcing disruptive page reload
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (isRefreshing) return;
-    isRefreshing = true;
-    window.location.reload();
+    console.info('[PWA] Service Worker controller updated smoothly in background.');
   });
 
   // 4. Register when page finishes loading to protect Critical Rendering Path (LCP / FID)
