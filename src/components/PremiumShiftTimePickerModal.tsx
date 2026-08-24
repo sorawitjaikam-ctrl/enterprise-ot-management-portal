@@ -12,8 +12,11 @@ import {
   RotateCcw,
   LogIn,
   LogOut,
-  Zap,
-  Users
+  Moon,
+  Sun,
+  Sunrise,
+  Sunset,
+  Zap
 } from "lucide-react";
 import { Employee } from "../types";
 import { getComplementaryShift, SHIFT_DEFINITIONS } from "../utils/shiftRecommendation";
@@ -31,52 +34,47 @@ export interface PremiumShiftTimePickerProps {
     shiftCode: string;
     startTime?: string;
     endTime?: string;
+    isOvernight?: boolean;
     target: "plan" | "actual" | "both";
   }) => void;
 }
 
-export const PRESET_SHIFTS = [
-  { code: "M12", label: "M12", name: "เช้า 12h", start: "07:00", end: "19:00", startH: 7, startM: 0, endH: 19, endM: 0, ot: 4 },
-  { code: "N12", label: "N12", name: "ดึก 12h", start: "19:00", end: "07:00", startH: 19, startM: 0, endH: 7, endM: 0, ot: 4 },
-  { code: "M8", label: "M8", name: "เช้า 8h", start: "07:00", end: "15:00", startH: 7, startM: 0, endH: 15, endM: 0, ot: 0 },
-  { code: "A8", label: "A8", name: "บ่าย 8h", start: "15:00", end: "23:00", startH: 15, startM: 0, endH: 23, endM: 0, ot: 0 },
-  { code: "N8", label: "N8", name: "ดึก 8h", start: "23:00", end: "07:00", startH: 23, startM: 0, endH: 7, endM: 0, ot: 0 },
-  { code: "M16", label: "M16", name: "เช้า 16h", start: "07:00", end: "23:00", startH: 7, startM: 0, endH: 23, endM: 0, ot: 8 },
-  { code: "D", label: "D", name: "กลางวัน", start: "08:00", end: "17:00", startH: 8, startM: 0, endH: 17, endM: 0, ot: 0 },
-  { code: "OND", label: "OND", name: "วันหยุด", start: "08:00", end: "17:00", startH: 8, startM: 0, endH: 17, endM: 0, ot: 8 },
-  { code: "O", label: "OFF", name: "วันหยุดพัก", start: "-", end: "-", startH: 0, startM: 0, endH: 0, endM: 0, ot: 0 }
-];
-
 /**
- * คำนวณรหัสกะและชั่วโมงการทำงานแบบ Dynamic ตามเวลาเริ่มเข้างานและออกงานจริง
+ * คำนวณรหัสกะและชั่วโมงการทำงานแบบ Dynamic ตามเวลาเริ่มเข้างานและออกงานจริง (รองรับกะคร่อมวัน 100%)
  */
 export function computeDynamicShift(sH: number, sM: number, eH: number, eM: number): {
   code: string;
   name: string;
   duration: number;
   otHours: number;
+  isOvernight: boolean;
 } {
-  // 1. Calculate duration in hours (1..24 hours)
+  const startMins = sH * 60 + sM;
+  const endMins = eH * 60 + eM;
+
+  // 1. Calculate duration in hours & detect cross-day / overnight
   let duration = 0;
+  let isOvernight = false;
+
   if (sH === eH && sM === eM) {
-    // If both 00:00 -> 24 hours or Off
     if (sH === 0 && sM === 0) {
       duration = 24;
+      isOvernight = true;
     } else {
-      return { code: "O", name: "วันหยุดพักผ่อน (OFF)", duration: 0, otHours: 0 };
+      return { code: "O", name: "วันหยุดพักผ่อน (OFF)", duration: 0, otHours: 0, isOvernight: false };
     }
   } else if (eH === 0 && eM === 0 && (sH !== 0 || sM !== 0)) {
-    // End is midnight (24:00)
+    // End is midnight (24:00 of the same day)
     duration = 24 - (sH + sM / 60);
+    isOvernight = false;
+  } else if (endMins > startMins) {
+    // Same day shift
+    duration = (endMins - startMins) / 60;
+    isOvernight = false;
   } else {
-    const startMins = sH * 60 + sM;
-    const endMins = eH * 60 + eM;
-    if (endMins > startMins) {
-      duration = (endMins - startMins) / 60;
-    } else {
-      // Crosses midnight
-      duration = ((24 * 60 - startMins) + endMins) / 60;
-    }
+    // Cross-day / Overnight shift (e.g. 20:00 -> 08:00 = 12h)
+    duration = ((24 * 60 - startMins) + endMins) / 60;
+    isOvernight = true;
   }
 
   // Clamp duration to 1 - 24 hours (M1..M24, A1..A24, N1..N24)
@@ -106,13 +104,13 @@ export function computeDynamicShift(sH: number, sM: number, eH: number, eM: numb
 
   // Handle standard 08:00 - 17:00 office day shift
   if (sH === 8 && eH === 17 && sM === 0 && eM === 0) {
-    return { code: "D", name: "กลางวันปกติ (8h)", duration: 8, otHours: 0 };
+    return { code: "D", name: "กลางวันปกติ (8h)", duration: 8, otHours: 0, isOvernight: false };
   }
 
   const code = `${prefix}${roundedDuration}`;
-  const name = `${timeLabel} ${roundedDuration} ชม.${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;
+  const name = `${timeLabel} ${roundedDuration} ชม.${isOvernight ? ' (🌙 คร่อมวัน)' : ''}${otHours > 0 ? ` (OT ${otHours}h)` : ''}`;
 
-  return { code, name, duration: roundedDuration, otHours };
+  return { code, name, duration: roundedDuration, otHours, isOvernight };
 }
 
 export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> = ({
@@ -183,18 +181,27 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     }
   }, [startHour, startMinute, endHour, endMinute]);
 
-  // 1. LINK: Shift Preset -> Updates Start & End 24h Times
+  // Parse existing or requested shift code to times
   const applyShiftToTime = (code: string) => {
     setSelectedShiftCode(code);
-    const preset = PRESET_SHIFTS.find(p => p.code === code);
-    if (preset && preset.code !== "O") {
-      setStartHour(preset.startH);
-      setStartMinute(preset.startM);
-      setEndHour(preset.endH);
-      setEndMinute(preset.endM);
-      return;
+    
+    if (code === "M12") {
+      setStartHour(7); setStartMinute(0); setEndHour(19); setEndMinute(0); return;
+    } else if (code === "N12") {
+      setStartHour(19); setStartMinute(0); setEndHour(7); setEndMinute(0); return;
+    } else if (code === "M8") {
+      setStartHour(7); setStartMinute(0); setEndHour(15); setEndMinute(0); return;
+    } else if (code === "A8") {
+      setStartHour(15); setStartMinute(0); setEndHour(23); setEndMinute(0); return;
+    } else if (code === "N8") {
+      setStartHour(23); setStartMinute(0); setEndHour(7); setEndMinute(0); return;
+    } else if (code === "D" || code === "OND") {
+      setStartHour(8); setStartMinute(0); setEndHour(17); setEndMinute(0); return;
+    } else if (code === "O" || code === "OFF") {
+      setStartHour(0); setStartMinute(0); setEndHour(0); setEndMinute(0); return;
     }
-        const def = SHIFT_DEFINITIONS[code];
+
+    const def = SHIFT_DEFINITIONS[code];
     if (def && def.startTime && def.startTime.includes(":")) {
       const [sh, sm] = def.startTime.split(":");
       setStartHour(Number(sh) || 7);
@@ -222,10 +229,6 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     }
   };
 
-  const handleSelectShiftPreset = (code: string) => {
-    applyShiftToTime(code);
-  };
-
   // Start Time Stepper Handlers
   const incStartHour = () => setStartHour(prev => (prev >= 23 ? 0 : prev + 1));
   const decStartHour = () => setStartHour(prev => (prev <= 0 ? 23 : prev - 1));
@@ -237,6 +240,13 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const decEndHour = () => setEndHour(prev => (prev <= 0 ? 23 : prev - 1));
   const incEndMinute = () => setEndMinute(prev => (prev >= 45 ? 0 : prev + 15));
   const decEndMinute = () => setEndMinute(prev => (prev <= 0 ? 45 : prev - 15));
+
+  // Quick Preset Shortcuts
+  const setQuickOff = () => {
+    setSelectedShiftCode("O");
+    setStartHour(0); setStartMinute(0);
+    setEndHour(0); setEndMinute(0);
+  };
 
   // Reset Button Handler
   const handleReset = () => {
@@ -328,6 +338,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
       shiftCode: selectedShiftCode,
       startTime: formattedStartTime,
       endTime: formattedEndTime,
+      isOvernight: dynamicShift.isOvernight,
       target: targetType
     });
     onClose();
@@ -339,11 +350,14 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const firstSelectedDay = selectedDays[0] || 1;
   const headerDateStr = `${monthNames[viewMonth - 1].substring(0, 3)} ${String(firstSelectedDay).padStart(2, "0")}, ${viewYear}` + 
     (selectedDays.length > 1 ? ` (+${selectedDays.length - 1} วัน)` : "");
-  const headerTimeStr = selectedShiftCode === "O" ? "วันหยุด (OFF)" : `${formattedStartTime} - ${formattedEndTime} น.`;
+  
+  const headerTimeStr = selectedShiftCode === "O" 
+    ? "วันหยุด (OFF)" 
+    : `${formattedStartTime} - ${formattedEndTime}${dynamicShift.isOvernight ? ' (+1 วัน)' : ''} น.`;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-2xl w-full max-h-[94vh] flex flex-col font-sans relative overflow-hidden animate-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-2xl w-full flex flex-col font-sans relative overflow-hidden animate-in zoom-in-95 duration-150">
         
         {/* Close Button */}
         <button
@@ -354,14 +368,14 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modal Scrollable Container */}
-        <div className="p-4 sm:p-5 space-y-3 overflow-y-auto max-h-[94vh]">
+        {/* Modal Content */}
+        <div className="p-4 sm:p-5 space-y-3">
           
           {/* Subtitle & Employee Info Bar */}
           <div className="flex items-center justify-between pr-8 border-b border-slate-100 pb-2">
             <div className="flex items-center gap-2 truncate">
               <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono">
-                24H Dynamic Shift
+                24H Shift & Time Scheduler
               </span>
               <span className="text-xs text-slate-700 font-bold truncate">
                 {employee.name} <span className="text-slate-400 font-normal">({employee.role || "Operator"} • {employee.id})</span>
@@ -369,7 +383,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
             </div>
           </div>
 
-          {/* Top Capsule Display Box (Dynamic Shift Code & Name) */}
+          {/* Top Capsule Display Box (Dynamic Shift Code & Overnight Badge) */}
           <div className="relative border-2 border-indigo-500 rounded-2xl p-2.5 sm:p-3 bg-indigo-50/20 flex flex-wrap items-center justify-between gap-2 shadow-inner">
             <span className="absolute -top-2.5 left-5 px-2.5 py-0.2 rounded-full bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider shadow-sm">
               Date & Shift Time (24h)
@@ -384,6 +398,12 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
             </div>
 
             <div className="flex items-center gap-1.5">
+              {dynamicShift.isOvernight && (
+                <span className="px-2 py-0.5 rounded-md bg-purple-100 border border-purple-300 text-purple-700 font-black text-[10px] flex items-center gap-1">
+                  <Moon className="w-3 h-3 text-purple-600" />
+                  <span>คร่อมวัน (+1 วัน)</span>
+                </span>
+              )}
               <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-mono font-black text-xs shadow-sm">
                 {selectedShiftCode}
               </span>
@@ -393,7 +413,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
             </div>
           </div>
 
-          {/* Two-Column Main Content (Left Calendar 7 cols | Right Time & Presets 5 cols) */}
+          {/* Two-Column Main Content (Left Calendar 7 cols | Right Time & Dynamic Controls 5 cols) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
             
             {/* LEFT: Compact Monthly Calendar Grid (Cols 7) */}
@@ -502,12 +522,20 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   >
                     +7 วัน
                   </button>
+                  <button
+                    type="button"
+                    onClick={setQuickOff}
+                    className="px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-black transition-colors cursor-pointer text-[10px]"
+                    title="ตั้งค่าเป็นวันหยุดพัก (OFF)"
+                  >
+                    วันหยุด (OFF)
+                  </button>
                 </div>
               </div>
 
             </div>
 
-            {/* RIGHT: Start & End Time Steppers & Dynamic Shifts (Cols 5) */}
+            {/* RIGHT: Start & End Time Steppers (Cols 5) */}
             <div className="md:col-span-5 space-y-2">
               
               {/* TIME BOX: 2 Steppers (เวลาเข้างาน & เวลาออกงาน) */}
@@ -517,77 +545,80 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
                     <span>เวลาเข้า - ออกงาน (24 ชม.)</span>
                   </span>
-                  <span className="text-[9px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                    คำนวณกะอัตโนมัติ ⚡
-                  </span>
+                  {dynamicShift.isOvernight && (
+                    <span className="text-[9px] text-purple-700 font-black bg-purple-100 px-1.5 py-0.5 rounded border border-purple-300 flex items-center gap-0.5">
+                      <Moon className="w-2.5 h-2.5 text-purple-600" />
+                      <span>คร่อมวัน (+1 วัน)</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* 2 Sub-boxes: [ เวลาเข้างาน ] & [ เวลาออกงาน ] */}
                 <div className="grid grid-cols-2 gap-2">
                   
                   {/* เวลาเข้างาน (Start Time) */}
-                  <div className="p-1.5 bg-white border border-emerald-200 rounded-xl shadow-2xs space-y-1">
-                    <div className="text-[9px] font-black text-emerald-700 flex items-center gap-1 justify-center">
-                      <LogIn className="w-2.5 h-2.5 text-emerald-600" />
+                  <div className="p-2 bg-white border border-emerald-200 rounded-xl shadow-2xs space-y-1">
+                    <div className="text-[10px] font-black text-emerald-700 flex items-center gap-1 justify-center">
+                      <LogIn className="w-3 h-3 text-emerald-600" />
                       <span>เวลาเข้างาน</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-center">
                       {/* Start Hour */}
                       <div>
-                        <button type="button" onClick={incStartHour} className="w-full py-0.5 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronUp className="w-3 h-3" />
+                        <button type="button" onClick={incStartHour} className="w-full py-1 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-0.5 font-mono font-black text-xs text-slate-900 bg-slate-100 rounded my-0.5">
+                        <div className="py-1 font-mono font-black text-sm text-slate-900 bg-slate-100 rounded my-0.5">
                           {String(startHour).padStart(2, "0")}
                         </div>
-                        <button type="button" onClick={decStartHour} className="w-full py-0.5 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronDown className="w-3 h-3" />
+                        <button type="button" onClick={decStartHour} className="w-full py-1 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       {/* Start Minute */}
                       <div>
-                        <button type="button" onClick={incStartMinute} className="w-full py-0.5 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronUp className="w-3 h-3" />
+                        <button type="button" onClick={incStartMinute} className="w-full py-1 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-0.5 font-mono font-black text-xs text-slate-900 bg-slate-100 rounded my-0.5">
+                        <div className="py-1 font-mono font-black text-sm text-slate-900 bg-slate-100 rounded my-0.5">
                           {String(startMinute).padStart(2, "0")}
                         </div>
-                        <button type="button" onClick={decStartMinute} className="w-full py-0.5 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronDown className="w-3 h-3" />
+                        <button type="button" onClick={decStartMinute} className="w-full py-1 rounded bg-slate-50 hover:bg-emerald-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   </div>
 
                   {/* เวลาออกงาน (End Time) */}
-                  <div className="p-1.5 bg-white border border-rose-200 rounded-xl shadow-2xs space-y-1">
-                    <div className="text-[9px] font-black text-rose-700 flex items-center gap-1 justify-center">
-                      <LogOut className="w-2.5 h-2.5 text-rose-600" />
+                  <div className="p-2 bg-white border border-rose-200 rounded-xl shadow-2xs space-y-1">
+                    <div className="text-[10px] font-black text-rose-700 flex items-center gap-1 justify-center">
+                      <LogOut className="w-3 h-3 text-rose-600" />
                       <span>เวลาออกงาน</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-center">
                       {/* End Hour */}
                       <div>
-                        <button type="button" onClick={incEndHour} className="w-full py-0.5 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronUp className="w-3 h-3" />
+                        <button type="button" onClick={incEndHour} className="w-full py-1 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-0.5 font-mono font-black text-xs text-slate-900 bg-slate-100 rounded my-0.5">
+                        <div className="py-1 font-mono font-black text-sm text-slate-900 bg-slate-100 rounded my-0.5">
                           {String(endHour).padStart(2, "0")}
                         </div>
-                        <button type="button" onClick={decEndHour} className="w-full py-0.5 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronDown className="w-3 h-3" />
+                        <button type="button" onClick={decEndHour} className="w-full py-1 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       {/* End Minute */}
                       <div>
-                        <button type="button" onClick={incEndMinute} className="w-full py-0.5 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronUp className="w-3 h-3" />
+                        <button type="button" onClick={incEndMinute} className="w-full py-1 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-0.5 font-mono font-black text-xs text-slate-900 bg-slate-100 rounded my-0.5">
+                        <div className="py-1 font-mono font-black text-sm text-slate-900 bg-slate-100 rounded my-0.5">
                           {String(endMinute).padStart(2, "0")}
                         </div>
-                        <button type="button" onClick={decEndMinute} className="w-full py-0.5 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
-                          <ChevronDown className="w-3 h-3" />
+                        <button type="button" onClick={decEndMinute} className="w-full py-1 rounded bg-slate-50 hover:bg-rose-50 text-slate-600 flex items-center justify-center cursor-pointer shadow-2xs">
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -595,82 +626,59 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
                 </div>
 
-                {/* Dynamic Shift Result Banner */}
-                <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <span className="text-[10px] text-slate-400 uppercase">กะที่คำนวณได้:</span>
-                    <span className="font-mono font-black text-indigo-700 bg-white px-2 py-0.5 rounded shadow-2xs border border-indigo-100">
-                      {selectedShiftCode}
+                {/* Dynamic Shift Result Card */}
+                <div className="p-2.5 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                      <span className="text-[10px] text-slate-500 uppercase">รหัสกะ:</span>
+                      <span className="font-mono font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-md shadow-2xs border border-indigo-200 text-sm">
+                        {selectedShiftCode}
+                      </span>
+                    </div>
+                    <span className="text-xs font-black text-indigo-900">
+                      {dynamicShift.duration} ชม. {dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
                     </span>
                   </div>
-                  <span className="text-[11px] font-black text-indigo-800">
-                    {dynamicShift.duration} ชม. {dynamicShift.otHours > 0 ? `• OT ${dynamicShift.otHours}h` : ''}
-                  </span>
+
+                  <div className="text-[11px] text-slate-600 flex items-center justify-between pt-0.5 border-t border-indigo-100">
+                    <span className="font-medium">
+                      {formattedStartTime} ➜ {formattedEndTime} น.{dynamicShift.isOvernight ? ' (วันถัดไป)' : ''}
+                    </span>
+                    {dynamicShift.isOvernight && (
+                      <span className="text-purple-700 font-bold text-[10px]">
+                        🌙 กะข้ามคืน
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons: [ รีเซ็ต ] + [ ตกลง ] */}
-                <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-200/80">
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200/80">
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     title="รีเซ็ตกลับเป็นค่าตั้งต้นของวันนั้น"
                   >
-                    <RotateCcw className="w-3 h-3 text-slate-500" />
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
                     <span>รีเซ็ต</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                    className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 text-white font-black text-xs shadow-md shadow-indigo-200 transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     title="ยืนยันการบันทึกกะ"
                   >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>ตกลง</span>
+                    <Check className="w-4 h-4" />
+                    <span>ตกลง (บันทึก)</span>
                   </button>
-                </div>
-              </div>
-
-              {/* Shift Presets Grid */}
-              <div className="space-y-1">
-                <div className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                  เลือกกะที่ต้องการ (SHIFT PRESETS)
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {PRESET_SHIFTS.map(preset => {
-                    const isSelected = selectedShiftCode === preset.code;
-                    return (
-                      <button
-                        key={preset.code}
-                        type="button"
-                        onClick={() => handleSelectShiftPreset(preset.code)}
-                        className={`px-2 py-1 rounded-lg text-left border transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm scale-[1.02]"
-                            : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-black text-xs">{preset.code}</span>
-                          {preset.ot > 0 && (
-                            <span className={`text-[8px] font-bold px-1 py-0.2 rounded ${isSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"}`}>
-                              +{preset.ot}h
-                            </span>
-                          )}
-                        </div>
-                        <div className={`text-[9px] font-mono truncate ${isSelected ? "text-white/80" : "text-slate-400"}`}>
-                          {preset.start === "-" ? "วันหยุด" : `${preset.start}-${preset.end}`}
-                        </div>
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 
               {/* AI Smart Complementary Pair Suggestion */}
               {recommendation && pairedEmployee && (
-                <div className="p-1.5 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-[10px] space-y-1">
+                <div className="p-2 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-[10px] space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1">
                       <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
@@ -679,11 +687,11 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleSelectShiftPreset(recommendation.suggestedCode)}
-                    className="w-full py-1 px-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[10px] flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.98]"
+                    onClick={() => applyShiftToTime(recommendation.suggestedCode)}
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[10px] flex items-center justify-between shadow-2xs cursor-pointer transition-all active:scale-[0.98]"
                   >
                     <span>ใส่กะคู่แนะนำ: {recommendation.suggestedCode}</span>
-                    <span className="px-1 py-0.2 rounded bg-black/20 text-[9px] font-mono">1-Click ⚡</span>
+                    <span className="px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono">1-Click ⚡</span>
                   </button>
                 </div>
               )}
