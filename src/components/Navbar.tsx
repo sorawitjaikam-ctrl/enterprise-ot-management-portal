@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   Search, 
+  AlertTriangle, 
+  ShieldAlert, 
   Bell, 
   Globe, 
   ChevronDown,
@@ -34,6 +36,8 @@ export interface NavbarProps {
   onOpenCsvTemplateHub?: () => void;
   isNavbarCollapsed?: boolean;
   setIsNavbarCollapsed?: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
+  complianceNotifications?: Array<{ emp: any; alerts: any[] }>;
+  onOpenComplianceModal?: (item: { emp: any; alerts: any[] }) => void;
 }
 
 export default function Navbar({ 
@@ -47,12 +51,15 @@ export default function Navbar({
   onLogout,
   onOpenCsvTemplateHub,
   isNavbarCollapsed,
-  setIsNavbarCollapsed
+  setIsNavbarCollapsed,
+  complianceNotifications = [],
+  onOpenComplianceModal
 }: NavbarProps) {
   const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -247,15 +254,85 @@ export default function Navbar({
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
-            {/* Notifications Bell */}
-            <button 
-              type="button" 
-              className="flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80 rounded-2xl transition-all relative shadow-xs cursor-pointer"
-              title="การแจ้งเตือน"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 bg-blue-600 rounded-full absolute top-3 right-3 ring-2 ring-white animate-pulse"></span>
-            </button>
+            {/* Notifications Bell & Dropdown */}
+            <div className="relative">
+              <button 
+                type="button" 
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                className="flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-2xl transition-all relative shadow-xs cursor-pointer"
+                title="การแจ้งเตือนข้อควรระวังและกฎหมายแรงงาน"
+              >
+                <Bell className="w-4 h-4" />
+                {complianceNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black shadow-md border-2 border-white animate-pulse">
+                    {complianceNotifications.reduce((acc, curr) => acc + (curr.alerts?.length || 0), 0)}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown Panel */}
+              {isNotificationsOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden font-sans animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-amber-400" />
+                        <span className="text-xs font-black">การแจ้งเตือนข้อควรระวัง</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
+                        {complianceNotifications.length} พนักงาน
+                      </span>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 p-2">
+                      {complianceNotifications.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400 space-y-1">
+                          <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
+                          <p className="font-bold text-slate-600">ไม่มีข้อควรระวัง</p>
+                          <p className="text-[11px]">การจัดตารางกะถูกต้องตามกฎหมายแรงงานทั้งหมด</p>
+                        </div>
+                      ) : (
+                        complianceNotifications.map((item, idx) => (
+                          <div 
+                            key={item.emp?.id || idx}
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              if (onOpenComplianceModal) onOpenComplianceModal(item);
+                            }}
+                            className="p-2.5 hover:bg-rose-50/60 rounded-xl transition-colors cursor-pointer group space-y-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-slate-800 group-hover:text-rose-700">
+                                {item.emp?.name}
+                              </span>
+                              <span className="px-1.5 py-0.2 bg-rose-100 text-rose-800 rounded-md text-[10px] font-black">
+                                {item.alerts?.length || 0} ข้อระวัง
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 space-y-0.5">
+                              {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
+                                <p key={ai} className="truncate text-rose-600 font-medium">
+                                  • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
+                                </p>
+                              ))}
+                              {(item.alerts?.length || 0) > 2 && (
+                                <p className="text-[10px] text-slate-400 font-bold">
+                                  + อีก {item.alerts.length - 2} รายการ (คลิกเพื่อดูทั้งหมด)
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Profile Badge Button */}
             <button 

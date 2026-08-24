@@ -8772,50 +8772,7 @@ export default function App() {
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1 flex-wrap">
                                           <p className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={emp.name}>{emp.name}</p>
-                                          {(() => {
-                                            const shiftsArr = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
-                                            const complianceAlerts = auditEmployeeShiftsCompliance(shiftsArr, state?.shiftConfig?.currentMonth || "2026-08");
-                                            if (complianceAlerts.length === 0) return null;
-
-                                            const hasDanger = complianceAlerts.some(a => a.level === "danger");
-                                            return (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setSelectedComplianceModalEmp({ emp, alerts: complianceAlerts });
-                                                }}
-                                                className={`px-1.5 py-0.5 rounded text-[8.5px] font-black flex items-center gap-0.5 cursor-pointer shadow-2xs border transition-all hover:scale-105 ${
-                                                  hasDanger 
-                                                    ? "bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100" 
-                                                    : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
-                                                }`}
-                                                title="คลิกดูรายงานข้อควรระวังตามกฎหมายแรงงานไทย (OT > 36h / พักผ่อน < 11h / ทำงานติดต่อกัน)"
-                                              >
-                                                <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
-                                                <span>{complianceAlerts.length} ข้อระวัง</span>
-                                              </button>
-                                            );
-                                          })()}
-                                          {(() => {
-                                            const shifts: string[] = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth);
-                                            let maxWeekOt = 0;
-                                            for (let i = 0; i < shifts.length; i += 7) {
-                                              const weekShifts = shifts.slice(i, i + 7);
-                                              let weekOt = 0;
-                                              weekShifts.forEach(code => {
-                                                if (code === "OND") weekOt += 8;
-                                                else if (code.endsWith("12") || code === "M12" || code === "A12" || code === "N12") weekOt += 4;
-                                                else if (code.endsWith("16") || code === "M16" || code === "N16") weekOt += 8;
-                                              });
-                                              if (weekOt > maxWeekOt) maxWeekOt = weekOt;
-                                            }
-                                            return maxWeekOt > 36 ? (
-                                              <span className="px-1 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[8px] font-extrabold flex-shrink-0" title="คำเตือน: มีสัปดาห์ที่ทำ OT เกิน 36 ชม. (ขีดจำกัดสูงสุดตามกฎหมายแรงงาน)">
-                                                &gt;36h
-                                              </span>
-                                            ) : null;
-                                          })()}
+                                          
                                         </div>
                                         <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
                                       </div>
