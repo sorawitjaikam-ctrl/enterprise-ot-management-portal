@@ -8041,18 +8041,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Top Right: Toggle & CTA Buttons (Matching h-10 Height Exactly) */}
+                  {/* Top Right: CTA Buttons */}
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    {/* Toggle [ Plan / Actual / Plan+Actual ] */}
-                    <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold h-10 items-center shadow-inner overflow-x-auto no-scrollbar touch-pan-x">
-                      {(["plan", "actual", "both"] as const).map(mode => (
-                        <button key={mode} onClick={() => setShiftViewMode(mode)}
-                          className={`shrink-0 px-3.5 py-1 rounded-xl transition-all cursor-pointer h-full flex items-center ${shiftViewMode === mode ? "bg-blue-600 text-white shadow-xs font-black" : "text-slate-600 hover:text-slate-900"}`}>
-                          {mode === "plan" ? "Plan" : mode === "actual" ? "Actual" : "Plan+Actual"}
-                        </button>
-                      ))}
-                    </div>
-
                     {isEditingShifts ? (
                       <div className="flex items-center gap-2 h-10">
                         <button onClick={() => { setIsEditingShifts(false); setTempEmployees(state?.employees || []); }}
@@ -8064,49 +8054,6 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 h-10">
-                        {/* Smart Shift Assistant Toggle Button */}
-                        <button 
-                          onClick={() => setShowSmartShiftDrawer(!showSmartShiftDrawer)}
-                          className={`h-10 px-3.5 rounded-2xl text-xs font-black flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all ${
-                            showSmartShiftDrawer 
-                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/20" 
-                              : "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
-                          }`}
-                          title="เปิด/ปิด แผงเครื่องมือจัดคู่กะอัจฉริยะ และเครื่องมือจัดกะอัตโนมัติ"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          <span>จัดกะอัจฉริยะ</span>
-                        </button>
-
-                        {/* Export Dropdown / Buttons */}
-                        <button 
-                          onClick={handleExportShiftsCsv}
-                          className="h-10 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
-                          title="ส่งออกไฟล์สรุปยอดทำจ่ายค่าล่วงเวลา (OT Payroll-Ready CSV) ประจำเดือน"
-                        >
-                          <FileText className="w-4 h-4 text-emerald-700" />
-                          <span className="hidden sm:inline">CSV ทำจ่าย OT</span>
-                          <span className="sm:hidden">ทำจ่าย OT</span>
-                        </button>
-
-                        <button 
-                          onClick={handleExportShiftMatrixCsv}
-                          className="h-10 px-3 bg-slate-100 border border-slate-300 text-slate-800 rounded-2xl text-xs font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
-                          title="ส่งออกไฟล์ตารางกะทั้งเดือน (Shift Matrix CSV)"
-                        >
-                          <FileSpreadsheet className="w-4 h-4 text-slate-600" />
-                          <span className="hidden sm:inline">CSV ตารางกะ</span>
-                        </button>
-
-                        <button 
-                          onClick={handleExportLaborComplianceCsv}
-                          className="h-10 px-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 cursor-pointer font-sans shadow-2xs transition-all"
-                          title="ส่งออกรายงานตรวจสอบความปลอดภัยและกฎหมายแรงงาน (OT > 36h, Rest Period)"
-                        >
-                          <ShieldCheck className="w-4 h-4 text-amber-700" />
-                          <span className="hidden md:inline">รายงานแรงงาน</span>
-                        </button>
-                        
                         <button onClick={() => setShowVesselModal(true)}
                           className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
                           <Ship className="w-4 h-4 text-white" />
