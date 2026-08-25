@@ -120,15 +120,16 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   const [viewYear, setViewYear] = useState<number>(currentYear);
   const [viewMonth, setViewMonth] = useState<number>(currentMonth);
 
-  const [startHour, setStartHour] = useState<number>(7);
+  // Default: 08:00 - 16:00 (M8)
+  const [startHour, setStartHour] = useState<number>(8);
   const [startMinute, setStartMinute] = useState<number>(0);
-  const [endHour, setEndHour] = useState<number>(19);
+  const [endHour, setEndHour] = useState<number>(16);
   const [endMinute, setEndMinute] = useState<number>(0);
   const [isManualOff, setIsManualOff] = useState<boolean>(false);
 
   const dynamicShift = computeDynamicShift(startHour, startMinute, endHour, endMinute, isManualOff);
-  const [selectedShiftCode, setSelectedShiftCode] = useState<string>("M12");
-  const [initialShiftCode, setInitialShiftCode] = useState<string>("M12");
+  const [selectedShiftCode, setSelectedShiftCode] = useState<string>("M8");
+  const [initialShiftCode, setInitialShiftCode] = useState<string>("M8");
 
   useEffect(() => {
     if (isOpen) {
@@ -147,7 +148,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
         } catch {
           shiftsArr = [];
         }
-        const currentDayShift = shiftsArr[(initialDay || 1) - 1] || "M12";
+        const currentDayShift = shiftsArr[(initialDay || 1) - 1] || "M8";
         setInitialShiftCode(currentDayShift);
         applyShiftToTime(currentDayShift);
       }
@@ -164,25 +165,25 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
     setIsManualOff(false);
     
-    if (code === "M12") {
-      setStartHour(7); setStartMinute(0); setEndHour(19); setEndMinute(0);
-      setSelectedShiftCode("M12");
-      return;
-    } else if (code === "N12") {
-      setStartHour(19); setStartMinute(0); setEndHour(7); setEndMinute(0);
-      setSelectedShiftCode("N12");
-      return;
-    } else if (code === "M8") {
-      setStartHour(7); setStartMinute(0); setEndHour(15); setEndMinute(0);
+    if (code === "M8") {
+      setStartHour(8); setStartMinute(0); setEndHour(16); setEndMinute(0);
       setSelectedShiftCode("M8");
       return;
+    } else if (code === "M12") {
+      setStartHour(8); setStartMinute(0); setEndHour(20); setEndMinute(0);
+      setSelectedShiftCode("M12");
+      return;
     } else if (code === "A8") {
-      setStartHour(15); setStartMinute(0); setEndHour(23); setEndMinute(0);
+      setStartHour(16); setStartMinute(0); setEndHour(24 % 24); setEndMinute(0);
       setSelectedShiftCode("A8");
       return;
     } else if (code === "N8") {
-      setStartHour(23); setStartMinute(0); setEndHour(7); setEndMinute(0);
+      setStartHour(0); setStartMinute(0); setEndHour(8); setEndMinute(0);
       setSelectedShiftCode("N8");
+      return;
+    } else if (code === "N12") {
+      setStartHour(20); setStartMinute(0); setEndHour(8); setEndMinute(0);
+      setSelectedShiftCode("N12");
       return;
     } else if (code === "D" || code === "OND") {
       setStartHour(8); setStartMinute(0); setEndHour(17); setEndMinute(0);
@@ -193,11 +194,11 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     const def = SHIFT_DEFINITIONS[code];
     if (def && def.startTime && def.startTime.includes(":")) {
       const [sh, sm] = def.startTime.split(":");
-      setStartHour(Number(sh) || 7);
+      setStartHour(Number(sh) || 8);
       setStartMinute(Number(sm) || 0);
       if (def.endTime && def.endTime.includes(":")) {
         const [eh, em] = def.endTime.split(":");
-        setEndHour(Number(eh) || 19);
+        setEndHour(Number(eh) || 16);
         setEndMinute(Number(em) || 0);
       }
       setSelectedShiftCode(code);
@@ -208,7 +209,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     if (match) {
       const prefix = match[1];
       const hours = parseInt(match[2]);
-      const defaultStartH = prefix === "M" ? 7 : prefix === "A" ? 15 : 19;
+      const defaultStartH = prefix === "M" ? 8 : prefix === "A" ? 16 : 20;
       setStartHour(defaultStartH);
       setStartMinute(0);
       const endH = (defaultStartH + hours) % 24;
@@ -223,11 +224,16 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
   const updateTimes = (newSH: number, newSM: number, newEH: number, newEM: number) => {
     setIsManualOff(false);
-    setStartHour(newSH);
-    setStartMinute(newSM);
-    setEndHour(newEH);
-    setEndMinute(newEM);
-    const computed = computeDynamicShift(newSH, newSM, newEH, newEM, false);
+    const validSH = Math.min(23, Math.max(0, Math.floor(isNaN(newSH) ? 0 : newSH)));
+    const validSM = Math.min(59, Math.max(0, Math.floor(isNaN(newSM) ? 0 : newSM)));
+    const validEH = Math.min(23, Math.max(0, Math.floor(isNaN(newEH) ? 0 : newEH)));
+    const validEM = Math.min(59, Math.max(0, Math.floor(isNaN(newEM) ? 0 : newEM)));
+
+    setStartHour(validSH);
+    setStartMinute(validSM);
+    setEndHour(validEH);
+    setEndMinute(validEM);
+    const computed = computeDynamicShift(validSH, validSM, validEH, validEM, false);
     setSelectedShiftCode(computed.code);
   };
 
@@ -519,10 +525,10 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
             </div>
 
-            {/* RIGHT: Start & End Time Steppers (Cols 5) */}
+            {/* RIGHT: Start & End Time Steppers & Editable Inputs (Cols 5) */}
             <div className="md:col-span-5 space-y-2.5">
               
-              {/* Steppers Box */}
+              {/* Steppers & Direct Input Box */}
               <div className="bg-slate-50/50 rounded-xl p-2.5 border border-slate-200 space-y-2">
                 <div className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
                   <span className="flex items-center gap-1">
@@ -540,24 +546,36 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                       <span>เวลาเข้างาน</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-center">
+                      {/* Start Hour Input */}
                       <div>
                         <button type="button" onClick={incStartHour} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-1 font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-100">
-                          {String(startHour).padStart(2, "0")}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="23"
+                          value={String(startHour).padStart(2, "0")}
+                          onChange={(e) => updateTimes(parseInt(e.target.value) || 0, startMinute, endHour, endMinute)}
+                          className="w-full py-1 text-center font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1d3ec7]"
+                        />
                         <button type="button" onClick={decStartHour} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                      {/* Start Minute Input */}
                       <div>
                         <button type="button" onClick={incStartMinute} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-1 font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-100">
-                          {String(startMinute).padStart(2, "0")}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={String(startMinute).padStart(2, "0")}
+                          onChange={(e) => updateTimes(startHour, parseInt(e.target.value) || 0, endHour, endMinute)}
+                          className="w-full py-1 text-center font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1d3ec7]"
+                        />
                         <button type="button" onClick={decStartMinute} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
@@ -572,24 +590,36 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                       <span>เวลาออกงาน</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-center">
+                      {/* End Hour Input */}
                       <div>
                         <button type="button" onClick={incEndHour} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-1 font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-100">
-                          {String(endHour).padStart(2, "0")}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="23"
+                          value={String(endHour).padStart(2, "0")}
+                          onChange={(e) => updateTimes(startHour, startMinute, parseInt(e.target.value) || 0, endMinute)}
+                          className="w-full py-1 text-center font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1d3ec7]"
+                        />
                         <button type="button" onClick={decEndHour} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                      {/* End Minute Input */}
                       <div>
                         <button type="button" onClick={incEndMinute} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
-                        <div className="py-1 font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-100">
-                          {String(endMinute).padStart(2, "0")}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={String(endMinute).padStart(2, "0")}
+                          onChange={(e) => updateTimes(startHour, startMinute, endHour, parseInt(e.target.value) || 0)}
+                          className="w-full py-1 text-center font-mono font-bold text-xs text-slate-900 bg-slate-50 rounded my-0.5 border border-slate-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1d3ec7]"
+                        />
                         <button type="button" onClick={decEndMinute} className="w-full py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer">
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
@@ -627,26 +657,26 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   </div>
                 </div>
 
-                {/* Action Buttons: [ รีเซ็ต ] + [ ตกลง ] */}
+                {/* Action Buttons: [ ตกลง (บันทึก) ] ซ้ายสีเขียวเข้ม + [ รีเซ็ต ] ขวา */}
                 <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
                   <button
                     type="button"
-                    onClick={handleReset}
-                    className="py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    title="รีเซ็ตกลับเป็นค่าตั้งต้น"
+                    onClick={handleSave}
+                    className="py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    title="ยืนยันการบันทึกกะทำงาน"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>รีเซ็ต</span>
+                    <Check className="w-4 h-4" />
+                    <span>ตกลง (บันทึก)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={handleSave}
-                    className="py-2 px-3 rounded-lg bg-[#1d3ec7] hover:bg-[#0b1a3a] text-white font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    title="บันทึกกะทำงาน"
+                    onClick={handleReset}
+                    className="py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    title="รีเซ็ตกลับเป็นค่าตั้งต้น"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>ตกลง (บันทึก)</span>
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>รีเซ็ต</span>
                   </button>
                 </div>
               </div>
