@@ -5162,7 +5162,7 @@ export default function App() {
 
               {/* Header section filters */}
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex gap-2 items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex gap-2 items-center bg-[#F3F6F8] p-1 rounded border border-[#DCE4EA]">
                   <div className="flex items-center gap-1 px-3 py-1.5 border-r border-slate-100">
                     <Filter className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-600">ตัวกรองแดชบอร์ด</span>
@@ -5234,7 +5234,7 @@ export default function App() {
 
               {/* Labor Compliance Warning Banner */}
               {fatiguedEmployees.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+                <div className="callout y p-4 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 font-bold">
                       <AlertTriangle className="w-5 h-5 text-amber-700" />
@@ -5621,7 +5621,7 @@ export default function App() {
                     </div>
 
                     {/* Department breakdown meters */}
-                    <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 shadow-sm">
+                    <div className="bg-white border border-[#DCE4EA] rounded p-5">
                       <div className="mb-4">
                         <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก (ข้อมูลเรียลไทม์)</h4>
                         <p className="text-xs text-slate-500">สัดส่วนและปริมาณชั่วโมงสะสม</p>
@@ -9352,7 +9352,7 @@ export default function App() {
                 </div>
 
                 {/* Automation / Gemini settings */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                <div className="bg-white border border-[#DCE4EA] rounded p-5 space-y-6">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">การรวมกำลังพลระบบ AI และการวิเคราะห์อัจฉริยะ</h4>
                     <p className="text-xs text-slate-500">ควบคุมและประเมินระดับการทำรายงานอัจฉริยะ (Gemini Live Audit)</p>
@@ -9810,7 +9810,7 @@ export default function App() {
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Header */}
-            <div className="bg-slate-950 p-6 text-white flex items-center justify-between">
+            <div className="bg-[#0E3A66] p-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-xl">
                   <Ship className="w-6 h-6 text-white" />
@@ -12415,7 +12415,7 @@ export default function App() {
             </div>
 
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+              <div className="callout y p-4 rounded flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-xs text-amber-900 leading-relaxed">
                   <span className="font-extrabold block mb-1">พบข้อควรระวังจำนวน {selectedComplianceModalEmp.alerts.length} รายการ</span>
