@@ -91,16 +91,16 @@ import {
 } from "./utils/shiftRecommendation";
 
 export const SHIFT_OPTIONS = [
-  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
+  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
   { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
   { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
-  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
+  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
   { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
-  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
-  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0b1a3a]", border: "border-[#0b1a3a]", text: "text-white font-bold" },
-  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#0b1a3a]", border: "border-[#0b1a3a]", text: "text-white font-bold" },
-  { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-700" },
-  { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#1d3ec7]", border: "border-[#1d3ec7]", text: "text-white font-bold" },
+  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
+  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
+  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
+  { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-[#E8F6F0]", border: "border-[#A5DCC5]", text: "text-[#1E9C6E] font-bold" },
+  { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#17538F]", border: "border-[#17538F]", text: "text-white font-bold" },
   { code: "O", label: "O", desc: "วันหยุดพักผ่อน", bg: "bg-white", border: "border-slate-200", text: "text-slate-400" }
 ];
 
@@ -109,30 +109,32 @@ export const getShiftStyle = (shift: string) => {
     case "M8":
     case "A8":
     case "N8":
-      return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
+      return "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] font-bold";
     case "M12":
     case "A12":
     case "N12":
-      return "bg-[#ddebf7] text-[#1d3ec7] border-[#6d93fc]/60 font-extrabold";
+      return "bg-[#FCF3DE] text-[#0E3A66] border border-[#F3D98F] font-bold";
     case "M16":
     case "N16":
-      return "bg-[#0b1a3a] text-white border-[#0b1a3a] font-extrabold";
+    case "M24":
+    case "N24":
+      return "bg-[#0E3A66] text-white border border-[#0E3A66] font-bold";
     case "D":
-      return "bg-slate-100 text-slate-800 border-slate-300 font-extrabold";
+      return "bg-[#E8F6F0] text-[#1E9C6E] border border-[#A5DCC5] font-bold";
     case "OND":
-      return "bg-[#1d3ec7] text-white border-[#1d3ec7] font-extrabold";
+      return "bg-[#17538F] text-white border border-[#17538F] font-bold";
     case "O":
-      return "bg-white text-slate-400 border-slate-200 font-medium";
+    case "OFF":
+      return "bg-white text-[#B4C1C9] border border-[#DCE4EA]/40 font-medium";
     default:
       if (shift.startsWith("M") || shift.startsWith("A") || shift.startsWith("N")) {
         const ot = getShiftOtHours(shift);
-        if (ot > 4) return "bg-[#0b1a3a] text-white border-[#0b1a3a] font-extrabold";
-        if (ot > 0) return "bg-[#ddebf7] text-[#1d3ec7] border-[#6d93fc]/60 font-extrabold";
-        return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
+        if (ot > 4) return "bg-[#0E3A66] text-white border border-[#0E3A66] font-bold";
+        if (ot > 0) return "bg-[#FCF3DE] text-[#0E3A66] border border-[#F3D98F] font-bold";
+        return "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] font-bold";
       }
-      if (shift === "A" || shift === "N") return "bg-[#a9cdfc]/25 text-[#0b1a3a] border-[#a9cdfc]/60 font-extrabold";
-      if (shift === "ALERT") return "bg-rose-50 text-rose-700 border-rose-400 font-extrabold animate-pulse";
-      return "bg-slate-50 text-slate-400 border-slate-200";
+      if (shift === "ALERT") return "bg-[#FBEAEA] text-[#B3352C] border border-[#B3352C]/40 font-bold";
+      return "bg-[#F3F6F8] text-[#6A7B87] border border-[#DCE4EA]";
   }
 };
 
@@ -703,7 +705,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                 <th className="px-4 py-3 text-center font-bold text-slate-600">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
               ) : filteredRecords.length === 0 ? (
@@ -963,7 +965,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                 <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : records.length === 0 ? (
@@ -1335,7 +1337,7 @@ function HrDirectEditorView({
                 <th className="p-3 text-center w-20">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-mono">
+            <tbody className="divide-y divide-[#DCE4EA] font-mono">
               {filteredRecords.map((r, idx) => (
                 <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
                   <td className="p-2">
@@ -6385,7 +6387,7 @@ export default function App() {
                           <th className="px-3.5 py-3 text-center min-w-[130px]">ผลงาน 68 -&gt; 69</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
+                      <tbody className="divide-y divide-[#DCE4EA] text-slate-800 text-xs">
                         {safeJobValueRecords
                           .filter(jv => {
                             if (!jv) return false;
@@ -6995,7 +6997,7 @@ export default function App() {
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">สถานะควบคุม</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                    <tbody className="divide-y divide-[#DCE4EA] text-slate-700 text-xs">
                       {sortedDepartments.map((dept) => (
                         <tr key={dept.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
@@ -7754,7 +7756,7 @@ export default function App() {
                         <th className="px-4 py-3.5 text-center">การจัดการ</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                    <tbody className="divide-y divide-[#DCE4EA] text-slate-700 text-xs">
                       {(() => { let _lastDept = ''; return filteredEmployees.flatMap((emp) => {
                         // Calculate exact monthly OT metrics using single source of truth
                         const breakdown = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
@@ -9361,7 +9363,7 @@ export default function App() {
                           <th className="p-4 text-center">จัดการการทำงาน</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#DCE4EA]">
                         {accounts.map((acc) => (
                           <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4 flex items-center gap-3">
@@ -9520,7 +9522,7 @@ export default function App() {
                         <th className="p-4 text-center">จัดการการทำงาน</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#DCE4EA]">
                       {accounts.map((acc) => (
                         <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
                           <td className="p-4 flex items-center gap-3">
@@ -11626,7 +11628,7 @@ export default function App() {
                       <th className="px-3 py-2 text-right text-blue-700">Profit (กำไร)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200/60 font-mono">
+                  <tbody className="divide-y divide-[#DCE4EA]/60 font-mono">
                     {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, idx) => {
                       const rev = Number((viewingJobValueModal?.monthlyRevenue || [])[idx]) || 0;
                       const cost = Number((viewingJobValueModal?.monthlyCost || [])[idx]) || 0;
@@ -12212,7 +12214,7 @@ export default function App() {
                           <th className="px-4 py-3 text-center">การจัดการ</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#DCE4EA]">
                         {resignedList.map(emp => (
                           <tr key={emp.id} className="hover:bg-rose-50/30 transition-colors bg-white">
                             <td className="px-4 py-3 font-mono font-bold text-slate-500 whitespace-nowrap">
