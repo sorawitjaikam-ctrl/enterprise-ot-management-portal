@@ -2,25 +2,21 @@ import React, { useState, useEffect } from "react";
 import { 
   Search, 
   AlertTriangle, 
-  ShieldAlert, 
   Bell, 
-  Globe, 
-  ChevronDown,
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  Settings, 
-  ClipboardList, 
-  FileText, 
-  ShieldCheck,
   LogOut,
-  TrendingUp,
-  BarChart3,
   Menu,
   X,
   User,
-  Download,
-  CheckCircle2
+  CheckCircle2,
+  Calendar,
+  LayoutDashboard,
+  Users,
+  TrendingUp,
+  ClipboardList,
+  BarChart3,
+  ShieldCheck,
+  FileText,
+  Settings
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -49,9 +45,6 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   onLogout,
-  onOpenCsvTemplateHub,
-  isNavbarCollapsed,
-  setIsNavbarCollapsed,
   complianceNotifications = [],
   onOpenComplianceModal
 }: NavbarProps) {
@@ -85,505 +78,263 @@ export default function Navbar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const [collapsedCategories, setCollapsedCategories] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("collapsedCategories");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const toggleCategory = (catName: string) => {
-    setCollapsedCategories(prev => {
-      const next = prev.includes(catName) ? prev.filter(name => name !== catName) : [...prev, catName];
-      localStorage.setItem("collapsedCategories", JSON.stringify(next));
-      return next;
-    });
-  };
-
   const handleTabSelect = (tabId: string) => {
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
     setIsMobileSearchOpen(false);
   };
 
-  // 11 Functional Views organized into categories
-  const categories = [
-    {
-      name: "ภาพรวม & แผนงาน",
-      color: "bg-blue-50/90 text-[#0b1a3a] border-blue-200/90",
-      activeBadgeColor: "bg-[#1d3ec7] text-white",
-      items: [
-        { id: "dashboard", label: "หน้าแรก Dashboard", icon: LayoutDashboard },
-        { id: "shifts", label: "ตารางจัดกะพนักงาน", icon: Calendar },
-      ]
-    },
-    {
-      name: "การจัดการบุคลากร",
-      color: "bg-slate-50 text-[#0b1a3a] border-slate-200/90",
-      activeBadgeColor: "bg-[#1d3ec7] text-white",
-      items: [
-        { id: "employees", label: "รายชื่อพนักงาน", icon: Users },
-        { id: "job_value", label: "Job Value", icon: TrendingUp },
-        ...(isHrOrFullAccess ? [{ id: "hr-editor", label: "จัดการข้อมูลพนักงาน & รายได้", icon: FileText }] : []),
-      ]
-    },
-    {
-      name: "วันลา & ประวัติ OT",
-      color: "bg-blue-50/60 text-[#0b1a3a] border-blue-200/60",
-      activeBadgeColor: "bg-[#1d3ec7] text-white",
-      items: [
-        { id: "leave-records", label: "บันทึกวันลา", icon: ClipboardList },
-        { id: "ot-records", label: "ประวัติ OT จากกะ", icon: Calendar },
-      ]
-    },
-    {
-      name: "รายงาน & วิเคราะห์",
-      color: "bg-slate-50 text-[#0b1a3a] border-slate-200/90",
-      activeBadgeColor: "bg-[#1d3ec7] text-white",
-      items: [
-        { id: "reports", label: "รายงานข้อมูลรายแผนก", icon: BarChart3 },
-      ]
-    },
-    ...(isHrOrFullAccess ? [{
-      name: "บริหารจัดการระบบ",
-      color: "bg-slate-100/90 text-[#0b1a3a] border-slate-300/80",
-      activeBadgeColor: "bg-[#1d3ec7] text-white",
-      items: [
-        { id: "admin-permissions", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
-        { id: "settings", label: "ตั้งค่าระบบ", icon: Settings },
-      ]
-    }] : [])
+  // Structured tab list with sequential numbering matching the editorial template
+  const tabsList = [
+    { id: "dashboard", num: "01", label: "ภาพรวม Dashboard", icon: LayoutDashboard },
+    { id: "shifts", num: "02", label: "ตารางจัดกะพนักงาน", icon: Calendar },
+    { id: "employees", num: "03", label: "รายชื่อพนักงาน", icon: Users },
+    { id: "job_value", num: "04", label: "โครงสร้าง Job Value", icon: TrendingUp },
+    { id: "leave-records", num: "05", label: "บันทึกวันลา", icon: ClipboardList },
+    { id: "ot-records", num: "06", label: "ประวัติ OT จากกะ", icon: Calendar },
+    { id: "reports", num: "07", label: "รายงานรายแผนก", icon: BarChart3 },
+    ...(isHrOrFullAccess ? [
+      { id: "hr-editor", num: "08", label: "ข้อมูล & รายได้", icon: FileText },
+      { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
+      { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
+    ] : [])
   ];
 
   return (
     <>
-      {/* Fixed Main Header Bar */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs font-sans">
+      {/* Editorial Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans">
         
-        {/* Row 1: Top Brand, Search & User Bar */}
-        <div className="px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 lg:gap-6">
-          
-          {/* Left: Mobile Hamburger + Brand Logo */}
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            {/* Hamburger Button (Mobile / Tablet) */}
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors lg:hidden cursor-pointer shrink-0"
-              aria-label="เปิดเมนูนำทาง"
-              title="เปิดเมนูหลัก"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-
-            {/* Brand Logo & Name */}
-            <div 
-              onClick={() => handleTabSelect("dashboard")}
-              className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group select-none shrink-0"
-            >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-slate-950 via-blue-950 to-slate-900 text-white flex items-center justify-center font-black text-xs shadow-md border border-slate-800 group-hover:scale-105 transition-transform flex-shrink-0">
-                <span className="tracking-tighter font-mono">DA</span>
-              </div>
-              <div className="hidden xs:block">
-                <h1 className="text-xs sm:text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5 leading-none">
-                  <span>Double A Terminal</span>
-                </h1>
-                <p className="text-[9px] sm:text-[10px] text-blue-600 font-extrabold uppercase tracking-wider mt-0.5">
-                  Port & Logistics OT
-                </p>
-              </div>
-            </div>
+        {/* Top Header Bar */}
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
+          <div className="flex items-center justify-between gap-4">
             
-            {/* View Title Separator (Tablet / Desktop) */}
-            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block shrink-0"></div>
-            <span className="text-xs font-extrabold text-slate-700 hidden sm:block truncate max-w-[200px] lg:max-w-xs">{title}</span>
-          </div>
-
-          {/* Center: Global Search Bar (Desktop / Tablet) */}
-          <div className="hidden md:block flex-1 max-w-md lg:max-w-xl relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ค้นหาพนักงาน รหัสกะ เรือสินค้า..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-100/80 border border-slate-200/80 rounded-2xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all shadow-inner"
-            />
-          </div>
-
-          {/* Right: Actions, Profile & Logout */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-            
-            {/* Mobile Search Toggle Button (< md) */}
-            <button
-              type="button"
-              onClick={() => setIsMobileSearchOpen(prev => !prev)}
-              className="flex md:hidden items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
-              aria-label="ค้นหาข้อมูล"
-              title="ค้นหา"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
-            {/* PWA Offline Badge & Install Button */}
-            <PWAOfflineBadge className="hidden lg:inline-flex" />
-            <PWAInstallButton variant="navbar" className="hidden sm:inline-flex" />
-
-            {/* CSV Template Hub Button (Quick Action on Desktop) */}
-            {onOpenCsvTemplateHub && (
+            {/* Left: Brand Identity & Eyebrow */}
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
-                onClick={onOpenCsvTemplateHub}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[40px]"
-                title="ดาวน์โหลดแบบฟอร์ม CSV แม่แบบ"
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="flex items-center justify-center w-9 h-9 rounded text-[#0E3A66] hover:bg-[#F3F6F8] lg:hidden cursor-pointer shrink-0 border border-[#DCE4EA]"
+                aria-label="เปิดเมนูนำทาง"
               >
-                <Download className="w-3.5 h-3.5 text-blue-600" />
-                <span>CSV แม่แบบ</span>
+                <Menu className="w-5 h-5" />
               </button>
-            )}
 
-            {/* Language Selector (Tablet / Desktop) */}
-            <button 
-              type="button" 
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-2xl text-xs font-bold text-slate-700 transition-all shadow-xs cursor-pointer min-h-[40px]"
-            >
-              <Globe className="w-3.5 h-3.5 text-blue-600" />
-              <span>TH</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-
-            {/* Notifications Bell & Dropdown */}
-            <div className="relative">
-              <button 
-                type="button" 
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-2xl transition-all relative shadow-xs cursor-pointer"
-                title="การแจ้งเตือน"
+              <div 
+                onClick={() => handleTabSelect("dashboard")}
+                className="cursor-pointer select-none shrink-0"
               >
-                <Bell className="w-4 h-4" />
-                {complianceNotifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black shadow-md border-2 border-white animate-pulse">
-                    {complianceNotifications.reduce((acc, curr) => acc + (curr.alerts?.length || 0), 0)}
+                <span className="eyebrow block">DOUBLE A TERMINAL · INTER STEVEDORING</span>
+                <h1 className="text-base sm:text-lg font-bold text-[#0E3A66] leading-tight tracking-tight flex items-center gap-2">
+                  <span>ระบบวางแผนและจัดการตารางกะพนักงาน</span>
+                  <span className="hidden sm:inline-block border border-[#DCE4EA] rounded px-2 py-0.5 font-mono text-[11px] font-normal text-[#6A7B87] bg-[#F3F6F8]">
+                    รอบเดือน ส.ค. 2569
                   </span>
-                )}
-              </button>
-
-              {/* Notifications Dropdown Panel */}
-              {isNotificationsOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsNotificationsOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 overflow-hidden font-sans animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-amber-400" />
-                        <span className="text-xs font-black">การแจ้งเตือนข้อควรระวัง</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
-                        {complianceNotifications.length} พนักงาน
-                      </span>
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 p-2">
-                      {complianceNotifications.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-400 space-y-1">
-                          <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
-                          <p className="font-bold text-slate-600">ไม่มีข้อควรระวัง</p>
-                          <p className="text-[11px]">การจัดตารางกะถูกต้องตามกฎหมายแรงงานทั้งหมด</p>
-                        </div>
-                      ) : (
-                        complianceNotifications.map((item, idx) => (
-                          <div 
-                            key={item.emp?.id || idx}
-                            onClick={() => {
-                              setIsNotificationsOpen(false);
-                              if (onOpenComplianceModal) onOpenComplianceModal(item);
-                            }}
-                            className="p-2.5 hover:bg-rose-50/60 rounded-xl transition-colors cursor-pointer group space-y-1"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-black text-slate-800 group-hover:text-rose-700">
-                                {item.emp?.name}
-                              </span>
-                              <span className="px-1.5 py-0.2 bg-rose-100 text-rose-800 rounded-md text-[10px] font-black">
-                                {item.alerts?.length || 0} ข้อระวัง
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-slate-500 space-y-0.5">
-                              {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
-                                <p key={ai} className="truncate text-rose-600 font-medium">
-                                  • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
-                                </p>
-                              ))}
-                              {(item.alerts?.length || 0) > 2 && (
-                                <p className="text-[10px] text-slate-400 font-bold">
-                                  + อีก {item.alerts.length - 2} รายการ (คลิกเพื่อดูทั้งหมด)
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
+                </h1>
+              </div>
             </div>
 
-            {/* Profile Badge Button */}
-            <button 
-              onClick={onOpenProfile}
-              className="flex items-center gap-2.5 p-1 sm:px-3 sm:py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-2xl transition-all text-left shadow-xs cursor-pointer group min-h-[44px]"
-              title="ดูโปรไฟล์ของคุณ"
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-white overflow-hidden shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform flex items-center justify-center">
-                {currentUser?.avatar ? (
-                  <img 
-                    alt="Manager Avatar" 
-                    className="w-full h-full object-cover"
-                    src={currentUser.avatar}
-                  />
-                ) : (
-                  <span className="text-white text-xs font-black">
-                    {(currentUser?.name || "U")[0]}
-                  </span>
-                )}
-              </div>
-              <div className="text-left hidden md:block pr-1">
-                <p className="text-xs font-extrabold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors truncate max-w-[110px]">{currentUser?.name || "ผู้ใช้งาน"}</p>
-                <p className="text-[10px] font-bold text-slate-500 leading-none mt-0.5 truncate max-w-[110px]">{currentUser?.role || "-"}</p>
-              </div>
-            </button>
-
-            {/* Logout Button (Tablet / Desktop) */}
-            <button
-              onClick={onLogout}
-              className="hidden sm:flex items-center justify-center w-11 h-11 min-h-[44px] min-w-[44px] bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-2xl transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
-              title="ออกจากระบบ"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Expandable Search Bar Dropdown (< md) */}
-        {isMobileSearchOpen && (
-          <div className="md:hidden px-4 py-2.5 bg-slate-100/95 border-t border-slate-200 flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {/* Center: Search input */}
+            <div className="hidden md:block flex-1 max-w-sm lg:max-w-md relative">
+              <Search className="w-3.5 h-3.5 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ค้นหาพนักงาน รหัสกะ เรือ..."
-                className="w-full pl-9 pr-8 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="ค้นหาพนักงาน รหัสกะ เรือสินค้า..."
+                className="w-full pl-8 pr-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded text-xs text-[#333B41] placeholder-[#6A7B87] focus:outline-none focus:border-[#2E90CB] focus:bg-white transition-all"
               />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setIsMobileSearchOpen(false)}
-              className="px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
-            >
-              ปิด
-            </button>
-          </div>
-        )}
 
-        {/* Row 2: Categorized Navigation Menu Bar (Tablet / Desktop - Hidden on Mobile) */}
-        <div className="hidden md:flex bg-slate-100/70 px-4 sm:px-6 lg:px-8 py-2 items-center gap-2.5 lg:gap-3.5 overflow-x-auto no-scrollbar touch-pan-x border-t border-slate-200/80 shadow-inner">
-          {categories.map((cat) => {
-            const isCollapsed = collapsedCategories.includes(cat.name);
-            const hasActiveItem = cat.items.some(item => item.id === activeTab);
+            {/* Right: Actions, Notifications, Profile & Logout */}
+            <div className="flex items-center gap-2 shrink-0">
+              
+              <PWAOfflineBadge />
+              <PWAInstallButton />
 
-            return (
-              <div key={cat.name} className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 shadow-xs flex-shrink-0 transition-all duration-200">
-                {/* Clickable Category Badge */}
+              {/* Notification Bell */}
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={() => toggleCategory(cat.name)}
-                  title={isCollapsed ? `คลิกเพื่อขยายหมวดหมู่ ${cat.name}` : `คลิกเพื่อซ่อน/หุบหมวดหมู่ ${cat.name}`}
-                  className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:opacity-85 select-none shrink-0 ${cat.color} ${hasActiveItem && isCollapsed ? 'ring-2 ring-blue-500/50 shadow-xs font-extrabold' : ''}`}
+                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  className={`w-8 h-8 rounded border flex items-center justify-center transition-colors cursor-pointer relative ${
+                    complianceNotifications.length > 0
+                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]"
+                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA]"
+                  }`}
+                  title="การแจ้งเตือนข้อควรระวัง"
                 >
-                  <span>{cat.name}</span>
-                  {hasActiveItem && isCollapsed && (
-                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" />
+                  <Bell className="w-4 h-4" />
+                  {complianceNotifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {complianceNotifications.length}
+                    </span>
                   )}
-                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-500'}`} />
                 </button>
 
-                {/* Items in Category (Collapsible) */}
-                {!isCollapsed && (
-                  <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-150">
-                    {cat.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activeTab === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => handleTabSelect(item.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all duration-150 flex-shrink-0 cursor-pointer ${
-                            isActive
-                              ? "bg-slate-900 text-white shadow-xs scale-[1.01]"
-                              : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/80"
-                          }`}
-                        >
-                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-400"}`} />
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Notifications Dropdown */}
+                {isNotificationsOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsNotificationsOpen(false)} 
+                    />
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-xl z-50 overflow-hidden font-sans">
+                      <div className="p-3 bg-[#0E3A66] text-white flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-[#F3D98F]" />
+                          <span className="text-xs font-bold">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
+                        </div>
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto divide-y divide-[#DCE4EA] p-2">
+                        {complianceNotifications.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-[#6A7B87] space-y-1">
+                            <CheckCircle2 className="w-5 h-5 text-[#1E9C6E] mx-auto" />
+                            <p className="font-bold text-[#333B41]">ไม่มีข้อควรระวัง</p>
+                            <p className="text-[11px]">การจัดตารางกะถูกต้องตามเกณฑ์มาตรฐาน</p>
+                          </div>
+                        ) : (
+                          complianceNotifications.map((item, idx) => (
+                            <div 
+                              key={item.emp?.id || idx}
+                              onClick={() => {
+                                setIsNotificationsOpen(false);
+                                if (onOpenComplianceModal) onOpenComplianceModal(item);
+                              }}
+                              className="p-2.5 hover:bg-[#E8F3FA] rounded transition-colors cursor-pointer group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-[#0E3A66]">
+                                  {item.emp?.name}
+                                </span>
+                                <span className="tag t-r">
+                                  {item.alerts?.length || 0} ข้อระวัง
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-[#59656D] mt-1 space-y-0.5">
+                                {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
+                                  <p key={ai} className="truncate text-[#B3352C]">
+                                    • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
-            );
-          })}
+
+              {/* Profile button */}
+              <button 
+                onClick={onOpenProfile}
+                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] rounded transition-all text-left cursor-pointer"
+                title="ดูโปรไฟล์ของคุณ"
+              >
+                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold">
+                  {(currentUser?.name || "U")[0]}
+                </div>
+                <div className="text-left hidden lg:block pr-1">
+                  <p className="text-xs font-bold text-[#0E3A66] leading-tight truncate max-w-[100px]">{currentUser?.name || "ผู้ใช้งาน"}</p>
+                </div>
+              </button>
+
+              {/* Logout button */}
+              <button
+                onClick={onLogout}
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer"
+                title="ออกจากระบบ"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+          </div>
         </div>
+
+        {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
+        <div className="hidden md:block max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
+          <nav className="folder-tabs" role="tablist">
+            {tabsList.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={isActive ? "active" : ""}
+                  onClick={() => handleTabSelect(tab.id)}
+                >
+                  <span className="num">{tab.num}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon className="w-3.5 h-3.5 opacity-70" />
+                    <span>{tab.label}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
       </header>
 
       {/* ========================================================================= */}
-      {/* Mobile Navigation Drawer / Sheet (< lg / Mobile & Tablet)                */}
+      {/* Mobile Navigation Drawer / Sheet                                         */}
       {/* ========================================================================= */}
-      {/* Backdrop Overlay */}
       <div 
-        className={`fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 transition-opacity duration-200 ${
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsMobileMenuOpen(false)}
         aria-hidden={!isMobileMenuOpen}
       />
 
-      {/* Drawer Sheet Content */}
       <aside 
-        className={`fixed top-0 left-0 bottom-0 w-[85vw] max-w-[340px] bg-slate-900 text-slate-100 z-50 flex flex-col shadow-2xl border-r border-slate-800 transition-transform duration-300 ease-out transform ${
+        className={`fixed top-0 left-0 bottom-0 w-[80vw] max-w-[300px] bg-white text-[#333B41] z-50 flex flex-col shadow-xl border-r border-[#DCE4EA] transition-transform duration-200 ease-out transform ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="เมนูหลักสำหรับอุปกรณ์เคลื่อนที่"
       >
-        {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0b1a3a] via-[#1d3ec7] to-[#0b1a3a] text-white flex items-center justify-center font-black text-xs shadow-md border border-[#6d93fc]/30">
-              <span className="tracking-tighter font-mono">DA</span>
-            </div>
-            <div>
-              <h2 className="font-extrabold text-white leading-tight text-sm tracking-tight">Double A Terminal</h2>
-              <p className="text-[10px] font-bold text-[#a9cdfc] tracking-wider uppercase">Port & Logistics OT</p>
-            </div>
+        <div className="p-4 border-b border-[#DCE4EA] flex items-center justify-between">
+          <div>
+            <span className="eyebrow block">DOUBLE A TERMINAL</span>
+            <h2 className="font-bold text-[#0E3A66] text-sm">เมนูนำทางระบบ</h2>
           </div>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 active:bg-slate-700 transition-colors cursor-pointer"
-            aria-label="ปิดเมนู"
+            className="p-1 rounded text-[#6A7B87] hover:text-[#0E3A66] hover:bg-[#F3F6F8]"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* User Profile Card inside Drawer */}
-        <div className="p-3 border-b border-slate-800">
-          <button
-            type="button"
-            onClick={() => handleTabSelect("profile")}
-            className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer ${
-              activeTab === "profile" 
-                ? "bg-[#1d3ec7]/20 border-[#6d93fc]/50 text-white" 
-                : "bg-slate-800/60 border-slate-700 hover:bg-slate-800 text-slate-200"
-            }`}
-          >
-            <div className="w-10 h-10 rounded-full overflow-hidden shadow-inner border border-slate-700 flex-shrink-0 bg-slate-800 flex items-center justify-center">
-              {currentUser?.avatar ? (
-                <img alt="Profile" className="w-full h-full object-cover" src={currentUser.avatar} />
-              ) : (
-                <span className="text-sm font-bold text-[#a9cdfc]">{(currentUser?.name || "U")[0]}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-white truncate">{currentUser?.name || "ผู้ใช้งาน"}</p>
-              <p className="text-[10px] text-[#a9cdfc] truncate font-medium">{currentUser?.role || "-"}</p>
-            </div>
-            <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          </button>
-        </div>
-
-        {/* Scrollable Navigation Views (11 Functional Views) */}
-        <nav className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-4 touch-pan-y">
-          {categories.map((cat) => (
-            <div key={cat.name} className="space-y-1.5">
-              {/* Category Label */}
-              <div className="px-2 pt-1 flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-400">
-                <span>{cat.name}</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">{cat.items.length}</span>
-              </div>
-
-              {/* View Items */}
-              <div className="space-y-1">
-                {cat.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleTabSelect(item.id)}
-                      className={`w-full flex items-center gap-3 px-3.5 py-3 min-h-[48px] rounded-xl text-left text-sm font-bold transition-all duration-200 cursor-pointer ${
-                        isActive
-                          ? "bg-blue-600 bg-[#1d3ec7] text-white shadow-md ring-1 ring-[#6d93fc]/40"
-                          : "text-slate-300 hover:text-white hover:bg-slate-800/80 active:bg-slate-800"
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {isActive && <CheckCircle2 className="w-4 h-4 text-[#a9cdfc] flex-shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        {/* Drawer Footer Actions */}
-        <div className="p-3 border-t border-slate-800 space-y-2 bg-slate-950/40">
-          <PWAInstallButton variant="sidebar" />
-
-          {onOpenCsvTemplateHub && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onOpenCsvTemplateHub();
-              }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4 text-blue-400 shrink-0" />
-              <span className="truncate">ดาวน์โหลดแม่แบบ CSV</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>ออกจากระบบ</span>
-          </button>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {tabsList.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabSelect(tab.id)}
+                className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "bg-[#E8F3FA] text-[#0E3A66] border-l-3 border-[#0E3A66]"
+                    : "text-[#59656D] hover:bg-[#F3F6F8] hover:text-[#0E3A66]"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className="w-4 h-4 text-[#6A7B87]" />
+                  <span>{tab.label}</span>
+                </div>
+                <span className="font-mono text-[10px] text-[#6A7B87]">{tab.num}</span>
+              </button>
+            );
+          })}
         </div>
       </aside>
     </>

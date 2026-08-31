@@ -5137,28 +5137,24 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "dashboard" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-              {/* Maritime Terminal Header Banner */}
-              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-4 sm:p-6 shadow-xl text-white border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-96 h-full opacity-10 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(${loginBg})` }}></div>
-                <div className="relative z-10 space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-500/20 border border-sky-400/30 rounded-full text-xs font-bold text-sky-300">
-                    <Ship className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Double A Terminal & Maritime Logistics System</span>
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-black tracking-tight text-white">
+              {/* Calm Editorial Header Banner */}
+              <div className="bg-white border border-[#DCE4EA] rounded p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
+                  <h2 className="text-xl md:text-2xl font-bold text-[#0E3A66]">
                     ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
                   </h2>
-                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed font-medium">
-                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณลอจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
+                  <p className="text-xs text-[#59656D] max-w-3xl leading-relaxed">
+                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
                   </p>
                 </div>
-                <div className="relative z-10 flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setActiveTab("shifts")}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer min-h-[44px]"
+                    className="px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white font-semibold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Calendar className="w-4 h-4" />
-                    <span>จัดตารางกะเทียบเรือ</span>
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>จัดตารางกะพนักงาน</span>
                   </button>
                 </div>
               </div>
