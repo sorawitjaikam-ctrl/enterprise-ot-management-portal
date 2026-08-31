@@ -5879,83 +5879,26 @@ export default function App() {
                   const diffPct = totalProf25 > 0 ? Math.round(((totalProf26 - totalProf25) / totalProf25) * 100) : 0;
 
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                      {/* 1. Total Revenue */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-500">รายได้รวมสะสม (Total Revenue)</span>
-                          <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
-                            <DollarSign className="w-5 h-5" />
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <h4 className="text-2xl font-black text-slate-900 font-mono">
-                            {totalRev.toLocaleString()}
-                          </h4>
-                          <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
-                            <span>ประมาณการจาก {scopedJvRecords.length} บุคลากร</span>
-                          </p>
-                        </div>
+                    <div className="kpis grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 font-sans">
+                      <div className="kpi g">
+                        <span className="lbl">รายได้รวมสะสม (Total Revenue)</span>
+                        <span className="val">{totalRev.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">ประมาณการจาก {scopedJvRecords.length} บุคลากร</span>
                       </div>
-
-                      {/* 2. Total Cost */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-500">ต้นทุนรวมการดำเนินงาน (Total Cost)</span>
-                          <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
-                            <BarChart3 className="w-5 h-5" />
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <h4 className="text-2xl font-black text-rose-700 font-mono">
-                            {totalCost.toLocaleString()}
-                          </h4>
-                          <p className="text-[11px] font-semibold text-slate-500 mt-1">
-                            เฉลี่ย {avgCostPerPerson.toLocaleString()} / คน / เดือน
-                          </p>
-                        </div>
+                      <div className="kpi w">
+                        <span className="lbl">ต้นทุนรวมการดำเนินงาน</span>
+                        <span className="val">{totalCost.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">เฉลี่ย {avgCostPerPerson.toLocaleString()} / คน / เดือน</span>
                       </div>
-
-                      {/* 3. Total Profit 2026 */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-500">กำไรสุทธิสะสมปี 2026</span>
-                          <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                            <Award className="w-5 h-5" />
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <h4 className="text-2xl font-black text-blue-700 font-mono">
-                            {totalProf26.toLocaleString()}
-                          </h4>
-                          <p className={`text-[11px] font-bold mt-1 flex items-center gap-1 ${diffPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {diffPct >= 0 ? <TrendingUp className="w-3.5 h-3.5 inline" /> : <TrendingDown className="w-3.5 h-3.5 inline" />}
-                            <span>{diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`}</span>
-                            <span className="text-slate-400 font-normal">เทียบปี 2025</span>
-                          </p>
-                        </div>
+                      <div className="kpi b">
+                        <span className="lbl">กำไรสุทธิสะสมปี 2569</span>
+                        <span className="val">{totalProf26.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">{diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`} เทียบปี 2568</span>
                       </div>
-
-                      {/* 4. Coverage Ratio */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-500">พนักงานที่มีข้อมูล Job Value</span>
-                          <div className="p-2 bg-purple-50 rounded-xl text-purple-600">
-                            <Users className="w-5 h-5" />
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <h4 className="text-2xl font-black text-slate-900 font-mono">
-                            {scopedJvRecords.length} <span className="text-sm font-normal text-slate-500">/ {scopedEmpList.length} คน</span>
-                          </h4>
-                          <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
-                            <div 
-                              className="bg-purple-600 h-full rounded-full transition-all duration-500" 
-                              style={{ width: `${Math.min(100, Math.round((scopedJvRecords.length / Math.max(1, scopedEmpList.length)) * 100))}%` }}
-                            />
-                          </div>
-                        </div>
+                      <div className="kpi">
+                        <span className="lbl">ความครอบคลุมข้อมูลบุคลากร</span>
+                        <span className="val">{scopedJvRecords.length} <span className="text-xs font-normal text-[#6A7B87]">/ {scopedEmpList.length} คน</span></span>
+                        <span className="sub">คิดเป็น {Math.min(100, Math.round((scopedJvRecords.length / Math.max(1, scopedEmpList.length)) * 100))}% ของบุคลากรในสังกัด</span>
                       </div>
                     </div>
                   );
