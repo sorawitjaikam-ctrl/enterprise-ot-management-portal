@@ -11702,60 +11702,96 @@ export default function App() {
         if (deptBirthdays.length === 0 || dismissedBirthdayPopup) return null;
 
         return (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-amber-200 flex flex-col animate-in fade-in zoom-in-95 duration-200 text-center">
-              {/* Birthday Header Banner */}
-              <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white relative shadow-md">
-                <div className="w-10 h-10 mx-auto mb-2 bg-white/20 rounded-full flex items-center justify-center font-black text-xs tracking-wider shadow-inner">
-                  HBD
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-6 font-sans">
+            <div className="bg-white rounded border border-[#DCE4EA] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+              
+              {/* Calm Editorial Header Banner */}
+              <div className="bg-[#0E3A66] px-5 py-4 text-white flex items-center justify-between border-b border-[#17538F]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-[#17538F] border border-[#2E90CB]/40 text-[#F3D98F] flex items-center justify-center font-bold text-xs font-mono">
+                    HBD
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      <span>สุขสันต์วันเกิดพนักงานในทีม</span>
+                      <span className="border border-[#2E90CB]/50 bg-[#17538F] text-[#9FCEE8] text-[11px] font-normal px-2 py-0.5 rounded font-mono">
+                        {deptBirthdays.length} ท่าน
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-[#9FCEE8]">แจ้งเตือนวันคล้ายวันเกิดของบุคลากรในสังกัดประจำวันนี้</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black">สุขสันต์วันเกิดพนักงานในทีม!</h3>
-                <p className="text-xs text-amber-100 font-bold mt-1">แจ้งเตือนวันเกิดพนักงานในสังกัดประจำวันนี้</p>
+
                 <button 
                   type="button"
                   onClick={handleDismissBirthdayPopup}
-                  className="absolute top-3 right-3 text-white/80 hover:text-white p-1 rounded-full text-lg cursor-pointer"
+                  className="text-[#9FCEE8] hover:text-white hover:bg-[#17538F] p-1.5 rounded transition-colors cursor-pointer"
+                  aria-label="ปิดหน้าต่าง"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
-                {deptBirthdays.map(bEmp => (
-                  <div key={bEmp.id} className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200 flex items-center gap-4 text-left shadow-sm">
-                    <EmployeeAvatar empId={bEmp.id} empName={bEmp.name} className="w-14 h-14 border-2 border-white shadow-md flex-shrink-0 object-cover" />
-                    <div>
-                      <h4 className="text-base font-black text-slate-900">{bEmp.name}</h4>
-                      <p className="text-xs text-indigo-700 font-bold mt-0.5">
-                        {bEmp.role} • แผนก {getDeptName(bEmp.deptId, state?.departments)}
-                      </p>
-                      <p className="text-[11px] text-amber-800 font-extrabold mt-1">
-                        ครบรอบอายุ {bEmp.age || bEmp.calculatedAge || 30} ปีในวันนี้!
-                      </p>
+              {/* Horizontal Multi-Column Grid of Employees */}
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {deptBirthdays.map(bEmp => (
+                    <div 
+                      key={bEmp.id} 
+                      className="bg-[#FFFFFF] p-3.5 rounded border border-[#DCE4EA] hover:border-[#2E90CB] hover:bg-[#E8F3FA]/30 transition-all flex items-center gap-3"
+                    >
+                      <EmployeeAvatar 
+                        empId={bEmp.id} 
+                        empName={bEmp.name} 
+                        className="w-12 h-12 rounded border border-[#DCE4EA] shadow-xs flex-shrink-0 object-cover" 
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-[#0E3A66] truncate leading-snug">
+                          {bEmp.name}
+                        </h4>
+                        <p className="text-[11px] text-[#59656D] truncate mt-0.5">
+                          {bEmp.role}
+                        </p>
+                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-[#DCE4EA]/60">
+                          <span className="text-[10px] text-[#6A7B87]">
+                            {getDeptName(bEmp.deptId, state?.departments)}
+                          </span>
+                          <span className="tag t-y text-[10px]">
+                            อายุ {bEmp.age || bEmp.calculatedAge || 30} ปี
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
 
-                <div className="pt-2 flex items-center gap-2">
+              {/* Modal Action Footer */}
+              <div className="px-5 py-3.5 bg-[#F3F6F8] border-t border-[#DCE4EA] flex items-center justify-between gap-3">
+                <span className="text-[11px] text-[#6A7B87] hidden sm:inline">
+                  ขอให้มีความสุข สุขภาพแข็งแรง และประสบความสำเร็จในการทำงาน
+                </span>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={handleDismissBirthdayPopup}
+                    className="px-4 py-2 bg-white hover:bg-slate-100 text-[#333B41] border border-[#DCE4EA] rounded text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    ปิด
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       alert("ส่งคำอวยพรวันเกิดให้พนักงานในสังกัดเรียบร้อยแล้ว!");
                       handleDismissBirthdayPopup();
                     }}
-                    className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-2xl text-xs font-black shadow-md cursor-pointer transition-all"
+                    className="px-5 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-semibold shadow-xs cursor-pointer transition-colors"
                   >
                     ร่วมส่งคำอวยพรวันเกิด
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleDismissBirthdayPopup}
-                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    ปิด
-                  </button>
                 </div>
               </div>
+
             </div>
           </div>
         );
