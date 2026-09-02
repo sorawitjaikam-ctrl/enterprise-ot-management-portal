@@ -108,8 +108,8 @@ describe('Tier 4: Circadian 24-Hour Timeline & Heatmap Workflows', () => {
     );
 
     // Verify Circadian Legend
-    expect(screen.getByText(/Day Band \(08:00 - 20:00\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Night Band \(20:00 - 08:00\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/กะกลางวัน \(08:00 - 20:00\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/กะดึก \(20:00 - 08:00\)/i)).toBeInTheDocument();
   });
 
   it('T4.7.4: Cross-midnight shifts render segment capsules across midnight', () => {

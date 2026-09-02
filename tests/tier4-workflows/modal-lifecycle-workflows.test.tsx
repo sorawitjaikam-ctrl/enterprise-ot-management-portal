@@ -62,9 +62,9 @@ describe('Tier 4: 19 Modals Lifecycle, Touch Dismiss & Backdrop Behavior', () =>
     expect(backdrop?.className).toContain('inset-0');
   });
 
-  it('T4.5.5: Modal components maintain smooth rounded container styling and backdrop blur', () => {
+  it('T4.5.5: Modal components maintain clean minimal container styling and backdrop blur', () => {
     const { container } = render(<CsvTemplateHubModal isOpen={true} onClose={() => {}} />);
-    const dialogCard = container.querySelector('.rounded-3xl');
+    const dialogCard = container.querySelector('.rounded, .rounded-lg, .rounded-xl, .rounded-2xl');
     expect(dialogCard).not.toBeNull();
   });
 });

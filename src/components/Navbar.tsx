@@ -179,7 +179,7 @@ export default function Navbar({
                       className="fixed inset-0 z-40" 
                       onClick={() => setIsNotificationsOpen(false)} 
                     />
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-xl z-50 overflow-hidden font-sans">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
                       <div className="p-3 bg-[#0E3A66] text-white flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-[#F3D98F]" />
@@ -286,7 +286,7 @@ export default function Navbar({
       {/* Mobile Navigation Drawer / Sheet                                         */}
       {/* ========================================================================= */}
       <div 
-        className={`fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-[#0E3A66]/40 backdrop-blur-xs z-50 transition-opacity duration-200 ${
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsMobileMenuOpen(false)}
@@ -294,7 +294,7 @@ export default function Navbar({
       />
 
       <aside 
-        className={`fixed top-0 left-0 bottom-0 w-[80vw] max-w-[300px] bg-white text-[#333B41] z-50 flex flex-col shadow-xl border-r border-[#DCE4EA] transition-transform duration-200 ease-out transform ${
+        className={`fixed top-0 left-0 bottom-0 w-[80vw] max-w-[300px] bg-white text-[#333B41] z-50 flex flex-col shadow-lg border-r border-[#DCE4EA] transition-transform duration-200 ease-out transform ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="เมนูหลักสำหรับอุปกรณ์เคลื่อนที่"

@@ -41,20 +41,20 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
 
       // Verify desktop category navigation buttons
       const expectedButtons = [
-        { label: /หน้าแรก Dashboard/i, id: 'dashboard' },
+        { label: /ภาพรวม Dashboard/i, id: 'dashboard' },
         { label: /ตารางจัดกะพนักงาน/i, id: 'shifts' },
         { label: /รายชื่อพนักงาน/i, id: 'employees' },
-        { label: /Job Value/i, id: 'job_value' },
-        { label: /จัดการข้อมูลพนักงาน & รายได้/i, id: 'hr-editor' },
+        { label: /โครงสร้าง Job Value/i, id: 'job_value' },
         { label: /บันทึกวันลา/i, id: 'leave-records' },
         { label: /ประวัติ OT จากกะ/i, id: 'ot-records' },
-        { label: /รายงานข้อมูลรายแผนก/i, id: 'reports' },
+        { label: /รายงานรายแผนก/i, id: 'reports' },
+        { label: /ข้อมูล & รายได้/i, id: 'hr-editor' },
         { label: /สิทธิ์ผู้ใช้งาน/i, id: 'admin-permissions' },
         { label: /ตั้งค่าระบบ/i, id: 'settings' },
       ];
 
       expectedButtons.forEach(({ label, id }) => {
-        const btns = screen.getAllByRole('button', { name: label });
+        const btns = screen.getAllByRole('tab', { name: label });
         expect(btns.length).toBeGreaterThan(0);
         fireEvent.click(btns[0]);
         expect(setActiveTab).toHaveBeenCalledWith(id);
@@ -81,30 +81,23 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
       fireEvent.click(hamburger);
 
       const drawer = screen.getByLabelText('เมนูหลักสำหรับอุปกรณ์เคลื่อนที่');
-      // Drawer Profile Card
-      const drawerProfileCard = within(drawer).getByText('Admin Manager').closest('button');
-      if (drawerProfileCard) {
-        fireEvent.click(drawerProfileCard);
-        expect(setActiveTab).toHaveBeenCalledWith('profile');
-      }
 
       // Check all 10 categorized view buttons in drawer
       const navTargets = [
-        { id: 'dashboard', label: 'หน้าแรก Dashboard' },
+        { id: 'dashboard', label: 'ภาพรวม Dashboard' },
         { id: 'shifts', label: 'ตารางจัดกะพนักงาน' },
         { id: 'employees', label: 'รายชื่อพนักงาน' },
-        { id: 'job_value', label: 'Job Value' },
-        { id: 'hr-editor', label: 'จัดการข้อมูลพนักงาน' },
+        { id: 'job_value', label: 'โครงสร้าง Job Value' },
         { id: 'leave-records', label: 'บันทึกวันลา' },
-        { id: 'ot-records', label: 'ประวัติ OT' },
-        { id: 'reports', label: 'รายงานข้อมูลรายแผนก' },
+        { id: 'ot-records', label: 'ประวัติ OT จากกะ' },
+        { id: 'reports', label: 'รายงานรายแผนก' },
+        { id: 'hr-editor', label: 'ข้อมูล & รายได้' },
         { id: 'admin-permissions', label: 'สิทธิ์ผู้ใช้งาน' },
         { id: 'settings', label: 'ตั้งค่าระบบ' }
       ];
 
       navTargets.forEach(({ id, label }) => {
-        // Find buttons in drawer nav
-        const drawerNavButtons = drawer.querySelectorAll('nav button');
+        const drawerNavButtons = drawer.querySelectorAll('button');
         const match = Array.from(drawerNavButtons).find((btn) => btn.textContent?.includes(label));
         expect(match).toBeDefined();
         if (match) {
@@ -168,7 +161,7 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
       );
 
       // hr-editor, admin-permissions, settings should not be rendered for standard user
-      expect(screen.queryByText(/จัดการข้อมูลพนักงาน & รายได้/i)).toBeNull();
+      expect(screen.queryByText(/ข้อมูล & รายได้/i)).toBeNull();
       expect(screen.queryByText(/สิทธิ์ผู้ใช้งาน/i)).toBeNull();
       expect(screen.queryByText(/ตั้งค่าระบบ/i)).toBeNull();
     });
@@ -188,7 +181,7 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         />
       );
 
-      const brandLogos = screen.getAllByText('Double A Terminal');
+      const brandLogos = screen.getAllByText(/Double A Terminal/i);
       const brandLogo = brandLogos[0].closest('div');
       expect(brandLogo).not.toBeNull();
       if (brandLogo) {

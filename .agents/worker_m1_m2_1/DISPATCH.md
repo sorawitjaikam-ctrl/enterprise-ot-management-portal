@@ -1,31 +1,35 @@
-## 2026-08-24T07:18:00Z
-Task assigned: Worker 1 for Milestone 1, 2 & 3 implementation.
-Tasks:
-1. Palette & Styling Overhaul (Requirement R1):
-   - Strict 4-tone monochromatic blue palette:
-     * Deep Navy Blue (`#0b1a3a`)
-     * Royal Cobalt Blue (`#1d3ec7`)
-     * Soft Cornflower Blue (`#6d93fc`)
-     * Light Ice Blue (`#a9cdfc`)
-     * Crisp white (`#ffffff`) and neutral minimalist grays (`#f8fafc` / `#e2e8f0`).
-   - Hairline borders, generous spacing, high typographic hierarchy, zero decorative clutter.
-   - Refactor `src/index.css`, `src/App.tsx`, and component styles.
-2. Complete 100% Emoji Elimination (Requirement R2):
-   - Remove/replace all 136 emoji occurrences across codebase:
-     * `src/App.tsx` (99 instances)
-     * `src/components/CircadianTimelineModal.tsx` (7 instances)
-     * `src/components/LiveSimulationHUD.tsx` (3 instances)
-     * `src/components/PremiumShiftTimePickerModal.tsx` (4 instances)
-     * `src/components/ShiftRadialPicker.tsx` (3 instances)
-     * `src/main.tsx` (1 instance)
-     * `src/utils/circadianEngine.ts` (2 instances)
-     * `server.ts` (4 instances)
-     * `tests/tier5-adversarial/shift-engine-stress.test.tsx` (regex matchers)
-     * `scripts/*.mjs` (CLI logs -> [PASS]/[FAIL])
-   - Replace with crisp Lucide React SVG icons or clean text labels.
-3. Core Functionality Audit & Navbar Test Fix (Requirement R3 & R4):
-   - In `src/components/Navbar.tsx` (line 263), update title="การแจ้งเตือน"
-   - Verify dynamic 24H Shift calculation, overnight shifts (20:00-08:00), 24h shifts (08:00-08:00), reset functionality, persistence.
-   - Sticky columns (`w-56`, `sticky left-0`), sticky headers, summary width (`w-[368px]`), Plan/Actual/Both toggle.
-4. Mandatory Integrity Mandate: Genuine implementation, no hardcoded cheating.
-5. Verification: `npm run lint`, `npm run build`, `npm test` (all 243+ tests passing).
+## 2026-09-02T05:23:17Z
+You are the Overhaul Worker (Replacement) for the Radical Minimalism Overhaul of the Enterprise OT Management Portal.
+
+Working Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_m1_m2_1
+Original Request: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
+Project Root: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
+Project Plan: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
+Survey Analysis UX: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_ux\analysis.md
+Survey Analysis Design: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\explorer_survey_design\analysis.md
+Reviewer 2 Findings: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_m1_2\handoff.md
+
+MANDATORY INTEGRITY WARNING:
+DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+
+Your mission:
+1. Read ORIGINAL_REQUEST.md, PROJECT.md, and the survey analysis files.
+2. Fix the 5 TypeScript mock typing errors in `tests/`:
+   - `tests/tier2-responsive/radical-minimalism-boundary-stress.test.tsx` (add `groupName: "Default"`)
+   - `tests/tier4-workflows/radical-minimalism-cross-features.test.tsx` (add `groupName: "Default"`, fix parameter structure for `calculateHourlyStaffingDensity`)
+   - `tests/tier4-workflows/radical-minimalism-labor-law-lifecycle.test.ts` (add `groupName: "Default"`, fix violation type check)
+   - Verify that `npm run lint` (`tsc --noEmit`) passes with exit code 0.
+3. Overhaul Navigation & App Shell in `src/components/Navbar.tsx`:
+   - Strict palette (`#0E3A66`, `#17538F`, `#DCE4EA`, `#F3F6F8`), hairline borders (`1px solid #DCE4EA`), concise tab labels, 1-2 click flows for top-5 tasks.
+4. Overhaul all 11 Views in `src/App.tsx`:
+   - Purge 250+ legacy hex codes (`#0b1a3a`, `#1d3ec7`, `#6d93fc`, `#a9cdfc`, `#ddebf7`, etc.) in favor of the 12 authorized palette tokens (`#0E3A66`, `#17538F`, `#2E90CB`, `#9FCEE8`, `#E8F3FA`, `#1E9C6E`, `#D99B14`, `#B3352C`, `#333B41`..`#FFFFFF`).
+   - Eliminate all container gradients (`bg-gradient-*`), heavy box shadows (`shadow-2xl`, `shadow-xl`), animated pulsing/pinging dots, and decorative sparklines.
+   - Consolidate sections across all 11 views to achieve >=20% top-level section reduction (e.g. merge redundant section headers/toolbars, deduplicate user management table in Settings).
+   - Enforce micro-copy ruthless brevity: button labels <= 4 words, section headers <= 6 words, placeholders < 5 words, remove obvious explanatory subtitles.
+5. Overhaul 10 Data Tables:
+   - Ensure all 10 data tables use hairline separators (`divide-[#DCE4EA]`), generous row padding, and frozen sticky headers/columns on mobile (375px), tablet (768px), and desktop (1440px+).
+6. Verify:
+   - `npm run lint` (`tsc --noEmit`) -> MUST pass with exit code 0 (0 errors).
+   - `npm run build` -> MUST pass with exit code 0.
+   - `npm test` -> MUST pass 100% of test suites.
+7. Write `progress.md` and `handoff.md` in your working directory. Send a message to parent when done.

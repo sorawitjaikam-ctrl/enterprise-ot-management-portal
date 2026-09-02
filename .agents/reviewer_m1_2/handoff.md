@@ -1,147 +1,113 @@
-# Milestone 1: PWA Infrastructure & Offline App Shell — Reviewer 2 Report
+# Milestone 1 Reviewer 2 Report: Design System & Minimalist Components
 
-**Reviewer**: Reviewer 2 (`reviewer_m1_2`)  
-**Working Directory**: `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_m1_2`  
-**Date**: 2026-08-22  
-**Verdict**: `APPROVE`  
-**Overall Risk Assessment**: `LOW`  
+## Review Summary
+**Verdict**: REQUEST_CHANGES
 
 ---
 
 ## 1. Observation
-
-### A. Service Worker Architecture (`public/sw.js`)
-1. **4-Tier Cache Partitioning & Versioning** (lines 13-24):
-   - `CACHE_VERSION = 'v1'`
-   - `SHELL_CACHE_NAME = 'ot-portal-v1-shell'`
-   - `RUNTIME_CACHE_NAME = 'ot-portal-v1-runtime'`
-   - `FONT_CACHE_NAME = 'ot-portal-v1-fonts'`
-   - `DATA_CACHE_NAME = 'ot-portal-v1-data'`
-   - `CURRENT_CACHES` contains all 4 versioned cache names.
-2. **Resilient Pre-Caching** (lines 27-68):
-   - `PRECACHE_URLS` lists 16 core app shell assets (`/`, `/index.html`, `/manifest.webmanifest`, `/manifest.json`, `/favicon.ico`, `/login-bg.jpg`, and all 10 icon PNG/SVG assets).
-   - In `self.addEventListener('install', ...)`, uses `Promise.allSettled` to fetch each asset with `{ cache: 'no-cache' }`, ensuring missing non-critical assets do not abort installation.
-   - Automatically triggers `self.skipWaiting()`.
-3. **Stale Cache Purging & Immediate Control** (lines 73-88):
-   - In `self.addEventListener('activate', ...)`, enumerates cache keys and deletes any cache starting with `ot-portal-` that is not in `CURRENT_CACHES`.
-   - Calls `self.clients.claim()` immediately after cache cleanup.
-4. **Inter-Process Message Handling** (lines 93-107):
-   - Intercepts `SKIP_WAITING` to trigger `self.skipWaiting()`.
-   - Intercepts `CLIENTS_CLAIM` to trigger `self.clients.claim()`.
-   - Intercepts `GET_VERSION` and replies with `{ version: CACHE_VERSION }` over `MessagePort`.
-5. **Caching Strategies & Fallbacks** (lines 110-265):
-   - **Vite HMR Isolation** (lines 197-206): Bypasses SW for `/@vite`, `/@fs`, `/@id`, `__vite_ping`, `hot-update`, and `node_modules`.
-   - **SPA Navigation** (lines 214-216): `request.mode === 'navigate'` routes through `networkFirst(request, SHELL_CACHE_NAME, '/index.html')`, providing offline fallback to the pre-cached `/index.html`.
-   - **Google Fonts & Material Icons** (lines 220-229): Routes through `staleWhileRevalidate(request, FONT_CACHE_NAME)` for `.woff2`, `.woff`, `.ttf`, `fonts.googleapis.com`, and `fonts.gstatic.com`.
-   - **API Requests** (lines 231-235): Routes through `networkFirst(request, DATA_CACHE_NAME)`. If offline and uncached, returns a 503 JSON response `{ offline: true, status: 'offline', message: '...' }` with header `Content-Type: application/json; charset=utf-8`.
-   - **Static Assets** (lines 237-259): Routes `/assets/*`, `.png`, `.jpg`, `.svg`, `.webp`, `.js`, `.css` through `cacheFirst(request, RUNTIME_CACHE_NAME)`.
-
-### B. Client Registration & React Lifecycle
-1. **Deferred SW Registration & HMR Protection** (`src/pwa/registerServiceWorker.ts`):
-   - Defers registration to `window.addEventListener('load', ...)` to preserve Critical Rendering Path.
-   - Checks `import.meta.env.DEV` and bypasses registration during local development unless `enableInDev` or `?enable_sw=1` is provided.
-   - Listens to `navigator.serviceWorker.addEventListener('controllerchange', ...)` guarded by `isRefreshing` boolean latch to prevent reload loops.
-   - Listens to `updatefound` on registration and dispatches custom `pwa:update-available` DOM event.
-2. **React Hook Lifecycle** (`src/hooks/usePWA.ts`):
-   - Intercepts `beforeinstallprompt` event, prevents default banner, and saves prompt into state (`isInstallable = true`).
-   - Implements `promptInstall()` returning user outcome (`accepted` | `dismissed` | `unavailable`).
-   - Listens to `appinstalled` event to clear prompt and update `isInstalled = true`.
-   - Detects standalone display mode via `window.matchMedia('(display-mode: standalone)')` and iOS `navigator.standalone`.
-   - Listens to `online` and `offline` events to update `isOffline` state.
-   - Listens to `pwa:update-available` and provides `applyUpdate()` (`skipWaitingAndReload`).
-3. **Touch Ergonomics & UI Components** (`src/components/PWAComponents.tsx`):
-   - `<PWAUpdateNotification />`: Fixed bottom toast alert with `min-h-[44px]` update button and `min-h-[44px] min-w-[44px]` dismiss button.
-   - `<PWAInstallButton />`: Navbar and sidebar button with `min-h-[44px]` touch target.
-   - `<PWAOfflineBadge />`: Amber connectivity pill with `role="status"` and `aria-live="polite"`.
-   - `<PWAInstallBanner />`: Mobile/tablet top banner with `min-h-[44px]` install button.
-4. **App Integration**:
-   - `src/main.tsx` (lines 70-85): Invokes `registerServiceWorker(...)`.
-   - `src/components/Navbar.tsx` (lines 223-225, 486): Renders `PWAOfflineBadge` and `PWAInstallButton` in desktop header and mobile drawer.
-   - `src/App.tsx` (line 11597): Mounts `<PWAUpdateNotification />` at root layout.
-   - `index.html`: Correctly specifies manifest link, theme colors, iOS Apple touch meta tags, and `viewport-fit=cover`.
-
-### C. Build & Script Execution Outputs
-1. `npm run build`:
-   - Command: `npm run build`
-   - Exit code: `0`
-   - Build output: `dist/index.html` (2.62 kB), `dist/sw.js` (copied), `dist/manifest.webmanifest` (copied), `dist/manifest.json` (copied), `dist/icons/*` (10 assets), `dist/server.cjs` (75.2 kB).
-2. `node scripts/verify-pwa.mjs`:
-   - Command: `node scripts/verify-pwa.mjs`
-   - Exit code: `0`
-   - Output: `🎉 ALL PWA VERIFICATION CHECKS PASSED PERFECTLY!` (28/28 assertions passed).
+- **Design Tokens & Global CSS**:
+  - `index.html`:
+    - Lines 15-17: Theme color set to `#0E3A66`.
+    - Line 34: `msapplication-TileColor` set to `#0E3A66`.
+    - Google Material Symbols stylesheet (`family=Material+Symbols+Outlined`) was completely removed.
+    - Inter font loaded via Google Fonts link.
+    - Body class: `bg-[#F3F6F8] text-[#333B41] antialiased font-sans`.
+  - `tailwind.config.js`:
+    - Strict 12-token maritime palette properly mapped: `navy` (`#0E3A66`, `#17538F`, `#2E90CB`, `#9FCEE8`, `#E8F3FA`), `semantic` (`#1E9C6E`, `#D99B14`, `#B3352C`), `neutral` (`#333B41`, `#59656D`, `#6A7B87`, `#B4C1C9`, `#DCE4EA`, `#F3F6F8`, `#FFFFFF`), with hairline border color `#DCE4EA`.
+  - `src/index.css`:
+    - Configured `@theme` and `:root` variables aligned with 12 tokens and light semantic tints (`#FCF3DE`, `#F3D98F`, `#E8F6F0`, `#A5DCC5`, `#FBEAEA`, `#F4B8B4`).
+    - Added hairline border utilities: `.border-hairline`, `.border-hairline-t`, `.border-hairline-b`, `.border-hairline-l`, `.border-hairline-r` using `1px solid var(--line)` (`#DCE4EA`).
+    - 5px scrollbars with `--navy2` hover states.
+- **Component Sub-Modules & Modals**:
+  - `src/components/CircadianTimelineModal.tsx`:
+    - Fully purged dark sci-fi / cyberpunk theme (`bg-slate-950`, `border-cyan-500/30`, `animate-pulse`, `animate-ping`).
+    - Restyled with white background, `#0E3A66` headers, 6 telemetry cards, and clean `#0E3A66`/`#17538F`/`#2E90CB`/`#1E9C6E` Gantt timeline bars.
+  - `src/components/ShiftRadialPicker.tsx`:
+    - Restyled into flat white card with hairline `#DCE4EA` border, 3-column shift grid, 1-touch complementary shift button, and hotkey hints.
+  - `src/components/LiveSimulationHUD.tsx`:
+    - Restyled into white docked status bar with hairline borders, flat budget progress bar, OT delta badges, and shift palette triggers.
+  - `src/components/CsvTemplateHubModal.tsx`:
+    - Restyled with flat white cards, clean `.tag` badges, and single/bulk UTF-8 BOM CSV download actions.
+  - `src/components/PremiumShiftTimePickerModal.tsx`:
+    - Two-column layout (7 cols clean calendar, 5 cols 24h steppers/inputs), `#0E3A66` selection indicators, dynamic shift calculation, and Plan/Actual/Both toggle.
+- **Iconography & Micro-Copy**:
+  - 0 emojis found across modified files.
+  - 0 Material Symbols found across the codebase.
+  - Functional Lucide icons used consistently throughout all modals.
+  - Micro-copy adheres to ruthless brevity: button labels <= 4 words, section headers <= 6 words, placeholders < 5 words.
+- **Automated Verification Results**:
+  - `npm run build`: **PASS** (Exit code 0, 0 Vite errors, 0 bundle errors, 12.23s).
+  - `npx vitest run`: **PASS** (38/38 test files passed, 293/293 tests passed).
+  - `npm run lint` (`tsc --noEmit`): **FAIL** (Exit code 1, 5 TypeScript errors in test mock files).
 
 ---
 
 ## 2. Logic Chain
-
-1. **Verification of W3C Manifest and PWA Standalone Mode**:
-   - The manifest files (`public/manifest.webmanifest` and `public/manifest.json`) strictly satisfy W3C web manifest specifications: `display: "standalone"`, `theme_color: "#0f172a"`, `background_color: "#0f172a"`, and comprehensive icon definitions across 192x192 and 512x512 with `any` and `maskable` purposes.
-   - The application header in `index.html` binds the manifest, Apple touch icons, and status bar styles, ensuring full installability across Chromium (Android/Chrome/Edge) and Safari (iOS/macOS).
-
-2. **Verification of Offline Resilience & Partitioned Cache Architecture**:
-   - In on-site port operations where berth connectivity fluctuates, standard navigation requests fail without an offline app shell.
-   - By pre-caching `/index.html` during `install` in `ot-portal-v1-shell` and using `networkFirst` with `/index.html` fallback for navigation requests (`request.mode === 'navigate'`), the portal boots immediately offline.
-   - Stale-While-Revalidate caching for Google Fonts and Material Icons prevents FOIT while keeping typography up to date.
-   - Network-First with 503 JSON fallback prevents hanging requests and provides deterministic error structures for offline API calls.
-
-3. **Verification of Client Lifecycle, Update Synchronization, and Ergonomics**:
-   - The `registerServiceWorker.ts` module uses an `isRefreshing` latch on the `controllerchange` event to guarantee that applying an update reloads all tabs cleanly without infinite loop conditions.
-   - All interactive PWA elements in `PWAComponents.tsx`, `Navbar.tsx`, and `App.tsx` strictly adhere to `>= 44x44px` tap target dimensions, meeting mobile touch ergonomics standards (§R4).
-
-4. **Integrity & Code Cleanliness Verification**:
-   - Source inspection confirms genuine logic implementations for Service Worker caching, lifecycle hooks, and React components.
-   - No hardcoded test stubs, no fake passes, no mock facades, and no layout rule violations. `.agents/` contains only agent markdown metadata.
+1. *Design System & Visual Architecture*: All 5 target modal/HUD components and global stylesheets strictly adhere to the 12-token maritime palette, hairline borders (`1px solid #DCE4EA`), flat elevation (no heavy shadows, no rogue gradients), and Inter sans-serif typography.
+2. *Zero-Emoji & Iconography Compliance*: The removal of Google Material Symbols and emojis was verified via independent regex and code inspection; all visual indicators are now powered by purposeful Lucide React SVG icons.
+3. *Functional Integrity*: All interactive workflows (24h shift picker steppers, date navigation, circadian density calculation, budget simulations, and CSV downloads) maintain 100% calculation and runtime integrity (verified across 293 unit/integration tests).
+4. *Typecheck & Verification Gap*: While `npm run build` bundles successfully, `npm run lint` (`tsc --noEmit`) fails with 5 TypeScript type errors in newly created test files. Because the project contract requires `npm run lint` to pass with 0 errors, changes are required to fix the TypeScript definitions in those test files.
 
 ---
 
-## 3. Adversarial Stress-Testing & Edge Cases
+## 3. Findings
 
-| # | Stress Test Scenario | Tested Mechanism | Result | Status |
-|---|----------------------|------------------|--------|--------|
-| 1 | **Multi-Tab Update Race Condition** | When multiple tabs receive a SW update simultaneously, `controllerchange` triggers `location.reload()`. | `isRefreshing = true` boolean latch prevents multiple reload cycles per tab. | **PASS** |
-| 2 | **Pre-Caching Asset 404 / Network Glitch** | A non-critical icon or image fails to fetch during SW installation. | `Promise.allSettled` with internal `try/catch` prevents entire SW installation failure. | **PASS** |
-| 3 | **Uncached Offline API GET Request** | Device goes offline and requests an uncached `/api/*` endpoint. | Returns deterministic HTTP 503 JSON response (`{ offline: true, status: 'offline' }`). | **PASS** |
-| 4 | **Non-GET API Mutations Offline** | POST/PUT/DELETE API requests while offline. | Explicitly bypassed (`request.method !== 'GET'`) to avoid caching mutations or invalid cache state. | **PASS** |
-| 5 | **Vite Dev Server HMR Interference** | Running local dev server (`npm run dev`). | SW registration is bypassed by default in dev mode (`import.meta.env.DEV`), and SW ignores `/@vite`, `/@fs`, `/@id`, `hot-update` routes. | **PASS** |
-| 6 | **iOS Safari Add-to-Home-Screen Support** | iOS Safari does not fire `beforeinstallprompt`. | `usePWA` detects `isIOS` and `index.html` supplies `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, and `apple-touch-icon`. | **PASS** |
-| 7 | **Touch Target Sizing (<44px Tap Targets)** | Operating UI with gloves / mobile touch. | All PWA buttons, dismiss icons, and navbar drawer links satisfy `min-h-[44px]` and `min-w-[44px]`. | **PASS** |
-
----
-
-## 4. Caveats
-
-- In Vite development mode (`npm run dev`), the Service Worker is skipped by default to preserve Hot Module Replacement (HMR). To test the Service Worker in dev mode, navigate to `http://localhost:3000/?enable_sw=1`. In production builds (`npm run build && npm start`), the Service Worker is always active.
-- TypeScript ambient diagnostics (`npm run lint` / `tsc --noEmit`) contain pre-existing mismatches from legacy code (e.g. `PagesFunction`, legacy error boundary typings, test runner imports) which are planned for Milestone 4 (Feature 23). The production build (`npm run build`) compiles cleanly with 0 errors.
+### [Major] Finding 1: TypeScript Errors in Test Suites during `npm run lint`
+- **What**: `npm run lint` (`tsc --noEmit`) fails with exit code 1 due to 5 TypeScript errors in test files.
+- **Where**:
+  1. `tests/tier2-responsive/radical-minimalism-boundary-stress.test.tsx:64` — Mock `Employee` missing required property `groupName`.
+  2. `tests/tier4-workflows/radical-minimalism-cross-features.test.tsx:44` — Mock `Employee` missing required property `groupName`.
+  3. `tests/tier4-workflows/radical-minimalism-cross-features.test.tsx:72` — Argument of type `{ empId: string; dateStr: string; newShift: string; }[]` passed to `calculateHourlyStaffingDensity` instead of `Record<string, string>`.
+  4. `tests/tier4-workflows/radical-minimalism-labor-law-lifecycle.test.ts:8` — Property `groupName` optional in mock but required in `Employee`.
+  5. `tests/tier4-workflows/radical-minimalism-labor-law-lifecycle.test.ts:83` — Comparison `v.type === 'fatigue'` appears unintentional because `ComplianceViolation.type` is `'weekly_ot' | 'rest_period'`.
+- **Why**: Worker M1_1 handoff report stated `npm run lint` passed with 0 errors, but `tsc --noEmit` checks the entire repository (including `tests/`), causing CI/lint failure.
+- **Suggestion**: Update mock `Employee` objects in the test files to include `groupName: "Default"`, fix parameter structure for `calculateHourlyStaffingDensity`, and update compliance violation type comparisons.
 
 ---
 
-## 5. Conclusion
+## 4. Adversarial Challenge & Stress-Testing
 
-Milestone 1: PWA Infrastructure & Offline App Shell is thoroughly implemented, resilient against adversarial failure modes, W3C-compliant, and compiles cleanly with zero build errors.
+### Challenge 1: Type Safety Invariants across Mock Data
+- **Assumption challenged**: Mock employee generators in test suites reflect the full `Employee` interface contract.
+- **Attack scenario**: `tsc --noEmit` executed in strict mode flags missing mandatory interface fields (`groupName`), blocking CI/CD pipelines.
+- **Blast radius**: Prevents automated lint verification from passing despite valid production code.
+- **Mitigation**: Standardize test mock factory helper to guarantee valid `Employee` object shapes.
 
-**Explicit Verdict**: **`APPROVE`**
+### Challenge 2: Modal Viewport Clamping on Small Screens
+- **Assumption challenged**: `ShiftRadialPicker` popup stays within visible screen bounds when spawned near viewport edges.
+- **Stress test**: Position clamping math verified: `posX = Math.max(10, Math.min(window.innerWidth - 340, ...))` and `posY = Math.max(10, Math.min(window.innerHeight - 440, ...))`. Clamping logic prevents offscreen overflow. -> **PASS**.
 
 ---
 
-## 6. Verification Method
+## 5. Verified Claims vs Unverified Claims
 
-### 1. Build Verification
-```bash
-npm run build
-```
-*Expected*: Exit code 0. Clean compilation of `dist/index.html`, `dist/sw.js`, `dist/manifest.webmanifest`, `dist/manifest.json`, and `dist/icons/*`.
+### Verified Claims
+- [x] 12-token maritime design palette and CSS variables active in `tailwind.config.js` and `src/index.css`.
+- [x] 0 emojis in modified modules, HTML, and CSS.
+- [x] 0 Material Symbols in modified modules and `index.html`.
+- [x] 0 rogue gradients and 0 heavy shadows in modified modules.
+- [x] `npm run build` compiles cleanly with 0 errors (12.23s).
+- [x] 38/38 vitest test suites pass (293/293 tests).
 
-### 2. Automated PWA Integrity Suite
-```bash
-node scripts/verify-pwa.mjs
-```
-*Expected*: Exit code 0. All 28 assertions pass with `🎉 ALL PWA VERIFICATION CHECKS PASSED PERFECTLY!`.
+### Unverified / Refuted Claims
+- [!] `npm run lint` (`tsc --noEmit`) passes with 0 errors -> **REFUTED**: Exited with code 1 (5 TypeScript errors in test files).
 
-### 3. Service Worker & Caching DevTools Verification
-1. Run `npm start` (or `npm run dev` with `?enable_sw=1`).
-2. Open Chrome DevTools -> **Application**:
-   - **Manifest**: Verify Name, Short Name, Theme Color (`#0f172a`), Standalone display, and 5 icons are recognized.
-   - **Service Workers**: Verify `/sw.js` is active and running at scope `/`.
-   - **Cache Storage**: Verify 4 caches are populated (`ot-portal-v1-shell`, `ot-portal-v1-runtime`, `ot-portal-v1-fonts`, `ot-portal-v1-data`).
-3. Toggle Network to **Offline** and refresh:
-   - Verify app shell loads immediately from cache, and the offline badge appears.
+---
+
+## 6. Caveats
+- Production component implementations (`CircadianTimelineModal.tsx`, `ShiftRadialPicker.tsx`, `LiveSimulationHUD.tsx`, `CsvTemplateHubModal.tsx`, `PremiumShiftTimePickerModal.tsx`, `src/index.css`, `tailwind.config.js`, `index.html`) are completely sound and free of lint errors.
+- The 5 TypeScript errors originate in test mock data definitions added in the `tests/` directory.
+
+---
+
+## 7. Conclusion
+The visual design system, token configuration, hairline utility classes, modal UX overhaul, and micro-copy ruthlessly meet all Milestone 1 requirements. However, because `npm run lint` fails with exit code 1 due to 5 TypeScript errors in the test suite files, the formal verdict is **REQUEST_CHANGES** so that test mock typings can be resolved and `npm run lint` passes cleanly.
+
+---
+
+## 8. Verification Method
+To independently verify:
+1. `npm run lint` (`tsc --noEmit`) -> Fails with 5 errors in `tests/tier2-responsive/` and `tests/tier4-workflows/`.
+2. `npm run build` -> Builds `dist/` cleanly in ~12s.
+3. `npx vitest run` -> 38/38 files pass (293 tests).

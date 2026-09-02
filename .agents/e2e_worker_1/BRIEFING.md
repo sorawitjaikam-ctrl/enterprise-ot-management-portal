@@ -1,63 +1,50 @@
-# BRIEFING — 2026-08-22T00:22:30+07:00
+# BRIEFING — 2026-09-02T12:08:45+07:00
 
 ## Mission
-Implement and verify the full 4-tier E2E and unit test suite (104+ test cases) for Enterprise OT Management Portal using Vitest and Testing Library.
+Build and verify comprehensive E2E test suites for Radical Minimalism Overhaul of Enterprise OT Management Portal across Tiers 1-4, verify 0 failures, and publish TEST_INFRA.md and TEST_READY.md.
 
 ## 🔒 My Identity
-- Archetype: Test Implementation Worker
-- Roles: implementer, qa, specialist
+- Archetype: e2e_worker
+- Roles: specialist, qa
 - Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\e2e_worker_1
-- Original parent: a6dea7fe-1cec-44ec-8b28-e77f0435a04c
-- Milestone: E2E Testing Suite Implementation & Verification
+- Original parent: ddec396c-b63f-4798-b328-895de8c3fcc0
+- Milestone: E2E
 
 ## 🔒 Key Constraints
-- Genuine implementations only: NO cheating, NO hardcoding test results, NO dummy/facade implementations.
-- All tests must maintain real state, test real behavior and invariants.
-- 4-Tier test suite covering Tier 1 (Calculations), Tier 2 (Responsive Layouts), Tier 3 (PWA/Offline), Tier 4 (Workflows & Desktop Invariants).
-- Setup Vitest with jsdom, polyfills, mocks, path aliases.
-- All tests must pass with 0 errors (`npm test` / `vitest run`).
-- TypeScript build must pass cleanly (`npm run build`).
-
-## Current Parent
-- Conversation ID: a6dea7fe-1cec-44ec-8b28-e77f0435a04c
-- Updated: 2026-08-22T00:22:30+07:00
-
-## Task Summary
-- **What to build**: Full Vitest testing infrastructure, setup polyfills, mock data, and 20+ comprehensive test files across 4 tiers (125 test cases total).
-- **Success criteria**: All test files pass cleanly with 125 tests, 0 failures, clean `npm run build`.
-- **Interface contracts**: TEST_INFRA.md, PROJECT.md, Explorer reports 1, 2, 3.
-- **Code layout**: tests/ directory with tier1-calculations, tier2-responsive, tier3-pwa, tier4-workflows, mocks, setup.ts.
-
-## Key Decisions Made
-- Installed Vitest + jsdom + @testing-library/react + @testing-library/jest-dom for fast in-process React testing.
-- Set up polyfills for window.matchMedia, ResizeObserver, IntersectionObserver, window.caches, URL.createObjectURL, and global.fetch.
-- Fixed sampleRows column count in CsvTemplateHubModal to match 34 columns.
-- Fixed unclosed div tags in App.tsx.
-
-## Artifact Index
-- `.agents/e2e_worker_1/DISPATCH.md` — Assignment instructions
-- `.agents/e2e_worker_1/BRIEFING.md` — Agent working memory
-- `.agents/e2e_worker_1/progress.md` — Progress tracker
-- `.agents/e2e_worker_1/handoff.md` — Handoff report
-- `.agents/e2e_worker_1/report.md` — Comprehensive test execution report
-
-## Change Tracker
-- **Files modified**:
-  - `package.json`: Added test runner scripts and devDependencies
-  - `vitest.config.ts`: Vitest harness configuration
-  - `tests/setup.ts`: Global test polyfills and mock environment
-  - `tests/mocks/mockData.ts`: Central fixtures for departments, employees, schedules
-  - `tests/mocks/mockServiceWorker.ts`: Service Worker and PWA event mocks
-  - `src/components/CsvTemplateHubModal.tsx`: Corrected sample row length for shift schedule template
-  - `src/App.tsx`: Closed missing div tag in employees view
-  - 20 test files in `tests/tier1-calculations/`, `tests/tier2-responsive/`, `tests/tier3-pwa/`, `tests/tier4-workflows/`
-- **Build status**: PASS (125 tests passing across 21 test files; Vite & esbuild compile cleanly)
-- **Pending issues**: None
-
-## Quality Status
-- **Build/test result**: PASS (125/125 tests passed in 9.17s)
-- **Lint status**: PASS
-- **Tests added/modified**: 21 test files, 125 test cases
+- Test code only (modify/add tests under `tests/`, never implementation code)
+- Authoritative expected output derivation from ORIGINAL_REQUEST.md & PROJECT.md
+- Verify all Radical Minimalism design system criteria (4-tone/12-token maritime palette, font sizes <=3, font weights <=3, hairline borders 1px solid #DCE4EA, 0 emojis, 0 Material Symbols, button label <=4 words, section header <=6 words, placeholder <5 words)
+- Verify boundary/corner cases (empty datasets, 100+ employees x 31 days, frozen columns at 375/768/1440px)
+- Verify cross-feature combinations & real-world workflows (CSV export, shift editing, compliance breach, 36h limit, 6-day fatigue)
+- Fix outdated text assertions in existing tests where UI strings were simplified for Radical Minimalism
+- Create `TEST_INFRA.md` and `TEST_READY.md` at project root
+- Maintain progress.md and handoff.md in `.agents/e2e_worker_1/`
 
 ## Loaded Skills
-- None
+- **Source**: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\skills\minimalist-ui\SKILL.md
+- **Local copy**: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\e2e_worker_1\minimalist-ui_SKILL.md
+- **Core methodology**: Clean Swiss editorial minimalism, monochrome palette, typography hierarchy, flat bento grids, hairline borders, no decorative clutter.
+
+## Current Parent
+- Conversation ID: ddec396c-b63f-4798-b328-895de8c3fcc0
+- Updated: 2026-09-02T12:08:45+07:00
+
+## Quality Status
+- **Build/test result**: 38 test suites passed, 293 tests passed (0 failures) in 46.40s
+- **Lint status**: Clean
+- **Tests added/modified**: Added 4 new test suites (20 tests) covering design tokens, boundary cases, cross-features, and labor law lifecycle. Updated 8 existing suites to align with Radical Minimalism.
+
+## Task Summary
+- **What to build**: Comprehensive automated test suites across Tiers 1-4 covering all Radical Minimalism criteria, boundary cases, cross-features, workflows, plus TEST_INFRA.md and TEST_READY.md.
+- **Success criteria**: All tests pass cleanly, 100% acceptance criteria coverage, zero regression in calculation engine invariance.
+- **Interface contracts**: PROJECT.md and ORIGINAL_REQUEST.md
+- **Code layout**: `tests/tier1-calculations/`, `tests/tier2-responsive/`, `tests/tier3-pwa/`, `tests/tier4-workflows/`, `tests/tier5-adversarial/`.
+
+## Key Decisions Made
+- Updated outdated assertions across 8 legacy test suites that tested old verbose text labels and pre-overhaul color tokens.
+- Implemented 4 dedicated Radical Minimalism test suites covering design tokens AST audit, empty/large roster boundary stress, cross-feature integrations, and 31-day labor law lifecycles.
+- Published `TEST_INFRA.md` and `TEST_READY.md` at project root.
+
+## Artifact Index
+- `TEST_INFRA.md` — Test architecture, tiers, commands, thresholds.
+- `TEST_READY.md` — Full coverage checklist and test runner instructions.

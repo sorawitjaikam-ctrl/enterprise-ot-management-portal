@@ -44,7 +44,7 @@ describe("Challenger 2 Workflow Stress: 24H Shift & Time Scheduler Modal Deep St
     expect(screen.getByRole("button", { name: "5" })).toBeInTheDocument();
 
     // Verify modal headers and time display
-    expect(screen.getByText("24H Shift & Time Scheduler")).toBeInTheDocument();
+    expect(screen.getByText(/24H Shift Scheduler/i)).toBeInTheDocument();
     expect(screen.getByText("ตกลง (บันทึก)")).toBeInTheDocument();
   });
 

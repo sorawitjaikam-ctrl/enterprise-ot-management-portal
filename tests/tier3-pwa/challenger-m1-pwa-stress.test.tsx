@@ -163,9 +163,9 @@ describe('Challenger Stress Suite - HTML Meta Tags Exact Verification', () => {
   const indexHtml = fs.readFileSync(path.resolve(__dirname, '../../index.html'), 'utf8');
 
   it('CH.HTML.1: Exact theme-color meta tags', () => {
-    expect(indexHtml).toContain('<meta name="theme-color" content="#0f172a" />');
-    expect(indexHtml).toContain('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0f172a" />');
-    expect(indexHtml).toContain('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />');
+    expect(indexHtml).toContain('<meta name="theme-color" content="#0E3A66" />');
+    expect(indexHtml).toContain('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0E3A66" />');
+    expect(indexHtml).toContain('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E3A66" />');
   });
 
   it('CH.HTML.2: Exact iOS PWA meta tags', () => {

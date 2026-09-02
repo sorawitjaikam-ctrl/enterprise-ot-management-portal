@@ -1,19 +1,21 @@
-## 2026-08-21T17:13:07Z
+## 2026-09-02T05:06:13Z
+You are Reviewer 1 for Milestone 1 (Design System & Minimal Components).
 
-You are Reviewer 1 for Milestone 1: PWA Infrastructure & Offline App Shell.
-Your working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_m1_1
+Working Directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_m1_1
+Original Request: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
+Project Root: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
+Project Plan: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
+Worker Report: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_m1_1\handoff.md
 
-Mandatory inputs to inspect:
-- Original Request: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\ORIGINAL_REQUEST.md
-- Project Scope: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\PROJECT.md
-- Worker Handoff: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\worker_m1_1\handoff.md
-- Codebase files: `public/manifest.webmanifest`, `public/manifest.json`, `index.html`, `public/icons/*`
-
-Your Verification Scope:
-1. Web App Manifest Compliance: Validate `public/manifest.webmanifest` and `public/manifest.json` against W3C specification. Verify `name`, `short_name`, `start_url`, `display: standalone`, `theme_color`, `background_color`, `categories`, `shortcuts`, and all 5 icon declarations (including 192x192, 512x512, maskable and any purposes).
-2. HTML Head Configuration: Verify `index.html` has `<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="apple-mobile-web-app-capable">`, `<meta name="apple-mobile-web-app-status-bar-style">`, `<meta name="apple-mobile-web-app-title">`, `<link rel="apple-touch-icon">`, `<link rel="icon">`, and `viewport-fit=cover`.
-3. Icon Asset Integrity: Verify existence and validity of all icons in `public/icons/` (`icon.svg`, `icon-192x192.png`, `icon-192x192-maskable.png`, `icon-512x512.png`, `icon-512x512-maskable.png`, `apple-touch-icon.png`, `favicon-32x32.png`, `favicon-16x16.png`, `favicon.ico`).
-4. Execute `npm run build` and `node scripts/verify-pwa.mjs` to verify zero build errors and manifest/icon validity.
-
-Provide your explicit verdict: `APPROVE` or `REQUEST_CHANGES`.
-Write your full report to `C:\Users\ssrwj\Documents\antigravity\mysterious-einstein\.agents\reviewer_m1_1\handoff.md` and send a message back.
+Your mission:
+1. Read ORIGINAL_REQUEST.md, PROJECT.md, and worker_m1_1/handoff.md.
+2. Inspect `index.html`, `tailwind.config.js`, `src/index.css`, and modified modals: `CircadianTimelineModal.tsx`, `ShiftRadialPicker.tsx`, `LiveSimulationHUD.tsx`, `CsvTemplateHubModal.tsx`, `PremiumShiftTimePickerModal.tsx`.
+3. Check against Radical Minimalism requirements:
+   - 12-token maritime palette adherence (no rogue hex codes).
+   - Hairline borders (`1px solid #DCE4EA`) only.
+   - Zero container gradients, zero heavy drop shadows.
+   - Material Symbols removed from index.html and codebase.
+   - Typography scales (max 3 font sizes, max 3 font weights 400/500/700).
+4. Run `npm run lint` and `npm run build` and tests.
+5. Write `progress.md` and `handoff.md` with your explicit verdict: APPROVE or REQUEST_CHANGES.
+6. Send a message to parent with your verdict and report path.

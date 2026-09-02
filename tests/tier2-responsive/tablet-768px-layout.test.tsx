@@ -45,8 +45,9 @@ describe('Tier 2: Tablet 768px Layout Adaptation', () => {
       />
     );
 
-    const brandTitles = screen.getAllByText('Double A Terminal');
+    const brandTitles = screen.getAllByText(/Double A Terminal/i);
     expect(brandTitles.length).toBeGreaterThan(0);
+    expect(screen.getByText('ระบบวางแผนและจัดการตารางกะพนักงาน')).toBeInTheDocument();
   });
 
   it('T2.2.3: Global search bar input is present on md+ tablet screens', () => {
@@ -67,7 +68,7 @@ describe('Tier 2: Tablet 768px Layout Adaptation', () => {
     expect(searchInput).toBeInTheDocument();
   });
 
-  it('T2.2.4: Language switch and notification icons render with touch target sizing', () => {
+  it('T2.2.4: Notification bell action renders with touch target sizing and title', () => {
     render(
       <Navbar
         title="Dashboard"
@@ -81,11 +82,10 @@ describe('Tier 2: Tablet 768px Layout Adaptation', () => {
       />
     );
 
-    expect(screen.getByText('TH')).toBeInTheDocument();
-    expect(screen.getByTitle('การแจ้งเตือน')).toBeInTheDocument();
+    expect(screen.getByTitle('การแจ้งเตือนข้อควรระวัง')).toBeInTheDocument();
   });
 
-  it('T2.2.5: User profile button displays user details and role', () => {
+  it('T2.2.5: User profile button displays user details', () => {
     render(
       <Navbar
         title="Dashboard"
@@ -101,7 +101,7 @@ describe('Tier 2: Tablet 768px Layout Adaptation', () => {
 
     const userNames = screen.getAllByText('นายสมชาย');
     expect(userNames.length).toBeGreaterThan(0);
-    const userRoles = screen.getAllByText('HR Section Manager');
-    expect(userRoles.length).toBeGreaterThan(0);
+    const profileBtn = screen.getByTitle('ดูโปรไฟล์ของคุณ');
+    expect(profileBtn).toBeInTheDocument();
   });
 });

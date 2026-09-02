@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileSpreadsheet, X, CheckCircle, Info } from 'lucide-react';
+import { Download, FileSpreadsheet, X, Info } from 'lucide-react';
 
 interface CsvTemplateHubModalProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export const csvTemplatesList = [
     desc: "ไฟล์แม่แบบสำหรับเพิ่ม/แก้ไขรายชื่อพนักงาน ข้อมูลเงินเดือน สิทธิ์ OT วันเริ่มงาน และประเภทปฏิทิน",
     filename: "employee_roster_template.csv",
     badge: "พนักงาน & เงินเดือน",
-    badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
+    badgeBg: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]",
     headers: [
       "id", "prefix", "firstName", "lastName", "nickname", "role", "deptId", "division",
       "salary", "targetOt", "birthday", "age", "startDate", "tenure", "probationDate",
@@ -62,7 +62,7 @@ export const csvTemplatesList = [
     desc: "ไฟล์แม่แบบสำหรับนำเข้าค่า Revenue, Cost, Profit รายเดือนและสะสมรายปีของพนักงาน",
     filename: "job_value_financials_template.csv",
     badge: "คุณค่าตำแหน่งงาน & การเงิน",
-    badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badgeBg: "bg-[#E8F6F0] text-[#1E9C6E] border-[#A5DCC5]",
     headers: [
       "empId", "empName", "Department", "Position", "Status",
       "Avg_Revenue", "Avg_Cost", "Profit_2026", "Profit_2025",
@@ -86,7 +86,7 @@ export const csvTemplatesList = [
     desc: "ไฟล์แม่แบบสำหรับวางแผนและจัดตารางกะปฏิบัติงานพนักงานประจำเดือน (Day1 - Day31)",
     filename: "shift_schedule_roster_template.csv",
     badge: "ตารางกะเทียบเรือ",
-    badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    badgeBg: "bg-[#E8F3FA] text-[#17538F] border-[#9FCEE8]",
     headers: [
       "empId", "empName", "deptId",
       "Day1", "Day2", "Day3", "Day4", "Day5", "Day6", "Day7", "Day8", "Day9", "Day10",
@@ -108,7 +108,7 @@ export const csvTemplatesList = [
     desc: "ไฟล์แม่แบบสำหรับบันทึกการลางาน (ลาป่วย, ลากิจ, ลาพักร้อน) และจำนวนวันลาสะสม",
     filename: "leave_records_template.csv",
     badge: "ประวัติการลา",
-    badgeBg: "bg-purple-50 text-purple-700 border-purple-200",
+    badgeBg: "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]",
     headers: ["id", "empId", "empName", "deptId", "leaveType", "startDate", "endDate", "totalDays", "reason", "status"],
     sampleRows: [
       ["LV-001", "EMP-101", "สมชาย สายงาน", "inter2", "ลากิจ", "2026-08-10", "2026-08-11", 2, "ทำธุระส่วนตัว", "อนุมัติ"],
@@ -121,7 +121,7 @@ export const csvTemplatesList = [
     desc: "ไฟล์แม่แบบสำหรับนำเข้าประวัติชั่วโมง OT และกะปฏิบัติงานรายวันของพนักงาน",
     filename: "ot_daily_records_template.csv",
     badge: "ประวัติ OT",
-    badgeBg: "bg-amber-50 text-amber-700 border-amber-200",
+    badgeBg: "bg-[#F3F6F8] text-[#59656D] border-[#DCE4EA]",
     headers: ["id", "date", "employeeId", "employeeName", "deptId", "shiftCode", "otHours", "note"],
     sampleRows: [
       ["OT-001", "2026-08-01", "EMP-101", "สมชาย สายงาน", "inter2", "M12", 4, "คุมงานเทียบเรือ MV Double A"],
@@ -134,70 +134,71 @@ export default function CsvTemplateHubModal({ isOpen, onClose }: CsvTemplateHubM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-[#0E3A66]/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded border border-[#DCE4EA] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-lg flex flex-col font-sans animate-in fade-in zoom-in-95 duration-100">
         
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white flex justify-between items-center relative overflow-hidden">
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="p-3 bg-blue-600/30 border border-blue-400/30 rounded-2xl text-blue-400">
-              <FileSpreadsheet className="w-6 h-6" />
+        <div className="px-5 py-3.5 border-b border-[#DCE4EA] bg-white text-[#0E3A66] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#E8F3FA] border border-[#DCE4EA] rounded text-[#0E3A66]">
+              <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight text-white">ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV (CSV Template Hub)</h2>
-              <p className="text-xs text-slate-300">รวบรวมไฟล์แม่แบบ CSV มาตรฐานสำหรับนำเข้าข้อมูล (Import) ในทุกระบบ</p>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#0E3A66]">ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV (CSV Template Hub)</h2>
+              <p className="text-xs text-[#59656D]">แม่แบบ CSV มาตรฐานสำหรับนำเข้าข้อมูลในระบบ</p>
             </div>
           </div>
           <button 
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full text-slate-300 hover:text-white transition-colors cursor-pointer relative z-10"
+            className="p-1 rounded text-[#6A7B87] hover:text-[#0E3A66] hover:bg-[#F3F6F8] transition-colors cursor-pointer"
+            aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] bg-slate-50">
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-blue-800">
-            <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh] bg-[#F3F6F8]">
+          <div className="bg-[#E8F3FA] border border-[#9FCEE8] rounded p-3 flex items-start gap-2.5 text-xs text-[#0E3A66]">
+            <Info className="w-4 h-4 text-[#2E90CB] shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">คำแนะนำการใช้งานไฟล์ CSV:</span>
-              <p className="mt-0.5 text-slate-600">
-                ดาวน์โหลดไฟล์แม่แบบ `.csv` ด้านล่าง แล้วเปิดด้วย Microsoft Excel หรือ Google Sheets เพื่อแก้ไขข้อมูล โดยห้ามแก้ไขชื่อหัวคอลัมน์ในแถวแรก (Header) เมื่อแก้ไขเสร็จแล้วให้บันทึกเป็นไฟล์ `.csv` (UTF-8) ก่อนกดอัพโหลดในระบบ
+              <span className="font-bold">คำแนะนำการใช้งาน:</span>
+              <p className="mt-0.5 text-[#59656D]">
+                ดาวน์โหลดแม่แบบ `.csv` แล้วแก้ไขข้อมูลโดยห้ามเปลี่ยนชื่อหัวคอลัมน์แถวแรก (Header) บันทึกเป็น `.csv` (UTF-8) ก่อนนำเข้าสู่ระบบ
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {csvTemplatesList.map((tmpl) => (
               <div 
                 key={tmpl.id} 
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                className="bg-white p-4 rounded border border-[#DCE4EA] flex flex-col justify-between space-y-3"
               >
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${tmpl.badgeBg}`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${tmpl.badgeBg}`}>
                       {tmpl.badge}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-400">{tmpl.filename}</span>
+                    <span className="text-[10px] font-mono text-[#6A7B87]">{tmpl.filename}</span>
                   </div>
-                  <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-xs font-bold text-[#0E3A66]">
                     {tmpl.title}
                   </h3>
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  <p className="text-xs text-[#59656D] leading-relaxed">
                     {tmpl.desc}
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400">
-                    {tmpl.headers.length} คอลัมน์มาตรฐาน
+                <div className="pt-2 border-t border-[#DCE4EA] flex items-center justify-between">
+                  <span className="text-[11px] text-[#6A7B87]">
+                    {tmpl.headers.length} คอลัมน์
                   </span>
                   <button
                     type="button"
                     onClick={() => downloadCsvFile(tmpl.filename, tmpl.headers, tmpl.sampleRows)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-bold transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>ดาวน์โหลดแม่แบบ</span>
@@ -209,7 +210,7 @@ export default function CsvTemplateHubModal({ isOpen, onClose }: CsvTemplateHubM
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 bg-white flex items-center justify-between">
+        <div className="px-5 py-3 border-t border-[#DCE4EA] bg-[#F3F6F8] flex items-center justify-between">
           <button
             type="button"
             onClick={() => {
@@ -219,16 +220,16 @@ export default function CsvTemplateHubModal({ isOpen, onClose }: CsvTemplateHubM
                 }, i * 300);
               });
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] rounded text-xs font-medium transition-colors cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-blue-600" />
-            <span>ดาวน์โหลดแม่แบบทั้งหมด (Zip/All CSVs)</span>
+            <Download className="w-3.5 h-3.5 text-[#0E3A66]" />
+            <span>ดาวน์โหลดแม่แบบทั้งหมด (All CSVs)</span>
           </button>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="px-3.5 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-bold transition-colors cursor-pointer"
           >
             ปิดหน้าต่าง
           </button>

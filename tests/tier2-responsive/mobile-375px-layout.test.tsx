@@ -34,7 +34,7 @@ describe('Tier 2: Mobile 375px Layout Adaptation', () => {
     expect(hamburgerBtn).toBeInTheDocument();
   });
 
-  it('T2.1.2: Clicking hamburger opens mobile navigation drawer with all categories', () => {
+  it('T2.1.2: Clicking hamburger opens mobile navigation drawer with navigation items', () => {
     render(
       <Navbar
         title="Dashboard"
@@ -51,10 +51,13 @@ describe('Tier 2: Mobile 375px Layout Adaptation', () => {
     const hamburgerBtn = screen.getByLabelText('เปิดเมนูนำทาง');
     fireEvent.click(hamburgerBtn);
 
-    // Mobile drawer should be visible with close button and categories
-    expect(screen.getByLabelText('ปิดเมนู')).toBeInTheDocument();
-    expect(screen.getAllByText('ภาพรวม & แผนงาน').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('การจัดการบุคลากร').length).toBeGreaterThan(0);
+    // Mobile drawer should be visible with navigation tabs
+    const drawer = screen.getByLabelText('เมนูหลักสำหรับอุปกรณ์เคลื่อนที่');
+    expect(drawer).toBeInTheDocument();
+    expect(drawer.className).toContain('translate-x-0');
+    expect(screen.getByText('เมนูนำทางระบบ')).toBeInTheDocument();
+    expect(screen.getAllByText(/ภาพรวม Dashboard/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/ตารางจัดกะพนักงาน/i).length).toBeGreaterThan(0);
   });
 
   it('T2.1.3: Navigation categories tab bar has horizontal overflow scroll container', () => {
@@ -75,12 +78,13 @@ describe('Tier 2: Mobile 375px Layout Adaptation', () => {
     expect(overflowNav).not.toBeNull();
   });
 
-  it('T2.1.4: Mobile search button toggles mobile search bar', () => {
+  it('T2.1.4: Search bar input handles search query updates', () => {
+    const setSearchQuery = vi.fn();
     render(
       <Navbar
         title="Dashboard"
         searchQuery=""
-        setSearchQuery={() => {}}
+        setSearchQuery={setSearchQuery}
         currentUser={{ name: "Supervisor", role: "HR" }}
         onOpenProfile={() => {}}
         activeTab="dashboard"
@@ -89,11 +93,10 @@ describe('Tier 2: Mobile 375px Layout Adaptation', () => {
       />
     );
 
-    const searchToggleBtn = screen.getByLabelText('ค้นหาข้อมูล');
-    fireEvent.click(searchToggleBtn);
-
-    const mobileSearchInputs = screen.getAllByPlaceholderText(/ค้นหา/i);
-    expect(mobileSearchInputs.length).toBeGreaterThanOrEqual(1);
+    const searchInput = screen.getByPlaceholderText(/ค้นหาพนักงาน/i);
+    expect(searchInput).toBeInTheDocument();
+    fireEvent.change(searchInput, { target: { value: 'สมชาย' } });
+    expect(setSearchQuery).toHaveBeenCalledWith('สมชาย');
   });
 
   it('T2.1.5: Main application container renders with responsive spacing', async () => {

@@ -1,11 +1,12 @@
-# Progress Tracking — Challenger 1 (Milestone 1)
+# Progress — Challenger M1-1
 
-Last visited: 2026-08-22T00:15:58+07:00
+**Status**: COMPLETED
+**Last visited**: 2026-09-02T12:12:00+07:00
 
-- [x] Initialized workspace and briefing
-- [x] Inspect mandatory inputs (`ORIGINAL_REQUEST.md`, `PROJECT.md`, `worker_m1_1/handoff.md`, codebase)
-- [x] Verify existing test suite and build output
-- [x] Implement standalone empirical test harness for `sw.js` (Install, Activate cache purge, Offline Navigation fallback, Static cache-first, Font SWR, API offline fallback 503)
-- [x] Run edge-case / stress test scenarios (86/86 assertions passed across `public/sw.js` and `dist/sw.js`)
-- [x] Compile adversarial challenge report with verdict (APPROVE)
-- [x] Send handoff message to parent
+## Steps
+- [x] Step 1: Initialize briefing, dispatch, progress.
+- [x] Step 2: Inspect codebase files touched by Worker M1 (`index.html`, `tailwind.config.js`, `src/index.css`, `CircadianTimelineModal.tsx`, `ShiftRadialPicker.tsx`, `LiveSimulationHUD.tsx`, `CsvTemplateHubModal.tsx`, `PremiumShiftTimePickerModal.tsx`).
+- [x] Step 3: Run baseline verification (build, lint, tier1, tier3, tier4 tests).
+- [x] Step 4: Write & execute targeted stress harnesses & adversarial tests for all 5 modals and mathematical logic (`tests/tier5-adversarial/challenger1-m1-adversarial-deep-stress.test.tsx`).
+- [x] Step 5: Check visual compliance against the 12-token palette, zero emojis, hairline borders, and radical minimalism rules.
+- [x] Step 6: Produce final handoff.md report with explicit verdict (**APPROVE**) and message parent.

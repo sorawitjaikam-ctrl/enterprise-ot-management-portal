@@ -90,3 +90,63 @@ Integrity mode: development
 ### Performance & Build Verification
 - [ ] `npm run build` passes with 0 errors.
 - [ ] Service worker registers and caches app shell assets properly.
+
+## 2026-09-02T11:53:17+07:00
+
+Apply a "Radical Minimalism" Product Design overhaul to the Enterprise OT Management Portal — a production React/TypeScript web application for managing shift schedules, overtime calculations, and workforce analytics at a maritime port terminal. The team operates as four expert roles: UX Strategist (The Reducer), UI & Visual Architect (The Minimalist Aesthetician), Micro-Copywriter (The Voice of Simplicity), and Design Systems QA (The Enforcer). Every screen, modal, table, and component must be audited and refactored to eliminate visual noise, reduce cognitive load, and produce a Swiss-style premium interface with zero superfluous elements.
+
+Working directory: C:\Users\ssrwj\Documents\antigravity\mysterious-einstein
+Integrity mode: development
+
+## Design System Constraints (User-Specified)
+
+- **Color Palette**: Strictly limited — Navy `#0E3A66` as primary, with `#17538F`, `#2E90CB`, `#9FCEE8`, `#E8F3FA` as supporting blues. Green `#1E9C6E`, Yellow `#D99B14`, Red `#B3352C` as semantic accents only. Neutrals: `#333B41`, `#59656D`, `#6A7B87`, `#B4C1C9`, `#DCE4EA`, `#F3F6F8`, `#FFFFFF`.
+- **Typography**: Sans-serif only. Clear size hierarchy with maximum 4 distinct sizes per view. No decorative fonts.
+- **Spacing**: 8pt grid system. Generous white space. No cramped layouts.
+- **Borders & Shadows**: Hairline borders (`1px solid #DCE4EA`) only. No heavy drop shadows, no double borders, no gradient backgrounds on containers.
+- **Icons**: Minimal use. Lucide icons only when they add genuine meaning. No decorative emoji or icon clutter.
+
+## Requirements
+
+### R1. UX Strategy — Eliminate Friction & Cognitive Overload
+- Audit all 11 views and identify every instance of redundant information, unnecessary UI chrome, duplicate controls, or excessive labeling.
+- Reduce the number of interactive clicks needed for the top-5 user tasks (assign shift, view OT summary, filter by department, export CSV, check compliance alerts).
+- Consolidate overlapping filter bars, redundant section headers, and duplicated navigation affordances.
+
+### R2. Visual Architecture — Swiss-Style Radical Minimalism
+- Strip every screen down to essential content. Remove all visual noise: excessive badges, sparkline decorations, animated pulsing dots, gradient banners, and ornamental dividers.
+- Enforce consistent 8pt grid spacing, a maximum of 3 font weights per view, and strict alignment to baseline grid.
+- Tables must use clean hairline separators, minimal header chrome, and generous row padding for scanability.
+
+### R3. Micro-Copy — Ruthless Brevity
+- Audit every button label, section header, tooltip, placeholder, error message, and modal title across the entire application.
+- Replace verbose Thai phrases with concise equivalents (target: 1–3 words per label where possible).
+- Remove all explanatory subtitles and helper text that restates what is already visually obvious.
+
+### R4. Design Systems QA — Consistency & Build Integrity
+- Produce a unified set of reusable component patterns (card, table row, KPI tile, modal, button, tag/badge) that are used consistently everywhere.
+- Eliminate all one-off inline styles and conflicting Tailwind class combinations.
+- `npm run build` must compile with zero TypeScript errors after all changes.
+
+## Acceptance Criteria
+
+### Visual Minimalism
+- [ ] No screen contains more than 3 distinct font sizes.
+- [ ] No container uses gradient backgrounds, heavy box shadows, or double borders.
+- [ ] All spacing values align to an 8pt grid (multiples of 4px or 8px in Tailwind).
+- [ ] Every icon serves a functional purpose — zero decorative-only icons or emoji remain.
+
+### Information Density
+- [ ] Every view's top-level section count is reduced by at least 20% compared to current state.
+- [ ] No redundant filter controls or duplicate navigation affordances exist.
+- [ ] Modal dialogs contain only essential fields and actions — no helper paragraphs that restate the obvious.
+
+### Micro-Copy
+- [ ] No button label exceeds 4 words.
+- [ ] No section header exceeds 6 words.
+- [ ] All placeholder text is under 5 words.
+
+### Build & Functional Integrity
+- [ ] `npm run build` passes with 0 errors.
+- [ ] All existing calculation logic (OT hours, salary formulas, plan/actual diff) remains mathematically unchanged.
+- [ ] All 10 data tables render correctly with frozen columns on mobile viewports.

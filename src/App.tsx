@@ -92,16 +92,16 @@ import {
 
 export const SHIFT_OPTIONS = [
   { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
-  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
-  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#a9cdfc]/25", border: "border-[#a9cdfc]/60", text: "text-[#0b1a3a]" },
+  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
+  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
   { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
-  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#ddebf7]", border: "border-[#6d93fc]/60", text: "text-[#1d3ec7]" },
+  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
   { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
   { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
   { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
   { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-[#E8F6F0]", border: "border-[#A5DCC5]", text: "text-[#1E9C6E] font-bold" },
   { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#17538F]", border: "border-[#17538F]", text: "text-white font-bold" },
-  { code: "O", label: "O", desc: "วันหยุดพักผ่อน", bg: "bg-white", border: "border-slate-200", text: "text-slate-400" }
+  { code: "O", label: "O", desc: "วันหยุดพักผ่อน", bg: "bg-white", border: "border-[#DCE4EA]", text: "text-[#6A7B87]" }
 ];
 
 export const getShiftStyle = (shift: string) => {
@@ -371,7 +371,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 max-w-2xl mx-auto my-12 bg-white rounded-3xl border border-rose-200 shadow-xl text-center space-y-4">
+        <div className="p-8 max-w-2xl mx-auto my-12 bg-white rounded border border-rose-200 shadow-xl text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6 text-amber-500" />
           </div>
@@ -755,7 +755,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
       {/* Add Leave Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+          <div className="bg-white rounded border border-slate-200 shadow-lg max-w-md w-full overflow-hidden">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
               <h3 className="font-extrabold text-slate-800 text-sm">บันทึกประวัติการลางานใหม่</h3>
               <button 
@@ -1224,7 +1224,7 @@ function HrDirectEditorView({
   return (
     <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
       {/* Header Card */}
-      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-800 shrink-0" />
@@ -1257,7 +1257,7 @@ function HrDirectEditorView({
       </div>
 
       {/* Filter & Department Selector Tabs Toolbar */}
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Department Filter Tabs */}
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar touch-pan-x max-w-full">
@@ -1321,7 +1321,7 @@ function HrDirectEditorView({
       </div>
 
       {/* Interactive Spreadsheet Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
         <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
           <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
             <thead>
@@ -1441,7 +1441,7 @@ function HrDirectEditorView({
       {/* Add New Employee Record Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+          <div className="bg-white rounded w-full max-w-lg overflow-hidden shadow-lg border border-slate-200 flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-1.5">
                 <UserPlus className="w-5 h-5 text-[#1d3ec7]" />
@@ -3400,7 +3400,7 @@ export default function App() {
             <div className="absolute inset-3 rounded-full border border-blue-400/40 animate-[spin_8s_linear_infinite_reverse]" />
 
             {/* Floating Ship / Port Beacon Centerpiece */}
-            <div className="w-18 h-18 rounded-3xl bg-gradient-to-b from-[#0e2540] to-[#071322] border border-cyan-400/40 flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(6,182,212,0.3)] relative z-10 animate-float-boat">
+            <div className="w-18 h-18 rounded bg-gradient-to-b from-[#0e2540] to-[#071322] border border-cyan-400/40 flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(6,182,212,0.3)] relative z-10 animate-float-boat">
               <Ship className="w-8 h-8 text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
               {/* Miniature wave line under ship */}
               <div className="w-7 h-1 bg-cyan-400/60 rounded-full mt-1 blur-[0.5px]" />
@@ -4979,7 +4979,7 @@ export default function App() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
         
         {/* Card wrapper */}
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-2xl relative z-10 text-white">
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded p-8 shadow-lg relative z-10 text-white">
           <div className="text-center mb-8">
             <div className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl inline-block mx-auto mb-4 shadow-lg shadow-black/20 border border-white/40">
               <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="h-12 object-contain" />
@@ -5217,19 +5217,19 @@ export default function App() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setShowOtRequestModal(true)}
-                    className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition-all shadow-sm cursor-pointer relative"
+                    className="flex items-center gap-2 px-3.5 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/40 border border-[#F3D98F] rounded text-xs font-bold text-[#D99B14] transition-all cursor-pointer relative"
                     title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
                   >
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
                     <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
                   </button>
 
                   <button 
                     onClick={handleExportCsvReport}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs font-medium text-[#333B41] hover:bg-[#F3F6F8] transition-colors cursor-pointer"
                   >
-                    <Download className="w-4 h-4 text-slate-500" />
-                    <span>ส่งออกรายงานรวม</span>
+                    <Download className="w-3.5 h-3.5 text-[#6A7B87]" />
+                    <span>ส่งออกรายงาน</span>
                   </button>
                 </div>
               </div>
@@ -5374,89 +5374,59 @@ export default function App() {
                     {/* Top Row: 3 Minimalist Clean Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                       
-                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา (Sky Accent) */}
-                      <div className="bg-white border-l-4 border-l-sky-400 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
+                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 border border-sky-200/60 flex items-center justify-center shadow-2xs font-bold">
-                            <TrendingUp className="w-5 h-5 text-sky-600" />
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-9 h-9 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold">
+                            <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
                           </div>
                         </div>
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
+                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E3A66] font-mono">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
                             {prevTotalSpent > 0 ? (
-                              <div className="text-[10px] text-slate-400 font-medium">{comparePeriodLabel}</div>
+                              <div className="text-[10px] text-[#6A7B87] font-medium">{comparePeriodLabel}</div>
                             ) : (
-                              <div className="text-[10px] text-emerald-600 font-medium font-semibold">เดือนแรกที่เริ่มบันทึกข้อมูล</div>
+                              <div className="text-[10px] text-[#1E9C6E] font-medium font-semibold">เดือนแรกที่เริ่มบันทึกข้อมูล</div>
                             )}
-                          </div>
-                          
-                          {/* Mini Bar Sparkline */}
-                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-3 bg-sky-200 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-sky-300 rounded-sm"></div>
-                            <div className="w-1.5 h-3 bg-sky-200 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-sky-400 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-sky-300 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-sky-500 rounded-sm"></div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Card 2: ผลรวมค่าล่วงเวลา (Blue Accent) */}
-                      <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      {/* Card 2: ผลรวมค่าล่วงเวลา */}
+                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">ผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs font-black text-sm">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">ผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-9 h-9 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-sm">
                             ฿
                           </div>
                         </div>
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-blue-700">
+                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E3A66] font-mono">
                               {totalSpent.toLocaleString()} THB
                             </div>
-                            <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
-                          </div>
-
-                          {/* Mini Bar Sparkline */}
-                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-2 bg-blue-200 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-blue-300 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-blue-400 rounded-sm"></div>
-                            <div className="w-1.5 h-7 bg-blue-600 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-blue-500 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-blue-700 rounded-sm"></div>
+                            <div className="text-[10px] text-[#6A7B87] font-medium">{periodLabel}</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Card 3: % ค่าล่วงเวลา (Navy Accent) */}
-                      <div className="bg-white border-l-4 border-l-slate-800 border-y border-r border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] group hover:shadow-md transition-all">
+                      {/* Card 3: % ค่าล่วงเวลา */}
+                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-slate-500 tracking-wide">% ค่าล่วงเวลา</h3>
-                          <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-2xs font-bold">
-                            <Settings className="w-5 h-5 text-slate-800" />
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">% ค่าล่วงเวลา</h3>
+                          <div className="w-9 h-9 rounded bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold">
+                            <Settings className="w-4 h-4 text-[#333B41]" />
                           </div>
                         </div>
                         
                         <div className="flex items-end justify-between mt-3">
                           <div>
-                            <div className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800">{otSalaryPct}%</div>
-                            <div className="text-[10px] text-slate-400 font-medium">{periodLabel}</div>
-                          </div>
-
-                          {/* Mini Bar Sparkline */}
-                          <div className="flex items-end gap-1 h-8 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1.5 h-3 bg-slate-300 rounded-sm"></div>
-                            <div className="w-1.5 h-5 bg-slate-400 rounded-sm"></div>
-                            <div className="w-1.5 h-4 bg-slate-300 rounded-sm"></div>
-                            <div className="w-1.5 h-7 bg-slate-700 rounded-sm"></div>
-                            <div className="w-1.5 h-6 bg-slate-600 rounded-sm"></div>
-                            <div className="w-1.5 h-8 bg-slate-900 rounded-sm"></div>
+                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#333B41] font-mono">{otSalaryPct}%</div>
+                            <div className="text-[10px] text-[#6A7B87] font-medium">{periodLabel}</div>
                           </div>
                         </div>
                       </div>
@@ -5467,7 +5437,7 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 font-sans">
                       
                       {/* Left Panel: DASHBOARD Grouped Bar Chart (3/4 Width) */}
-                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-sm flex flex-col justify-between">
+                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded p-5 sm:p-7 shadow-sm flex flex-col justify-between">
                         
                         {/* Chart Header */}
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -5593,7 +5563,7 @@ export default function App() {
                       </div>
 
                       {/* Right Panel: Minimal Clean Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm font-sans flex flex-col justify-between h-full min-h-[260px] group hover:shadow-md transition-all">
+                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded shadow-sm font-sans flex flex-col justify-between h-full min-h-[260px] group hover:shadow-md transition-all">
                         
                         <div className="flex justify-between items-start">
                           <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shadow-2xs">
@@ -5672,7 +5642,7 @@ export default function App() {
               })()}
 
               {/* Employee OT Contribution Cards List */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">วิเคราะห์การจัดสรร OT รายบุคคล (Employee Contribution)</h4>
@@ -5907,7 +5877,7 @@ export default function App() {
                 })()}
 
                 {/* Department Job Value Summary Section */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
                       <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
@@ -5993,7 +5963,7 @@ export default function App() {
                 </div>
 
                 {/* Monthly Performance Trend & Financial Chart */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                <div className="bg-white p-6 rounded border border-slate-200 shadow-sm space-y-5">
                   {/* Chart Header & Filter Controls */}
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
@@ -6304,7 +6274,7 @@ export default function App() {
                 </div>
 
                 {/* Roster Table of Job Value Records */}
-                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
                   <div className="p-6 border-b border-slate-100 space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
@@ -6341,7 +6311,7 @@ export default function App() {
                           type="text"
                           value={jobValueSearchQuery}
                           onChange={(e) => setJobValueSearchQuery(e.target.value)}
-                          placeholder="ค้นหารหัสพนักงาน, ชื่อ-นามสกุล, ตำแหน่ง..."
+                          placeholder="ค้นหา..."
                           className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
                         {jobValueSearchQuery && (
@@ -6888,7 +6858,7 @@ export default function App() {
               </div>
 
               {/* Row: Cargo Tonnage vs OT Analytics Card */}
-              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-4 sm:p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4">
+              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-4 sm:p-6 rounded border border-amber-200 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
@@ -6964,7 +6934,7 @@ export default function App() {
               </div>
 
               {/* Comprehensive Statistics Table */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">ตารางสรุปงบประมาณและข้อมูลประสิทธิภาพรายแผนก</h4>
@@ -7002,8 +6972,8 @@ export default function App() {
                         <tr key={dept.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-                                <span className="material-symbols-outlined text-lg">{dept.icon}</span>
+                              <div className="w-8 h-8 rounded bg-[#E8F3FA] flex items-center justify-center text-[#0E3A66] border border-[#9FCEE8]">
+                                <Building2 className="w-4 h-4 text-[#0E3A66]" />
                               </div>
                               <div>
                                 <p className="font-bold text-slate-800">{dept.nameTh}</p>
@@ -7130,7 +7100,7 @@ export default function App() {
 
                       return (
                         <>
-                          <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
+                          <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs">
                                 <Users className="w-5 h-5 text-blue-700" />
@@ -7148,7 +7118,7 @@ export default function App() {
                           </div>
 
                           {/* Card 2: Case and Resigned (Current Month Calculation) */}
-                          <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded-3xl shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
+                          <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
                             <div className="flex justify-between items-start">
                               <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shadow-2xs">
                                 <UserX className="w-5 h-5 text-rose-600" />
@@ -7288,7 +7258,7 @@ export default function App() {
                       <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
                         
                         {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart */}
-                        <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-6 shadow-sm flex-1 flex flex-col justify-between">
+                        <div className="bg-white border border-slate-200/80 rounded p-4 sm:p-6 shadow-sm flex-1 flex flex-col justify-between">
                           <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                             <div>
                               <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
@@ -7368,7 +7338,7 @@ export default function App() {
                         </div>
 
                         {/* Bottom Panel: Organization Chart People Silhouettes Bar */}
-                        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
+                        <div className="bg-white border border-slate-200/80 rounded p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
                           
                           <div className="flex items-center gap-3">
                             <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
@@ -7499,7 +7469,7 @@ export default function App() {
 
               {/* Employee roster list */}
               <div id="employee-roster-section"></div>
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
                 <div className="p-4 sm:p-6 border-b border-slate-100 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -7919,7 +7889,7 @@ export default function App() {
             <div className={`w-full max-w-full min-w-0 space-y-4 ${isFullScreen ? "fixed inset-0 z-50 bg-white overflow-auto p-2 sm:p-4" : ""}`}>
 
               {/* HEADER TOOLBAR — Clean Minimalist High-Contrast Style */}
-              <div className="rounded-3xl overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
+              <div className="rounded overflow-hidden shadow-sm border border-slate-200/80 bg-white font-sans">
                 {/* Top Row: Department info & View mode / Actions (Equal Height & Perfectly Balanced Centerline) */}
                 <div className="bg-white px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 min-h-[56px]">
                   <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
@@ -7958,7 +7928,7 @@ export default function App() {
                       <div className="flex flex-col justify-center">
                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-tight">ผู้จัดแผนงาน</span>
                         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 leading-tight">
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          <span className="w-1.5 h-1.5 bg-[#1E9C6E] rounded-full"></span>
                           <span className="truncate max-w-[140px]">{deptManagerText || "คุณสันทัด คุ้มค่า"}</span>
                         </div>
                       </div>
@@ -8141,37 +8111,37 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Shift Legend / Keys explanation matching image exactly */}
+              {/* Shift Legend / Keys explanation */}
               {showShiftLegend && (
-                <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm font-sans">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
-                      <span>สัญลักษณ์รหัสกะและตารางการจัดการ</span>
+                <div className="bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-xs font-sans">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-bold text-[#0E3A66] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 bg-[#0E3A66] rounded-full"></span>
+                      <span>สัญลักษณ์รหัสกะการทำงาน</span>
                     </h4>
                   </div>
 
-                  <div className="overflow-x-auto no-scrollbar touch-pan-x pb-2">
-                    <div className="flex gap-2.5 min-w-[900px] select-none">
+                  <div className="overflow-x-auto no-scrollbar touch-pan-x pb-1">
+                    <div className="flex gap-2 min-w-[900px] select-none">
                       {[
-                        { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#dce6f1] text-black border-[#b4c6e7]" },
-                        { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
-                        { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#fce4d6] text-black border-[#f8cbad]" },
-                        { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#ddebf7] text-[#4472c4] border-[#9cc2e5]" },
-                        { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#fff2cc] text-black border-[#ffd966]" },
-                        { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#fce4d6] text-[#ff0000] border-[#f8cbad]" },
-                        { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#1f4e79] text-white border-[#1f4e79]" },
-                        { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#ff0000] text-white border-[#ff0000]" },
-                        { top: "ทอดสมอ", sub: "standby", code: "D", style: "bg-[#aeaaaa] text-slate-800 border-[#7f7f7f]" },
-                        { top: "ON", sub: "DUTY", code: "OND", style: "bg-[#00ffff] text-black border-[#00ffff]" },
-                        { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-slate-400 border-slate-200" }
+                        { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
+                        { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
+                        { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
+                        { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
+                        { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
+                        { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
+                        { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#0E3A66] text-white border-[#0E3A66]" },
+                        { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#0E3A66] text-white border-[#0E3A66]" },
+                        { top: "กลางวัน", sub: "Day", code: "D", style: "bg-[#E8F6F0] text-[#1E9C6E] border-[#A5DCC5]" },
+                        { top: "วันหยุด", sub: "ON DUTY", code: "OND", style: "bg-[#17538F] text-white border-[#17538F]" },
+                        { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-[#6A7B87] border-[#DCE4EA]" }
                       ].map((item, idx) => (
                         <div key={idx} className="flex-1 flex flex-col items-center">
-                          <div className="text-center text-[11px] font-bold text-slate-700 h-9 flex flex-col justify-end pb-1.5 leading-tight">
+                          <div className="text-center text-[11px] font-bold text-[#333B41] h-8 flex flex-col justify-end pb-1 leading-tight">
                             <div>{item.top}</div>
-                            <div className="text-[10px] text-slate-500 font-medium">{item.sub}</div>
+                            <div className="text-[10px] text-[#6A7B87] font-medium">{item.sub}</div>
                           </div>
-                          <div className={`w-full py-2.5 text-center font-extrabold text-xs border rounded-lg shadow-sm ${item.style}`}>
+                          <div className={`w-full py-2 text-center font-bold text-xs border rounded font-mono ${item.style}`}>
                             {item.code}
                           </div>
                         </div>
@@ -8224,20 +8194,17 @@ export default function App() {
 
               {/* Smart Shift Recommendation & Quick Fill Assistant Panel */}
               {showSmartShiftDrawer && (
-                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-700/60 animate-in fade-in slide-in-from-top-4 duration-200">
-                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+                <div className="bg-white text-[#333B41] rounded border border-[#DCE4EA] p-4 sm:p-5 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#DCE4EA]">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-inner">
-                        <Sparkles className="w-5 h-5 animate-pulse" />
+                      <div className="w-8 h-8 rounded bg-[#E8F3FA] border border-[#9FCEE8] flex items-center justify-center text-[#0E3A66]">
+                        <Sparkles className="w-4 h-4 text-[#0E3A66]" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-black tracking-wide flex items-center gap-2">
-                          <span>ระบบแนะนำคู่กะอัจฉริยะ & เครื่องมือจัดกะด่วน (Smart Shift Assistant)</span>
-                          <span className="text-[10px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full">AI Powered</span>
+                        <h3 className="text-xs font-bold text-[#0E3A66] uppercase tracking-wider flex items-center gap-2">
+                          <span>ระบบแนะนำคู่กะอัจฉริยะ</span>
+                          <span className="tag t-b">AI Powered</span>
                         </h3>
-                        <p className="text-xs text-slate-300 mt-0.5">
-                          วิเคราะห์พนักงานในตำแหน่งเดียวกัน แนะนำคู่กะสลับ Day/Night เพื่อความต่อเนื่องของงาน 24 ชม. และตรวจเช็กกฎหมายแรงงาน
-                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -8245,18 +8212,18 @@ export default function App() {
                         type="button"
                         onClick={handleAutoBalanceAllRoles}
                         disabled={isAutoPairingLoading}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-3.5 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <Zap className="w-3.5 h-3.5" />
-                        <span>{isAutoPairingLoading ? "กำลังคำนวณ..." : "จัดคู่กะ Day/Night ครบทุกตำแหน่ง"}</span>
+                        <span>{isAutoPairingLoading ? "กำลังคำนวณ..." : "จัดคู่กะทั้งหมด"}</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleSyncPlanToActual}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer transition-all flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 bg-white hover:bg-[#F3F6F8] border border-[#DCE4EA] text-[#333B41] rounded text-xs font-medium cursor-pointer transition-all flex items-center gap-1.5"
                         title="คัดลอกค่าในช่อง Plan ทั้งหมดไปไว้ในช่อง Actual"
                       >
-                        <Repeat className="w-3.5 h-3.5 text-blue-400" />
+                        <Repeat className="w-3.5 h-3.5 text-[#6A7B87]" />
                         <span>คัดลอก Plan → Actual</span>
                       </button>
                     </div>
@@ -8339,7 +8306,7 @@ export default function App() {
               )}
 
               {/* Master Calendar Grid Canvas */}
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
                 <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
                   <div className="inline-block min-w-full">
                     
@@ -8625,8 +8592,8 @@ export default function App() {
                             {/* Position Category Header & Visible Line Divider */}
                             <div className="bg-slate-100/90 border-y border-slate-200 px-4 py-2 flex items-center justify-between sticky left-0 z-20 shadow-sm">
                               <div className="flex items-center gap-2">
-                                <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></span>
-                                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                                <span className="w-1.5 h-1.5 bg-[#0E3A66] rounded-full"></span>
+                                <span className="text-xs font-bold text-[#0E3A66] uppercase tracking-wider">
                                   ตำแหน่ง: {roleName}
                                 </span>
                                 <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
@@ -8786,10 +8753,10 @@ export default function App() {
                                                title={getShiftHoverTooltip(actualShift, emp.name, dayIdx + 1)}
                                                className={[
                                                  "group/cell flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center relative select-none cursor-pointer transition-all",
-                                                isFocused ? "ring-2 ring-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)] z-30" : "",
-                                                isSelected ? "ring-2 ring-blue-500/90 bg-blue-500/20 z-20" : "",
-                                                isDropTarget ? "border-dashed border-2 border-cyan-400 bg-cyan-500/30 animate-pulse z-20" : "",
-                                                mismatch ? "outline outline-2 outline-red-500 outline-offset-[-1px] z-[1]" : "",
+                                                isFocused ? "ring-2 ring-[#2E90CB] z-30" : "",
+                                                isSelected ? "ring-2 ring-[#0E3A66] bg-[#E8F3FA] z-20" : "",
+                                                isDropTarget ? "border-dashed border-2 border-[#2E90CB] bg-[#E8F3FA] z-20" : "",
+                                                mismatch ? "outline outline-2 outline-[#B3352C] outline-offset-[-1px] z-[1]" : "",
                                                 day.weekend ? "bg-red-50/20" : "",
                                                 "hover:bg-blue-50/60"
                                               ].join(" ")}>
@@ -9255,7 +9222,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 
                 {/* Labor laws parameters limits */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-6">
+                <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">กฎหมายแรงงานไทยและพารามิเตอร์ความปลอดภัย</h4>
                     <p className="text-xs text-slate-500">กำหนดขีดจำกัดสูงสุดเพื่อให้สอดคล้องกับกฎหมายและสุขภาพของพนักงาน</p>
@@ -9338,7 +9305,7 @@ export default function App() {
                 </div>
 
                 {/* User & Permissions Management (Visible to Admin & HR) */}
-                <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded p-6 shadow-sm space-y-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Users & Permissions)</h4>
@@ -9462,7 +9429,7 @@ export default function App() {
 
                 {/* Database Management / Clear data card */}
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
-                  <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded p-6 shadow-sm space-y-4">
                     <div>
                       <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
                       <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
@@ -9511,7 +9478,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-6">
+              <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
                 <div className="overflow-x-auto no-scrollbar touch-pan-x rounded-2xl border border-slate-100 divide-y divide-slate-100 w-full max-w-full min-w-0">
                   <table className="w-full text-left text-xs text-slate-600 min-w-[600px]">
                     <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
@@ -9633,7 +9600,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 
                 {/* Left card: Current Profile Preview */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
+                <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
                   <div className="w-24 h-24 rounded-full overflow-hidden shadow-md border-4 border-slate-100 flex-shrink-0">
                     <img 
                       alt="Avatar Preview" 
@@ -9665,7 +9632,7 @@ export default function App() {
                 </div>
 
                 {/* Right card: Form editor */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
+                <div className="lg:col-span-2 bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm">
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -9752,7 +9719,7 @@ export default function App() {
       {/* ======================================= */}
       {showVesselModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded border border-slate-200 shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Header */}
             <div className="bg-[#0E3A66] p-4 text-white flex items-center justify-between">
@@ -9761,7 +9728,7 @@ export default function App() {
                   <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold font-sans">จัดการตารางเทียบเรือ & เครนตักสินค้า</h3>
+                  <h3 className="text-base font-extrabold font-sans">ตารางเทียบเรือและเครน</h3>
                   <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
                 </div>
               </div>
@@ -9817,7 +9784,7 @@ export default function App() {
                       required
                       value={newVesselName}
                       onChange={(e) => setNewVesselName(e.target.value)}
-                      placeholder='เช่น Disch. Wheat MV "Golden Friend"'
+                      placeholder='เช่น MV Golden Friend'
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
@@ -9960,10 +9927,10 @@ export default function App() {
       {/* ======================================= */}
       {showAddEmployeeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded w-full max-w-2xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
-                <h3 className="text-base font-bold text-slate-900">เพิ่มพนักงานเข้าสู่แผนภูมิระบบ</h3>
+                <h3 className="text-base font-bold text-slate-900">เพิ่มพนักงาน</h3>
                 <p className="text-xs text-slate-500">ระบุรายละเอียดข้อมูลพนักงานเพื่อจัดสรรตารางการทำงานและเป้าหมายโอที</p>
               </div>
               <button 
@@ -10309,7 +10276,7 @@ export default function App() {
       {/* ======================================= */}
       {showEditEmployeeModal && editingEmployee && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded w-full max-w-2xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-bold text-slate-900">แก้ไขข้อมูลพนักงาน</h3>
@@ -10651,7 +10618,7 @@ export default function App() {
       {/* ======================================= */}
       {viewingEmployeeDetails && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded w-full max-w-2xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[90vh]">
             {/* Header / Avatar Banner */}
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-start">
               <div className="flex items-center gap-5">
@@ -10818,7 +10785,7 @@ export default function App() {
                           สัดส่วนค่า OT สะสมเทียบฐานเงินเดือน
                         </span>
                         {isMax ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[11px] font-black shadow-sm animate-pulse flex items-center gap-1">
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#B3352C] text-white text-[11px] font-bold shadow-xs flex items-center gap-1">
                             <AlertOctagon className="w-3.5 h-3.5" />
                             <span>MAX ({otSalaryPct}%)</span>
                           </span>
@@ -10957,7 +10924,7 @@ export default function App() {
       {/* ======================================= */}
       {showAiAuditModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[85vh]">
+          <div className="bg-white rounded w-full max-w-2xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[85vh]">
             {/* Modal Header */}
             <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -11012,7 +10979,7 @@ export default function App() {
       {/* ======================================= */}
       {showAddAccountModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded w-full max-w-md overflow-hidden shadow-lg border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -11163,7 +11130,7 @@ export default function App() {
       {/* ======================================= */}
       {showEditAccountModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded w-full max-w-md overflow-hidden shadow-lg border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -11298,7 +11265,7 @@ export default function App() {
       {/* ======================================= */}
       {showResetPasswordModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+          <div className="bg-white rounded w-full max-w-sm overflow-hidden shadow-lg border border-slate-200 flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
@@ -11353,7 +11320,7 @@ export default function App() {
       {/* ======================================= */}
       {showBulkShiftModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+          <div className="bg-white rounded border border-slate-200 shadow-lg w-full max-w-md overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 bg-indigo-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Zap className="w-5 h-5 text-amber-400" />
@@ -11432,7 +11399,7 @@ export default function App() {
       {/* ======================================= */}
       {showOtRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded border border-slate-200 shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 bg-slate-950 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
@@ -11578,7 +11545,7 @@ export default function App() {
       {/* ======================================= */}
       {viewingJobValueModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded w-full max-w-3xl overflow-hidden shadow-lg border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <EmployeeAvatar empId={viewingJobValueModal?.empId || ""} empName={viewingJobValueModal?.empName || ""} className="w-10 h-10 flex-shrink-0" />
@@ -11703,7 +11670,7 @@ export default function App() {
 
         return (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-6 font-sans">
-            <div className="bg-white rounded border border-[#DCE4EA] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white rounded border border-[#DCE4EA] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-lg flex flex-col animate-in fade-in zoom-in-95 duration-150">
               
               {/* Calm Editorial Header Banner */}
               <div className="bg-[#0E3A66] px-5 py-4 text-white flex items-center justify-between border-b border-[#17538F]">
@@ -11916,7 +11883,7 @@ export default function App() {
                 <div className="bg-blue-950/70 border border-blue-500/40 rounded-xl p-2.5 flex flex-col gap-1.5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-blue-300 text-[10px] font-black">
-                      <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />
+                      <Sparkles className="w-3 h-3 text-[#2E90CB]" />
                       <span>คำแนะนำคู่กะ (Smart Pair)</span>
                     </div>
                     <span className="text-[9px] text-blue-300 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-400/20">
@@ -11992,7 +11959,7 @@ export default function App() {
       {/* Modal: Salary & OT Formula Details */}
       {viewingSalaryFormulaEmployee && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded shadow-lg border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-3">
@@ -12133,7 +12100,7 @@ export default function App() {
       {/* ======================================= */}
       {showResignedModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded w-full max-w-4xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-rose-50/80 via-white to-slate-50 flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -12352,7 +12319,7 @@ export default function App() {
 
       {/* Smart Shift Floating Success Toast */}
       {smartShiftSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-slate-950/95 text-white border border-blue-500/40 rounded-2xl px-5 py-3.5 shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-6 right-6 z-[9999] bg-slate-950/95 text-white border border-blue-500/40 rounded-2xl px-5 py-3.5 shadow-lg backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
           <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-400/30">
             <Sparkles className="w-4 h-4 text-blue-400" />
           </div>
@@ -12373,7 +12340,7 @@ export default function App() {
       {/* Labor Law & Safety Compliance Audit Modal */}
       {selectedComplianceModalEmp && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded shadow-lg border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
             <div className="bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">

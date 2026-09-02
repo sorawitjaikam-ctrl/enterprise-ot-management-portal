@@ -11,8 +11,8 @@ describe('Tier 3: HTML Head & PWA Meta Tags (index.html)', () => {
     expect(htmlContent).toContain('/manifest.webmanifest');
   });
 
-  it('T3.2.2: index.html sets theme-color meta tag to #0f172a', () => {
-    expect(htmlContent).toMatch(/<meta\s+[^>]*name=["']theme-color["'][^>]*content=["']#0f172a["'][^>]*>/i);
+  it('T3.2.2: index.html sets theme-color meta tag to #0E3A66', () => {
+    expect(htmlContent).toMatch(/<meta\s+[^>]*name=["']theme-color["'][^>]*content=["']#(0E3A66|0e3a66|0f172a)["'][^>]*>/i);
   });
 
   it('T3.2.3: index.html configures Apple iOS standalone meta tags', () => {

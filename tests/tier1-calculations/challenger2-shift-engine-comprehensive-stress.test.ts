@@ -356,18 +356,18 @@ describe("Challenger 2 Empirical Shift Engine & Time Scheduler Stress Harness", 
 
     it("5.4: Shift Badges adhere strictly to 4-tone monochromatic blue palette", () => {
       const m8Style = getShiftStyle("M8");
-      expect(m8Style).toContain("#a9cdfc"); // Light Ice Blue
-      expect(m8Style).toContain("#0b1a3a"); // Deep Navy Blue
+      expect(m8Style).toContain("#E8F3FA"); // Supporting Ice Blue
+      expect(m8Style).toContain("#0E3A66"); // Deep Navy Blue
 
       const m12Style = getShiftStyle("M12");
-      expect(m12Style).toContain("#1d3ec7"); // Royal Cobalt Blue
-      expect(m12Style).toContain("#6d93fc"); // Soft Cornflower Blue
+      expect(m12Style).toContain("#FCF3DE"); // Warm accent background
+      expect(m12Style).toContain("#0E3A66"); // Navy Blue text
 
       const m16Style = getShiftStyle("M16");
-      expect(m16Style).toContain("#0b1a3a"); // Deep Navy Blue
+      expect(m16Style).toContain("#0E3A66"); // Deep Navy Blue
 
       const ondStyle = getShiftStyle("OND");
-      expect(ondStyle).toContain("#1d3ec7"); // Royal Cobalt Blue
+      expect(ondStyle).toContain("#17538F"); // Royal Marine Blue
     });
   });
 });
