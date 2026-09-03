@@ -8360,23 +8360,23 @@ export default function App() {
               )}
 
               {/* Master Calendar Grid Canvas */}
-              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm w-full">
                 <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
-                  <div className="inline-block min-w-full">
+                  <div className="w-full min-w-full flex flex-col">
                     
                     {/* Header: Days labels */}
-                    <div className="flex bg-slate-50 border-b border-slate-200">
+                    <div className="flex bg-slate-50 border-b border-slate-200 w-full">
                       <div className="w-56 flex-shrink-0 p-4 border-r border-slate-200 font-bold text-slate-500 text-xs uppercase">
                         พนักงานสังกัด / รายชื่อ
                       </div>
                       
                       {/* Generative Days loop */}
-                      <div className="flex">
+                      <div className="flex flex-1 min-w-0">
                         {currentDays.map((day, dIdx) => (
                           <div 
                             key={dIdx} 
-                            style={{ width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
-                            className={`flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
+                            style={{ minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
+                            className={`flex-1 flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
                               day.weekend ? "bg-slate-100/50" : ""
                             }`}
                           >
@@ -8456,13 +8456,13 @@ export default function App() {
                       const totalActiveStaff = deptEmployees.length;
 
                       return (
-                      <div key={rIdx} className="flex border-b border-slate-200 hover:bg-slate-50/30 transition-colors">
+                      <div key={rIdx} className="flex border-b border-slate-200 hover:bg-slate-50/30 transition-colors w-full">
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-[#f8fafc] flex flex-col justify-center px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <span className="text-[11px] font-extrabold text-slate-700">{row.label}</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">{row.subLabel}</span>
                         </div>
 
-                        <div className="flex">
+                        <div className="flex flex-1 min-w-0">
                           {currentDays.map((day) => {
                             const [y, m] = (state?.shiftConfig?.currentMonth || "2026-07").split("-");
                             const dateStr = `${y}-${m}-${String(day.n).padStart(2, "0")}`;
@@ -8484,11 +8484,11 @@ export default function App() {
                                 <div
                                   key={day.n}
                                   style={{
-                                    width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                    minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
                                     height: "36px",
                                     backgroundColor: bgColor
                                   }}
-                                  className={`flex-shrink-0 flex items-center justify-center relative select-none ${
+                                  className={`flex-1 flex-shrink-0 flex items-center justify-center relative select-none ${
                                     isStart ? "rounded-l-md border-l border-black/10" : ""
                                   } ${isEnd ? "rounded-r-md border-r border-black/10" : ""} ${
                                     !isEnd ? "" : "border-r border-slate-200"
@@ -8510,10 +8510,10 @@ export default function App() {
                               <div
                                 key={day.n}
                                 style={{
-                                  width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                  minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
                                   height: "36px"
                                 }}
-                                className="flex-shrink-0 border-r border-slate-200 bg-slate-50/10"
+                                className="flex-1 flex-shrink-0 border-r border-slate-200 bg-slate-50/10"
                               />
                             );
                           })}
@@ -8558,17 +8558,17 @@ export default function App() {
                   })}
 
                     {/* === Dedicated Employee Roster Header Bar === */}
-                    <div className="flex bg-slate-100 border-y border-slate-300 select-none">
+                    <div className="flex bg-slate-100 border-y border-slate-300 select-none w-full">
                       <div className="w-56 flex-shrink-0 p-3 border-r border-slate-300 font-extrabold text-slate-700 text-xs flex items-center bg-blue-50/80">
                         <span className="text-blue-900 font-bold">รายชื่อพนักงานจัดกะ (All Employees)</span>
                       </div>
 
-                      <div className="flex">
+                      <div className="flex flex-1 min-w-0">
                         {currentDays.map((day, dIdx) => (
                           <div
                             key={dIdx}
-                            style={{ width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
-                            className={`flex-shrink-0 p-1 text-center border-r border-slate-300 flex flex-col justify-center ${
+                            style={{ minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
+                            className={`flex-1 flex-shrink-0 p-1 text-center border-r border-slate-300 flex flex-col justify-center ${
                               day.weekend ? "bg-slate-200/60" : "bg-slate-100"
                             }`}
                           >
@@ -8672,7 +8672,7 @@ export default function App() {
                             <div className="divide-y divide-slate-100">
                               {roleEmps.map((emp) => {
                                 return (
-                                  <div key={emp.id} className="flex hover:bg-blue-50/40 transition-colors group">
+                                  <div key={emp.id} className="flex w-full hover:bg-blue-50/40 transition-colors group">
                                      {/* Employee ID & Name head */}
                                      <div onClick={(e) => { e.stopPropagation(); openModalForEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินบันทึกกะ 24H สำหรับพนักงานคนนี้">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
@@ -8686,7 +8686,7 @@ export default function App() {
                                     </div>
 
                                     {/* Shift Cells */}
-                                    <div className="flex">
+                                    <div className="flex flex-1 min-w-0">
                                       {(() => {
                                         const empActualShifts = getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth, emp.calendarType);
                                         const empPlanShifts = getEmpPlanShiftsArray(emp, state?.shiftConfig?.currentMonth);
@@ -8709,7 +8709,7 @@ export default function App() {
                                           return (
                                             <div 
                                               key={dayIdx} 
-                                              style={{ width: cellW, height: cellH }}
+                                              style={{ minWidth: cellW, height: cellH }}
                                               data-emp-id={emp.id}
                                               data-day-idx={dayIdx}
                                               onPointerDown={(e) => {
@@ -8806,7 +8806,7 @@ export default function App() {
                                               }}
                                                title={getShiftHoverTooltip(actualShift, emp.name, dayIdx + 1)}
                                                className={[
-                                                 "group/cell flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center relative select-none cursor-pointer transition-all",
+                                                 "group/cell flex-1 flex-shrink-0 p-0.5 border-r border-slate-200 flex flex-col justify-center relative select-none cursor-pointer transition-all",
                                                 isFocused ? "ring-2 ring-[#2E90CB] z-30" : "",
                                                 isSelected ? "ring-2 ring-[#0E3A66] bg-[#E8F3FA] z-20" : "",
                                                 isDropTarget ? "border-dashed border-2 border-[#2E90CB] bg-[#E8F3FA] z-20" : "",
@@ -9030,19 +9030,19 @@ export default function App() {
                     {/* Summary Row Footers */}
                     <div className="flex flex-col border-t-2 border-slate-200 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                       {/* Row 1: Coverage */}
-                      <div className="flex bg-slate-100 border-b border-slate-200">
+                      <div className="flex bg-slate-100 border-b border-slate-200 w-full">
                         <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-slate-600 text-[11px] flex items-center ${daysLimit === 30 ? "p-2" : "p-3"}`}>
                           สรุปความคุ้มครอง (M/A/N)
                         </div>
                         
-                        <div className="flex text-[10px] font-extrabold text-slate-600 font-mono">
+                        <div className="flex flex-1 min-w-0 text-[10px] font-extrabold text-slate-600 font-mono">
                           {currentDays.map((_, dayIdx) => {
                             const summary = getDailyShiftSummary(dayIdx, currentShiftsDept);
                             return (
                               <div 
                                 key={dayIdx} 
-                                style={{ width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
-                                className={`flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
+                                style={{ minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
+                                className={`flex-1 flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
                                   summary.lowCoverage ? "bg-red-50 text-red-600 font-extrabold border-l border-red-200" : ""
                                 }`}
                               >
@@ -9062,12 +9062,12 @@ export default function App() {
                       </div>
 
                       {/* Row 2: Daily OT Hours */}
-                      <div className="flex bg-blue-50/60">
+                      <div className="flex bg-blue-50/60 w-full">
                         <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-blue-800 text-[11px] flex items-center ${daysLimit === 30 ? "p-2" : "p-3"}`}>
                           สรุปชั่วโมง OT รายวัน (ชม.)
                         </div>
                         
-                        <div className="flex text-[10px] font-extrabold text-blue-700 font-mono">
+                        <div className="flex flex-1 min-w-0 text-[10px] font-extrabold text-blue-700 font-mono">
                           {currentDays.map((_, dayIdx) => {
                             let dailyOt = 0;
                             const activeList = (isEditingShifts ? tempEmployees : state.employees).filter(emp => emp.deptId === currentShiftsDept);
@@ -9078,8 +9078,8 @@ export default function App() {
                             return (
                               <div 
                                 key={dayIdx} 
-                                style={{ width: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
-                                className={`flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
+                                style={{ minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px" }}
+                                className={`flex-1 flex-shrink-0 p-1 text-center border-r border-slate-200 flex flex-col justify-center ${
                                   dailyOt > 0 ? "bg-blue-100/50" : ""
                                 }`}
                               >
