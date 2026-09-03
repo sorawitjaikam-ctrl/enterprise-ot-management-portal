@@ -189,41 +189,64 @@ body, html {
 .t-r { background: var(--red-xl); color: var(--red); border: 1px solid var(--red-l); }
 .t-n { background: var(--gray-xl); color: var(--gray); border: 1px solid var(--line); }
 
-/* Editorial Folder Tab Navigation */
+/* Editorial Folder Tab Navigation - 100% Web Width & Dark Blue Active Highlight */
 nav.folder-tabs {
   display: flex;
-  gap: 2px;
+  width: 100%;
+  gap: 3px;
+  align-items: stretch;
 }
 nav.folder-tabs button {
+  flex: 1 1 0;
+  min-width: max-content;
   font-size: 0.8125rem;
   font-weight: 600;
   background: var(--gray-xl);
-  color: var(--gray);
+  color: var(--ink2);
   border: 1px solid var(--line);
   border-bottom: none;
-  padding: 6px 14px;
+  padding: 8px 10px;
   cursor: pointer;
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
   position: relative;
   top: 1px;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 nav.folder-tabs button .num {
   font-family: var(--font-mono);
-  font-size: 10px;
-  margin-right: 5px;
+  font-size: 11px;
   opacity: 0.7;
+  font-weight: 600;
 }
 nav.folder-tabs button[aria-selected="true"],
 nav.folder-tabs button.active {
-  background: #ffffff;
-  color: var(--navy);
-  border-bottom: 1px solid #ffffff;
-  box-shadow: inset 0 2px 0 var(--navy);
+  background: #0E3A66 !important;
+  color: #ffffff !important;
+  border-color: #0E3A66 !important;
+  border-bottom: 1px solid #0E3A66 !important;
+  box-shadow: 0 -2px 8px rgba(14, 58, 102, 0.25);
+  z-index: 2;
+}
+nav.folder-tabs button[aria-selected="true"] .num,
+nav.folder-tabs button.active .num {
+  color: #9FCEE8 !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+nav.folder-tabs button[aria-selected="true"] svg,
+nav.folder-tabs button.active svg {
+  color: #ffffff !important;
+  opacity: 1 !important;
 }
 nav.folder-tabs button:hover:not([aria-selected="true"]):not(.active) {
-  background: #e9eff4;
-  color: var(--navy2);
+  background: #E8F3FA;
+  color: var(--navy);
+  border-color: #B4C1C9;
 }
 
 /* Clean Editorial Card */

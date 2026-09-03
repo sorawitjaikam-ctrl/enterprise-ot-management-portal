@@ -170,28 +170,7 @@ export const getEmpShiftsArray = (shifts: any, monthKey?: string, calendarType?:
     }
   }
 
-  // If shifts found and contains active shift values, return them
-  if (extracted && extracted.length > 0 && extracted.some(s => s && s !== "O" && s !== "")) {
-    return extracted;
-  }
-
-  // Fallback: Generate real shift patterns according to calendarType if shifts are unassigned
-  if (calendarType) {
-    const [yStr, mStr] = mKey.split("-");
-    const yr = Number(yStr) || 2026;
-    const mn = Number(mStr) || 8;
-    const totalDays = new Date(yr, mn, 0).getDate();
-
-    if (calendarType.includes("2 ทีม") || calendarType.includes("12")) {
-      const cycle = ["M12", "M12", "N12", "N12", "OFF", "OFF"];
-      return Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
-    }
-    if (calendarType.includes("3 ทีม") || calendarType.includes("8-8-8")) {
-      const cycle = ["M8", "M8", "A8", "A8", "N8", "N8", "OFF", "OFF"];
-      return Array.from({ length: totalDays }, (_, i) => cycle[i % cycle.length]);
-    }
-  }
-
+  // Return extracted shifts if available, otherwise empty array (do not fabricate fake OT for unassigned months)
   return extracted && extracted.length > 0 ? extracted : [];
 };
 
@@ -5361,13 +5340,14 @@ export default function App() {
                   return {
                     name: monthNames[idx],
                     spent: mSpent,
+                    pSpent: pSpent,
                     otHrs: mOtHrs,
                     compPct: compPct,
                     salPct: salPct
                   };
                 });
 
-                const maxSpentInYear = Math.max(...monthlyStats.map(s => s.spent), 1);
+                const maxSpentInYear = Math.max(...monthlyStats.map(s => Math.max(s.spent, s.pSpent)), 1);
 
                 return (
                   <div className="space-y-4 sm:space-y-6 font-sans">
@@ -5495,17 +5475,17 @@ export default function App() {
                         {/* Grouped Bar Chart Area */}
                         <div className="h-64 flex items-end justify-between gap-3 pt-6 relative border-t border-slate-100">
                           
-                          {/* Y-Axis Percentage Labels */}
-                          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none">
-                            <span>80%</span>
-                            <span>60%</span>
-                            <span>40%</span>
-                            <span>20%</span>
-                            <span>0%</span>
+                          {/* Y-Axis Labels matching real OT Spend scale */}
+                          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none font-mono">
+                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear).toLocaleString()}` : "100%"}</span>
+                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.75).toLocaleString()}` : "75%"}</span>
+                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.5).toLocaleString()}` : "50%"}</span>
+                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.25).toLocaleString()}` : "25%"}</span>
+                            <span>฿0</span>
                           </div>
 
                           {/* Grid Lines */}
-                          <div className="absolute left-8 right-0 top-0 bottom-8 flex flex-col justify-between pointer-events-none">
+                          <div className="absolute left-14 right-0 top-0 bottom-8 flex flex-col justify-between pointer-events-none">
                             <div className="w-full h-px bg-slate-100"></div>
                             <div className="w-full h-px bg-slate-100"></div>
                             <div className="w-full h-px bg-slate-100"></div>
@@ -5514,28 +5494,41 @@ export default function App() {
                           </div>
 
                           {/* 10 Month DYNAMIC Grouped Bars Area */}
-                          <div className="pl-9 w-full flex items-end justify-between gap-2 h-full">
+                          <div className="pl-14 w-full flex items-end justify-between gap-2 h-full">
                             {monthlyStats.map((st) => {
-                              // Dynamic bar heights computed from real monthly D1 data (0% when spent is 0)
-                              const bar1H = st.spent > 0 ? Math.min(80, Math.max(4, Math.abs(st.compPct))) : 0;
-                              const bar2H = st.spent > 0 ? Math.min(75, Math.max(4, Math.round((st.spent / maxSpentInYear) * 70))) : 0;
-                              const bar3H = st.spent > 0 ? Math.min(60, Math.max(4, st.salPct * 2.5)) : 0;
+                              // Dynamic bar heights computed from actual monthly OT data
+                              const bar1H = st.pSpent > 0 ? Math.min(85, Math.max(4, Math.round((st.pSpent / maxSpentInYear) * 80))) : 0;
+                              const bar2H = st.spent > 0 ? Math.min(85, Math.max(4, Math.round((st.spent / maxSpentInYear) * 80))) : 0;
+                              const bar3H = st.salPct > 0 ? Math.min(85, Math.max(4, Math.round(st.salPct * 3.5))) : 0;
 
                               const activeSeriesCount = (chartSeriesFilter.compare ? 1 : 0) + (chartSeriesFilter.spent ? 1 : 0) + (chartSeriesFilter.pct ? 1 : 0);
                               const barWidthClass = activeSeriesCount === 1 ? "w-3/4 max-w-[28px]" : (activeSeriesCount === 2 ? "w-1/2 max-w-[20px]" : "w-1/3 max-w-[14px]");
 
                               return (
-                                <div key={st.name} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                                  <div className="w-full flex items-end justify-center gap-1.5 h-[82%]">
-                                    {/* Bar 1: Sky Blue (Connects to Card 1) */}
+                                <div key={st.name} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                                  {/* MoM % Badge if comparison available */}
+                                  <div className="h-4 flex items-center justify-center">
+                                    {st.spent > 0 && st.pSpent > 0 && chartSeriesFilter.compare ? (
+                                      <span className={`text-[9px] font-mono font-bold px-1 rounded ${
+                                        st.compPct < 0 
+                                          ? "text-emerald-700 bg-emerald-50 border border-emerald-200" 
+                                          : (st.compPct > 0 ? "text-amber-700 bg-amber-50 border border-amber-200" : "text-slate-500 bg-slate-100")
+                                      }`}>
+                                        {st.compPct > 0 ? `+${st.compPct}%` : `${st.compPct}%`}
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="w-full flex items-end justify-center gap-1.5 h-[76%]">
+                                    {/* Bar 1: Sky Blue (Prior Month / Baseline OT Spend) */}
                                     {chartSeriesFilter.compare && (
                                       <div 
                                         style={{ height: `${bar1H}%` }}
                                         className={`${barWidthClass} bg-sky-400 rounded-t-sm hover:bg-sky-500 transition-all shadow-sm`}
-                                        title={`เปรียบเทียบผลรวม (${st.name}): ${st.compPct}%`}
+                                        title={`เปรียบเทียบเดือนก่อนหน้า (${st.name}): ${st.pSpent.toLocaleString()} THB`}
                                       />
                                     )}
-                                    {/* Bar 2: Royal Blue (Connects to Card 2) */}
+                                    {/* Bar 2: Royal Blue (Current Month OT Spend) */}
                                     {chartSeriesFilter.spent && (
                                       <div 
                                         style={{ height: `${bar2H}%` }}
@@ -5543,12 +5536,12 @@ export default function App() {
                                         title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
                                       />
                                     )}
-                                    {/* Bar 3: Slate/Navy (Connects to Card 3) */}
+                                    {/* Bar 3: Slate/Navy (% of Base Salary) */}
                                     {chartSeriesFilter.pct && (
                                       <div 
                                         style={{ height: `${bar3H}%` }}
                                         className={`${barWidthClass} bg-slate-800 rounded-t-sm hover:bg-slate-900 transition-all shadow-sm`}
-                                        title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}%`}
+                                        title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}% ของงบเงินเดือน`}
                                       />
                                     )}
                                   </div>
@@ -5576,15 +5569,15 @@ export default function App() {
 
                         {/* Main Metric Section */}
                         <div className="space-y-1.5 mt-4">
-                          <h4 className="text-xs font-bold text-slate-500 tracking-wide">Average Working Hours</h4>
+                          <h4 className="text-xs font-bold text-slate-500 tracking-wide">ชั่วโมง OT เฉลี่ยต่อคน</h4>
                           <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black tracking-tight text-slate-900">
                               {avgOtPerEmp} hrs
                             </span>
                             <span className="text-xs font-semibold text-slate-500">per employee</span>
                           </div>
-                          <p className="text-xs font-extrabold text-amber-600 pt-1">
-                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "เกินเป้าหมาย 36 ชม./เดือน" : "อยู่ในเกณฑ์มาตรฐาน") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
+                          <p className={`text-xs font-extrabold pt-1 ${avgOtPerEmp > 36 ? "text-amber-600" : "text-emerald-600"}`}>
+                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "เกินเป้าหมาย 36 ชม./เดือน" : "อยู่ในเกณฑ์มาตรฐาน (≤ 36 ชม./เดือน)") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
                           </p>
                         </div>
 

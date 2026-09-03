@@ -106,7 +106,7 @@ export default function Navbar({
       <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans">
         
         {/* Top Header Bar */}
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
+        <div className="w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
           <div className="flex items-center justify-between gap-4">
             
             {/* Left: Brand Identity & Eyebrow */}
@@ -256,7 +256,7 @@ export default function Navbar({
         </div>
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
-        <div className="hidden md:block max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
+        <div className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
@@ -270,8 +270,8 @@ export default function Navbar({
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5 opacity-70" />
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <Icon className="w-3.5 h-3.5 opacity-80" />
                     <span>{tab.label}</span>
                   </span>
                 </button>
