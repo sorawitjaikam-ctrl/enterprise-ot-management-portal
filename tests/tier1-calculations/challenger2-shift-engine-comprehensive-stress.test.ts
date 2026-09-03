@@ -354,20 +354,32 @@ describe("Challenger 2 Empirical Shift Engine & Time Scheduler Stress Harness", 
       expect(totalCalculatedWidth).toBe(368);
     });
 
-    it("5.4: Shift Badges adhere strictly to 4-tone monochromatic blue palette", () => {
+    it("5.4: Shift Badges adhere strictly to calibrated shift palette and dog-ear leave badges", () => {
       const m8Style = getShiftStyle("M8");
-      expect(m8Style).toContain("#E8F3FA"); // Supporting Ice Blue
-      expect(m8Style).toContain("#0E3A66"); // Deep Navy Blue
+      expect(m8Style).toContain("#CFE2F3"); // Pastel blue
+      expect(m8Style).toContain("text-black"); // Black text
 
       const m12Style = getShiftStyle("M12");
-      expect(m12Style).toContain("#FCF3DE"); // Warm accent background
-      expect(m12Style).toContain("#0E3A66"); // Navy Blue text
+      expect(m12Style).toContain("#CFE2F3"); // Pastel blue
+      expect(m12Style).toContain("#2563EB"); // Blue text
 
       const m16Style = getShiftStyle("M16");
-      expect(m16Style).toContain("#0E3A66"); // Deep Navy Blue
+      expect(m16Style).toContain("#0B5394"); // Dark Navy Blue
+      expect(m16Style).toContain("text-white"); // White text
 
       const ondStyle = getShiftStyle("OND");
-      expect(ondStyle).toContain("#17538F"); // Royal Marine Blue
+      expect(ondStyle).toContain("#00FFFF"); // Aqua / Cyan
+      expect(ondStyle).toContain("text-black"); // Black text
+
+      const n12Style = getShiftStyle("N12");
+      expect(n12Style).toContain("#E60000"); // Red text
+
+      const n16Style = getShiftStyle("N16");
+      expect(n16Style).toContain("#E60000"); // Red bg
+      expect(n16Style).toContain("text-white"); // White text
+
+      const leaveSickStyle = getShiftStyle("ป");
+      expect(leaveSickStyle).toContain("chip-leave");
     });
   });
 });

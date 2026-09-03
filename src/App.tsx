@@ -90,48 +90,81 @@ import {
   ComplianceAlert
 } from "./utils/shiftRecommendation";
 
+export const LEAVE_CODES = ["ป", "ก", "ข", "ปง", "ณ", "คม", "พ", "ลย", "ลบ", "ตง"] as const;
+export const isLeaveCode = (code: string) => LEAVE_CODES.includes(code as any);
+
 export const SHIFT_OPTIONS = [
-  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
-  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
-  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#E8F3FA]", border: "border-[#9FCEE8]", text: "text-[#0E3A66] font-bold" },
-  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
-  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
-  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#FCF3DE]", border: "border-[#F3D98F]", text: "text-[#0E3A66] font-bold" },
-  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
-  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#0E3A66]", border: "border-[#0E3A66]", text: "text-white font-bold" },
-  { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-[#E8F6F0]", border: "border-[#A5DCC5]", text: "text-[#1E9C6E] font-bold" },
-  { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#17538F]", border: "border-[#17538F]", text: "text-white font-bold" },
-  { code: "O", label: "O", desc: "วันหยุดพักผ่อน", bg: "bg-white", border: "border-[#DCE4EA]", text: "text-[#6A7B87]" }
+  { code: "M8", label: "M8", desc: "กะเช้า 8 ชม.", bg: "bg-[#CFE2F3]", border: "border-[#9FC5E8]", text: "text-black font-bold" },
+  { code: "A8", label: "A8", desc: "กะบ่าย 8 ชม.", bg: "bg-[#FFF2CC]", border: "border-[#FFE599]", text: "text-black font-bold" },
+  { code: "N8", label: "N8", desc: "กะดึก 8 ชม.", bg: "bg-[#FCE5CD]", border: "border-[#F9CB9C]", text: "text-black font-bold" },
+  { code: "M12", label: "M12", desc: "กะเช้า8 OT 4", bg: "bg-[#CFE2F3]", border: "border-[#9FC5E8]", text: "text-[#2563EB] font-black" },
+  { code: "A12", label: "A12", desc: "กะบ่าย8 OT 4", bg: "bg-[#FFE599]", border: "border-[#FFD966]", text: "text-black font-bold" },
+  { code: "N12", label: "N12", desc: "กะดึก8 OT 4", bg: "bg-[#FCE5CD]", border: "border-[#F9CB9C]", text: "text-[#E60000] font-black" },
+  { code: "M16", label: "M16", desc: "กะเช้า8 OT 8", bg: "bg-[#0B5394]", border: "border-[#073763]", text: "text-white font-black" },
+  { code: "N16", label: "N16", desc: "กะดึก8 OT 8", bg: "bg-[#E60000]", border: "border-[#990000]", text: "text-white font-black" },
+  { code: "D", label: "D", desc: "กะกลางวันปกติ", bg: "bg-[#D9D9D9]", border: "border-[#B7B7B7]", text: "text-[#333333] font-bold" },
+  { code: "OND", label: "OND", desc: "ON DUTY (วันหยุด)", bg: "bg-[#00FFFF]", border: "border-[#00D2D2]", text: "text-black font-black" },
+  { code: "O", label: "O", desc: "วันหยุดพักผ่อน (OFF)", bg: "bg-white", border: "border-[#DCE4EA]", text: "text-[#6A7B87]" },
+  // Leave codes with dog-ear fold corner
+  { code: "ป", label: "ป", desc: "ลาป่วย (Sick Leave)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ก", label: "ก", desc: "ลากิจ (Personal Leave)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ข", label: "ข", desc: "ขาดงาน (Absent)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ปง", label: "ปง", desc: "ลาป่วยมีใบรับรองแพทย์", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ณ", label: "ณ", desc: "ลาฌาปนกิจ (Funeral)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "คม", label: "คม", desc: "ลาคลอด / ลาสมรส", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "พ", label: "พ", desc: "ลาพักร้อน (Annual Leave)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ลย", label: "ลย", desc: "ลาหยุดชดเชย", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ลบ", label: "ลบ", desc: "ลาบวช (Ordination)", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
+  { code: "ตง", label: "ตง", desc: "ตรวจสุขภาพ / ราชการ", bg: "chip-leave", border: "border-black", text: "text-black font-bold" },
 ];
 
 export const getShiftStyle = (shift: string) => {
   switch (shift) {
     case "M8":
+      return "bg-[#CFE2F3] text-black border border-[#9FC5E8] font-bold";
     case "A8":
+      return "bg-[#FFF2CC] text-black border border-[#FFE599] font-bold";
     case "N8":
-      return "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] font-bold";
+      return "bg-[#FCE5CD] text-black border border-[#F9CB9C] font-bold";
     case "M12":
+      return "bg-[#CFE2F3] text-[#2563EB] border border-[#9FC5E8] font-black";
     case "A12":
+      return "bg-[#FFE599] text-black border border-[#FFD966] font-bold";
     case "N12":
-      return "bg-[#FCF3DE] text-[#0E3A66] border border-[#F3D98F] font-bold";
+      return "bg-[#FCE5CD] text-[#E60000] border border-[#F9CB9C] font-black";
     case "M16":
-    case "N16":
     case "M24":
+      return "bg-[#0B5394] text-white border border-[#073763] font-black";
+    case "N16":
     case "N24":
-      return "bg-[#0E3A66] text-white border border-[#0E3A66] font-bold";
+      return "bg-[#E60000] text-white border border-[#990000] font-black";
     case "D":
-      return "bg-[#E8F6F0] text-[#1E9C6E] border border-[#A5DCC5] font-bold";
+      return "bg-[#D9D9D9] text-[#333333] border border-[#B7B7B7] font-bold";
     case "OND":
-      return "bg-[#17538F] text-white border border-[#17538F] font-bold";
+      return "bg-[#00FFFF] text-black border border-[#00D2D2] font-black";
     case "O":
     case "OFF":
-      return "bg-white text-[#B4C1C9] border border-[#DCE4EA]/40 font-medium";
+      return "bg-white text-[#6A7B87] border border-[#DCE4EA] font-medium";
+    case "ป":
+    case "ก":
+    case "ข":
+    case "ปง":
+    case "ณ":
+    case "คม":
+    case "พ":
+    case "ลย":
+    case "ลบ":
+    case "ตง":
+      return "chip-leave bg-white text-black border border-black font-bold";
     default:
       if (shift.startsWith("M") || shift.startsWith("A") || shift.startsWith("N")) {
         const ot = getShiftOtHours(shift);
-        if (ot > 4) return "bg-[#0E3A66] text-white border border-[#0E3A66] font-bold";
-        if (ot > 0) return "bg-[#FCF3DE] text-[#0E3A66] border border-[#F3D98F] font-bold";
-        return "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] font-bold";
+        if (shift.startsWith("N") && ot > 4) return "bg-[#E60000] text-white border border-[#990000] font-black";
+        if (ot > 4) return "bg-[#0B5394] text-white border border-[#073763] font-black";
+        if (shift.startsWith("M") && ot > 0) return "bg-[#CFE2F3] text-[#2563EB] border border-[#9FC5E8] font-black";
+        if (shift.startsWith("N") && ot > 0) return "bg-[#FCE5CD] text-[#E60000] border border-[#F9CB9C] font-black";
+        if (shift.startsWith("A") && ot > 0) return "bg-[#FFE599] text-black border border-[#FFD966] font-bold";
+        return "bg-[#CFE2F3] text-black border border-[#9FC5E8] font-bold";
       }
       if (shift === "ALERT") return "bg-[#FBEAEA] text-[#B3352C] border border-[#B3352C]/40 font-bold";
       return "bg-[#F3F6F8] text-[#6A7B87] border border-[#DCE4EA]";
@@ -8115,26 +8148,54 @@ export default function App() {
                   </div>
 
                   <div className="overflow-x-auto no-scrollbar touch-pan-x pb-1">
-                    <div className="flex gap-2 min-w-[900px] select-none">
+                    <div className="flex items-end gap-2 min-w-[1250px] select-none">
+                      {/* Shift Codes */}
                       {[
-                        { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
-                        { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
-                        { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]" },
-                        { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
-                        { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
-                        { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#FCF3DE] text-[#0E3A66] border-[#F3D98F]" },
-                        { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#0E3A66] text-white border-[#0E3A66]" },
-                        { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#0E3A66] text-white border-[#0E3A66]" },
-                        { top: "กลางวัน", sub: "Day", code: "D", style: "bg-[#E8F6F0] text-[#1E9C6E] border-[#A5DCC5]" },
-                        { top: "วันหยุด", sub: "ON DUTY", code: "OND", style: "bg-[#17538F] text-white border-[#17538F]" },
-                        { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-[#6A7B87] border-[#DCE4EA]" }
+                        { top: "กะเช้า", sub: "8 ชม.", code: "M8", style: "bg-[#CFE2F3] text-black border border-[#9FC5E8] font-bold" },
+                        { top: "กะบ่าย", sub: "8 ชม.", code: "A8", style: "bg-[#FFF2CC] text-black border border-[#FFE599] font-bold" },
+                        { top: "กะดึก", sub: "8 ชม.", code: "N8", style: "bg-[#FCE5CD] text-black border border-[#F9CB9C] font-bold" },
+                        { top: "กะเช้า8", sub: "OT 4", code: "M12", style: "bg-[#CFE2F3] text-[#2563EB] border border-[#9FC5E8] font-black" },
+                        { top: "กะบ่าย8", sub: "OT 4", code: "A12", style: "bg-[#FFE599] text-black border border-[#FFD966] font-bold" },
+                        { top: "กะดึก8", sub: "OT 4", code: "N12", style: "bg-[#FCE5CD] text-[#E60000] border border-[#F9CB9C] font-black" },
+                        { top: "กะเช้า8", sub: "OT 8", code: "M16", style: "bg-[#0B5394] text-white border border-[#073763] font-black" },
+                        { top: "กะดึก8", sub: "OT 8", code: "N16", style: "bg-[#E60000] text-white border border-[#990000] font-black" },
+                        { top: "กลางวัน", sub: "Day", code: "D", style: "bg-[#D9D9D9] text-[#333333] border border-[#B7B7B7] font-bold" },
+                        { top: "วันหยุด", sub: "ON DUTY", code: "OND", style: "bg-[#00FFFF] text-black border border-[#00D2D2] font-black" },
+                        { top: "วันหยุด", sub: "OFF", code: "O", style: "bg-white text-[#6A7B87] border border-[#DCE4EA]" }
                       ].map((item, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center">
+                        <div key={idx} className="flex-1 min-w-[65px] flex flex-col items-center">
                           <div className="text-center text-[11px] font-bold text-[#333B41] h-8 flex flex-col justify-end pb-1 leading-tight">
                             <div>{item.top}</div>
                             <div className="text-[10px] text-[#6A7B87] font-medium">{item.sub}</div>
                           </div>
-                          <div className={`w-full py-2 text-center font-bold text-xs border rounded font-mono ${item.style}`}>
+                          <div className={`w-full py-2 text-center text-xs rounded font-mono ${item.style}`}>
+                            {item.code}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Divider between Shift and Leave Codes */}
+                      <div className="w-px bg-slate-300 self-stretch my-1 mx-1"></div>
+
+                      {/* Leave Codes (Dog-ear Folded Corner) */}
+                      {[
+                        { top: "ลาป่วย", sub: "Sick", code: "ป" },
+                        { top: "ลากิจ", sub: "Personal", code: "ก" },
+                        { top: "ขาดงาน", sub: "Absent", code: "ข" },
+                        { top: "ลาป่วยแพทย์", sub: "Cert.", code: "ปง" },
+                        { top: "ฌาปนกิจ", sub: "Funeral", code: "ณ" },
+                        { top: "คลอด/สมรส", sub: "Maternity", code: "คม" },
+                        { top: "พักร้อน", sub: "Annual", code: "พ" },
+                        { top: "หยุดชดเชย", sub: "Comp.", code: "ลย" },
+                        { top: "ลาบวช", sub: "Ordain", code: "ลบ" },
+                        { top: "ตรวจสุขภาพ", sub: "Checkup", code: "ตง" }
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex-1 min-w-[50px] flex flex-col items-center">
+                          <div className="text-center text-[11px] font-bold text-[#333B41] h-8 flex flex-col justify-end pb-1 leading-tight">
+                            <div>{item.top}</div>
+                            <div className="text-[10px] text-[#6A7B87] font-medium">{item.sub}</div>
+                          </div>
+                          <div className="w-full py-2 text-center text-xs border border-black rounded font-mono font-bold chip-leave">
                             {item.code}
                           </div>
                         </div>
@@ -11908,7 +11969,7 @@ export default function App() {
                 <div>
                   <div className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-1.5">แก้ไข Plan</div>
                   <div className="flex flex-wrap gap-1">
-                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O"].map(code => (
+                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O", "ป", "ก", "ข", "ปง", "ณ", "คม", "พ", "ลย", "ลบ", "ตง"].map(code => (
                       <button
                         key={code}
                         onClick={() => {
@@ -11929,7 +11990,7 @@ export default function App() {
                 <div className={activeCellEditor.target === "both" ? "border-t border-slate-800/80 pt-2" : ""}>
                   <div className="text-[9px] font-black text-orange-300 uppercase tracking-widest mb-1.5">แก้ไข Actual</div>
                   <div className="flex flex-wrap gap-1">
-                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O"].map(code => (
+                    {["M8", "M12", "M16", "A8", "A12", "N8", "N12", "N16", "OND", "D", "O", "ป", "ก", "ข", "ปง", "ณ", "คม", "พ", "ลย", "ลบ", "ตง"].map(code => (
                       <button
                         key={code}
                         onClick={() => {

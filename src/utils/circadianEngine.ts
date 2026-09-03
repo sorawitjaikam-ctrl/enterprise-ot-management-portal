@@ -235,7 +235,7 @@ export function isEmployeeActiveAtHour(
   currentDayShift: string,
   prevDayShift: string | undefined,
   hour: number
-): { active: boolean; shiftCode: string; category: "morning" | "afternoon" | "night" | "full_day" | "off" } {
+): { active: boolean; shiftCode: string; category: "morning" | "afternoon" | "night" | "full_day" | "off" | "leave" } {
   // Check current day segments (dayOffset === 0)
   const currentSegments = getShiftCircadianSegments(currentDayShift);
   for (const seg of currentSegments) {

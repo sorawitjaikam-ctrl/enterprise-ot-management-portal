@@ -5,7 +5,7 @@
 export interface ShiftDefinition {
   code: string;
   name: string;
-  category: "morning" | "afternoon" | "night" | "full_day" | "off";
+  category: "morning" | "afternoon" | "night" | "full_day" | "off" | "leave";
   startTime: string;
   endTime: string;
   workHours: number;
@@ -25,7 +25,17 @@ export const SHIFT_DEFINITIONS: Record<string, ShiftDefinition> = {
   "D": { code: "D", name: "กะกลางวันทั่วไป (Day)", category: "full_day", startTime: "08:00", endTime: "17:00", workHours: 8, otHours: 0, description: "กะกลางวันเวลาทำการปกติ (08:00 - 17:00)" },
   "OND": { code: "OND", name: "ทำงานในวันหยุด (OT 8h)", category: "full_day", startTime: "08:00", endTime: "17:00", workHours: 8, otHours: 8, description: "วันหยุดมาทำงานเต็มวัน (OT วันหยุด x1 หรือ x3)" },
   "O": { code: "O", name: "วันหยุดประจำสัปดาห์ (Off)", category: "off", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "วันหยุดพักผ่อนประจำสัปดาห์" },
-  "OFF": { code: "OFF", name: "วันหยุด (Off)", category: "off", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "วันหยุดพักผ่อน" }
+  "OFF": { code: "OFF", name: "วันหยุด (Off)", category: "off", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "วันหยุดพักผ่อน" },
+  "ป": { code: "ป", name: "ลาป่วย (Sick Leave)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาป่วย" },
+  "ก": { code: "ก", name: "ลากิจ (Personal Leave)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลากิจธุระจำเป็น" },
+  "ข": { code: "ข", name: "ขาดงาน (Absent)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ขาดงานโดยไม่แจ้งล่วงหน้า" },
+  "ปง": { code: "ปง", name: "ลาป่วยมีใบรับรองแพทย์", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาป่วยมีใบรับรองแพทย์" },
+  "ณ": { code: "ณ", name: "ลาฌาปนกิจ", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาช่วยเหลืองานฌาปนกิจ" },
+  "คม": { code: "คม", name: "ลาคลอด / ลาสมรส", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาคลอดบุตรหรือลาสมรส" },
+  "พ": { code: "พ", name: "ลาพักร้อน (Annual Leave)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาหยุดพักผ่อนประจำปี" },
+  "ลย": { code: "ลย", name: "ลาหยุดชดเชย (Compensatory Leave)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาหยุดชดเชยวันทำงานพิเศษ" },
+  "ลบ": { code: "ลบ", name: "ลาบวช (Ordination Leave)", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาอุปสมบท" },
+  "ตง": { code: "ตง", name: "ตรวจสุขภาพ / ราชการ", category: "leave", startTime: "-", endTime: "-", workHours: 0, otHours: 0, description: "ลาตรวจสุขภาพหรือราชการทหาร" }
 };
 
 /**

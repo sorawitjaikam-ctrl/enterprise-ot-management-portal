@@ -302,3 +302,24 @@ nav.folder-tabs button:hover:not([aria-selected="true"]):not(.active) {
   align-items: center;
   justify-content: center;
 }
+
+/* Dog-ear leave chip style matching HR shift roster fold corner */
+.chip-leave {
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.chip-leave::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 6px 6px 0;
+  border-color: transparent #000000 transparent transparent;
+  pointer-events: none;
+}
