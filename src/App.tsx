@@ -66,7 +66,8 @@ import {
   Package,
   Moon,
   Lightbulb,
-  Loader2
+  Loader2,
+  Wrench
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
@@ -3037,7 +3038,7 @@ export default function App() {
   // Vessel & Crane state
   const [vesselSchedules, setVesselSchedules] = useState<any[]>([]);
   const [showVesselModal, setShowVesselModal] = useState<boolean>(false);
-  const [newVesselType, setNewVesselType] = useState<"vessel" | "crane">("vessel");
+  const [newVesselType, setNewVesselType] = useState<"vessel" | "crane" | "pm" | "cm">("vessel");
   const [newVesselPlanType, setNewVesselPlanType] = useState<"plan" | "actual">("plan");
   const [newVesselName, setNewVesselName] = useState<string>("");
   const [newVesselStartDate, setNewVesselStartDate] = useState<string>("");
@@ -6931,7 +6932,7 @@ export default function App() {
                         <div>
                           <div className="flex justify-between items-start">
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 font-mono uppercase">
-                              {vs.type === "vessel" ? "เรือ Vessel" : "Ship Crane"} ({vs.planType})
+                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType})
                             </span>
                             <span className="text-[10px] font-bold text-slate-400">{vs.startDate}</span>
                           </div>
@@ -8434,16 +8435,24 @@ export default function App() {
                             <span className="w-2.5 h-2.5 rounded bg-teal-600 border border-teal-400"></span>
                             <span>เครน Actual</span>
                           </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded bg-purple-600 border border-purple-400"></span>
+                            <span>PM</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded bg-rose-600 border border-rose-400"></span>
+                            <span>CM</span>
+                          </span>
                         </div>
 
                         <button
                           type="button"
                           onClick={() => setShowVesselModal(true)}
                           className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm cursor-pointer"
-                          title="คลิกเพื่อเปิดหน้าต่างจัดการเพิ่มหรือแก้ไขตารางเรือและเครนสินค้า"
+                          title="คลิกเพื่อเปิดหน้าต่างจัดการเพิ่มหรือแก้ไขตารางเรือ เครน และงานซ่อมบำรุง PM/CM"
                         >
                           <Plus className="w-3 h-3" />
-                          <span>จัดการตารางเรือ</span>
+                          <span>จัดการตารางงาน / PM / CM</span>
                         </button>
                       </div>
                     </div>
@@ -8488,6 +8497,46 @@ export default function App() {
                         tagColor: "bg-teal-700 text-white border-teal-800", 
                         icon: Anchor,
                         barBg: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white shadow-sm font-extrabold"
+                      },
+                      { 
+                        type: "pm", 
+                        planType: "plan", 
+                        title: "แผนบำรุงรักษา PM", 
+                        sub: "PM Schedule", 
+                        tag: "PLAN", 
+                        tagColor: "bg-purple-100 text-purple-800 border-purple-300", 
+                        icon: Wrench,
+                        barBg: "bg-gradient-to-r from-purple-100 to-indigo-100 border-2 border-dashed border-purple-400 text-purple-950 shadow-xs"
+                      },
+                      { 
+                        type: "pm", 
+                        planType: "actual", 
+                        title: "บำรุงรักษาจริง PM", 
+                        sub: "PM Actual", 
+                        tag: "ACTUAL", 
+                        tagColor: "bg-purple-700 text-white border-purple-800", 
+                        icon: Wrench,
+                        barBg: "bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 border border-purple-400 text-white shadow-sm font-extrabold"
+                      },
+                      { 
+                        type: "cm", 
+                        planType: "plan", 
+                        title: "แผนงานซ่อม CM", 
+                        sub: "CM Schedule", 
+                        tag: "PLAN", 
+                        tagColor: "bg-rose-100 text-rose-800 border-rose-300", 
+                        icon: AlertTriangle,
+                        barBg: "bg-gradient-to-r from-rose-100 to-pink-100 border-2 border-dashed border-rose-400 text-rose-950 shadow-xs"
+                      },
+                      { 
+                        type: "cm", 
+                        planType: "actual", 
+                        title: "งานซ่อมจริง CM", 
+                        sub: "CM Actual", 
+                        tag: "ACTUAL", 
+                        tagColor: "bg-rose-700 text-white border-rose-800", 
+                        icon: AlertTriangle,
+                        barBg: "bg-gradient-to-r from-rose-700 via-red-600 to-rose-800 border border-rose-400 text-white shadow-sm font-extrabold"
                       }
                     ].map((row, rIdx) => {
                       const deptEmployees = (state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
@@ -8539,7 +8588,7 @@ export default function App() {
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/90 flex items-center justify-between px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
-                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : row.type === "crane" ? "bg-amber-100 text-amber-800" : row.type === "pm" ? "bg-purple-100 text-purple-800" : "bg-rose-100 text-rose-800"
                             }`}>
                               <row.icon className="w-3.5 h-3.5" />
                             </div>
@@ -8590,7 +8639,7 @@ export default function App() {
                                   >
                                     {isStart && (
                                       <div className="absolute left-2 flex items-center gap-1.5 z-10 pointer-events-none whitespace-nowrap">
-                                        <Ship className="w-3 h-3 shrink-0 opacity-80" />
+                                        <row.icon className="w-3 h-3 shrink-0 opacity-80" />
                                         <span className="text-[10px] font-black tracking-tight drop-shadow-2xs">
                                           {activeVS.name}
                                         </span>
@@ -8674,6 +8723,58 @@ export default function App() {
                             </div>
                             <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs">
                               {totalActiveStaff} คน
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 4 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-200">
+                                <Wrench className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-700">แผนบำรุงรักษา PM (Plan)</span>
+                            </div>
+                            <span className="bg-purple-50 text-purple-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-purple-200 shadow-2xs">
+                              {vesselSchedules.filter(v => v.type === "pm" && v.planType === "plan").length} รายการ
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 5 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200">
+                                <Wrench className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-700">บำรุงรักษาจริง PM (Actual)</span>
+                            </div>
+                            <span className="bg-purple-50 text-purple-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-purple-200 shadow-2xs">
+                              {vesselSchedules.filter(v => v.type === "pm" && v.planType === "actual").length} รายการ
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 6 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
+                                <AlertTriangle className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-700">แผนงานซ่อม CM (Plan)</span>
+                            </div>
+                            <span className="bg-rose-50 text-rose-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-rose-200 shadow-2xs">
+                              {vesselSchedules.filter(v => v.type === "cm" && v.planType === "plan").length} รายการ
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 7 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-200">
+                                <AlertTriangle className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-700">งานซ่อมจริง CM (Actual)</span>
+                            </div>
+                            <span className="bg-rose-50 text-rose-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-rose-200 shadow-2xs">
+                              {vesselSchedules.filter(v => v.type === "cm" && v.planType === "actual").length} รายการ
                             </span>
                           </div>
                         )}
@@ -9906,7 +10007,7 @@ export default function App() {
                   <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold font-sans">ตารางเทียบเรือและเครน</h3>
+                  <h3 className="text-base font-extrabold font-sans">ตารางเทียบเรือ เครน และงานบำรุงรักษา (PM / CM)</h3>
                   <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
                 </div>
               </div>
@@ -9925,7 +10026,7 @@ export default function App() {
               <form onSubmit={handleSaveVesselSchedule} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
                 <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                  เพิ่มรายการเข้าเทียบเรือ / เครนใหม่
+                  เพิ่มรายการเข้าเทียบเรือ / เครน / งานบำรุงรักษา (PM/CM)
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -9933,11 +10034,20 @@ export default function App() {
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ประเภท</label>
                     <select
                       value={newVesselType}
-                      onChange={(e) => setNewVesselType(e.target.value as any)}
+                      onChange={(e) => {
+                        const val = e.target.value as "vessel" | "crane" | "pm" | "cm";
+                        setNewVesselType(val);
+                        if (val === "pm") setNewVesselColor("#c084fc");
+                        else if (val === "cm") setNewVesselColor("#f43f5e");
+                        else if (val === "crane") setNewVesselColor("#99f6e4");
+                        else setNewVesselColor("#fef08a");
+                      }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
                     >
                       <option value="vessel">ตารางเรือ Vessel</option>
                       <option value="crane">Ship crane</option>
+                      <option value="pm">งานบำรุงรักษา PM (Preventive Maintenance)</option>
+                      <option value="cm">งานซ่อมบำรุง CM (Corrective Maintenance)</option>
                     </select>
                   </div>
 
@@ -9956,18 +10066,30 @@ export default function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ชื่อเรือ / รายละเอียดงาน</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      {newVesselType === "vessel" ? "ชื่อเรือสินค้า" : newVesselType === "crane" ? "ชื่อเครน / รายละเอียดงาน" : newVesselType === "pm" ? "ชื่องานบำรุงรักษา PM" : "ชื่องานซ่อมบำรุง CM"}
+                    </label>
                     <input
                       type="text"
                       required
                       value={newVesselName}
                       onChange={(e) => setNewVesselName(e.target.value)}
-                      placeholder='เช่น MV Golden Friend'
+                      placeholder={
+                        newVesselType === "vessel"
+                          ? "เช่น MV Golden Friend"
+                          : newVesselType === "crane"
+                          ? "เช่น ตรวจสอบสายพานเครน 1"
+                          : newVesselType === "pm"
+                          ? "เช่น แผนงาน PM ตรวจสภาพประจำรอบ"
+                          : "เช่น งานซ่อม CM เปลี่ยนมอเตอร์เร่งด่วน"
+                      }
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ปริมาณงาน (ตัน / Tons)</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      {newVesselType === "vessel" || newVesselType === "crane" ? "ปริมาณงาน (ตัน / Tons)" : "ปริมาณงาน / ชิ้น (ถ้ามี)"}
+                    </label>
                     <input
                       type="number"
                       value={newVesselTonnage}
@@ -10007,11 +10129,14 @@ export default function App() {
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">แถบสีการแสดงผล</label>
                     <div className="flex items-center gap-2">
                       {[
-                        { hex: "#fef08a", label: "เหลือง" },
-                        { hex: "#bfdbfe", label: "ฟ้า" },
-                        { hex: "#f5d0fe", label: "ม่วง" },
-                        { hex: "#ccfbf1", label: "เขียวมิ้นท์" },
-                        { hex: "#fed7aa", label: "ส้ม" }
+                        { hex: "#fef08a", label: "เหลือง (เรือ Plan)" },
+                        { hex: "#bfdbfe", label: "ฟ้า (เรือ Actual)" },
+                        { hex: "#fde68a", label: "เหลืองทอง (เครน Plan)" },
+                        { hex: "#99f6e4", label: "เขียวมิ้นท์ (เครน Actual)" },
+                        { hex: "#e9d5ff", label: "ม่วงอ่อน (PM Plan)" },
+                        { hex: "#c084fc", label: "ม่วงเข้ม (PM Actual)" },
+                        { hex: "#fecdd3", label: "ชมพูอ่อน (CM Plan)" },
+                        { hex: "#f43f5e", label: "แดงกุหลาบ (CM Actual)" }
                       ].map((c) => (
                         <button
                           key={c.hex}
@@ -10043,7 +10168,7 @@ export default function App() {
 
                 {vesselSchedules.length === 0 ? (
                   <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
-                    ไม่มีรายการเทียบเรือหรือการใช้เครนในแผนกและเดือนนี้
+                    ไม่มีรายการเทียบเรือ การใช้เครน หรืองาน PM/CM ในแผนกและเดือนนี้
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
@@ -10065,7 +10190,7 @@ export default function App() {
                               )}
                             </div>
                             <p className="text-[10px] text-slate-500 mt-0.5 font-sans">
-                              {vs.type === "vessel" ? "เรือ Vessel" : "Ship Crane"} ({vs.planType.toUpperCase()}) | {vs.startDate} ถึง {vs.endDate}
+                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType.toUpperCase()}) | {vs.startDate} ถึง {vs.endDate}
                             </p>
                           </div>
                         </div>

@@ -93,13 +93,14 @@ export interface LeaveRecord {
 
 export interface VesselSchedule {
   id: string;
-  type: "vessel" | "crane";
+  type: "vessel" | "crane" | "pm" | "cm";
   planType: "plan" | "actual";
   name: string;
   startDate: string;
   endDate: string;
   deptId: string;
   color?: string;
+  tonnage?: number | string;
 }
 
 export interface AppState {
