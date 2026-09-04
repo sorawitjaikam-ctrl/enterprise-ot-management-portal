@@ -114,7 +114,7 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="flex items-center justify-center w-9 h-9 rounded text-[#0E3A66] hover:bg-[#F3F6F8] lg:hidden cursor-pointer shrink-0 border border-[#DCE4EA]"
+                className="flex items-center justify-center w-9 h-9 rounded text-[#0E3A66] hover:bg-[#F3F6F8] active:scale-95 btn-press focus-ring lg:hidden cursor-pointer shrink-0 border border-[#DCE4EA] transition-all"
                 aria-label="เปิดเมนูนำทาง"
               >
                 <Menu className="w-5 h-5" />
@@ -124,10 +124,10 @@ export default function Navbar({
                 onClick={() => handleTabSelect("dashboard")}
                 className="cursor-pointer select-none shrink-0"
               >
-                <span className="eyebrow block">DOUBLE A TERMINAL · INTER STEVEDORING</span>
+                <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · INTER STEVEDORING</span>
                 <h1 className="text-base sm:text-lg font-bold text-[#0E3A66] leading-tight tracking-tight flex items-center gap-2">
-                  <span>ระบบวางแผนและจัดการตารางกะพนักงาน</span>
-                  <span className="hidden sm:inline-block border border-[#DCE4EA] rounded px-2 py-0.5 font-mono text-[11px] font-normal text-[#6A7B87] bg-[#F3F6F8]">
+                  <span className="text-balance">ระบบวางแผนและจัดการตารางกะพนักงาน</span>
+                  <span className="hidden sm:inline-block border border-[#DCE4EA] rounded px-2 py-0.5 font-mono text-[11px] font-normal text-[#6A7B87] bg-[#F3F6F8] tabular-nums">
                     รอบเดือน ส.ค. 2569
                   </span>
                 </h1>
@@ -142,7 +142,7 @@ export default function Navbar({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ค้นหาพนักงาน รหัสกะ เรือสินค้า..."
-                className="w-full pl-8 pr-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded text-xs text-[#333B41] placeholder-[#6A7B87] focus:outline-none focus:border-[#2E90CB] focus:bg-white transition-all"
+                className="w-full pl-8 pr-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded text-xs text-[#333B41] placeholder-[#6A7B87] focus:outline-none focus:border-[#2E90CB] focus:bg-white focus-ring transition-all"
               />
             </div>
 
@@ -157,7 +157,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className={`w-8 h-8 rounded border flex items-center justify-center transition-colors cursor-pointer relative ${
+                  className={`w-8 h-8 rounded border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
                     complianceNotifications.length > 0
                       ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]"
                       : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA]"
@@ -166,7 +166,7 @@ export default function Navbar({
                 >
                   <Bell className="w-4 h-4" />
                   {complianceNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums">
                       {complianceNotifications.length}
                     </span>
                   )}
@@ -231,7 +231,7 @@ export default function Navbar({
               {/* Profile button */}
               <button 
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] rounded transition-all text-left cursor-pointer"
+                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] rounded transition-all text-left cursor-pointer btn-press focus-ring"
                 title="ดูโปรไฟล์ของคุณ"
               >
                 <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold">
@@ -245,7 +245,7 @@ export default function Navbar({
               {/* Logout button */}
               <button
                 onClick={onLogout}
-                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer"
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -266,7 +266,7 @@ export default function Navbar({
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
-                  className={isActive ? "active" : ""}
+                  className={`btn-press focus-ring ${isActive ? "active" : ""}`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
@@ -321,17 +321,17 @@ export default function Navbar({
               <button
                 key={tab.id}
                 onClick={() => handleTabSelect(tab.id)}
-                className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-semibold transition-colors ${
+                className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-semibold transition-all btn-press focus-ring ${
                   isActive
                     ? "bg-[#E8F3FA] text-[#0E3A66] border-l-3 border-[#0E3A66]"
-                    : "text-[#59656D] hover:bg-[#F3F6F8] hover:text-[#0E3A66]"
+                    : "text-[#59656D] hover:bg-[#F3F6F8] hover:text-[#0E3A66] active:scale-[0.99]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Icon className="w-4 h-4 text-[#6A7B87]" />
                   <span>{tab.label}</span>
                 </div>
-                <span className="font-mono text-[10px] text-[#6A7B87]">{tab.num}</span>
+                <span className="font-mono text-[10px] text-[#6A7B87] tabular-nums">{tab.num}</span>
               </button>
             );
           })}

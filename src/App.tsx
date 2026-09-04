@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   ChevronLeft,
+  ChevronDown,
   Maximize,
   Minimize,
   Lock,
@@ -5113,7 +5114,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen min-h-[100dvh] bg-[#F3F6F8] flex flex-col font-sans">
       {/* Top Navbar */}
       {!isFullScreen && (
         <Navbar 
@@ -5144,136 +5145,136 @@ export default function App() {
       )}
 
       {/* Main container area */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh]">
         {/* Dynamic page container */}
-        <main className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
+        <main id="main-content" className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
           {/* ======================================= */}
           {activeTab === "dashboard" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-              {/* Calm Editorial Header Banner */}
-              <div className="bg-white border border-[#DCE4EA] rounded p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
-                  <h2 className="text-xl md:text-2xl font-bold text-[#0E3A66]">
-                    ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
-                  </h2>
-                  <p className="text-xs text-[#59656D] max-w-3xl leading-relaxed">
-                    ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
-                  </p>
+              
+              {/* Executive Control Header & Toolbar */}
+              <div className="bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
+                    <h2 className="text-xl md:text-2xl font-bold text-[#0E3A66] tracking-tight">
+                      ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
+                    </h2>
+                    <p className="text-xs text-[#59656D] max-w-3xl leading-relaxed">
+                      ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setActiveTab("shifts")}
-                    className="px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white font-semibold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>จัดตารางกะพนักงาน</span>
-                  </button>
+
+                {/* Integrated Control Toolbar: Filters + Quick Action Buttons */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
+                  {/* Left Filter Cluster */}
+                  <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded border border-[#DCE4EA]">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
+                      <Filter className="w-3.5 h-3.5 text-[#0E3A66]" />
+                      <span className="text-xs font-bold text-[#0E3A66]">ตัวกรองแดชบอร์ด</span>
+                    </div>
+                    <div className="relative inline-flex items-center">
+                      <select 
+                        value={selectedMonthFilter}
+                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                      >
+                        <option>เดือนปัจจุบัน</option>
+                        <option>3 เดือนที่ผ่านมา</option>
+                        <option>6 เดือนย้อนหลัง</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                    </div>
+                    <div className="relative inline-flex items-center">
+                      <select 
+                        value={selectedDeptFilter}
+                        onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                        disabled={activeDeptId !== "all"}
+                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] disabled:opacity-75 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <option>ทุกแผนก</option>
+                        <option>INTER 2</option>
+                        <option>INTER 3</option>
+                        <option>INTER 5</option>
+                        <option>INTER 7</option>
+                        <option>Heavy Machine</option>
+                        <option>ECC</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                    </div>
+                    <div className="relative inline-flex items-center">
+                      <select 
+                        value={selectedRoleFilter}
+                        onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                      >
+                        <option>ทุกตำแหน่ง</option>
+                        <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
+                        <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                        <option>พนักงานขับเครน</option>
+                        <option>ปากเรือ</option>
+                        <option>ผู้ควบคุมงานจักรกลหนัก</option>
+                        <option>ช่างขับจักรกลหนัก</option>
+                        <option>O&M - Specialist</option>
+                        <option>O&M - Generator</option>
+                        <option>O&M - Mechanical</option>
+                        <option>O&M - Electrical</option>
+                        <option>ECC</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Right Quick Action Cluster */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("shifts")}
+                      className="px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press shadow-maritime-xs min-h-[36px]"
+                      title="เปิดหน้าต่างจัดตารางกะพนักงาน"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>จัดตารางกะพนักงาน</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setShowOtRequestModal(true)}
+                      className="px-3 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/50 text-[#D99B14] border border-[#F3D98F] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
+                      title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
+                      <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={handleExportCsvReport}
+                      className="px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] font-medium rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
+                      title="ส่งออกรายงานสรุปข้อมูล OT ประจำแผนก"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#6A7B87]" />
+                      <span>ส่งออกรายงาน</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={handleNavigateToEmployees}
+                      className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#9FCEE8]/40 text-[#0E3A66] border border-[#9FCEE8] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
+                      title="ดูรายชื่อพนักงานทั้งหมด"
+                    >
+                      <Users className="w-3.5 h-3.5 text-[#0E3A66]" />
+                      <span>รายชื่อพนักงาน</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-
-              {/* Header section filters */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex gap-2 items-center bg-[#F3F6F8] p-1 rounded border border-[#DCE4EA]">
-                  <div className="flex items-center gap-1 px-3 py-1.5 border-r border-slate-100">
-                    <Filter className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-bold text-slate-600">ตัวกรองแดชบอร์ด</span>
-                  </div>
-                  <select 
-                    value={selectedMonthFilter}
-                    onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold"
-                  >
-                    <option>เดือนปัจจุบัน</option>
-                    <option>3 เดือนที่ผ่านมา</option>
-                    <option>6 เดือนย้อนหลัง</option>
-                  </select>
-                  <div className="h-4 w-px bg-slate-200"></div>
-                  <select 
-                    value={selectedDeptFilter}
-                    onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                    disabled={activeDeptId !== "all"}
-                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
-                  >
-                    <option>ทุกแผนก</option>
-                    <option>INTER 2</option>
-                    <option>INTER 3</option>
-                    <option>INTER 5</option>
-                    <option>INTER 7</option>
-                    <option>Heavy Machine</option>
-                    <option>ECC</option>
-                  </select>
-                  <div className="h-4 w-px bg-slate-200"></div>
-                  <select 
-                    value={selectedRoleFilter}
-                    onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                    className="bg-transparent border-none text-xs rounded-md py-1 px-3 focus:ring-0 cursor-pointer text-slate-700 font-bold"
-                  >
-                    <option>ทุกตำแหน่ง</option>
-                    <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
-                    <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
-                    <option>พนักงานขับเครน</option>
-                    <option>ปากเรือ</option>
-                    <option>ผู้ควบคุมงานจักรกลหนัก</option>
-                    <option>ช่างขับจักรกลหนัก</option>
-                    <option>O&M - Specialist</option>
-                    <option>O&M - Generator</option>
-                    <option>O&M - Mechanical</option>
-                    <option>O&M - Electrical</option>
-                    <option>ECC</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setShowOtRequestModal(true)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/40 border border-[#F3D98F] rounded text-xs font-bold text-[#D99B14] transition-all cursor-pointer relative"
-                    title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
-                    <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
-                  </button>
-
-                  <button 
-                    onClick={handleExportCsvReport}
-                    className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs font-medium text-[#333B41] hover:bg-[#F3F6F8] transition-colors cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-[#6A7B87]" />
-                    <span>ส่งออกรายงาน</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Labor Compliance Warning Banner */}
-              {fatiguedEmployees.length > 0 && (
-                <div className="callout y p-4 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 font-bold">
-                      <AlertTriangle className="w-5 h-5 text-amber-700" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-amber-950">ตรวจพบพนักงานกลุ่มเสี่ยงความล้าสะสม ({fatiguedEmployees.length} คน)</h4>
-                      <p className="text-[10px] text-amber-700 mt-0.5">มีพนักงานทำงานล่วงเวลาสะสมเกิน 36 ชม. หรือทำงานต่อเนื่องกันเกิน 6 วันโดยไม่มีวันหยุดตามกฎหมายแรงงานไทย</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setSelectedRoleFilter("ทุกตำแหน่ง");
-                      setSearchQuery("");
-                      setActiveTab("employees");
-                    }}
-                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-extrabold transition-colors cursor-pointer"
-                  >
-                    ตรวจสอบรายชื่อพนักงานกลุ่มเสี่ยง
-                  </button>
-                </div>
-              )}
-
-              {/* KPI Cards Grid Matching Mockup & Minimal Executive Theme */}
+              {/* Dynamic Metric Calculations for Active Month & Filter Selection */}
               {(() => {
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
 
@@ -5385,283 +5386,493 @@ export default function App() {
                 const maxSpentInYear = Math.max(...monthlyStats.map(s => Math.max(s.spent, s.pSpent)), 1);
 
                 return (
-                  <div className="space-y-4 sm:space-y-6 font-sans">
-                    {/* Top Row: 3 Minimalist Clean Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                      
-                      {/* Card 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
-                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-9 h-9 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-6 font-sans">
+                    
+                    {/* ========================================================================= */}
+                    {/* ROW 1: 4 ADVANCED KPI BENTO TILES (lg:col-span-3 each)                   */}
+                    {/* ========================================================================= */}
+                    
+                    {/* Tile 1.1: MoM Overtime Pay Comparison */}
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold">
+                          {otComparePct < 0 ? (
+                            <TrendingDown className="w-4 h-4 text-[#1E9C6E]" />
+                          ) : (
                             <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
-                          </div>
+                          )}
                         </div>
-                        
-                        <div className="flex items-end justify-between mt-3">
-                          <div>
-                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E3A66] font-mono">{otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}</div>
-                            {prevTotalSpent > 0 ? (
-                              <div className="text-[10px] text-[#6A7B87] font-medium">{comparePeriodLabel}</div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                          {otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                          <span className="text-[11px] text-[#6A7B87] font-medium">{comparePeriodLabel}</span>
+                          {prevTotalSpent > 0 ? (
+                            otComparePct <= 0 ? (
+                              <span className="tag t-g">ประหยัดงบ</span>
                             ) : (
-                              <div className="text-[10px] text-[#1E9C6E] font-medium font-semibold">เดือนแรกที่เริ่มบันทึกข้อมูล</div>
-                            )}
-                          </div>
+                              <span className="tag t-y">เพิ่มขึ้น</span>
+                            )
+                          ) : (
+                            <span className="tag t-b">เริ่มบันทึก</span>
+                          )}
                         </div>
                       </div>
-
-                      {/* Card 2: ผลรวมค่าล่วงเวลา */}
-                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">ผลรวมค่าล่วงเวลา</h3>
-                          <div className="w-9 h-9 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-sm">
-                            ฿
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-end justify-between mt-3">
-                          <div>
-                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0E3A66] font-mono">
-                              {totalSpent.toLocaleString()} THB
-                            </div>
-                            <div className="text-[10px] text-[#6A7B87] font-medium">{periodLabel}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card 3: % ค่าล่วงเวลา */}
-                      <div className="bg-white border border-[#DCE4EA] p-5 sm:p-6 rounded shadow-xs relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wide">% ค่าล่วงเวลา</h3>
-                          <div className="w-9 h-9 rounded bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold">
-                            <Settings className="w-4 h-4 text-[#333B41]" />
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-end justify-between mt-3">
-                          <div>
-                            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[#333B41] font-mono">{otSalaryPct}%</div>
-                            <div className="text-[10px] text-[#6A7B87] font-medium">{periodLabel}</div>
-                          </div>
-                        </div>
-                      </div>
-
                     </div>
 
-                    {/* Bottom Row Grid: Grouped Bar Chart + Right Highlight Panel */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 font-sans">
-                      
-                      {/* Left Panel: DASHBOARD Grouped Bar Chart (3/4 Width) */}
-                      <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded p-5 sm:p-7 shadow-sm flex flex-col justify-between">
-                        
-                        {/* Chart Header */}
-                        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-                          <h3 className="text-sm font-black text-slate-800 tracking-wider uppercase">DASHBOARD</h3>
-                          
-                          {/* Legend Pills with Interactive Toggle Filtering */}
-                          <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
-                            {/* Pill 1: เปรียบเทียบผลรวมค่าล่วงเวลา */}
-                            <button
-                              type="button"
-                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, compare: !prev.compare }))}
-                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
-                                chartSeriesFilter.compare
-                                  ? "bg-sky-50 text-sky-800 border-sky-300 shadow-2xs hover:bg-sky-100"
-                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
-                              }`}
-                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่งเปรียบเทียบผลรวมค่าล่วงเวลา"
-                            >
-                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.compare ? "bg-sky-400" : "bg-slate-300"}`}></span>
-                              <span className={chartSeriesFilter.compare ? "" : "line-through"}>เปรียบเทียบผลรวมค่าล่วงเวลา</span>
-                            </button>
+                    {/* Tile 1.2: Total Overtime Financial Spend */}
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ผลรวมค่าล่วงเวลาสะสม</h3>
+                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs">
+                          ฿
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                          {totalSpent.toLocaleString()} THB
+                        </div>
+                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                          <div 
+                            style={{ width: `${singleMonthBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / singleMonthBaseSalary) * 100)) : 0}%` }}
+                            className="bg-[#0E3A66] h-full rounded-full transition-all"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                          <span>{periodLabel}</span>
+                          <span>{totalOtHrs.toLocaleString()} ชม.</span>
+                        </div>
+                      </div>
+                    </div>
 
-                            {/* Pill 2: ผลรวมค่าล่วงเวลา */}
-                            <button
-                              type="button"
-                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, spent: !prev.spent }))}
-                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer border ${
-                                chartSeriesFilter.spent
-                                  ? "bg-blue-50 text-blue-800 border-blue-300 shadow-2xs hover:bg-blue-100"
-                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
-                              }`}
-                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่งผลรวมค่าล่วงเวลา"
-                            >
-                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.spent ? "bg-blue-600" : "bg-slate-300"}`}></span>
-                              <span className={chartSeriesFilter.spent ? "" : "line-through"}>ผลรวมค่าล่วงเวลา</span>
-                            </button>
+                    {/* Tile 1.3: Overtime Payroll Ratio */}
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">สัดส่วน OT เทียบเงินเดือน</h3>
+                        <div className="w-8 h-8 rounded bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold">
+                          <Settings className="w-4 h-4 text-[#333B41]" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">
+                          {otSalaryPct}%
+                        </div>
+                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                          <div 
+                            style={{ width: `${Math.min(100, otSalaryPct)}%` }}
+                            className={`h-full rounded-full transition-all ${otSalaryPct > 25 ? "bg-[#D99B14]" : "bg-[#2E90CB]"}`}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                          <span>งบรวม ฿{totalBaseSalary.toLocaleString()}</span>
+                          {otSalaryPct > 25 ? (
+                            <span className="tag t-y">เกินเกณฑ์ 25%</span>
+                          ) : (
+                            <span className="tag t-g">ตามเกณฑ์</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-                            {/* Pill 3: % ค่าล่วงเวลา */}
-                            <button
-                              type="button"
-                              onClick={() => setChartSeriesFilter(prev => ({ ...prev, pct: !prev.pct }))}
-                              className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer border ${
-                                chartSeriesFilter.pct
-                                  ? "bg-slate-900 text-white border-slate-900 shadow-sm hover:bg-slate-800"
-                                  : "bg-slate-50 text-slate-400 border-slate-200 opacity-40 hover:opacity-75"
-                              }`}
-                              title="คลิกเพื่อ เปิด/ปิด การแสดงแท่ง % ค่าล่วงเวลา"
-                            >
-                              <span className={`w-2.5 h-2.5 rounded-full transition-all ${chartSeriesFilter.pct ? "bg-slate-300" : "bg-slate-300"}`}></span>
-                              <span className={chartSeriesFilter.pct ? "" : "line-through"}>% ค่าล่วงเวลา</span>
-                            </button>
+                    {/* Tile 1.4: Average Overtime Workload & Safety Index */}
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ชั่วโมง OT เฉลี่ยต่อคน</h3>
+                        <div className="w-8 h-8 rounded bg-[#FCF3DE] text-[#D99B14] border border-[#F3D98F] flex items-center justify-center font-bold">
+                          <Clock className="w-4 h-4 text-[#D99B14]" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                          {avgOtPerEmp} hrs
+                        </div>
+                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                          <div 
+                            style={{ width: `${Math.min(100, Math.round((avgOtPerEmp / 48) * 100))}%` }}
+                            className={`h-full rounded-full transition-all ${avgOtPerEmp > 36 ? "bg-[#B3352C]" : "bg-[#1E9C6E]"}`}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-medium mt-1.5">
+                          <span className="text-[#6A7B87]">{activeEmps} คน / ทั้งหมด {dashboardEmployees.length} คน</span>
+                          {avgOtPerEmp > 36 ? (
+                            <span className="tag t-r">เกิน 36 ชม.</span>
+                          ) : (
+                            <span className="tag t-g">เกณฑ์ปกติ</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* ROW 2: FATIGUE & COMPLIANCE TELEMETRY BANNER (lg:col-span-12)             */}
+                    {/* ========================================================================= */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-12">
+                      {fatiguedEmployees.length > 0 ? (
+                        <div className="p-4 bg-[#FCF3DE] border border-[#F3D98F] rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-maritime-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded bg-[#F3D98F] flex items-center justify-center flex-shrink-0">
+                              <AlertTriangle className="w-5 h-5 text-[#D99B14]" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-[#333B41]">
+                                ตรวจพบพนักงานกลุ่มเสี่ยงความล้าสะสม ({fatiguedEmployees.length} คน)
+                              </h4>
+                              <p className="text-[11px] text-[#59656D] mt-0.5">
+                                มีพนักงานทำงานล่วงเวลาสะสมเกิน 36 ชม. หรือทำงานต่อเนื่องกันเกิน 6 วันโดยไม่มีวันหยุดตามกฎหมายแรงงานไทย
+                              </p>
+                            </div>
                           </div>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setSelectedRoleFilter("ทุกตำแหน่ง");
+                              setSearchQuery("");
+                              setActiveTab("employees");
+                            }}
+                            className="px-3.5 py-2 bg-[#D99B14] hover:bg-[#B5800D] text-white rounded text-xs font-bold transition-colors cursor-pointer btn-press shadow-maritime-xs min-h-[36px] whitespace-nowrap self-start md:self-auto"
+                          >
+                            ตรวจสอบรายชื่อพนักงานกลุ่มเสี่ยง
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-[#E8F6F0] border border-[#A5DCC5] rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-maritime-xs">
+                          <div className="flex items-center gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-[#1E9C6E] shrink-0" />
+                            <span className="text-xs font-bold text-[#1E9C6E]">
+                              การกำกับดูแลความปลอดภัย: ไม่พบพนักงานเข้าข่ายเสี่ยงความล้าสะสม (สอดคล้องตามเกณฑ์กฎหมายแรงงาน 100%)
+                            </span>
+                          </div>
+                          <span className="tag t-g self-start sm:self-auto">ความปลอดภัยสมบูรณ์</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* ROW 3: FINANCIAL DYNAMICS (col-span-8) + DEPT ALLOCATION (col-span-4)     */}
+                    {/* ========================================================================= */}
+
+                    {/* Card 3.1: 10-Month Financial Dynamics Card (8 cols) */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-8 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <div>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">แนวโน้มค่าล่วงเวลารายเดือน (Jan - Oct 2026)</h3>
+                          <p className="text-xs text-[#59656D] mt-0.5">การเปรียบเทียบงบประมาณและการเติบโตเทียบเดือนก่อนหน้า</p>
+                        </div>
+                        
+                        {/* Interactive Legend Pills with Strict Maritime Tokens */}
+                        <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar py-1">
+                          <button
+                            type="button"
+                            onClick={() => setChartSeriesFilter(prev => ({ ...prev, compare: !prev.compare }))}
+                            className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded border transition-all cursor-pointer ${
+                              chartSeriesFilter.compare
+                                ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]"
+                                : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] opacity-60 hover:opacity-80"
+                            }`}
+                            title="เปิด/ปิด การแสดงแท่งเปรียบเทียบผลรวมค่าล่วงเวลา"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${chartSeriesFilter.compare ? "bg-[#9FCEE8]" : "bg-[#B4C1C9]"}`}></span>
+                            <span className={chartSeriesFilter.compare ? "" : "line-through"}>เปรียบเทียบเดือนก่อนหน้า</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setChartSeriesFilter(prev => ({ ...prev, spent: !prev.spent }))}
+                            className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded border transition-all cursor-pointer ${
+                              chartSeriesFilter.spent
+                                ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                                : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] opacity-60 hover:opacity-80"
+                            }`}
+                            title="เปิด/ปิด การแสดงแท่งผลรวมค่าล่วงเวลา"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${chartSeriesFilter.spent ? "bg-[#17538F]" : "bg-[#B4C1C9]"}`}></span>
+                            <span className={chartSeriesFilter.spent ? "" : "line-through"}>ผลรวมค่าล่วงเวลา</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setChartSeriesFilter(prev => ({ ...prev, pct: !prev.pct }))}
+                            className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded border transition-all cursor-pointer ${
+                              chartSeriesFilter.pct
+                                ? "bg-[#F3F6F8] text-[#333B41] border-[#B4C1C9] font-bold"
+                                : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] opacity-60 hover:opacity-80"
+                            }`}
+                            title="เปิด/ปิด การแสดงแท่ง % ค่าล่วงเวลา"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${chartSeriesFilter.pct ? "bg-[#333B41]" : "bg-[#B4C1C9]"}`}></span>
+                            <span className={chartSeriesFilter.pct ? "" : "line-through"}>% ค่าล่วงเวลา</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Grouped Bar Chart Area */}
+                      <div className="h-64 flex items-end justify-between gap-3 pt-6 relative border-t border-[#DCE4EA]">
+                        {/* Y-Axis Labels */}
+                        <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-bold text-[#6A7B87] pointer-events-none font-mono tabular-nums">
+                          <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear).toLocaleString()}` : "100%"}</span>
+                          <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.75).toLocaleString()}` : "75%"}</span>
+                          <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.5).toLocaleString()}` : "50%"}</span>
+                          <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.25).toLocaleString()}` : "25%"}</span>
+                          <span>฿0</span>
                         </div>
 
-                        {/* Grouped Bar Chart Area */}
-                        <div className="h-64 flex items-end justify-between gap-3 pt-6 relative border-t border-slate-100">
-                          
-                          {/* Y-Axis Labels matching real OT Spend scale */}
-                          <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none font-mono">
-                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear).toLocaleString()}` : "100%"}</span>
-                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.75).toLocaleString()}` : "75%"}</span>
-                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.5).toLocaleString()}` : "50%"}</span>
-                            <span>{maxSpentInYear > 0 ? `฿${Math.round(maxSpentInYear * 0.25).toLocaleString()}` : "25%"}</span>
-                            <span>฿0</span>
-                          </div>
+                        {/* Hairline Grid Lines */}
+                        <div className="absolute left-14 right-0 top-0 bottom-8 flex flex-col justify-between pointer-events-none">
+                          <div className="w-full h-px bg-[#DCE4EA]/70"></div>
+                          <div className="w-full h-px bg-[#DCE4EA]/70"></div>
+                          <div className="w-full h-px bg-[#DCE4EA]/70"></div>
+                          <div className="w-full h-px bg-[#DCE4EA]/70"></div>
+                          <div className="w-full h-px bg-[#DCE4EA]"></div>
+                        </div>
 
-                          {/* Grid Lines */}
-                          <div className="absolute left-14 right-0 top-0 bottom-8 flex flex-col justify-between pointer-events-none">
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-100"></div>
-                            <div className="w-full h-px bg-slate-200"></div>
-                          </div>
+                        {/* 10-Month Grouped Bars */}
+                        <div className="pl-14 w-full flex items-end justify-between gap-2 h-full">
+                          {monthlyStats.map((st) => {
+                            const bar1H = st.pSpent > 0 ? Math.min(85, Math.max(4, Math.round((st.pSpent / maxSpentInYear) * 80))) : 0;
+                            const bar2H = st.spent > 0 ? Math.min(85, Math.max(4, Math.round((st.spent / maxSpentInYear) * 80))) : 0;
+                            const bar3H = st.salPct > 0 ? Math.min(85, Math.max(4, Math.round(st.salPct * 3.5))) : 0;
 
-                          {/* 10 Month DYNAMIC Grouped Bars Area */}
-                          <div className="pl-14 w-full flex items-end justify-between gap-2 h-full">
-                            {monthlyStats.map((st) => {
-                              // Dynamic bar heights computed from actual monthly OT data
-                              const bar1H = st.pSpent > 0 ? Math.min(85, Math.max(4, Math.round((st.pSpent / maxSpentInYear) * 80))) : 0;
-                              const bar2H = st.spent > 0 ? Math.min(85, Math.max(4, Math.round((st.spent / maxSpentInYear) * 80))) : 0;
-                              const bar3H = st.salPct > 0 ? Math.min(85, Math.max(4, Math.round(st.salPct * 3.5))) : 0;
+                            const activeSeriesCount = (chartSeriesFilter.compare ? 1 : 0) + (chartSeriesFilter.spent ? 1 : 0) + (chartSeriesFilter.pct ? 1 : 0);
+                            const barWidthClass = activeSeriesCount === 1 ? "w-3/4 max-w-[28px]" : (activeSeriesCount === 2 ? "w-1/2 max-w-[20px]" : "w-1/3 max-w-[14px]");
 
-                              const activeSeriesCount = (chartSeriesFilter.compare ? 1 : 0) + (chartSeriesFilter.spent ? 1 : 0) + (chartSeriesFilter.pct ? 1 : 0);
-                              const barWidthClass = activeSeriesCount === 1 ? "w-3/4 max-w-[28px]" : (activeSeriesCount === 2 ? "w-1/2 max-w-[20px]" : "w-1/3 max-w-[14px]");
+                            return (
+                              <div key={st.name} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                                <div className="h-4 flex items-center justify-center">
+                                  {st.spent > 0 && st.pSpent > 0 && chartSeriesFilter.compare ? (
+                                    <span className={`text-[9px] font-mono font-bold px-1 rounded ${
+                                      st.compPct < 0 
+                                        ? "text-[#1E9C6E] bg-[#E8F6F0] border border-[#A5DCC5]" 
+                                        : (st.compPct > 0 ? "text-[#D99B14] bg-[#FCF3DE] border border-[#F3D98F]" : "text-[#6A7B87] bg-[#F3F6F8]")
+                                    }`}>
+                                      {st.compPct > 0 ? `+${st.compPct}%` : `${st.compPct}%`}
+                                    </span>
+                                  ) : null}
+                                </div>
 
+                                <div className="w-full flex items-end justify-center gap-1 h-[76%]">
+                                  {chartSeriesFilter.compare && (
+                                    <div 
+                                      style={{ height: `${bar1H}%` }}
+                                      className={`${barWidthClass} bg-[#9FCEE8] hover:bg-[#2E90CB] rounded-t-sm transition-all shadow-maritime-xs`}
+                                      title={`เปรียบเทียบเดือนก่อนหน้า (${st.name}): ${st.pSpent.toLocaleString()} THB`}
+                                    />
+                                  )}
+                                  {chartSeriesFilter.spent && (
+                                    <div 
+                                      style={{ height: `${bar2H}%` }}
+                                      className={`${barWidthClass} bg-[#17538F] hover:bg-[#0E3A66] rounded-t-sm transition-all shadow-maritime-xs`}
+                                      title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
+                                    />
+                                  )}
+                                  {chartSeriesFilter.pct && (
+                                    <div 
+                                      style={{ height: `${bar3H}%` }}
+                                      className={`${barWidthClass} bg-[#333B41] hover:bg-[#0E3A66] rounded-t-sm transition-all shadow-maritime-xs`}
+                                      title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}% ของงบเงินเดือน`}
+                                    />
+                                  )}
+                                </div>
+                                <span className="text-[11px] font-bold text-[#6A7B87]">{st.name}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3.2: Department Overtime Allocation Card (4 cols) */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วน OT แยกตามแผนก</h3>
+                          <span className="tag t-b">ข้อมูลเรียลไทม์</span>
+                        </div>
+                        <p className="text-xs text-[#59656D] mb-4">ปริมาณชั่วโมงสะสมรายแผนกท่าเรือ</p>
+
+                        <div className="space-y-3">
+                          {(state?.departments || []).map((dept) => {
+                            const deptEmployees = (dashboardEmployees || []).filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
+                            const deptOtHours = Math.round(
+                              deptEmployees.reduce((s, e) => {
+                                return s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0);
+                              }, 0) * 10
+                            ) / 10;
+                            const maxHr = Math.max(...(state?.departments || []).map(d => {
+                              const dEmps = (dashboardEmployees || []).filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
+                              return dEmps.reduce((s, e) => s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0), 0);
+                            }), 1);
+                            const percentage = maxHr > 0 ? Math.min(100, Math.round((deptOtHours / maxHr) * 100)) : 0;
+                            
+                            return (
+                              <div key={dept.id} className="p-2.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-xs font-bold text-[#333B41]">{getDeptName(dept.id, state.departments)}</span>
+                                  <span className="text-xs font-bold text-[#0E3A66] font-mono tabular-nums">{deptOtHours.toLocaleString()} ชม.</span>
+                                </div>
+                                <div className="w-full bg-white h-2 rounded-full overflow-hidden border border-[#DCE4EA]">
+                                  <div 
+                                    style={{ width: `${percentage}%` }}
+                                    className="bg-[#17538F] h-full rounded-full transition-all"
+                                  ></div>
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] text-[#6A7B87] mt-1">
+                                  <span>{deptEmployees.length} คน</span>
+                                  <span>{percentage}%</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center gap-1.5 text-[10px] text-[#6A7B87]">
+                        <Info className="w-3.5 h-3.5 text-[#6A7B87]" />
+                        <span>คำนวณจากกะการทำงานพนักงานตรงกับฐานข้อมูล D1</span>
+                      </div>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* ROW 4: OPERATING ROLES (col-span-6) + TOP CONTRIBUTORS (col-span-6)       */}
+                    {/* ========================================================================= */}
+
+                    {/* Card 4.1: Operating Roles Distribution Card (6 cols) */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การกระจาย OT 10 ตำแหน่งปฏิบัติการ</h3>
+                          <span className="tag t-n">10 ตำแหน่งหลัก</span>
+                        </div>
+                        <p className="text-xs text-[#59656D] mb-4">การจัดสรรชั่วโมงการทำงานล่วงเวลาตามกลุ่มงานท่าเรือ</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {(roleOtData || []).map((r) => {
+                            const percentage = maxRoleOt > 0 ? Math.min(100, Math.round((r.totalOt / maxRoleOt) * 100)) : 0;
+                            return (
+                              <div key={r.role} className="p-2.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="text-xs font-bold text-[#333B41] truncate max-w-[130px]" title={r.role}>{r.role}</span>
+                                  <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums whitespace-nowrap">{r.totalOt.toLocaleString()} ชม.</span>
+                                </div>
+                                <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-1">
+                                  <div 
+                                    style={{ width: `${percentage}%` }}
+                                    className="bg-[#2E90CB] h-full rounded-full transition-all"
+                                  ></div>
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] text-[#6A7B87] mt-1">
+                                  <span>{r.empCount} คน</span>
+                                  <span>{percentage}%</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
+                        <span>ครอบคลุมตำแหน่งปฏิบัติการและวิศวกรรมซ่อมบำรุง</span>
+                        <span className="font-mono">{dashboardEmployees.length} พนักงานรวม</span>
+                      </div>
+                    </div>
+
+                    {/* Card 4.2: Top Overtime Contributors Watchlist Card (6 cols) */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">รายชื่อ OT สูงสุด (Watchlist)</h3>
+                          <button 
+                            type="button"
+                            onClick={handleNavigateToEmployees}
+                            className="flex items-center gap-1 text-xs font-bold text-[#17538F] hover:text-[#0E3A66] transition-colors cursor-pointer"
+                            title="ดูตารางรายชื่อพนักงานทั้งหมด"
+                          >
+                            <span>ดูตารางทั้งหมด</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-[#59656D] mb-4">รายชื่อผู้มีชั่วโมง OT สะสมสูงสุดและการควบคุมเป้าหมาย</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {(() => {
+                            const filteredEmpContribution = (state?.employees || []).filter(emp => {
+                              if (!isHrOrFullAccess && currentUser?.deptId) {
+                                const managerDeptId = normalizeDeptId(currentUser.deptId);
+                                if (normalizeDeptId(emp.deptId) !== managerDeptId) return false;
+                              }
+                              if (selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน") {
+                                const filterDeptId = normalizeDeptId(selectedDeptFilter);
+                                if (normalizeDeptId(emp.deptId) !== filterDeptId) return false;
+                              }
+                              return true;
+                            });
+
+                            if (filteredEmpContribution.length === 0) {
                               return (
-                                <div key={st.name} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                                  {/* MoM % Badge if comparison available */}
-                                  <div className="h-4 flex items-center justify-center">
-                                    {st.spent > 0 && st.pSpent > 0 && chartSeriesFilter.compare ? (
-                                      <span className={`text-[9px] font-mono font-bold px-1 rounded ${
-                                        st.compPct < 0 
-                                          ? "text-emerald-700 bg-emerald-50 border border-emerald-200" 
-                                          : (st.compPct > 0 ? "text-amber-700 bg-amber-50 border border-amber-200" : "text-slate-500 bg-slate-100")
-                                      }`}>
-                                        {st.compPct > 0 ? `+${st.compPct}%` : `${st.compPct}%`}
-                                      </span>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="w-full flex items-end justify-center gap-1.5 h-[76%]">
-                                    {/* Bar 1: Sky Blue (Prior Month / Baseline OT Spend) */}
-                                    {chartSeriesFilter.compare && (
-                                      <div 
-                                        style={{ height: `${bar1H}%` }}
-                                        className={`${barWidthClass} bg-sky-400 rounded-t-sm hover:bg-sky-500 transition-all shadow-sm`}
-                                        title={`เปรียบเทียบเดือนก่อนหน้า (${st.name}): ${st.pSpent.toLocaleString()} THB`}
-                                      />
-                                    )}
-                                    {/* Bar 2: Royal Blue (Current Month OT Spend) */}
-                                    {chartSeriesFilter.spent && (
-                                      <div 
-                                        style={{ height: `${bar2H}%` }}
-                                        className={`${barWidthClass} bg-blue-600 rounded-t-sm hover:bg-blue-700 transition-all shadow-sm`}
-                                        title={`ผลรวมค่าล่วงเวลา (${st.name}): ${st.spent.toLocaleString()} THB`}
-                                      />
-                                    )}
-                                    {/* Bar 3: Slate/Navy (% of Base Salary) */}
-                                    {chartSeriesFilter.pct && (
-                                      <div 
-                                        style={{ height: `${bar3H}%` }}
-                                        className={`${barWidthClass} bg-slate-800 rounded-t-sm hover:bg-slate-900 transition-all shadow-sm`}
-                                        title={`% ค่าล่วงเวลา (${st.name}): ${st.salPct}% ของงบเงินเดือน`}
-                                      />
-                                    )}
-                                  </div>
-                                  <span className="text-[11px] font-bold text-slate-500">{st.name}</span>
+                                <div className="col-span-full p-6 text-center bg-[#F3F6F8] rounded border border-dashed border-[#DCE4EA]">
+                                  <p className="text-xs font-bold text-[#6A7B87]">ไม่มีข้อมูลสถิติ OT รายบุคคลในแผนกที่เลือก</p>
                                 </div>
                               );
-                            })}
-                          </div>
+                            }
 
-                        </div>
-
-                      </div>
-
-                      {/* Right Panel: Minimal Clean Highlight Card (1/4 Width) */}
-                      <div className="lg:col-span-1 bg-white border-l-4 border-l-amber-500 border-y border-r border-slate-200/80 p-6 rounded shadow-sm font-sans flex flex-col justify-between h-full min-h-[260px] group hover:shadow-md transition-all">
-                        
-                        <div className="flex justify-between items-start">
-                          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center shadow-2xs">
-                            <Clock className="w-6 h-6 text-amber-600" />
-                          </div>
-                          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-200/80">
-                            เฉลี่ยรายบุคคล
-                          </span>
-                        </div>
-
-                        {/* Main Metric Section */}
-                        <div className="space-y-1.5 mt-4">
-                          <h4 className="text-xs font-bold text-slate-500 tracking-wide">ชั่วโมง OT เฉลี่ยต่อคน</h4>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black tracking-tight text-slate-900">
-                              {avgOtPerEmp} hrs
-                            </span>
-                            <span className="text-xs font-semibold text-slate-500">per employee</span>
-                          </div>
-                          <p className={`text-xs font-extrabold pt-1 ${avgOtPerEmp > 36 ? "text-amber-600" : "text-emerald-600"}`}>
-                            {totalOtHrs > 0 ? (avgOtPerEmp > 36 ? "เกินเป้าหมาย 36 ชม./เดือน" : "อยู่ในเกณฑ์มาตรฐาน (≤ 36 ชม./เดือน)") : "(ไม่มีชั่วโมงสะสมในเดือนนี้)"}
-                          </p>
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                    {/* Department breakdown meters */}
-                    <div className="bg-white border border-[#DCE4EA] rounded p-5">
-                      <div className="mb-4">
-                        <h4 className="text-sm font-bold text-slate-800">ปริมาณชั่วโมง OT แยกตามแผนก (ข้อมูลเรียลไทม์)</h4>
-                        <p className="text-xs text-slate-500">สัดส่วนและปริมาณชั่วโมงสะสม</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-                        {state.departments.map((dept) => {
-                          const deptEmployees = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
-                          const deptOtHours = Math.round(
-                            deptEmployees.reduce((s, e) => {
-                              return s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0);
-                            }, 0) * 10
-                          ) / 10;
-                          const maxHr = Math.max(...state.departments.map(d => {
-                            const dEmps = dashboardEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
-                            return dEmps.reduce((s, e) => {
-                              return s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0);
-                            }, 0);
-                          }), 1);
-                          const percentage = maxHr > 0 ? Math.min(100, Math.round((deptOtHours / maxHr) * 100)) : 0;
-                          return (
-                            <div key={dept.id} className="group cursor-pointer bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all">
-                              <div className="flex justify-between items-end mb-1.5">
-                                <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{getDeptName(dept.id, state.departments)}</span>
-                                <span className="text-xs font-extrabold text-slate-900 font-mono">{deptOtHours.toLocaleString()} ชม.</span>
-                              </div>
-                              <div className="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden shadow-inner">
+                            return filteredEmpContribution.slice(0, 4).map((emp) => {
+                              const isOver = (emp.actualOt || 0) > (emp.targetOt || 48);
+                              return (
                                 <div 
-                                  style={{ width: `${percentage}%` }}
-                                  className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full rounded-full group-hover:opacity-90 transition-opacity"
-                                ></div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                                  key={emp.id} 
+                                  className={`p-3 rounded border transition-all ${
+                                    isOver ? "bg-[#FBEAEA]/40 border-[#F4B8B4]" : "bg-[#F3F6F8]/60 border-[#DCE4EA] hover:border-[#9FCEE8]"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 mb-2.5">
+                                    <div className="relative shrink-0">
+                                      <EmployeeAvatar empId={emp.id} empName={emp.name} avatarUrl={emp.avatar} className="w-9 h-9" />
+                                      <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border border-white rounded-full ${
+                                        isOver ? "bg-[#B3352C]" : "bg-[#1E9C6E]"
+                                      }`}></span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="text-xs font-bold truncate text-[#333B41]" title={emp.name}>{emp.name}</h5>
+                                      <p className="text-[10px] text-[#6A7B87] truncate font-medium">{emp.role}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5 bg-white p-2.5 rounded border border-[#DCE4EA]">
+                                    <div className="flex justify-between items-center text-[10px]">
+                                      <span className="font-bold text-[#6A7B87]">สัดส่วนเป้าหมาย</span>
+                                      <span className={`font-bold font-mono ${isOver ? "text-[#B3352C]" : "text-[#17538F]"}`}>
+                                        {emp.otPct}%
+                                      </span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-[#F3F6F8] rounded-full overflow-hidden border border-[#DCE4EA]/50">
+                                      <div 
+                                        style={{ width: `${Math.min(100, emp.otPct || 0)}%` }}
+                                        className={`h-full rounded-full ${isOver ? "bg-[#B3352C]" : "bg-[#17538F]"}`}
+                                      ></div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] pt-0.5 border-t border-[#DCE4EA]/60">
+                                      <span className={`font-bold font-mono ${isOver ? "text-[#B3352C]" : "text-[#333B41]"}`}>{emp.actualOt} ชม.</span>
+                                      <span className="text-[#6A7B87]">เป้า &lt; {emp.targetOt || 48} ชม.</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
 
-                      <div className="pt-4 border-t border-slate-100 mt-6 flex items-center gap-2">
-                        <Info className="w-4 h-4 text-slate-400" />
-                        <p className="text-[10px] text-slate-500 font-medium">คำนวณจากกะการทำงานพนักงานตรงกับฐานข้อมูล D1 แบบ 100%</p>
+                      <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
+                        <span>พนักงานที่มีสถิติการทำงานล่วงเวลาสูงสุด</span>
+                        <button 
+                          type="button"
+                          onClick={handleNavigateToEmployees}
+                          className="font-bold text-[#17538F] hover:underline cursor-pointer"
+                        >
+                          เปิดตารางพนักงานทั้งหมด
+                        </button>
                       </div>
                     </div>
 
@@ -5669,94 +5880,8 @@ export default function App() {
                 );
               })()}
 
-              {/* Employee OT Contribution Cards List */}
-              <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">วิเคราะห์การจัดสรร OT รายบุคคล (Employee Contribution)</h4>
-                    <p className="text-xs text-slate-500">รายชื่อผู้ที่ทำ OT สูงสุดและพนักงานที่มีความเสี่ยงสะสมชั่วโมงทำงานเกินกฎเกณฑ์ความปลอดภัย</p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={handleNavigateToEmployees}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#eff6ff] hover:bg-blue-100 border border-blue-200/80 text-blue-700 font-extrabold text-xs rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 self-start sm:self-auto min-h-[40px]"
-                    title="คลิกเพื่อเปิดตารางรายชื่อพนักงานทั้งหมด"
-                  >
-                    <span>ดูตารางรายชื่อทั้งหมด</span>
-                    <ChevronRight className="w-4 h-4 text-blue-600" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                  {(() => {
-                    const filteredEmpContribution = state.employees.filter(emp => {
-                      if (!isHrOrFullAccess && currentUser?.deptId) {
-                        const managerDeptId = normalizeDeptId(currentUser.deptId);
-                        if (normalizeDeptId(emp.deptId) !== managerDeptId) return false;
-                      }
-                      if (selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน") {
-                        const filterDeptId = normalizeDeptId(selectedDeptFilter);
-                        if (normalizeDeptId(emp.deptId) !== filterDeptId) return false;
-                      }
-                      return true;
-                    });
-
-                    if (filteredEmpContribution.length === 0) {
-                      return (
-                        <div className="col-span-full p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                          <p className="text-xs font-bold text-slate-500">ไม่มีข้อมูลสถิติ OT รายบุคคลในแผนกที่เลือก</p>
-                        </div>
-                      );
-                    }
-
-                    return filteredEmpContribution.slice(0, 4).map((emp) => {
-                      const isOver = emp.actualOt > emp.targetOt;
-                      return (
-                        <div 
-                          key={emp.id} 
-                          className={`p-4 border rounded-2xl transition-all shadow-sm group ${
-                            isOver ? "bg-red-50/50 border-red-200 hover:border-red-300" : "bg-slate-50/50 border-slate-200 hover:border-blue-200"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="relative">
-                              <EmployeeAvatar empId={emp.id} empName={emp.name} avatarUrl={emp.avatar} className="w-11 h-11" />
-                              <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 border-2 border-white rounded-full ${
-                                isOver ? "bg-red-500" : "bg-green-500"
-                              }`}></span>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                              <h5 className={`text-xs font-black truncate text-slate-900 ${isOver ? "group-hover:text-red-600" : "group-hover:text-blue-600"}`} title={emp.name}>{emp.name}</h5>
-                              <p className="text-[10px] text-slate-600 truncate font-bold mt-0.5">{emp.role}</p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2 bg-white p-3 rounded-xl border border-slate-100 shadow-inner">
-                            <div className="flex justify-between items-end">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">สัดส่วนเป้าหมาย</span>
-                              <span className={`text-sm font-bold font-mono ${isOver ? "text-red-600" : "text-blue-600"}`}>
-                                {emp.otPct}%
-                              </span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div 
-                                style={{ width: `${Math.min(100, emp.otPct)}%` }}
-                                className={`h-full rounded-full ${isOver ? "bg-red-500" : "bg-blue-600"}`}
-                              ></div>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500 pt-1 border-t border-slate-100">
-                              <span className={`font-bold ${isOver ? "text-red-600" : "text-slate-800"}`}>{emp.actualOt} ชม.</span>
-                              <span>เป้าหมาย &lt; {emp.targetOt} ชม.</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
             </div>
+
           )}
 
           {/* ======================================= */}
@@ -8401,17 +8526,17 @@ export default function App() {
                     </div>
 
 
-                    {/* ตารางเรือ Vessel & Crane Section (Redesigned Premium Maritime Operations) */}
-                    <div className="bg-gradient-to-r from-slate-900 via-[#0E3A66] to-slate-900 px-4 py-2.5 border-b border-slate-700 flex flex-wrap justify-between items-center gap-2 text-white sticky left-0 z-20">
+                    {/* ตารางเรือ Vessel & Crane Section (Maritime Operations Header) */}
+                    <div className="bg-[#0E3A66] px-4 py-2.5 border-b border-[#17538F] flex flex-wrap justify-between items-center gap-2 text-white sticky left-0 z-20 shadow-maritime-xs">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-6 h-6 rounded-lg bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 shadow-xs">
+                        <div className="w-6 h-6 rounded bg-[#17538F] border border-[#2E90CB]/40 flex items-center justify-center text-[#9FCEE8]">
                           <Ship className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-black tracking-wide text-white">
+                          <span className="text-xs font-bold tracking-tight text-white">
                             ตารางเทียบเรือสินค้า & เครนหน้าท่า (Vessel & Ship Crane Schedule)
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#17538F] border border-[#2E90CB]/30 text-[#9FCEE8] tabular-nums">
                             {vesselSchedules.length > 0 ? `${vesselSchedules.length} ลำในแผนงาน` : "พร้อมปฏิบัติการ"}
                           </span>
                         </div>
@@ -12172,17 +12297,17 @@ export default function App() {
               const suggestion = getComplementaryShift(peerShift);
 
               return (
-                <div className="bg-blue-950/70 border border-blue-500/40 rounded-xl p-2.5 flex flex-col gap-1.5 shadow-sm">
+                <div className="bg-[#E8F3FA] border border-[#DCE4EA] rounded p-2.5 flex flex-col gap-1.5 shadow-maritime-xs">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-blue-300 text-[10px] font-black">
+                    <div className="flex items-center gap-1.5 text-[#0E3A66] text-[10px] font-bold">
                       <Sparkles className="w-3 h-3 text-[#2E90CB]" />
                       <span>คำแนะนำคู่กะ (Smart Pair)</span>
                     </div>
-                    <span className="text-[9px] text-blue-300 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-400/20">
+                    <span className="text-[9px] text-[#17538F] font-mono tabular-nums font-bold bg-white px-1.5 py-0.5 rounded border border-[#DCE4EA]">
                       คู่กะ: {peerEmp.name.split(" ")[0]} ({peerShift})
                     </span>
                   </div>
-                  <p className="text-[9.5px] text-slate-300 leading-tight font-sans">
+                  <p className="text-[10px] text-[#59656D] leading-tight font-sans">
                     {suggestion.rationale}
                   </p>
                   <button
@@ -12192,7 +12317,7 @@ export default function App() {
                       handleDirectSaveShift(activeCellEditor.emp, activeCellEditor.dayIdx, target, suggestion.suggestedCode);
                       setActiveCellEditor(null);
                     }}
-                    className="w-full py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-[10px] font-black cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-1.5 bg-[#0E3A66] hover:bg-[#17538F] active:scale-[0.98] text-white rounded text-[10px] font-bold cursor-pointer shadow-maritime-xs transition-all flex items-center justify-center gap-1.5 btn-press focus-ring"
                   >
                     <Zap className="w-3 h-3" />
                     <span>ใส่กะแนะนำ: {suggestion.suggestedCode} ทันที</span>
@@ -12611,18 +12736,19 @@ export default function App() {
 
       {/* Smart Shift Floating Success Toast */}
       {smartShiftSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-slate-950/95 text-white border border-blue-500/40 rounded-2xl px-5 py-3.5 shadow-lg backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-400/30">
-            <Sparkles className="w-4 h-4 text-blue-400" />
+        <div className="fixed bottom-6 right-6 z-[9999] bg-[#0E3A66] text-white border border-[#17538F] rounded p-4 shadow-maritime-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className="w-8 h-8 rounded bg-[#17538F] text-[#9FCEE8] flex items-center justify-center shrink-0 border border-[#2E90CB]/30">
+            <Sparkles className="w-4 h-4 text-[#9FCEE8]" />
           </div>
           <div>
-            <p className="text-xs font-black text-white">{smartShiftSuccessToast}</p>
-            <p className="text-[10px] text-slate-400">ระบบบันทึกและซิงค์ตารางกะเรียบร้อยแล้ว</p>
+            <p className="text-xs font-bold text-white tracking-tight">{smartShiftSuccessToast}</p>
+            <p className="text-[10px] text-[#9FCEE8]">ระบบบันทึกและซิงค์ตารางกะเรียบร้อยแล้ว</p>
           </div>
           <button
             type="button"
             onClick={() => setSmartShiftSuccessToast(null)}
-            className="text-slate-400 hover:text-white p-1 ml-2 cursor-pointer"
+            className="text-[#9FCEE8] hover:text-white p-1 ml-2 cursor-pointer btn-press rounded focus-ring"
+            aria-label="ปิดการแจ้งเตือน"
           >
             <X className="w-4 h-4" />
           </button>

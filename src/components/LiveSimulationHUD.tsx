@@ -118,7 +118,7 @@ export const LiveSimulationHUD: React.FC<LiveSimulationHUDProps> = ({
                   key={code}
                   type="button"
                   onClick={() => onSelectShift(code)}
-                  className="px-2 py-0.5 text-xs font-mono font-bold rounded bg-white hover:bg-[#E8F3FA] text-[#0E3A66] border border-[#DCE4EA] transition-colors cursor-pointer"
+                  className="px-2 py-0.5 text-xs font-mono tabular-nums font-bold rounded bg-white hover:bg-[#E8F3FA] text-[#0E3A66] border border-[#DCE4EA] transition-all cursor-pointer btn-press focus-ring active:scale-95"
                 >
                   {code}
                 </button>
@@ -130,7 +130,7 @@ export const LiveSimulationHUD: React.FC<LiveSimulationHUDProps> = ({
             <button
               type="button"
               onClick={onApply}
-              className="px-3.5 py-1.5 rounded bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold text-xs transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded bg-[#0E3A66] hover:bg-[#17538F] active:scale-95 text-white font-bold text-xs transition-all cursor-pointer btn-press focus-ring shadow-maritime-xs"
             >
               บันทึกกะ ({paintedCount})
             </button>
@@ -140,7 +140,7 @@ export const LiveSimulationHUD: React.FC<LiveSimulationHUDProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded bg-white hover:bg-[#F3F6F8] text-[#59656D] border border-[#DCE4EA] text-xs font-medium transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded bg-white hover:bg-[#F3F6F8] active:scale-95 text-[#59656D] border border-[#DCE4EA] text-xs font-medium transition-all cursor-pointer btn-press focus-ring"
             >
               ยกเลิก
             </button>

@@ -666,7 +666,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="py-2 px-3 rounded bg-[#1E9C6E] hover:bg-[#17825C] text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    className="py-2 px-3 rounded bg-[#1E9C6E] hover:bg-[#17825C] active:scale-95 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 btn-press focus-ring shadow-maritime-xs"
                     title="ยืนยันการบันทึกกะทำงาน"
                   >
                     <Check className="w-4 h-4" />
@@ -676,7 +676,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="py-2 px-3 rounded bg-white hover:bg-[#F3F6F8] text-[#59656D] border border-[#DCE4EA] font-medium text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    className="py-2 px-3 rounded bg-white hover:bg-[#F3F6F8] active:scale-95 text-[#59656D] border border-[#DCE4EA] font-medium text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 btn-press focus-ring"
                     title="รีเซ็ตกลับเป็นค่าตั้งต้น"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-[#6A7B87]" />
@@ -687,7 +687,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
 
               {/* Minimalist Complementary Pair Suggestion */}
               {recommendation && pairedEmployee && (
-                <div className="p-2 rounded bg-[#E8F3FA] border border-[#9FCEE8] text-[10px] space-y-1">
+                <div className="p-2 rounded bg-[#E8F3FA] border border-[#9FCEE8] text-[10px] space-y-1 shadow-maritime-xs">
                   <div className="flex items-center justify-between text-[#0E3A66] font-medium">
                     <span className="flex items-center gap-1">
                       <Users className="w-3 h-3 text-[#0E3A66]" />
@@ -697,10 +697,10 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                   <button
                     type="button"
                     onClick={() => applyShiftToTime(recommendation.suggestedCode)}
-                    className="w-full py-1.5 px-2 rounded bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold text-[10px] flex items-center justify-between cursor-pointer transition-colors"
+                    className="w-full py-1.5 px-2 rounded bg-[#0E3A66] hover:bg-[#17538F] active:scale-95 text-white font-bold text-[10px] flex items-center justify-between cursor-pointer transition-all btn-press focus-ring"
                   >
                     <span>ใส่กะคู่แนะนำ: {recommendation.suggestedCode}</span>
-                    <span className="text-[9px] opacity-80 font-mono">ปรับอัตโนมัติ</span>
+                    <span className="text-[9px] opacity-80 font-mono tabular-nums">ปรับอัตโนมัติ</span>
                   </button>
                 </div>
               )}
@@ -716,9 +716,9 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                     key={t.id}
                     type="button"
                     onClick={() => setTargetType(t.id as any)}
-                    className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
+                    className={`flex-1 py-1 text-[10px] font-bold rounded transition-all cursor-pointer btn-press focus-ring ${
                       targetType === t.id 
-                        ? "bg-white text-[#0E3A66] border border-[#DCE4EA]" 
+                        ? "bg-white text-[#0E3A66] border border-[#DCE4EA] shadow-maritime-xs" 
                         : "text-[#6A7B87] hover:text-[#333B41]"
                     }`}
                   >
