@@ -8366,7 +8366,7 @@ export default function App() {
                     
                     {/* Header: Days labels */}
                     <div className="flex bg-slate-50 border-b border-slate-200 w-full">
-                      <div className="w-56 flex-shrink-0 p-4 border-r border-slate-200 font-bold text-slate-500 text-xs uppercase">
+                      <div className="w-56 flex-shrink-0 p-4 border-r border-slate-200 font-bold text-slate-500 text-xs uppercase sticky left-0 z-20 bg-slate-50 shadow-sm">
                         พนักงานสังกัด / รายชื่อ
                       </div>
                       
@@ -8683,7 +8683,7 @@ export default function App() {
 
                     {/* === Dedicated Employee Roster Header Bar === */}
                     <div className="flex bg-slate-100 border-y border-slate-300 select-none w-full">
-                      <div className="w-56 flex-shrink-0 p-3 border-r border-slate-300 font-extrabold text-slate-700 text-xs flex items-center bg-blue-50/80">
+                      <div className="w-56 flex-shrink-0 p-3 border-r border-slate-300 font-extrabold text-slate-700 text-xs flex items-center bg-[#edf4fc] sticky left-0 z-20 shadow-sm">
                         <span className="text-blue-900 font-bold">รายชื่อพนักงานจัดกะ (All Employees)</span>
                       </div>
 
@@ -8768,8 +8768,8 @@ export default function App() {
                         return roleEntries.map(([roleName, roleEmps]) => (
                           <div key={roleName} className="bg-white">
                             {/* Position Category Header & Visible Line Divider */}
-                            <div className="bg-slate-100/90 border-y border-slate-200 px-4 py-2 flex items-center justify-between sticky left-0 z-20 shadow-sm">
-                              <div className="flex items-center gap-2">
+                            <div className="bg-slate-100 border-y border-slate-200 px-4 py-2 flex items-center justify-between sticky left-0 z-20 shadow-sm">
+                              <div className="flex items-center gap-2 sticky left-4">
                                 <span className="w-1.5 h-1.5 bg-[#0E3A66] rounded-full"></span>
                                 <span className="text-xs font-bold text-[#0E3A66] uppercase tracking-wider">
                                   ตำแหน่ง: {roleName}
@@ -9155,7 +9155,7 @@ export default function App() {
                     <div className="flex flex-col border-t-2 border-slate-200 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                       {/* Row 1: Coverage */}
                       <div className="flex bg-slate-100 border-b border-slate-200 w-full">
-                        <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-slate-600 text-[11px] flex items-center ${daysLimit === 30 ? "p-2" : "p-3"}`}>
+                        <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-slate-600 text-[11px] flex items-center bg-slate-100 sticky left-0 z-20 shadow-sm ${daysLimit === 30 ? "p-2" : "p-3"}`}>
                           สรุปความคุ้มครอง (M/A/N)
                         </div>
                         
@@ -9187,7 +9187,7 @@ export default function App() {
 
                       {/* Row 2: Daily OT Hours */}
                       <div className="flex bg-blue-50/60 w-full">
-                        <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-blue-800 text-[11px] flex items-center ${daysLimit === 30 ? "p-2" : "p-3"}`}>
+                        <div className={`w-56 flex-shrink-0 border-r border-slate-200 font-bold text-blue-800 text-[11px] flex items-center bg-[#eff6ff] sticky left-0 z-20 shadow-sm ${daysLimit === 30 ? "p-2" : "p-3"}`}>
                           สรุปชั่วโมง OT รายวัน (ชม.)
                         </div>
                         

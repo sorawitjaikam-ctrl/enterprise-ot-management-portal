@@ -61,4 +61,33 @@ describe('Tier 2: Shift Matrix Sticky Columns & Panning', () => {
     );
     expect(hasWidthClass).toBe(true);
   });
+
+  it('T2.3.5: All table rows (Header, Roster Header Bar, Employee Rows, Footers) enforce sticky left-0 on identity columns to prevent desync', async () => {
+    const { container } = render(<App />);
+    await waitFor(() => {
+      expect(container.querySelector('main')).toBeInTheDocument();
+    });
+
+    const shiftTabs = screen.getAllByText(/ตารางจัดกะพนักงาน/i);
+    if (shiftTabs.length > 0) fireEvent.click(shiftTabs[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/รายชื่อพนักงานจัดกะ/i)).toBeInTheDocument();
+    });
+
+    // Check Employee Roster Header Bar
+    const rosterHeaderCol = screen.getByText(/รายชื่อพนักงานจัดกะ/i).closest('div');
+    expect(rosterHeaderCol?.className).toMatch(/sticky.*left-0/);
+
+    // Check Days Labels Header
+    const daysHeaderCol = screen.getByText(/พนักงานสังกัด \/ รายชื่อ/i);
+    expect(daysHeaderCol.className).toMatch(/sticky.*left-0/);
+
+    // Check Footer Summary rows
+    const coverageFooter = screen.getByText(/สรุปความคุ้มครอง/i);
+    expect(coverageFooter.className).toMatch(/sticky.*left-0/);
+
+    const dailyOtFooter = screen.getByText(/สรุปชั่วโมง OT รายวัน/i);
+    expect(dailyOtFooter.className).toMatch(/sticky.*left-0/);
+  });
 });
