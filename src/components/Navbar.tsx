@@ -87,12 +87,12 @@ export default function Navbar({
   // Structured tab list with sequential numbering matching the editorial template
   const tabsList = [
     { id: "dashboard", num: "01", label: "ภาพรวม Dashboard", icon: LayoutDashboard },
-    { id: "shifts", num: "02", label: "ตารางจัดกะพนักงาน", icon: Calendar },
-    { id: "employees", num: "03", label: "รายชื่อพนักงาน", icon: Users },
-    { id: "job_value", num: "04", label: "โครงสร้าง Job Value", icon: TrendingUp },
-    { id: "leave-records", num: "05", label: "บันทึกวันลา", icon: ClipboardList },
-    { id: "ot-records", num: "06", label: "ประวัติ OT จากกะ", icon: Calendar },
-    { id: "reports", num: "07", label: "รายงานรายแผนก", icon: BarChart3 },
+    { id: "reports", num: "02", label: "รายงานรายแผนก", icon: BarChart3 },
+    { id: "shifts", num: "03", label: "ตารางจัดกะพนักงาน", icon: Calendar },
+    { id: "employees", num: "04", label: "รายชื่อพนักงาน", icon: Users },
+    { id: "job_value", num: "05", label: "โครงสร้าง Job Value", icon: TrendingUp },
+    { id: "leave-records", num: "06", label: "บันทึกวันลา", icon: ClipboardList },
+    { id: "ot-records", num: "07", label: "ประวัติ OT จากกะ", icon: Calendar },
     ...(isHrOrFullAccess ? [
       { id: "hr-editor", num: "08", label: "ข้อมูล & รายได้", icon: FileText },
       { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
