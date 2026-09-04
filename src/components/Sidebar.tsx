@@ -28,15 +28,13 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
 
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
-    { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
+    { id: "shifts",     label: "จัดตารางกะเทียบเรือ (Shifts)", icon: Calendar },
+    { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
+    { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
     ...(isHrOrFullAccess ? [
-      { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
       { id: "hr-editor",  label: "จัดการข้อมูล & รายได้ (HR Direct)", icon: FileText },
       { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: ClipboardList },
-    ] : []),
-    { id: "shifts",     label: "จัดตารางกะเทียบเรือ (Shifts)", icon: Calendar },
-    ...(isHrOrFullAccess ? [
       { id: "ot-records", label: "ประวัติ OT งานหน้าท่าเรือ",  icon: ClipboardList },
       { id: "admin-permissions", label: "จัดการสิทธิ์ Admin & ผู้ใช้", icon: ShieldCheck },
     ] : []),
