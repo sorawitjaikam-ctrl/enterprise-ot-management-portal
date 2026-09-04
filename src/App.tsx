@@ -8497,46 +8497,6 @@ export default function App() {
                         tagColor: "bg-teal-700 text-white border-teal-800", 
                         icon: Anchor,
                         barBg: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white shadow-sm font-extrabold"
-                      },
-                      { 
-                        type: "pm", 
-                        planType: "plan", 
-                        title: "แผนบำรุงรักษา PM", 
-                        sub: "PM Schedule", 
-                        tag: "PLAN", 
-                        tagColor: "bg-purple-100 text-purple-800 border-purple-300", 
-                        icon: Wrench,
-                        barBg: "bg-gradient-to-r from-purple-100 to-indigo-100 border-2 border-dashed border-purple-400 text-purple-950 shadow-xs"
-                      },
-                      { 
-                        type: "pm", 
-                        planType: "actual", 
-                        title: "บำรุงรักษาจริง PM", 
-                        sub: "PM Actual", 
-                        tag: "ACTUAL", 
-                        tagColor: "bg-purple-700 text-white border-purple-800", 
-                        icon: Wrench,
-                        barBg: "bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 border border-purple-400 text-white shadow-sm font-extrabold"
-                      },
-                      { 
-                        type: "cm", 
-                        planType: "plan", 
-                        title: "แผนงานซ่อม CM", 
-                        sub: "CM Schedule", 
-                        tag: "PLAN", 
-                        tagColor: "bg-rose-100 text-rose-800 border-rose-300", 
-                        icon: AlertTriangle,
-                        barBg: "bg-gradient-to-r from-rose-100 to-pink-100 border-2 border-dashed border-rose-400 text-rose-950 shadow-xs"
-                      },
-                      { 
-                        type: "cm", 
-                        planType: "actual", 
-                        title: "งานซ่อมจริง CM", 
-                        sub: "CM Actual", 
-                        tag: "ACTUAL", 
-                        tagColor: "bg-rose-700 text-white border-rose-800", 
-                        icon: AlertTriangle,
-                        barBg: "bg-gradient-to-r from-rose-700 via-red-600 to-rose-800 border border-rose-400 text-white shadow-sm font-extrabold"
                       }
                     ].map((row, rIdx) => {
                       const deptEmployees = (state?.employees || []).filter(e => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
@@ -8588,7 +8548,7 @@ export default function App() {
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/90 flex items-center justify-between px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
-                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : row.type === "crane" ? "bg-amber-100 text-amber-800" : row.type === "pm" ? "bg-purple-100 text-purple-800" : "bg-rose-100 text-rose-800"
+                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
                             }`}>
                               <row.icon className="w-3.5 h-3.5" />
                             </div>
@@ -8608,18 +8568,60 @@ export default function App() {
                             const [y, m] = (state?.shiftConfig?.currentMonth || "2026-07").split("-");
                             const dateStr = `${y}-${m}-${String(day.n).padStart(2, "0")}`;
 
-                            const activeVS = vesselSchedules.find(
+                            const getItemStyle = (vs: any, planType: string) => {
+                              if (vs.type === "pm") {
+                                return {
+                                  icon: Wrench,
+                                  typeLabel: "PM",
+                                  bgClass: planType === "actual"
+                                    ? "bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 border border-purple-400 text-white font-extrabold shadow-sm"
+                                    : "bg-gradient-to-r from-purple-100 to-indigo-100 border-2 border-dashed border-purple-400 text-purple-950 shadow-xs"
+                                };
+                              }
+                              if (vs.type === "cm") {
+                                return {
+                                  icon: AlertTriangle,
+                                  typeLabel: "CM",
+                                  bgClass: planType === "actual"
+                                    ? "bg-gradient-to-r from-rose-700 via-red-600 to-rose-800 border border-rose-400 text-white font-extrabold shadow-sm"
+                                    : "bg-gradient-to-r from-rose-100 to-pink-100 border-2 border-dashed border-rose-400 text-rose-950 shadow-xs"
+                                };
+                              }
+                              if (vs.type === "crane") {
+                                return {
+                                  icon: Anchor,
+                                  typeLabel: "CRANE",
+                                  bgClass: planType === "actual"
+                                    ? "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white font-extrabold shadow-sm"
+                                    : "bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-dashed border-amber-400 text-amber-950 shadow-xs"
+                                };
+                              }
+                              return {
+                                icon: Ship,
+                                typeLabel: "VESSEL",
+                                bgClass: planType === "actual"
+                                  ? "bg-gradient-to-r from-[#0E3A66] via-[#17538F] to-[#2E90CB] border border-blue-400 text-white font-extrabold shadow-sm"
+                                  : "bg-gradient-to-r from-sky-100 to-blue-100 border-2 border-dashed border-sky-400 text-sky-950 shadow-xs"
+                              };
+                            };
+
+                            const activeVesselList = vesselSchedules.filter(
                               (v) =>
-                                v.type === row.type &&
+                                (row.type === "vessel"
+                                  ? (v.type === "vessel" || v.type === "pm" || v.type === "cm")
+                                  : v.type === row.type) &&
                                 v.planType === row.planType &&
                                 dateStr >= v.startDate &&
                                 dateStr <= v.endDate
                             );
 
-                            if (activeVS) {
+                            if (activeVesselList.length === 1) {
+                              const activeVS = activeVesselList[0];
                               const isStart = dateStr === activeVS.startDate || day.n === startDay;
                               const isEnd = dateStr === activeVS.endDate || day.n === endDay;
                               const ton = Number(activeVS.tonnage) || 0;
+                              const style = getItemStyle(activeVS, row.planType);
+                              const ItemIcon = style.icon;
 
                               return (
                                 <div
@@ -8634,12 +8636,12 @@ export default function App() {
                                   <div
                                     className={`w-full h-7 flex items-center justify-center relative select-none transition-all ${
                                       isStart ? "rounded-l-md ml-0.5" : ""
-                                    } ${isEnd ? "rounded-r-md mr-0.5" : ""} ${row.barBg}`}
-                                    title={`${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} ตัน` : ""}`}
+                                    } ${isEnd ? "rounded-r-md mr-0.5" : ""} ${style.bgClass}`}
+                                    title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} ตัน` : ""}`}
                                   >
                                     {isStart && (
                                       <div className="absolute left-2 flex items-center gap-1.5 z-10 pointer-events-none whitespace-nowrap">
-                                        <row.icon className="w-3 h-3 shrink-0 opacity-80" />
+                                        <ItemIcon className="w-3 h-3 shrink-0 opacity-85" />
                                         <span className="text-[10px] font-black tracking-tight drop-shadow-2xs">
                                           {activeVS.name}
                                         </span>
@@ -8651,6 +8653,44 @@ export default function App() {
                                       </div>
                                     )}
                                   </div>
+                                </div>
+                              );
+                            }
+
+                            if (activeVesselList.length > 1) {
+                              return (
+                                <div
+                                  key={day.n}
+                                  style={{
+                                    minWidth: daysLimit === 30 ? "35px" : daysLimit === 14 ? "48px" : "56px",
+                                    height: "36px"
+                                  }}
+                                  className="flex-1 flex-shrink-0 relative flex flex-col justify-center gap-0.5 p-0.5 border-r border-slate-200/80 bg-slate-50/20"
+                                >
+                                  {activeVesselList.map((activeVS, vsIdx) => {
+                                    const isStart = dateStr === activeVS.startDate || day.n === startDay;
+                                    const isEnd = dateStr === activeVS.endDate || day.n === endDay;
+                                    const style = getItemStyle(activeVS, row.planType);
+                                    const ItemIcon = style.icon;
+                                    return (
+                                      <div
+                                        key={activeVS.id || vsIdx}
+                                        className={`w-full h-3 flex items-center relative select-none transition-all ${
+                                          isStart ? "rounded-l-sm ml-0.5" : ""
+                                        } ${isEnd ? "rounded-r-sm mr-0.5" : ""} ${style.bgClass}`}
+                                        title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})`}
+                                      >
+                                        {isStart && (
+                                          <div className="absolute left-1 flex items-center gap-1 z-10 pointer-events-none whitespace-nowrap">
+                                            <ItemIcon className="w-2.5 h-2.5 shrink-0 opacity-85" />
+                                            <span className="text-[8px] font-black tracking-tight leading-none truncate max-w-[120px]">
+                                              {activeVS.name}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               );
                             }
@@ -8723,58 +8763,6 @@ export default function App() {
                             </div>
                             <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs">
                               {totalActiveStaff} คน
-                            </span>
-                          </div>
-                        )}
-                        {rIdx === 4 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-200">
-                                <Wrench className="w-3 h-3" />
-                              </div>
-                              <span className="font-extrabold text-slate-700">แผนบำรุงรักษา PM (Plan)</span>
-                            </div>
-                            <span className="bg-purple-50 text-purple-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-purple-200 shadow-2xs">
-                              {vesselSchedules.filter(v => v.type === "pm" && v.planType === "plan").length} รายการ
-                            </span>
-                          </div>
-                        )}
-                        {rIdx === 5 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200">
-                                <Wrench className="w-3 h-3" />
-                              </div>
-                              <span className="font-extrabold text-slate-700">บำรุงรักษาจริง PM (Actual)</span>
-                            </div>
-                            <span className="bg-purple-50 text-purple-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-purple-200 shadow-2xs">
-                              {vesselSchedules.filter(v => v.type === "pm" && v.planType === "actual").length} รายการ
-                            </span>
-                          </div>
-                        )}
-                        {rIdx === 6 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
-                                <AlertTriangle className="w-3 h-3" />
-                              </div>
-                              <span className="font-extrabold text-slate-700">แผนงานซ่อม CM (Plan)</span>
-                            </div>
-                            <span className="bg-rose-50 text-rose-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-rose-200 shadow-2xs">
-                              {vesselSchedules.filter(v => v.type === "cm" && v.planType === "plan").length} รายการ
-                            </span>
-                          </div>
-                        )}
-                        {rIdx === 7 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-200">
-                                <AlertTriangle className="w-3 h-3" />
-                              </div>
-                              <span className="font-extrabold text-slate-700">งานซ่อมจริง CM (Actual)</span>
-                            </div>
-                            <span className="bg-rose-50 text-rose-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-rose-200 shadow-2xs">
-                              {vesselSchedules.filter(v => v.type === "cm" && v.planType === "actual").length} รายการ
                             </span>
                           </div>
                         )}
