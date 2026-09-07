@@ -454,13 +454,21 @@ export const getEmployeeJobValueBreakdown = (
   const totalOtPay = otBreakdown.totalOtPay;
   const totalLaborCost = salary + totalOtPay;
 
-  const monthlyRevenue = (jvRecord && Number(jvRecord.avgRevenue) > 0)
+  // Job Value: HR Direct Input via Template / Editor takes absolute priority
+  const hasHrRevenue = jvRecord && jvRecord.avgRevenue !== undefined && jvRecord.avgRevenue !== null && Number(jvRecord.avgRevenue) > 0;
+  const hasHrCost = jvRecord && jvRecord.avgCost !== undefined && jvRecord.avgCost !== null && Number(jvRecord.avgCost) > 0;
+
+  const monthlyRevenue = hasHrRevenue
     ? Number(jvRecord.avgRevenue)
     : Math.round(salary * 4.5);
 
-  const operationalValueAdd = monthlyRevenue - totalLaborCost;
-  const revenueCostRatio = totalLaborCost > 0
-    ? Number((monthlyRevenue / totalLaborCost).toFixed(2))
+  const effectiveLaborCost = hasHrCost
+    ? Number(jvRecord.avgCost)
+    : totalLaborCost;
+
+  const operationalValueAdd = monthlyRevenue - effectiveLaborCost;
+  const revenueCostRatio = effectiveLaborCost > 0
+    ? Number((monthlyRevenue / effectiveLaborCost).toFixed(2))
     : 0;
   const profitMarginPct = monthlyRevenue > 0
     ? Number(((operationalValueAdd / monthlyRevenue) * 100).toFixed(1))

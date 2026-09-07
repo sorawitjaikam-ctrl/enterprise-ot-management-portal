@@ -111,6 +111,7 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
   onSaveShift
 }) => {
   const [selectedDays, setSelectedDays] = useState<number[]>([initialDay]);
+  const [customDaysCount, setCustomDaysCount] = useState<number>(7);
   const [targetType, setTargetType] = useState<"plan" | "actual" | "both">("actual");
 
   const [yearStr, monthStr] = currentMonthKey.split("-");
@@ -303,14 +304,20 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
     setSelectedDays([today.getDate()]);
   };
 
-  const handleSelectWeek = () => {
+  const handleSelectCustomDays = (count: number) => {
+    const validCount = Math.max(1, Math.min(31, isNaN(count) ? 1 : count));
+    setCustomDaysCount(validCount);
     const startDay = selectedDays[0] || 1;
-    const weekDays: number[] = [];
-    for (let i = 0; i < 7; i++) {
+    const daysArr: number[] = [];
+    for (let i = 0; i < validCount; i++) {
       const d = startDay + i;
-      if (d <= daysInMonth) weekDays.push(d);
+      if (d <= daysInMonth) daysArr.push(d);
     }
-    setSelectedDays(weekDays);
+    setSelectedDays(daysArr);
+  };
+
+  const handleSelectWeek = () => {
+    handleSelectCustomDays(7);
   };
 
   let peerCurrentShift = "O";
@@ -498,32 +505,87 @@ export const PremiumShiftTimePickerModal: React.FC<PremiumShiftTimePickerProps> 
                 })}
               </div>
 
-              {/* Quick Select Tooling */}
-              <div className="pt-2 border-t border-[#DCE4EA] flex items-center justify-between text-[11px] text-[#59656D]">
-                <span>เลือก <strong className="text-[#0E3A66] font-bold">{selectedDays.length}</strong> วัน</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={handleSelectToday}
-                    className="px-2 py-0.5 rounded bg-white hover:bg-[#F3F6F8] border border-[#DCE4EA] text-[#333B41] font-medium transition-colors cursor-pointer text-[10px]"
-                  >
-                    วันนี้
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectWeek}
-                    className="px-2 py-0.5 rounded bg-white hover:bg-[#F3F6F8] border border-[#DCE4EA] text-[#333B41] font-medium transition-colors cursor-pointer text-[10px]"
-                  >
-                    +7 วัน
-                  </button>
-                  <button
-                    type="button"
-                    onClick={setQuickOff}
-                    className="px-2 py-0.5 rounded bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] text-[#59656D] font-medium transition-colors cursor-pointer text-[10px]"
-                    title="ตั้งค่าเป็นวันหยุดพัก (OFF)"
-                  >
-                    วันหยุด (OFF)
-                  </button>
+              {/* Quick Select Tooling with Custom N Days */}
+              <div className="pt-2 border-t border-[#DCE4EA] space-y-1.5 text-[11px] text-[#59656D]">
+                <div className="flex items-center justify-between">
+                  <span>เลือก <strong className="text-[#0E3A66] font-bold">{selectedDays.length}</strong> วัน</span>
+                  
+                  {/* Preset quick buttons */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleSelectToday}
+                      className="px-2 py-0.5 rounded bg-white hover:bg-[#F3F6F8] border border-[#DCE4EA] text-[#333B41] font-medium transition-colors cursor-pointer text-[10px]"
+                    >
+                      วันนี้
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomDays(3)}
+                      className={`px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors cursor-pointer ${
+                        selectedDays.length === 3
+                          ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                          : "bg-white hover:bg-[#F3F6F8] border-[#DCE4EA] text-[#333B41]"
+                      }`}
+                    >
+                      +3 วัน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomDays(7)}
+                      className={`px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors cursor-pointer ${
+                        selectedDays.length === 7
+                          ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                          : "bg-white hover:bg-[#F3F6F8] border-[#DCE4EA] text-[#333B41]"
+                      }`}
+                    >
+                      +7 วัน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={setQuickOff}
+                      className="px-2 py-0.5 rounded bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] text-[#59656D] font-medium transition-colors cursor-pointer text-[10px]"
+                      title="ตั้งค่าเป็นวันหยุดพัก (OFF)"
+                    >
+                      วันหยุด (OFF)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Days Input Bar */}
+                <div className="flex items-center justify-between bg-[#F8FAFC] p-1.5 rounded border border-[#DCE4EA] text-[10px]">
+                  <span className="font-bold text-[#333B41] flex items-center gap-1">
+                    <span>กำหนดวันเอง:</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[#6A7B87] font-bold">+</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={customDaysCount}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 1;
+                        setCustomDaysCount(val);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSelectCustomDays(customDaysCount);
+                        }
+                      }}
+                      className="w-12 px-1.5 py-0.5 text-center font-mono font-bold text-xs bg-white rounded border border-[#DCE4EA] text-[#0E3A66] focus:border-[#2E90CB] focus:outline-none"
+                    />
+                    <span className="text-[#6A7B87]">วัน</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomDays(customDaysCount)}
+                      className="ml-1 px-2 py-0.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded font-bold transition-all cursor-pointer shadow-xs"
+                      title="ประยุกต์ใช้จำนวนวันที่ระบุ"
+                    >
+                      เลือก
+                    </button>
+                  </div>
                 </div>
               </div>
 
