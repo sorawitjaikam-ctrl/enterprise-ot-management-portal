@@ -265,6 +265,12 @@ export const isJvDepartment = (deptNameOrId: string): boolean => {
   return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
 };
 
+export const isJvRole = (roleOrPosition?: string): boolean => {
+  if (!roleOrPosition) return false;
+  const trimmed = roleOrPosition.trim();
+  return /^O&M\b/i.test(trimmed) || /^O&M\s*[-–—]/i.test(trimmed) || trimmed.toUpperCase().startsWith("O&M");
+};
+
 export const getEmpMonthlyOtPayBreakdown = (
   emp: any, 
   monthKey?: string,
@@ -1529,6 +1535,9 @@ function HrDirectEditorView({
     const isInactive = r.status === "Inactive" || r.status === "Resigned" || r.status === "Retired" || r.status === "พ้นสภาพ" || r.status === "ลาออก" || r.status === "เกษียณ";
     if (isInactive) return false;
 
+    // 2.1 Job Value: เฉพาะตำแหน่งที่มี O&M ขึ้นต้น
+    if (!isJvRole(r.position)) return false;
+
     // 3. Department Tab Filter
     if (filterDept !== "all") {
       const targetDeptId = normalizeDeptId(filterDept);
@@ -1578,6 +1587,9 @@ function HrDirectEditorView({
     }
 
     if (!isJvDepartment(deptName) && !isJvDepartment(emp.deptId)) return false;
+
+    // Job Value: เฉพาะตำแหน่งที่มี O&M ขึ้นต้น
+    if (!isJvRole(emp.role)) return false;
 
     // Filter out inactive/resigned/retired employees from active list
     const empStatus = emp.employmentStatus || "Active";
@@ -1715,13 +1727,13 @@ function HrDirectEditorView({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
+                  <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน (เฉพาะกลุ่มตำแหน่ง O&M)</h4>
                   <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold font-mono">
                     {rosterFilteredItems.length} บุคลากร
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  ตรวจสอบความเชื่อมโยงระหว่างฐานเงินเดือน ค่าล่วงเวลาจริง (OT) ต้นทุนแรงงานรวม รายได้ประเมิน และสัดส่วน Rev/Cost พร้อมปุ่มตรวจสอบสูตร 31 วัน
+                  ตรวจสอบความเชื่อมโยงระหว่างฐานเงินเดือน ค่าล่วงเวลาจริง (OT) ต้นทุนแรงงานรวม รายได้ประเมิน และสัดส่วน Rev/Cost เฉพาะบุคลากรกลุ่มตำแหน่ง O&M พร้อมปุ่มตรวจสอบสูตร 31 วัน
                 </p>
               </div>
 
@@ -7136,6 +7148,7 @@ export default function App() {
 
                   const scopedEmpList = (state?.employees || []).filter(e => {
                     if (!isJvDepartment(e.department || e.deptId)) return false;
+                    if (!isJvRole(e.role)) return false;
                     if (!isHrOrFullAccess && currentUser?.deptId) {
                       if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
                     }
@@ -7199,6 +7212,7 @@ export default function App() {
 
                   const scopedEmpList = (state?.employees || []).filter(e => {
                     if (!isJvDepartment(e.department || e.deptId)) return false;
+                    if (!isJvRole(e.role)) return false;
                     if (!isHrOrFullAccess && currentUser?.deptId) {
                       if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
                     }
@@ -7298,15 +7312,17 @@ export default function App() {
                       const targetDeptId = normalizeDeptId(deptName);
                       const safeJv = jobValueRecords || [];
                       const deptJvRecords = safeJv.filter(r => 
-                        r.department === deptName || 
+                        (r.department === deptName || 
                         normalizeDeptId(r.department) === targetDeptId ||
-                        normalizeDeptId(r.deptId) === targetDeptId
+                        normalizeDeptId(r.deptId) === targetDeptId) &&
+                        isJvRole(r.position)
                       );
                       const empList = (state.employees || []).filter(e => 
-                        normalizeDeptId(e.deptId) === targetDeptId || 
+                        (normalizeDeptId(e.deptId) === targetDeptId || 
                         normalizeDeptId(e.department) === targetDeptId ||
                         e.deptId === deptName ||
-                        e.department === deptName
+                        e.department === deptName) &&
+                        isJvRole(e.role)
                       );
 
                       const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
@@ -7464,6 +7480,7 @@ export default function App() {
                   {(() => {
                     const filteredJvByDept = safeJobValueRecords.filter(r => {
                       if (!isJvDepartment(r.department || r.deptId)) return false;
+                      if (!isJvRole(r.position)) return false;
                       if (financialChartDeptFilter === "ทุกแผนก") return true;
                       const targetDeptId = normalizeDeptId(financialChartDeptFilter);
                       return r.department === financialChartDeptFilter || 
