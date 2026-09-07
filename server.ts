@@ -416,7 +416,9 @@ const initD1Database = async () => {
       { name: "tenure", type: "TEXT" },
       { name: "probationDate", type: "TEXT" },
       { name: "calendarType", type: "TEXT" },
-      { name: "planShifts", type: "TEXT DEFAULT '[]'" }
+      { name: "planShifts", type: "TEXT DEFAULT '[]'" },
+      { name: "resignationDate", type: "TEXT" },
+      { name: "employmentStatus", type: "TEXT DEFAULT 'Active'" }
     ];
     for (const col of newEmpCols) {
       try {
@@ -986,7 +988,8 @@ app.post("/api/add-employee", async (req, res) => {
   try {
     const {
       id, name, deptId, role, groupName, targetOt,
-      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+      prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
+      employmentStatus, resignationDate
     } = req.body;
     
     const empId = id || "EMP-" + Date.now();
@@ -1008,25 +1011,30 @@ app.post("/api/add-employee", async (req, res) => {
     const empTenure = tenure || "";
     const empProbationDate = probationDate || "";
     const empCalendarType = calendarType || "";
+    const empEmploymentStatus = employmentStatus || "Active";
+    const empResignationDate = resignationDate || "";
 
     if (isD1Enabled()) {
       await queryD1(
         `INSERT INTO employees (
           id, name, deptId, role, targetOt, groupName, shifts,
-          prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
+          employmentStatus, resignationDate
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           empId, empName, empDeptId, empRole, empTargetOt, empGroupName, "[]",
-          empPrefix, empFirstName, empLastName, empNickname, empDivision, empSalary, empBirthday, empAge, empCalculatedAge, empStartDate, empTenure, empProbationDate, empCalendarType
+          empPrefix, empFirstName, empLastName, empNickname, empDivision, empSalary, empBirthday, empAge, empCalculatedAge, empStartDate, empTenure, empProbationDate, empCalendarType,
+          empEmploymentStatus, empResignationDate
         ]
       );
-      await writeAuditLog(req.body.username || "system", "add_employee", "employee", empId, { name: empName, deptId: empDeptId });
+      await writeAuditLog(req.body.username || "system", "add_employee", "employee", empId, { name: empName, deptId: empDeptId, employmentStatus: empEmploymentStatus });
     } else {
       appState.employees.push({
         id: empId, name: empName, deptId: empDeptId, role: empRole, targetOt: empTargetOt, groupName: empGroupName, shifts: [],
         prefix: empPrefix, firstName: empFirstName, lastName: empLastName, nickname: empNickname, division: empDivision,
         salary: empSalary, birthday: empBirthday, age: empAge, calculatedAge: empCalculatedAge, startDate: empStartDate,
-        tenure: empTenure, probationDate: empProbationDate, calendarType: empCalendarType
+        tenure: empTenure, probationDate: empProbationDate, calendarType: empCalendarType,
+        employmentStatus: empEmploymentStatus, resignationDate: empResignationDate
       });
       saveLocalDb();
     }
@@ -1039,7 +1047,8 @@ app.post("/api/edit-employee", async (req, res) => {
     const {
       id, name, deptId, role, groupName, targetOt, username,
       prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
-      shifts, planShifts
+      shifts, planShifts,
+      employmentStatus, resignationDate
     } = req.body;
     if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
     const newTargetOt = Number(targetOt) || 48;
@@ -1050,17 +1059,19 @@ app.post("/api/edit-employee", async (req, res) => {
         `UPDATE employees SET 
           name = ?, deptId = ?, role = ?, groupName = ?, targetOt = ?,
           prefix = ?, firstName = ?, lastName = ?, nickname = ?, division = ?, salary = ?, birthday = ?, age = ?, calculatedAge = ?, startDate = ?, tenure = ?, probationDate = ?, calendarType = ?,
-          shifts = COALESCE(?, shifts), planShifts = COALESCE(?, planShifts)
+          shifts = COALESCE(?, shifts), planShifts = COALESCE(?, planShifts),
+          employmentStatus = COALESCE(?, employmentStatus), resignationDate = ?
          WHERE id = ?`,
         [
           empName, deptId, role, groupName, newTargetOt,
           prefix, firstName, lastName, nickname, division, Number(salary) || 0, birthday, Number(age) || 0, Number(calculatedAge) || 0, startDate, tenure, probationDate, calendarType,
           shifts ? (typeof shifts === "string" ? shifts : JSON.stringify(shifts)) : null,
           planShifts ? (typeof planShifts === "string" ? planShifts : JSON.stringify(planShifts)) : null,
+          employmentStatus ?? null, resignationDate !== undefined ? resignationDate : null,
           id
         ]
       );
-      await writeAuditLog(username || "system", "edit_employee", "employee", id, { name: empName, deptId, role, targetOt: newTargetOt });
+      await writeAuditLog(username || "system", "edit_employee", "employee", id, { name: empName, deptId, role, targetOt: newTargetOt, employmentStatus, resignationDate });
     } else {
       const idx = appState.employees.findIndex(e => e.id === id);
       if (idx !== -1) {
@@ -1083,6 +1094,8 @@ app.post("/api/edit-employee", async (req, res) => {
         emp.tenure = tenure ?? emp.tenure;
         emp.probationDate = probationDate ?? emp.probationDate;
         emp.calendarType = calendarType ?? emp.calendarType;
+        if (employmentStatus !== undefined) emp.employmentStatus = employmentStatus;
+        if (resignationDate !== undefined) emp.resignationDate = resignationDate;
         if (shifts) emp.shifts = Array.isArray(shifts) ? shifts : JSON.parse(shifts || "[]");
         if (planShifts) emp.planShifts = Array.isArray(planShifts) ? planShifts : JSON.parse(planShifts || "[]");
       }
@@ -1296,7 +1309,22 @@ app.get("/api/leave-records", async (req, res) => {
       sql += " ORDER BY date DESC";
       res.json(await queryD1(sql, params));
     } else {
-      res.json([]);
+      let records = appState.leaveRecords || [];
+      if (employeeId) {
+        records = records.filter(r => r.employeeId === String(employeeId));
+      }
+      if (deptId && deptId !== "all") {
+        records = records.filter(r => r.deptId === String(deptId));
+      }
+      if (year && month) {
+        const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+        records = records.filter(r => r.date && r.date.startsWith(prefix));
+      } else if (year) {
+        const prefix = `${year}-`;
+        records = records.filter(r => r.date && r.date.startsWith(prefix));
+      }
+      records = [...records].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      res.json(records);
     }
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

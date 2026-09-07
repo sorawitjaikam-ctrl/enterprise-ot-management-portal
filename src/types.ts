@@ -81,6 +81,55 @@ export interface JobValueRecord {
   updatedAt?: string;
 }
 
+export interface DailyShiftAuditRow {
+  day: number;
+  dateStr: string;
+  dayOfWeekTh: string;
+  isHolidayOrRestDay: boolean;
+  shiftCode: string;
+  planShiftCode?: string;
+  actualShiftCode?: string;
+  normalOtHours: number;
+  holidayWorkHours: number;
+  holidayOtHours: number;
+  dailyPayThb: number;
+  explanation: string;
+}
+
+export interface EmployeeJobValueBreakdown {
+  employeeId: string;
+  employeeName?: string;
+  role?: string;
+  department?: string;
+  baseSalary: number;
+  hourlyRate: number;
+  monthlyOtHours: number;
+  monthlyOtPay: number;
+  normalOtPay?: number;
+  holidayWorkPay?: number;
+  holidayOtPay?: number;
+  totalLaborCost: number;
+  monthlyRevenue: number;
+  operationalValueAdd: number;
+  revenueCostRatio: number;
+  profitMarginPct?: number;
+  dailyAuditTrail?: DailyShiftAuditRow[];
+}
+
+export interface RoleJobValueSummary {
+  role: string;
+  headcount: number;
+  totalBaseSalary: number;
+  avgBaseSalary: number;
+  totalOtHours: number;
+  totalOtPay: number;
+  totalLaborCost: number;
+  totalRevenue: number;
+  operationalValueAdd: number;
+  revenueCostRatio: number;
+  profitMarginPct: number;
+}
+
 export interface LeaveRecord {
   id: string;
   employeeId: string;
@@ -103,6 +152,20 @@ export interface VesselSchedule {
   tonnage?: number | string;
 }
 
+export interface CompanyHoliday {
+  id: string;
+  date: string; // YYYY-MM-DD
+  nameTh: string;
+  nameEn: string;
+  isCustom?: boolean;
+}
+
+export interface DepartmentRestDayPolicy {
+  deptId: string;
+  policyType: "sunday_only" | "sat_sun" | "rotating_6_1" | "custom";
+  customRestDays?: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
+}
+
 export interface AppState {
   departments: Department[];
   employees: Employee[];
@@ -110,5 +173,7 @@ export interface AppState {
   otTrendData: OtTrendData;
   leaveRecords?: LeaveRecord[];
   vesselSchedules?: VesselSchedule[];
+  companyHolidays?: CompanyHoliday[];
+  restDayPolicies?: DepartmentRestDayPolicy[];
   d1Connected?: boolean;
 }

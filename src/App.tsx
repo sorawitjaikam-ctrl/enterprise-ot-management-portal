@@ -50,6 +50,7 @@ import {
   Award,
   FileSpreadsheet,
   BarChart3,
+  Calculator,
   ShieldCheck,
   ClipboardList,
   Trash2,
@@ -68,7 +69,9 @@ import {
   Moon,
   Lightbulb,
   Loader2,
-  Wrench
+  Wrench,
+  Activity,
+  CalendarCheck
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
@@ -80,7 +83,13 @@ import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePicker
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
 import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
 import { getShiftCircadianSegments } from "./utils/circadianEngine";
-import { AppState, Employee, Department, JobValueRecord } from "./types";
+import { AppState, Employee, Department, JobValueRecord, DailyShiftAuditRow, EmployeeJobValueBreakdown, RoleJobValueSummary, CompanyHoliday, DepartmentRestDayPolicy } from "./types";
+import {
+  DEFAULT_COMPANY_HOLIDAYS_2026,
+  DEFAULT_DEPARTMENT_REST_POLICIES,
+  isDateCompanyHoliday,
+  isDateWeeklyRestDay
+} from "./constants/companyHolidays";
 import { 
   getComplementaryShift, 
   generateTwoTeamPairSchedules, 
@@ -183,6 +192,47 @@ export const getShiftOtHours = (shift: string) => {
   return 0;
 };
 
+export const getShiftDurationHours = (shift: string): number => {
+  if (!shift) return 0;
+  const s = shift.trim().toUpperCase();
+  if (s === "OND" || s === "D") return 8;
+  if (s === "O" || s === "OFF" || isLeaveCode(shift)) return 0;
+  const match = s.match(/\d+$/);
+  if (match) {
+    return Number(match[0]);
+  }
+  return 0;
+};
+
+export const isResignedEmployee = (emp: any): boolean => {
+  if (!emp) return false;
+  const status = (emp.employmentStatus || "").trim();
+  return (
+    status === "Resigned" ||
+    status === "Inactive" ||
+    status === "Retired" ||
+    status === "ลาออก" ||
+    status === "เกษียณ" ||
+    status === "พ้นสภาพ"
+  );
+};
+
+export const isOnLeaveEmployee = (emp: any, monthKey?: string): boolean => {
+  if (!emp || isResignedEmployee(emp)) return false;
+  const status = (emp.employmentStatus || "").trim();
+  if (status === "On-Leave" || status === "ลาพักผ่อน") return true;
+  const mKey = monthKey || "2026-08";
+  const shiftsArr = getEmpShiftsArray(emp.shifts, mKey, emp.calendarType);
+  return shiftsArr.some(code => isLeaveCode(code));
+};
+
+export const isActiveEmployee = (emp: any, monthKey?: string): boolean => {
+  if (!emp || isResignedEmployee(emp) || isOnLeaveEmployee(emp, monthKey)) return false;
+  return true;
+};
+
+export type EmployeeStatusFilter = "All" | "Active" | "On-Leave" | "Resigned";
+
 export const getEmpShiftsArray = (shifts: any, monthKey?: string, calendarType?: string): string[] => {
   const mKey = monthKey || "2026-08";
   let extracted: string[] = [];
@@ -215,7 +265,12 @@ export const isJvDepartment = (deptNameOrId: string): boolean => {
   return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
 };
 
-export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
+export const getEmpMonthlyOtPayBreakdown = (
+  emp: any, 
+  monthKey?: string,
+  holidays?: CompanyHoliday[],
+  restPolicies?: DepartmentRestDayPolicy[]
+) => {
   const mKey = monthKey || "2026-08";
   if (!emp) return { normalOt: 0, holidayOt: 0, holidayWorkDays: 0, totalOtHours: 0, salary: 15000, hourlyRate: 62.5, totalOtPay: 0, otPctSalary: "0.00" };
   
@@ -239,8 +294,13 @@ export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
     const dayOfWeek = dateObj.getDay();
     const dayTh = dayNames[dayOfWeek];
     const isSunday = dayTh && dayTh.startsWith("อา");
+    const dateStr = `${yr}-${String(mn).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
 
-    if (shift === "OND" || (isSunday && !isOff)) {
+    const isCompanyHol = holidays && Array.isArray(holidays) ? isDateCompanyHoliday(dateStr, holidays) : false;
+    const isRestDay = restPolicies && Array.isArray(restPolicies) ? isDateWeeklyRestDay(dayOfWeek, emp.deptId, restPolicies) : isSunday;
+    const isSpecialDay = isCompanyHol || isRestDay || isSunday;
+
+    if (shift === "OND" || (isSpecialDay && !isOff)) {
       holidayOt += otHrs > 0 ? otHrs : (shift === "OND" ? 8 : 0);
       if (!isOff) holidayWorkDays += 1;
     } else if (otHrs > 0) {
@@ -266,16 +326,238 @@ export const getEmpMonthlyOtPayBreakdown = (emp: any, monthKey?: string) => {
   };
 };
 
-export const getEmpCalculatedOt = (emp: any, monthKey?: string): number => {
+export const getEmpCalculatedOt = (emp: any, monthKey?: string, holidays?: CompanyHoliday[], restPolicies?: DepartmentRestDayPolicy[]): number => {
   if (!emp) return 0;
-  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
+  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey, holidays, restPolicies);
   return breakdown.totalOtHours || 0;
 };
 
-export const getEmpCalculatedOtPay = (emp: any, monthKey?: string): number => {
+export const getEmpCalculatedOtPay = (emp: any, monthKey?: string, holidays?: CompanyHoliday[], restPolicies?: DepartmentRestDayPolicy[]): number => {
   if (!emp) return 0;
-  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey);
+  const breakdown = getEmpMonthlyOtPayBreakdown(emp, monthKey, holidays, restPolicies);
   return breakdown.totalOtPay || 0;
+};
+
+export const getDailyShiftAuditTrail = (
+  emp: any,
+  monthKey?: string,
+  holidays?: CompanyHoliday[],
+  restPolicies?: DepartmentRestDayPolicy[]
+): DailyShiftAuditRow[] => {
+  const mKey = monthKey || "2026-08";
+  if (!emp) return [];
+
+  const salary = Number(emp.salary) || 15000;
+  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+  const planShifts = getEmpPlanShiftsArray(emp, mKey);
+  const actualShifts = getEmpShiftsArray(emp.shifts, mKey, emp.calendarType);
+
+  const [yStr, mStr] = mKey.split("-");
+  const yr = Number(yStr) || new Date().getFullYear();
+  const mn = Number(mStr) || (new Date().getMonth() + 1);
+  const totalDays = new Date(yr, mn, 0).getDate();
+  const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+  const rows: DailyShiftAuditRow[] = [];
+
+  for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+    const planShift = planShifts[dayNum - 1] || "O";
+    const actualShift = actualShifts[dayNum - 1] || "O";
+    const shift = actualShift;
+    const otHrs = getShiftOtHours(shift);
+    const isOff = shift === "O" || shift === "OFF";
+
+    const dateObj = new Date(yr, mn - 1, dayNum);
+    const dayOfWeek = dateObj.getDay();
+    const dayTh = dayNames[dayOfWeek] || "";
+    const isSunday = dayTh && dayTh.startsWith("อา");
+    const dateStr = `${yr}-${String(mn).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+
+    const isCompanyHol = holidays && Array.isArray(holidays) ? isDateCompanyHoliday(dateStr, holidays) : false;
+    const isRestDay = restPolicies && Array.isArray(restPolicies) ? isDateWeeklyRestDay(dayOfWeek, emp?.deptId, restPolicies) : isSunday;
+    const isSpecialDay = isCompanyHol || isRestDay || isSunday;
+
+    let normalOtHours = 0;
+    let holidayWorkHours = 0;
+    let holidayOtHours = 0;
+    let explanation = "";
+
+    if (shift === "OND") {
+      holidayWorkHours = 8;
+      holidayOtHours = 8;
+      explanation = "กะ On-Duty วันหยุด: ทำงานวันหยุด 8 ชม. (1.0x) + OT วันหยุด 8 ชม. (3.0x)";
+    } else if (isCompanyHol && !isOff) {
+      holidayWorkHours = 8;
+      holidayOtHours = otHrs > 0 ? otHrs : 0;
+      if (otHrs > 0) {
+        explanation = `วันหยุดประเพณีบริษัท: ทำงานวันหยุด 8 ชม. (1.0x) + OT วันหยุด ${otHrs} ชม. (3.0x)`;
+      } else {
+        explanation = "วันหยุดประเพณีบริษัท: ทำงานวันหยุด 8 ชม. (1.0x)";
+      }
+    } else if (isSpecialDay && !isOff) {
+      holidayWorkHours = 8;
+      holidayOtHours = otHrs > 0 ? otHrs : 0;
+      if (otHrs > 0) {
+        explanation = `ทำงานวันหยุด 8 ชม. (1.0x) + OT วันหยุด ${otHrs} ชม. (3.0x)`;
+      } else {
+        explanation = "ทำงานวันหยุด 8 ชม. (1.0x)";
+      }
+    } else if (!isOff) {
+      if (otHrs > 0) {
+        normalOtHours = otHrs;
+        explanation = `วันทำงานปกติ: กะทำงาน 8 ชม. + OT ปกติ ${otHrs} ชม. (1.5x)`;
+      } else {
+        explanation = "วันทำงานปกติ: กะทำงานมาตรฐาน 8 ชม.";
+      }
+    } else {
+      explanation = isCompanyHol ? "วันหยุดประเพณีบริษัท (Off)" : (isSpecialDay ? "วันหยุดประจำสัปดาห์ (Off)" : "วันหยุดพักผ่อน (Off)");
+    }
+
+    const dailyPayThb = Math.round(
+      (normalOtHours * 1.5 + holidayOtHours * 3.0 + holidayWorkHours * 1.0) * hourlyRate
+    );
+
+    rows.push({
+      day: dayNum,
+      dateStr,
+      dayOfWeekTh: dayTh,
+      isHolidayOrRestDay: Boolean(isSpecialDay || shift === "OND"),
+      shiftCode: shift,
+      planShiftCode: planShift,
+      actualShiftCode: actualShift,
+      normalOtHours,
+      holidayWorkHours,
+      holidayOtHours,
+      dailyPayThb,
+      explanation
+    });
+  }
+
+  return rows;
+};
+
+export const getEmpDailyShiftAuditRows = getDailyShiftAuditTrail;
+
+export const getEmployeeJobValueBreakdown = (
+  emp: any,
+  monthKey?: string,
+  jvRecord?: JobValueRecord
+): EmployeeJobValueBreakdown => {
+  const mKey = monthKey || "2026-08";
+  const salary = Number(emp?.salary) || 15000;
+  const hourlyRate = salary > 0 ? (salary / 240) : 62.5;
+
+  const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, mKey);
+  const normalOtPay = Math.round(otBreakdown.normalOt * 1.5 * hourlyRate);
+  const holidayWorkPay = Math.round(otBreakdown.holidayWorkDays * 8 * 1.0 * hourlyRate);
+  const holidayOtPay = Math.round(otBreakdown.holidayOt * 3.0 * hourlyRate);
+  const totalOtPay = otBreakdown.totalOtPay;
+  const totalLaborCost = salary + totalOtPay;
+
+  const monthlyRevenue = (jvRecord && Number(jvRecord.avgRevenue) > 0)
+    ? Number(jvRecord.avgRevenue)
+    : Math.round(salary * 4.5);
+
+  const operationalValueAdd = monthlyRevenue - totalLaborCost;
+  const revenueCostRatio = totalLaborCost > 0
+    ? Number((monthlyRevenue / totalLaborCost).toFixed(2))
+    : 0;
+  const profitMarginPct = monthlyRevenue > 0
+    ? Number(((operationalValueAdd / monthlyRevenue) * 100).toFixed(1))
+    : 0;
+
+  const dailyAuditTrail = getEmpDailyShiftAuditRows(emp, mKey);
+
+  return {
+    employeeId: emp?.id || "",
+    employeeName: emp?.name || "",
+    role: emp?.role || "Operator",
+    department: emp?.department || emp?.deptId || "",
+    baseSalary: salary,
+    hourlyRate,
+    monthlyOtHours: otBreakdown.totalOtHours,
+    monthlyOtPay: totalOtPay,
+    normalOtPay,
+    holidayWorkPay,
+    holidayOtPay,
+    totalLaborCost,
+    monthlyRevenue,
+    operationalValueAdd,
+    revenueCostRatio,
+    profitMarginPct,
+    dailyAuditTrail
+  };
+};
+
+export const getRoleJobValueSummaries = (
+  employees: any[],
+  monthKey?: string,
+  jvRecords: JobValueRecord[] = []
+): RoleJobValueSummary[] => {
+  if (!employees || employees.length === 0) return [];
+
+  const mKey = monthKey || "2026-08";
+  const roleMap = new Map<string, any[]>();
+
+  employees.forEach(emp => {
+    const status = emp?.employmentStatus || "Active";
+    if (status === "Resigned" || status === "Inactive" || status === "ลาออก" || status === "พ้นสภาพ") return;
+
+    const role = (emp?.role || "General Operator").trim();
+    if (!roleMap.has(role)) {
+      roleMap.set(role, []);
+    }
+    roleMap.get(role)!.push(emp);
+  });
+
+  const summaries: RoleJobValueSummary[] = [];
+
+  roleMap.forEach((empsInRole, role) => {
+    let totalBaseSalary = 0;
+    let totalOtHours = 0;
+    let totalOtPay = 0;
+    let totalLaborCost = 0;
+    let totalRevenue = 0;
+
+    empsInRole.forEach(emp => {
+      const jvRec = jvRecords.find(r =>
+        String(r.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
+        String(r.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
+      );
+      const b = getEmployeeJobValueBreakdown(emp, mKey, jvRec);
+      totalBaseSalary += b.baseSalary;
+      totalOtHours += b.monthlyOtHours;
+      totalOtPay += b.monthlyOtPay;
+      totalLaborCost += b.totalLaborCost;
+      totalRevenue += b.monthlyRevenue;
+    });
+
+    const headcount = empsInRole.length;
+    const avgBaseSalary = headcount > 0 ? Math.round(totalBaseSalary / headcount) : 0;
+    const operationalValueAdd = totalRevenue - totalLaborCost;
+    const revenueCostRatio = totalLaborCost > 0
+      ? Number((totalRevenue / totalLaborCost).toFixed(2))
+      : 0;
+    const profitMarginPct = totalRevenue > 0
+      ? Number(((operationalValueAdd / totalRevenue) * 100).toFixed(1))
+      : 0;
+
+    summaries.push({
+      role,
+      headcount,
+      totalBaseSalary,
+      avgBaseSalary,
+      totalOtHours,
+      totalOtPay,
+      totalLaborCost,
+      totalRevenue,
+      operationalValueAdd,
+      revenueCostRatio,
+      profitMarginPct
+    });
+  });
+
+  return summaries.sort((a, b) => b.headcount - a.headcount || b.totalLaborCost - a.totalLaborCost);
 };
 
 // ตรวจสอบว่า Plan กับ Actual ต่างกันหรือไม่
@@ -2112,8 +2394,8 @@ export default function App() {
   const [editEmpResignationDate, setEditEmpResignationDate] = useState<string>("");
   const [editEmpStatus, setEditEmpStatus] = useState<string>("Active");
 
-  // Status Tab State (Active vs Resigned Archive)
-  const [selectedEmpStatusTab, setSelectedEmpStatusTab] = useState<"Active" | "Resigned">("Active");
+  // Status Tab State (All vs Active vs On-Leave vs Resigned Archive)
+  const [selectedEmpStatusTab, setSelectedEmpStatusTab] = useState<EmployeeStatusFilter>("Active");
   const [showResignedModal, setShowResignedModal] = useState<boolean>(false);
   const [resignedSearchQuery, setResignedSearchQuery] = useState<string>("");
   const [resignedDeptFilter, setResignedDeptFilter] = useState<string>("all");
@@ -2154,6 +2436,39 @@ export default function App() {
 
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
+  const [empProfileLeaveRecords, setEmpProfileLeaveRecords] = useState<any[]>([]);
+  const [loadingEmpProfileLeaveRecords, setLoadingEmpProfileLeaveRecords] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (viewingEmployeeDetails) {
+      let isMounted = true;
+      setLoadingEmpProfileLeaveRecords(true);
+      fetch(`/api/leave-records?employeeId=${encodeURIComponent(viewingEmployeeDetails.id)}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          if (isMounted) {
+            if (Array.isArray(data) && data.length > 0) {
+              setEmpProfileLeaveRecords(data);
+            } else {
+              const fallback = (state?.leaveRecords || []).filter((r: any) => r.employeeId === viewingEmployeeDetails.id);
+              setEmpProfileLeaveRecords(fallback);
+            }
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            const fallback = (state?.leaveRecords || []).filter((r: any) => r.employeeId === viewingEmployeeDetails.id);
+            setEmpProfileLeaveRecords(fallback);
+          }
+        })
+        .finally(() => {
+          if (isMounted) setLoadingEmpProfileLeaveRecords(false);
+        });
+      return () => { isMounted = false; };
+    } else {
+      setEmpProfileLeaveRecords([]);
+    }
+  }, [viewingEmployeeDetails, state?.leaveRecords]);
 
   // Dedicated Job Value State & Controls
   const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>([]);
@@ -2200,6 +2515,77 @@ export default function App() {
   useEffect(() => {
     fetchJobValueRecords();
   }, []);
+
+  // Milestone 4: Company Traditional Holidays & Weekly Rest Day Policies
+  const [companyHolidays, setCompanyHolidays] = useState<CompanyHoliday[]>(() => {
+    try {
+      const stored = localStorage.getItem("companyHolidays");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_COMPANY_HOLIDAYS_2026;
+  });
+
+  const [restDayPolicies, setRestDayPolicies] = useState<DepartmentRestDayPolicy[]>(() => {
+    try {
+      const stored = localStorage.getItem("departmentRestPolicies");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_DEPARTMENT_REST_POLICIES;
+  });
+
+  const handleSaveCompanyHolidays = (updatedHolidays: CompanyHoliday[]) => {
+    setCompanyHolidays(updatedHolidays);
+    localStorage.setItem("companyHolidays", JSON.stringify(updatedHolidays));
+    setState(prev => prev ? ({ ...prev, companyHolidays: updatedHolidays }) : prev);
+    showToastMsg("บันทึกการปรับปรุงวันหยุดประเพณีของบริษัทเรียบร้อย");
+  };
+
+  const handleSaveRestDayPolicies = (updatedPolicies: DepartmentRestDayPolicy[]) => {
+    setRestDayPolicies(updatedPolicies);
+    localStorage.setItem("departmentRestPolicies", JSON.stringify(updatedPolicies));
+    setState(prev => prev ? ({ ...prev, restDayPolicies: updatedPolicies }) : prev);
+    showToastMsg("บันทึกการกำหนดนโยบายวันหยุดประจำสัปดาห์เรียบร้อย");
+  };
+
+  const [newHolidayDate, setNewHolidayDate] = useState<string>("");
+  const [newHolidayNameTh, setNewHolidayNameTh] = useState<string>("");
+  const [newHolidayNameEn, setNewHolidayNameEn] = useState<string>("");
+
+  const handleAddCustomHoliday = () => {
+    if (!newHolidayDate || !newHolidayNameTh) {
+      alert("กรุณาระบุวันที่และชื่อวันหยุดภาษาไทย");
+      return;
+    }
+    const newHol: CompanyHoliday = {
+      id: `hol-custom-${Date.now()}`,
+      date: newHolidayDate,
+      nameTh: newHolidayNameTh,
+      nameEn: newHolidayNameEn || newHolidayNameTh,
+      isCustom: true
+    };
+    const updated = [...companyHolidays, newHol].sort((a, b) => a.date.localeCompare(b.date));
+    handleSaveCompanyHolidays(updated);
+    setNewHolidayDate("");
+    setNewHolidayNameTh("");
+    setNewHolidayNameEn("");
+  };
+
+  const handleDeleteHoliday = (holId: string) => {
+    const updated = companyHolidays.filter(h => h.id !== holId);
+    handleSaveCompanyHolidays(updated);
+  };
+
+  const handleResetDefaultHolidays = () => {
+    if (window.confirm("ต้องการรีเซ็ตวันหยุดประเพณีบริษัทเป็นค่ามาตรฐาน 15 วันประจำปี 2569 ใช่หรือไม่?")) {
+      handleSaveCompanyHolidays(DEFAULT_COMPANY_HOLIDAYS_2026);
+    }
+  };
 
   const [activeCellEditor, setActiveCellEditor] = useState<any | null>(null);
   const [showSmartShiftDrawer, setShowSmartShiftDrawer] = useState<boolean>(false);
@@ -3216,6 +3602,38 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  const handleExportDailyAuditCsv = (empName: string, empId: string, rows: DailyShiftAuditRow[]) => {
+    if (!rows || rows.length === 0) return;
+    const headers = [
+      "ลำดับ (Day)", "วันที่ (Date)", "วัน (Day of Week)", "สถานะวัน (Holiday/Workday)",
+      "กะตามแผน (Plan)", "กะปฏิบัติจริง (Actual)",
+      "OT ปกติ 1.5x ชม.", "ทำงานวันหยุด 1.0x ชม.", "OT วันหยุด 3.0x ชม.",
+      "เงินได้ส่วนเพิ่ม (บาท)", "คำอธิบายสูตรคำนวณ"
+    ];
+    const csvRows = rows.map(r => [
+      r.day,
+      r.dateStr,
+      `"${r.dayOfWeekTh}"`,
+      `"${r.isHolidayOrRestDay ? 'วันหยุด' : 'วันทำงานปกติ'}"`,
+      r.planShiftCode || r.shiftCode,
+      r.actualShiftCode || r.shiftCode,
+      r.normalOtHours,
+      r.holidayWorkHours,
+      r.holidayOtHours,
+      r.dailyPayThb,
+      `"${r.explanation.replace(/"/g, '""')}"`
+    ].join(","));
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...csvRows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `DailyShiftAudit_${empId}_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleImportJobValueCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -3497,10 +3915,16 @@ export default function App() {
       if (empDeptId !== managerDeptId) return false;
     }
 
-    // 1. Employment Status Tab (Active vs Resigned / Inactive / Retired)
-    const isResigned = emp.employmentStatus === "Resigned" || emp.employmentStatus === "Inactive" || emp.employmentStatus === "Retired" || emp.employmentStatus === "ลาออก" || emp.employmentStatus === "เกษียณ" || emp.employmentStatus === "พ้นสภาพ";
-    const matchesStatus = selectedEmpStatusTab === "Resigned" ? isResigned : !isResigned;
-    if (!matchesStatus) return false;
+    // 1. Employment Status Tab (All vs Active vs On-Leave vs Resigned)
+    const activeMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    if (selectedEmpStatusTab === "Active") {
+      if (!isActiveEmployee(emp, activeMonthKey)) return false;
+    } else if (selectedEmpStatusTab === "On-Leave") {
+      if (!isOnLeaveEmployee(emp, activeMonthKey)) return false;
+    } else if (selectedEmpStatusTab === "Resigned") {
+      if (!isResignedEmployee(emp)) return false;
+    }
+    // "All" matches all employees
 
     // 2. Search Query (Combine local empSearchQuery and global searchQuery)
     const q = (empSearchQuery || searchQuery || "").trim().toLowerCase();
@@ -5876,6 +6300,386 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* ========================================================================= */}
+                    {/* ROW 5: CAUSE-AND-EFFECT DRIVER TREE (F3.1) (lg:col-span-12)                */}
+                    {/* ========================================================================= */}
+                    {(() => {
+                      let stdM8 = 0, stdA8 = 0, stdN8 = 0;
+                      let otM12 = 0, otN12 = 0, otM16 = 0, otM24 = 0, otOND = 0;
+                      let offDays = 0;
+
+                      dashboardEmployees.forEach(emp => {
+                        activeMonthsList.forEach(mKey => {
+                          const shifts = getEmpShiftsArray(emp.shifts, mKey, emp.calendarType);
+                          shifts.forEach(s => {
+                            const sc = (s || "O").trim().toUpperCase();
+                            if (sc === "M8" || sc === "D") stdM8++;
+                            else if (sc === "A8") stdA8++;
+                            else if (sc === "N8") stdN8++;
+                            else if (sc === "M12") otM12++;
+                            else if (sc === "N12") otN12++;
+                            else if (sc === "M16") otM16++;
+                            else if (sc === "M24") otM24++;
+                            else if (sc === "OND") otOND++;
+                            else if (sc === "O" || sc === "OFF") offDays++;
+                          });
+                        });
+                      });
+
+                      const totalStandardShifts = stdM8 + stdA8 + stdN8;
+                      const totalOtShifts = otM12 + otN12 + otM16 + otM24 + otOND;
+                      const totalWorkingShifts = totalStandardShifts + totalOtShifts;
+                      const totalNormalOtHours = (otM12 * 4) + (otN12 * 4) + (otM16 * 8) + (otM24 * 16);
+                      const totalHolidayOtHours = (otOND * 8);
+
+                      return (
+                        <div className="col-span-1 md:col-span-2 lg:col-span-12 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="tag t-b font-mono">F3.1 DRIVER TREE</span>
+                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ผังเชื่อมโยงเหตุและผลต้นทุน (Shift-to-Cost Driver Tree)</h3>
+                              </div>
+                              <p className="text-xs text-[#59656D] mt-0.5">
+                                วิเคราะห์การส่งผลต่อเนื่อง: ประเภทการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ภาระงบประมาณจ่ายจริง (THB)
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-[#6A7B87]">อัตรากะทำงาน OT:</span>
+                              <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums">
+                                {totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}% ของกะทั้งหมด
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Visual Driver Hierarchy Strip */}
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            {/* Tier 1: Shift Distribution */}
+                            <div className="p-3.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider block">ระดับ 1: สัดส่วนกะทำงาน</span>
+                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
+                                  {totalWorkingShifts.toLocaleString()} กะ
+                                </div>
+                                <div className="space-y-1.5 mt-2.5 text-[11px]">
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>กะปกติ (8h):</span>
+                                    <span className="font-mono font-bold">{totalStandardShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalStandardShifts / totalWorkingShifts) * 100) : 0}%)</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#0E3A66] font-bold">
+                                    <span>กะ OT (12h/16h/24h):</span>
+                                    <span className="font-mono">{totalOtShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}%)</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#6A7B87]">
+                                    <span>วันหยุดพัก (O/OFF):</span>
+                                    <span className="font-mono">{offDays.toLocaleString()} วัน</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-[#DCE4EA] mt-3 text-[10px] text-[#17538F] font-bold flex items-center gap-1">
+                                <span>ส่งผลต่อชั่วโมง OT</span>
+                                <ArrowRight className="w-3 h-3 text-[#17538F]" />
+                              </div>
+                            </div>
+
+                            {/* Tier 2: OT Hours Generated */}
+                            <div className="p-3.5 rounded bg-[#E8F3FA]/70 border border-[#9FCEE8] flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-bold text-[#17538F] uppercase tracking-wider block">ระดับ 2: ชั่วโมง OT สะสม</span>
+                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
+                                  {totalOtHrs.toLocaleString()} ชม.
+                                </div>
+                                <div className="space-y-1.5 mt-2.5 text-[11px]">
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>กะ M12 / N12 (+4h):</span>
+                                    <span className="font-mono font-bold">{((otM12 + otN12) * 4).toLocaleString()} ชม.</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>กะยาว M16 / M24:</span>
+                                    <span className="font-mono font-bold">{(otM16 * 8 + otM24 * 16).toLocaleString()} ชม.</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#0E3A66] font-bold">
+                                    <span>กะวันหยุด OND (+8h):</span>
+                                    <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-[#9FCEE8] mt-3 text-[10px] text-[#0E3A66] font-bold flex items-center gap-1">
+                                <span>คูณตัวคูณอัตราจ้าง</span>
+                                <ArrowRight className="w-3 h-3 text-[#0E3A66]" />
+                              </div>
+                            </div>
+
+                            {/* Tier 3: Multiplier Engine */}
+                            <div className="p-3.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider block">ระดับ 3: กลไกตัวคูณกฎหมาย</span>
+                                <div className="text-lg font-black text-[#333B41] font-mono tabular-nums mt-1">
+                                  3 อัตราหลัก
+                                </div>
+                                <div className="space-y-1.5 mt-2.5 text-[11px]">
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>OT วันทำงาน (1.5x):</span>
+                                    <span className="font-mono font-bold">{totalNormalOtHours.toLocaleString()} ชม.</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#0E3A66] font-bold">
+                                    <span>OT วันหยุด (3.0x):</span>
+                                    <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#1E9C6E]">
+                                    <span>ทำงานวันหยุด (1.0x):</span>
+                                    <span className="font-mono font-bold">{(otOND * 8).toLocaleString()} ชม.</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-[#DCE4EA] mt-3 text-[10px] text-[#0E3A66] font-bold flex items-center gap-1">
+                                <span>แปลงเป็นมูลค่าการเงิน</span>
+                                <ArrowRight className="w-3 h-3 text-[#0E3A66]" />
+                              </div>
+                            </div>
+
+                            {/* Tier 4: Total Financial Outlay */}
+                            <div className="p-3.5 rounded bg-[#FCF3DE]/70 border border-[#F3D98F] flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-bold text-[#D99B14] uppercase tracking-wider block">ระดับ 4: ต้นทุนจ่ายจริงรวม</span>
+                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
+                                  ฿{totalSpent.toLocaleString()}
+                                </div>
+                                <div className="space-y-1.5 mt-2.5 text-[11px]">
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>เฉลี่ยต่อพนักงาน:</span>
+                                    <span className="font-mono font-bold">฿{activeEmps > 0 ? Math.round(totalSpent / activeEmps).toLocaleString() : 0}</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#333B41]">
+                                    <span>สัดส่วนต่องบเงินเดือน:</span>
+                                    <span className="font-mono font-bold">{otSalaryPct}%</span>
+                                  </div>
+                                  <div className="flex justify-between text-[#D99B14] font-bold">
+                                    <span>สถานะงบประมาณ:</span>
+                                    <span>{otSalaryPct > 25 ? "เตือนงบเกิน 25%" : "อยู่ในเกณฑ์ปกติ"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-2 border-t border-[#F3D98F] mt-3 text-[10px] text-[#333B41] flex items-center justify-between">
+                                <span>ฐานเงินเดือนเฉลี่ย/240</span>
+                                <span className="font-mono font-bold">฿{(totalBaseSalary / (dashboardEmployees.length || 1) / 240).toFixed(1)}/ชม.</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ========================================================================= */}
+                    {/* ROW 6: DEPARTMENT COST DRIVERS (6 cols) + COVERAGE SENSITIVITY (6 cols)   */}
+                    {/* ========================================================================= */}
+                    {(() => {
+                      const deptDriverStats = (state?.departments || []).map(dept => {
+                        const deptEmps = (dashboardEmployees || []).filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(dept.id));
+                        const actualOtHours = Math.round(
+                          deptEmps.reduce((s, e) => s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(e, mKey), 0), 0) * 10
+                        ) / 10;
+                        const actualSpendThb = Math.round(
+                          deptEmps.reduce((s, e) => s + activeMonthsList.reduce((mSum, mKey) => mSum + getEmpCalculatedOtPay(e, mKey), 0), 0)
+                        );
+                        const plannedTargetHours = deptEmps.reduce((s, e) => s + (e.targetOt || 48), 0) * activeMonthsList.length;
+                        const avgHourly = deptEmps.length > 0 ? deptEmps.reduce((s, e) => s + ((e.salary || 15000) / 240), 0) / deptEmps.length : 62.5;
+                        const plannedBudgetThb = Math.round(plannedTargetHours * 1.5 * avgHourly);
+
+                        const varianceHours = Math.round((actualOtHours - plannedTargetHours) * 10) / 10;
+                        const varianceSpendThb = actualSpendThb - plannedBudgetThb;
+                        const variancePct = plannedBudgetThb > 0 ? Math.round((varianceSpendThb / plannedBudgetThb) * 100) : 0;
+
+                        const fatiguedInDept = deptEmps.filter(e => (e.actualOt || 0) > 36).length;
+                        const fatigueRate = deptEmps.length > 0 ? Math.round((fatiguedInDept / deptEmps.length) * 100) : 0;
+
+                        return {
+                          dept,
+                          empCount: deptEmps.length,
+                          actualOtHours,
+                          actualSpendThb,
+                          plannedTargetHours,
+                          plannedBudgetThb,
+                          varianceHours,
+                          varianceSpendThb,
+                          variancePct,
+                          fatiguedInDept,
+                          fatigueRate
+                        };
+                      }).sort((a, b) => b.actualSpendThb - a.actualSpendThb);
+
+                      return (
+                        <>
+                          {/* Card 6.1: Department Cost Driver Ranking (6 cols) */}
+                          <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                            <div>
+                              <div className="flex justify-between items-start mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="tag t-b font-mono">F3.2 RANKING</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การจัดอันดับตัวขับเคลื่อนต้นทุนรายแผนก</h3>
+                                </div>
+                                <span className="text-[10px] text-[#6A7B87] font-mono">เรียงตามยอดใช้จ่ายสูงสุด</span>
+                              </div>
+                              <p className="text-xs text-[#59656D] mb-4">
+                                เปรียบเทียบแผนจัดกะ vs ผลการปฏิบัติงานจริง และส่วนต่างงบประมาณ (&Delta;THB, &Delta;%)
+                              </p>
+
+                              <div className="space-y-2.5">
+                                {deptDriverStats.map((item, idx) => {
+                                  const isOverBudget = item.varianceSpendThb > 0;
+                                  return (
+                                    <div key={item.dept.id} className="p-3 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
+                                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="w-5 h-5 rounded-full bg-[#E8F3FA] text-[#0E3A66] text-[11px] font-mono font-bold flex items-center justify-center shrink-0">
+                                            {idx + 1}
+                                          </span>
+                                          <span className="text-xs font-bold text-[#333B41] truncate">{getDeptName(item.dept.id, state?.departments)}</span>
+                                          <span className="text-[10px] text-[#6A7B87]">({item.empCount} คน)</span>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                          <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums">
+                                            ฿{item.actualSpendThb.toLocaleString()}
+                                          </span>
+                                          <span className={`ml-2 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                            isOverBudget ? "bg-[#FBEAEA] text-[#B3352C]" : "bg-[#E8F6F0] text-[#1E9C6E]"
+                                          }`}>
+                                            {item.variancePct >= 0 ? `+${item.variancePct}%` : `${item.variancePct}%`}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-3 gap-2 text-[10px] pt-1.5 border-t border-[#DCE4EA]/60 text-[#59656D]">
+                                        <div>
+                                          <span>ชั่วโมงจริง: </span>
+                                          <span className="font-mono font-bold text-[#333B41]">{item.actualOtHours} ชม.</span>
+                                        </div>
+                                        <div>
+                                          <span>งบเป้าหมาย: </span>
+                                          <span className="font-mono">฿{item.plannedBudgetThb.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-right">
+                                          <span>ส่วนต่าง: </span>
+                                          <span className={`font-mono font-bold ${isOverBudget ? "text-[#B3352C]" : "text-[#1E9C6E]"}`}>
+                                            {item.varianceSpendThb >= 0 ? `+฿${item.varianceSpendThb.toLocaleString()}` : `-฿${Math.abs(item.varianceSpendThb).toLocaleString()}`}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
+                              <span>คำนวณจากกะจริงเทียบเป้าหมาย 48 ชม./คน</span>
+                              <span className="font-mono font-bold text-[#0E3A66]">รวม ฿{totalSpent.toLocaleString()} THB</span>
+                            </div>
+                          </div>
+
+                          {/* Card 6.2: Coverage Gap & Fatigue Sensitivity Analysis (6 cols) */}
+                          <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                            <div>
+                              <div className="flex justify-between items-start mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="tag t-b font-mono">F3.3 SENSITIVITY</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ความไวช่องว่างกำลังพลและความล้าสะสม</h3>
+                                </div>
+                                <span className="tag t-y font-mono">LABOR SAFETY</span>
+                              </div>
+                              <p className="text-xs text-[#59656D] mb-4">
+                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานต้องทำงานเกินขีดจำกัดความล้า (&gt;36 ชม./สัปดาห์)
+                              </p>
+
+                              <div className="space-y-3">
+                                {deptDriverStats.map((item) => {
+                                  const requiredHeadcount = Math.max(item.empCount, 8);
+                                  const staffingGap = Math.max(0, requiredHeadcount - item.empCount);
+                                  const coverageIndex = requiredHeadcount > 0 ? Math.round((item.empCount / requiredHeadcount) * 100) : 100;
+                                  
+                                  let hazardLevel: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" = "LOW";
+                                  let hazardTagClass = "tag t-g";
+                                  if (item.fatigueRate > 30 || coverageIndex < 70) {
+                                    hazardLevel = "CRITICAL";
+                                    hazardTagClass = "tag t-r";
+                                  } else if (item.fatigueRate > 15 || coverageIndex < 85) {
+                                    hazardLevel = "HIGH";
+                                    hazardTagClass = "tag t-y";
+                                  } else if (item.fatigueRate > 0) {
+                                    hazardLevel = "MODERATE";
+                                    hazardTagClass = "tag t-b";
+                                  }
+
+                                  return (
+                                    <div key={item.dept.id} className="p-3 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-bold text-[#333B41]">{getDeptName(item.dept.id, state?.departments)}</span>
+                                          <span className={hazardTagClass}>ความเสี่ยง {hazardLevel}</span>
+                                        </div>
+                                        <span className="text-[11px] font-mono text-[#59656D]">
+                                          ความพร้อมกำลังพล {coverageIndex}%
+                                        </span>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <div>
+                                          <div className="flex justify-between text-[10px] text-[#6A7B87] mb-1">
+                                            <span>อัตราเสี่ยงความล้า (&gt;36h)</span>
+                                            <span className="font-mono font-bold text-[#0E3A66]">{item.fatigueRate}%</span>
+                                          </div>
+                                          <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
+                                            <div 
+                                              style={{ width: `${Math.min(100, item.fatigueRate)}%` }}
+                                              className={`h-full rounded-full transition-all ${
+                                                item.fatigueRate > 30 ? "bg-[#B3352C]" : (item.fatigueRate > 15 ? "bg-[#D99B14]" : "bg-[#1E9C6E]")
+                                              }`}
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div>
+                                          <div className="flex justify-between text-[10px] text-[#6A7B87] mb-1">
+                                            <span>ช่องว่างกำลังพล (ขาดแคลน)</span>
+                                            <span className="font-mono font-bold text-[#0E3A66]">{staffingGap} อัตรา</span>
+                                          </div>
+                                          <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
+                                            <div 
+                                              style={{ width: `${Math.min(100, (staffingGap / 5) * 100)}%` }}
+                                              className="bg-[#17538F] h-full rounded-full transition-all"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex justify-between items-center text-[10px] text-[#6A7B87] mt-2 pt-1 border-t border-[#DCE4EA]/60">
+                                        <span>พนักงานในกลุ่มเสี่ยง: <b className="text-[#333B41] font-mono">{item.fatiguedInDept} คน</b></span>
+                                        <span>กำลังพลปัจจุบัน: <b className="text-[#333B41] font-mono">{item.empCount} / {requiredHeadcount} อัตรา</b></span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
+                              <span>การวิเคราะห์ความสัมพันธ์ตามเกณฑ์กฎหมายแรงงานไทย 36 ชม./สัปดาห์</span>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  setSelectedRoleFilter("ทุกตำแหน่ง");
+                                  setActiveTab("employees");
+                                }}
+                                className="font-bold text-[#17538F] hover:underline cursor-pointer"
+                              >
+                                ตรวจสอบพนักงานกลุ่มเสี่ยง &rarr;
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
                   </div>
                 );
               })()}
@@ -5887,7 +6691,7 @@ export default function App() {
           {/* ======================================= */}
           {/* VIEW: JOB VALUE & EXECUTIVE DASHBOARD */}
           {/* ======================================= */}
-          {activeTab === "job_value" && (
+          {(activeTab === "job_value" || activeTab === "jobValue") && (
             <ErrorBoundary>
               <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
                 {/* Header card with database & import/export controls */}
@@ -5970,20 +6774,68 @@ export default function App() {
                     ? getDeptName(currentUser.deptId, state?.departments) 
                     : financialChartDeptFilter;
 
-                  const scopedJvRecords = safeJobValueRecords.filter(r => {
-                    if (!isJvDepartment(r.department || r.deptId)) return false;
+                  const scopedEmpList = (state?.employees || []).filter(e => {
+                    if (!isJvDepartment(e.department || e.deptId)) return false;
                     if (!isHrOrFullAccess && currentUser?.deptId) {
-                      const managerDeptId = normalizeDeptId(currentUser.deptId);
-                      const recDeptId = normalizeDeptId(r.deptId || r.department);
-                      if (recDeptId !== managerDeptId && r.department !== getDeptName(currentUser.deptId, state?.departments)) return false;
+                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
                     }
                     if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
-                      const filterDeptId = normalizeDeptId(targetDeptFilter);
-                      const recDeptId = normalizeDeptId(r.deptId || r.department);
-                      if (r.department !== targetDeptFilter && recDeptId !== filterDeptId) return false;
+                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
                     }
                     return true;
                   });
+
+                  const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
+
+                  // Dynamic breakdowns for all scoped employees connecting shift overtime (1.5x, 3.0x, 1.0x)
+                  const dynamicBreakdowns: EmployeeJobValueBreakdown[] = scopedEmpList.map(emp => {
+                    const matchingJv = safeJobValueRecords.find(r => 
+                      String(r.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
+                      String(r.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
+                    );
+                    return getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
+                  });
+
+                  const totalBaseSalary = dynamicBreakdowns.reduce((sum, b) => sum + b.baseSalary, 0);
+                  const totalOtPay = dynamicBreakdowns.reduce((sum, b) => sum + b.monthlyOtPay, 0);
+                  const totalLaborCost = dynamicBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0);
+                  const totalRevenue = dynamicBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0);
+                  const totalValueAdd = totalRevenue - totalLaborCost;
+                  const revenueCostRatio = totalLaborCost > 0 ? Number((totalRevenue / totalLaborCost).toFixed(2)) : 0;
+                  const profitMarginPct = totalRevenue > 0 ? Number(((totalValueAdd / totalRevenue) * 100).toFixed(1)) : 0;
+                  const avgCostPerPerson = scopedEmpList.length > 0 ? Math.round(totalLaborCost / scopedEmpList.length) : 0;
+
+                  return (
+                    <div className="kpis grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 font-sans">
+                      <div className="kpi g">
+                        <span className="lbl">รายได้ประเมินรวม (Total Revenue)</span>
+                        <span className="val">{totalRevenue.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">ประมาณการจาก {scopedEmpList.length} บุคลากร (เฉลี่ย {scopedEmpList.length > 0 ? Math.round(totalRevenue / scopedEmpList.length).toLocaleString() : 0} /คน)</span>
+                      </div>
+                      <div className="kpi w">
+                        <span className="lbl">ต้นทุนแรงงานรวมต่อเดือน</span>
+                        <span className="val">{totalLaborCost.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">ฐานเงินเดือน {totalBaseSalary.toLocaleString()} + OT จริง {totalOtPay.toLocaleString()} THB</span>
+                      </div>
+                      <div className="kpi b">
+                        <span className="lbl">คุณค่าเพิ่มจากการดำเนินงาน (Value-Add)</span>
+                        <span className="val">{totalValueAdd.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
+                        <span className="sub">อัตรากำไรจากการดำเนินงาน {profitMarginPct}%</span>
+                      </div>
+                      <div className="kpi">
+                        <span className="lbl">สัดส่วนรายได้ต่อต้นทุน (Rev / Cost)</span>
+                        <span className="val">{revenueCostRatio}x <span className="text-xs font-normal text-[#6A7B87]">เท่า</span></span>
+                        <span className="sub">เฉลี่ย {avgCostPerPerson.toLocaleString()} THB / คน / เดือน</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Role-Level Economic & Value Ratios Section */}
+                {(() => {
+                  const targetDeptFilter = !isHrOrFullAccess && currentUser?.deptId 
+                    ? getDeptName(currentUser.deptId, state?.departments) 
+                    : financialChartDeptFilter;
 
                   const scopedEmpList = (state?.employees || []).filter(e => {
                     if (!isJvDepartment(e.department || e.deptId)) return false;
@@ -5996,34 +6848,71 @@ export default function App() {
                     return true;
                   });
 
-                  const totalRev = scopedJvRecords.reduce((sum, r) => sum + ((Number(r?.avgRevenue) || 0) * 12), 0);
-                  const totalCost = scopedJvRecords.reduce((sum, r) => sum + ((Number(r?.avgCost) || 0) * 12), 0);
-                  const totalProf26 = scopedJvRecords.reduce((sum, r) => sum + (Number(r?.profit2026) || 0), 0);
-                  const totalProf25 = scopedJvRecords.reduce((sum, r) => sum + (Number(r?.profit2025) || 0), 0);
-                  const avgCostPerPerson = Math.round(scopedJvRecords.reduce((sum, r) => sum + (Number(r?.avgCost) || 0), 0) / Math.max(1, scopedJvRecords.length));
-                  const diffPct = totalProf25 > 0 ? Math.round(((totalProf26 - totalProf25) / totalProf25) * 100) : 0;
+                  const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
+                  const roleSummaries = getRoleJobValueSummaries(scopedEmpList, currentMonth, safeJobValueRecords);
+
+                  if (roleSummaries.length === 0) return null;
 
                   return (
-                    <div className="kpis grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 font-sans">
-                      <div className="kpi g">
-                        <span className="lbl">รายได้รวมสะสม (Total Revenue)</span>
-                        <span className="val">{totalRev.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">ประมาณการจาก {scopedJvRecords.length} บุคลากร</span>
+                    <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm space-y-4">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                          <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-blue-600" />
+                            <span>สัดส่วนคุณค่าและผลประกอบการรายตำแหน่งงาน</span>
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-1">
+                            วิเคราะห์ต้นทุนแรงงานจริง (ฐานเงินเดือน + ค่าล่วงเวลา) เทียบรายได้ประเมินและสัดส่วน Revenue / Cost แยกตามตำแหน่ง
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-full self-start md:self-auto font-mono">
+                          {roleSummaries.length} ตำแหน่งงาน
+                        </span>
                       </div>
-                      <div className="kpi w">
-                        <span className="lbl">ต้นทุนรวมการดำเนินงาน</span>
-                        <span className="val">{totalCost.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">เฉลี่ย {avgCostPerPerson.toLocaleString()} / คน / เดือน</span>
-                      </div>
-                      <div className="kpi b">
-                        <span className="lbl">กำไรสุทธิสะสมปี 2569</span>
-                        <span className="val">{totalProf26.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">{diffPct >= 0 ? `+${diffPct}%` : `${diffPct}%`} เทียบปี 2568</span>
-                      </div>
-                      <div className="kpi">
-                        <span className="lbl">ความครอบคลุมข้อมูลบุคลากร</span>
-                        <span className="val">{scopedJvRecords.length} <span className="text-xs font-normal text-[#6A7B87]">/ {scopedEmpList.length} คน</span></span>
-                        <span className="sub">คิดเป็น {Math.min(100, Math.round((scopedJvRecords.length / Math.max(1, scopedEmpList.length)) * 100))}% ของบุคลากรในสังกัด</span>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[850px]">
+                          <thead>
+                            <tr className="bg-slate-100/80 border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                              <th className="px-3.5 py-2.5">ตำแหน่งงาน</th>
+                              <th className="px-3 py-2.5 text-center w-24">จำนวนคน</th>
+                              <th className="px-3.5 py-2.5 text-right">ฐานเงินเดือนเฉลี่ย</th>
+                              <th className="px-3.5 py-2.5 text-right">ชม. OT รวม</th>
+                              <th className="px-3.5 py-2.5 text-right text-rose-700 font-bold">ต้นทุนแรงงานรวม</th>
+                              <th className="px-3.5 py-2.5 text-right text-emerald-700 font-bold">รายได้ประเมินรวม</th>
+                              <th className="px-3.5 py-2.5 text-right text-blue-700 font-bold">คุณค่าเพิ่มสุทธิ</th>
+                              <th className="px-3.5 py-2.5 text-center">สัดส่วน Rev/Cost</th>
+                              <th className="px-3.5 py-2.5 text-center">อัตรากำไร %</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-xs font-mono">
+                            {roleSummaries.map(r => (
+                              <tr key={r.role} className="hover:bg-blue-50/40 transition-colors">
+                                <td className="px-3.5 py-2.5 font-sans font-bold text-slate-800">{r.role}</td>
+                                <td className="px-3 py-2.5 text-center font-sans">
+                                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px] font-bold text-slate-700">
+                                    {r.headcount} คน
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-2.5 text-right text-slate-600">{r.avgBaseSalary.toLocaleString()}</td>
+                                <td className="px-3.5 py-2.5 text-right text-slate-600">{r.totalOtHours.toLocaleString()} ชม.</td>
+                                <td className="px-3.5 py-2.5 text-right font-black text-rose-700">{r.totalLaborCost.toLocaleString()}</td>
+                                <td className="px-3.5 py-2.5 text-right font-black text-emerald-700">{r.totalRevenue.toLocaleString()}</td>
+                                <td className="px-3.5 py-2.5 text-right font-black text-blue-700">{r.operationalValueAdd.toLocaleString()}</td>
+                                <td className="px-3.5 py-2.5 text-center">
+                                  <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded font-bold text-[11px]">
+                                    {r.revenueCostRatio}x
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-2.5 text-center font-sans font-bold">
+                                  <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold ${r.profitMarginPct >= 0 ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
+                                    {r.profitMarginPct}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   );
@@ -6060,18 +6949,26 @@ export default function App() {
                         e.department === deptName
                       );
 
-                      let count = Math.max(deptJvRecords.length, empList.length);
-                      let totalRev = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
-                      let totalCost = deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
-                      let p25 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0);
-                      let p26 = deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2026) || 0), 0);
+                      const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
+                      const deptBreakdowns = empList.map(e => {
+                        const matchingJv = safeJv.find(r =>
+                          String(r.empId || "").toLowerCase() === String(e.id || "").toLowerCase() ||
+                          String(r.empName || "").toLowerCase() === String(e.name || "").toLowerCase()
+                        );
+                        return getEmployeeJobValueBreakdown(e, currentMonth, matchingJv);
+                      });
 
-                      if (deptJvRecords.length === 0 && empList.length > 0) {
-                        totalRev = empList.reduce((sum, e) => sum + (Number((e as any).avgRevenue || (e as any).salary * 4.5 || 98500) || 0), 0);
-                        totalCost = empList.reduce((sum, e) => sum + (Number((e as any).avgCost || (e as any).salary * 1.5 || 145000) || 0), 0);
-                        p25 = empList.reduce((sum, e) => sum + (Number((e as any).profit2025 || (e as any).salary * 1.2 || 88000) || 0), 0);
-                        p26 = empList.reduce((sum, e) => sum + (Number((e as any).profit2026 || (e as any).salary * 2.8 || 520000) || 0), 0);
-                      }
+                      let count = Math.max(deptJvRecords.length, empList.length);
+                      let totalRev = deptBreakdowns.length > 0
+                        ? deptBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0)
+                        : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
+                      let totalCost = deptBreakdowns.length > 0
+                        ? deptBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0)
+                        : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
+                      let p26 = (totalRev - totalCost);
+                      let p25 = deptJvRecords.length > 0
+                        ? deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0)
+                        : Math.round(p26 * 0.88);
 
                       const diff = p26 - p25;
                       const isGrowth = diff >= 0;
@@ -6433,8 +7330,8 @@ export default function App() {
                       <div>
                         <div className="flex items-center gap-2.5">
                           <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                            {safeJobValueRecords.length} รายการ
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold font-mono">
+                            {((state?.employees || []).filter(e => isJvDepartment(e.department || e.deptId)).length || safeJobValueRecords.length)} บุคลากร
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">ใช้ช่องค้นหาหรือตัวกรองเพื่อค้นหารายพนักงาน และกดดูรายละเอียดเพื่อดูสถิติรายเดือน</p>
@@ -6496,128 +7393,146 @@ export default function App() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[950px]">
+                    <table className="w-full text-left border-collapse min-w-[1050px]">
                       <thead>
                         <tr className="bg-slate-100/90 border-b border-slate-200 text-xs font-black text-slate-700 uppercase tracking-wider">
                           <th className="px-3.5 py-3 font-mono w-24">รหัสพนักงาน</th>
-                          <th className="px-3.5 py-3 min-w-[170px]">ชื่อ-นามสกุล</th>
-                          <th className="px-3.5 py-3 min-w-[130px]">ตำแหน่ง</th>
+                          <th className="px-3.5 py-3 min-w-[160px]">ชื่อ-นามสกุล</th>
+                          <th className="px-3.5 py-3 min-w-[120px]">ตำแหน่ง</th>
                           <th className="px-3.5 py-3 w-28 text-center">แผนก</th>
-                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[130px]">รายได้เฉลี่ย/เดือน (AVG REVENUE)</th>
-                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[130px]">ต้นทุนเฉลี่ย/เดือน (AVG COST)</th>
-                          <th className="px-3.5 py-3 text-right text-slate-600 font-bold min-w-[110px]">กำไรสะสม 2568</th>
-                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">กำไรสะสม 2569</th>
-                          <th className="px-3.5 py-3 text-center min-w-[130px]">ผลงาน 68 -&gt; 69</th>
+                          <th className="px-3.5 py-3 text-right text-slate-700 font-bold min-w-[100px]">ฐานเงินเดือน</th>
+                          <th className="px-3.5 py-3 text-right text-blue-700 font-bold min-w-[90px]">OT จริง (บาท)</th>
+                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[110px]">ต้นทุนรวม</th>
+                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[110px]">รายได้ประเมิน</th>
+                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">คุณค่าเพิ่มสุทธิ</th>
+                          <th className="px-3.5 py-3 text-center min-w-[90px]">Rev/Cost</th>
+                          <th className="px-3.5 py-3 text-center min-w-[100px]">การตรวจสอบ</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#DCE4EA] text-slate-800 text-xs">
-                        {safeJobValueRecords
-                          .filter(jv => {
-                            if (!jv) return false;
-                            const empMaster = (state?.employees || []).find(e => 
-                              String(e.id || "").toLowerCase() === String(jv.empId || "").toLowerCase() ||
-                              String(e.name || "").toLowerCase() === String(jv.empName || "").toLowerCase()
-                            );
-                            const empName = empMaster?.name || jv.empName || "";
-                            const position = empMaster?.role || jv.position || "";
-                            const deptName = empMaster ? getDeptName(empMaster.deptId, state?.departments) : (jv.department || "");
-                            
-                            // Section Manager Permission Check
-                            if (!isHrOrFullAccess && currentUser?.deptId) {
-                              const managerDeptId = normalizeDeptId(currentUser.deptId);
-                              const empDeptId = normalizeDeptId(empMaster?.deptId || jv.deptId || jv.department);
-                              if (empDeptId !== managerDeptId && deptName !== getDeptName(currentUser.deptId, state?.departments)) {
-                                return false;
+                      <tbody className="divide-y divide-[#DCE4EA] text-slate-800 text-xs font-mono">
+                        {(() => {
+                          const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
+                          const empSourceList = (state?.employees && state.employees.length > 0)
+                            ? state.employees
+                            : safeJobValueRecords.map(jv => ({
+                                id: jv.empId,
+                                name: jv.empName,
+                                role: jv.position,
+                                deptId: jv.deptId || jv.department,
+                                department: jv.department,
+                                salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+                                employmentStatus: jv.status || "Active",
+                                shifts: []
+                              }));
+
+                          const filteredItems = empSourceList
+                            .filter(emp => {
+                              if (!emp) return false;
+                              const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "";
+
+                              // Section Manager Permission Check
+                              if (!isHrOrFullAccess && currentUser?.deptId) {
+                                const managerDeptId = normalizeDeptId(currentUser.deptId);
+                                const empDeptId = normalizeDeptId(emp.deptId || emp.department);
+                                if (empDeptId !== managerDeptId && deptName !== getDeptName(currentUser.deptId, state?.departments)) {
+                                  return false;
+                                }
                               }
-                            }
 
-                            if (!isJvDepartment(deptName) && !isJvDepartment(jv.deptId)) return false;
+                              if (!isJvDepartment(deptName) && !isJvDepartment(emp.deptId)) return false;
 
-                            // Filter out inactive/resigned/retired employees from active list
-                            const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
-                            const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "Retired" || empStatus === "พ้นสภาพ" || empStatus === "ลาออก" || empStatus === "เกษียณ";
-                            if (isInactive) return false;
+                              // Filter out inactive/resigned/retired employees from active list
+                              const empStatus = emp.employmentStatus || "Active";
+                              const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "Retired" || empStatus === "พ้นสภาพ" || empStatus === "ลาออก" || empStatus === "เกษียณ";
+                              if (isInactive) return false;
 
-                            const q = (jobValueSearchQuery || "").toLowerCase().trim();
-                            const matchesSearch = !q || String(jv.empId || "").toLowerCase().includes(q) || empName.toLowerCase().includes(q) || position.toLowerCase().includes(q);
-                            const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || deptName === jobValueDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(jobValueDeptFilter);
-                            return matchesSearch && matchesDept;
-                          })
-                          .map(jv => {
-                            const empMaster = (state?.employees || []).find(e => 
-                              String(e.id || "").toLowerCase() === String(jv.empId || "").toLowerCase() ||
-                              String(e.name || "").toLowerCase() === String(jv.empName || "").toLowerCase()
-                            );
-                            const empName = empMaster?.name || jv?.empName || "-";
-                            const deptName = empMaster ? getDeptName(empMaster.deptId, state?.departments) : (jv?.department || "-");
-                            const position = empMaster?.role || jv?.position || "-";
-                            const empStatus = empMaster?.employmentStatus || jv?.status || "Active";
-                            const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "ลาออก";
-                            const p25 = Number(jv?.profit2025) || 0;
-                            const p26 = Number(jv?.profit2026) || 0;
-                            const diff = p26 - p25;
-                            const isGrowth = diff >= 0;
+                              const q = (jobValueSearchQuery || "").toLowerCase().trim();
+                              const matchesSearch = !q || String(emp.id || "").toLowerCase().includes(q) || String(emp.name || "").toLowerCase().includes(q) || String(emp.role || "").toLowerCase().includes(q);
+                              const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || deptName === jobValueDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(jobValueDeptFilter);
+                              return matchesSearch && matchesDept;
+                            });
 
+                          if (filteredItems.length === 0) {
                             return (
-                              <tr 
-                                key={jv?.id || jv?.empId || Math.random()} 
-                                onClick={() => {
-                                  const found = empMaster || {
-                                    id: jv?.empId || "EMP",
-                                    name: jv?.empName || "พนักงาน",
-                                    role: jv?.position || "Operator",
-                                    deptId: jv?.department || "inter2",
-                                    employmentStatus: jv?.status || "Active",
-                                    salary: jv?.avgCost ? Math.round(jv.avgCost / 1.35) : 15000
-                                  };
-                                  setViewingEmployeeDetails(found as any);
-                                }}
-                                className="hover:bg-blue-50/60 transition-colors cursor-pointer group"
-                                title="คลิกเพื่อดูบัตรประจำตัวพนักงานและข้อมูลโปรไฟล์ (Employee Profile Card)"
-                              >
-                                <td className="px-3.5 py-3 font-mono font-bold text-slate-600 text-xs">{jv?.empId || "-"}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
-                                  <div className="flex items-center gap-2">
-                                    <EmployeeAvatar empId={jv?.empId || ""} empName={empName} className="w-7 h-7 flex-shrink-0" />
-                                    <span className="underline-offset-2 group-hover:underline">{empName}</span>
+                              <tr>
+                                <td colSpan={11} className="px-6 py-12 text-center text-slate-500 font-sans">
+                                  <div className="flex flex-col items-center justify-center space-y-3">
+                                    <FileSpreadsheet className="w-10 h-10 text-slate-300" />
+                                    <p className="text-sm font-bold text-slate-700">ไม่พบข้อมูลคุณค่าตำแหน่งงานตามเงื่อนไข</p>
+                                    <p className="text-xs text-slate-400">ตรวจสอบคำค้นหาหรือตัวกรองแผนกอีกครั้ง</p>
                                   </div>
                                 </td>
-                                <td className="px-3.5 py-3 font-medium text-slate-700 text-xs">{position}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-700 text-center">
+                              </tr>
+                            );
+                          }
+
+                          return filteredItems.map(emp => {
+                            const matchingJv = safeJobValueRecords.find(jv =>
+                              String(jv.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
+                              String(jv.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
+                            );
+                            const b = getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
+                            const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "-";
+                            const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonth);
+
+                            return (
+                              <tr
+                                key={emp.id}
+                                onClick={() => setViewingEmployeeDetails(emp as any)}
+                                className="hover:bg-blue-50/60 transition-colors cursor-pointer group"
+                                title="คลิกเพื่อดูบัตรประจำตัวพนักงานและข้อมูลโปรไฟล์"
+                              >
+                                <td className="px-3.5 py-3 font-bold text-slate-600 text-xs">{emp.id || "-"}</td>
+                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs font-sans group-hover:text-blue-600 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <EmployeeAvatar empId={emp.id || ""} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
+                                    <span className="underline-offset-2 group-hover:underline">{emp.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3.5 py-3 font-medium text-slate-700 text-xs font-sans">{emp.role || "-"}</td>
+                                <td className="px-3.5 py-3 font-bold text-slate-700 text-center font-sans">
                                   <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
                                     {deptName}
                                   </span>
                                 </td>
-                                <td className="px-3.5 py-3 text-right font-black text-emerald-700 font-mono text-sm">{(Number(jv?.avgRevenue) || 0).toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-black text-rose-700 font-mono text-sm">{(Number(jv?.avgCost) || 0).toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-bold text-slate-600 font-mono text-sm">{p25.toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-black text-blue-700 font-mono text-sm">{p26.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right text-slate-700 font-bold">{b.baseSalary.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right text-blue-700 font-bold">
+                                  {b.monthlyOtPay > 0 ? b.monthlyOtPay.toLocaleString() : "-"}
+                                </td>
+                                <td className="px-3.5 py-3 text-right font-black text-rose-700">{b.totalLaborCost.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-black text-emerald-700">{b.monthlyRevenue.toLocaleString()}</td>
+                                <td className="px-3.5 py-3 text-right font-black text-blue-700">{b.operationalValueAdd.toLocaleString()}</td>
                                 <td className="px-3.5 py-3 text-center font-bold">
-                                  {isGrowth ? (
-                                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black" title={`กำไรเพิ่มขึ้น +${diff.toLocaleString()}`}>
-                                      ต่อยอด (+{diff.toLocaleString()})
-                                    </span>
-                                  ) : (
-                                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black" title={`กำไรลดลง -${Math.abs(diff).toLocaleString()}`}>
-                                      ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
-                                    </span>
-                                  )}
+                                  <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 text-[11px]">
+                                    {b.revenueCostRatio}x
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setViewingSalaryFormulaEmployee({
+                                        emp,
+                                        salary: b.baseSalary,
+                                        hourlyRate: b.hourlyRate,
+                                        normalOt: otBreakdown.normalOt,
+                                        holidayOt: otBreakdown.holidayOt,
+                                        holidayWorkDays: otBreakdown.holidayWorkDays,
+                                        totalOtPay: b.monthlyOtPay,
+                                        otPctSalary: b.baseSalary > 0 ? ((b.monthlyOtPay / b.baseSalary) * 100).toFixed(2) : "0.00"
+                                      });
+                                    }}
+                                    className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-sans font-bold flex items-center justify-center gap-1 mx-auto transition-colors cursor-pointer"
+                                    title="ตรวจสอบสูตรคำนวณและประวัติกะ"
+                                  >
+                                    <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>ตรวจสอบ</span>
+                                  </button>
                                 </td>
                               </tr>
                             );
-                          })}
-
-                        {safeJobValueRecords.length === 0 && (
-                          <tr>
-                            <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
-                              <div className="flex flex-col items-center justify-center space-y-3">
-                                <FileSpreadsheet className="w-10 h-10 text-slate-300" />
-                                <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูล Job Value ในระบบ</p>
-                                <p className="text-xs text-slate-400">HR สามารถกดปุ่ม "อัพโหลดข้อมูล (Import CSV)" เพื่อนำเข้าข้อมูลรายชื่อและผลตอบแทนพนักงานได้ทันที</p>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
+                          });
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -7587,38 +8502,83 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Status Tabs: Active Employees vs Resigned Archive (HR Only) */}
-              <div className="flex items-center gap-2 border-b border-slate-200 px-2 overflow-x-auto no-scrollbar touch-pan-x">
-                <button
-                  onClick={() => setSelectedEmpStatusTab("Active")}
-                  className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
-                    selectedEmpStatusTab === "Active"
-                      ? "border-blue-600 text-blue-600 bg-white shadow-sm"
-                      : "border-transparent text-slate-500 hover:text-slate-800 bg-slate-100/50"
-                  }`}
-                >
-                  <span>พนักงานปัจจุบัน (Active)</span>
-                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-                    {(state?.employees || []).filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "Retired" && e.employmentStatus !== "ลาออก" && e.employmentStatus !== "เกษียณ" && e.employmentStatus !== "พ้นสภาพ").length} คน
-                  </span>
-                </button>
+              {/* Status Tabs: All | Active | On-Leave | Resigned */}
+              {(() => {
+                const rosterMonth = state?.shiftConfig?.currentMonth || "2026-08";
+                const emps = state?.employees || [];
+                const allCount = emps.length;
+                const activeCount = emps.filter(e => isActiveEmployee(e, rosterMonth)).length;
+                const onLeaveCount = emps.filter(e => isOnLeaveEmployee(e, rosterMonth)).length;
+                const resignedCount = emps.filter(e => isResignedEmployee(e)).length;
 
-                {isHrOrFullAccess && (
-                  <button
-                    onClick={() => setSelectedEmpStatusTab("Resigned")}
-                    className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-2xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
-                      selectedEmpStatusTab === "Resigned"
-                        ? "border-rose-600 text-rose-600 bg-white shadow-sm"
-                        : "border-transparent text-slate-500 hover:text-rose-700 bg-slate-100/50"
-                    }`}
-                  >
-                    <span>คลังพนักงานลาออก / พ้นสภาพ / เกษียณ</span>
-                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      {(state?.employees || []).filter(e => e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "Retired" || e.employmentStatus === "ลาออก" || e.employmentStatus === "เกษียณ" || e.employmentStatus === "พ้นสภาพ").length} คน
-                    </span>
-                  </button>
-                )}
-              </div>
+                return (
+                  <div className="flex items-center gap-2 border-b border-[#DCE4EA] px-2 overflow-x-auto no-scrollbar touch-pan-x">
+                    {/* Tab 1: All */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEmpStatusTab("All")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                        selectedEmpStatusTab === "All"
+                          ? "border-[#0E3A66] text-[#0E3A66] bg-white shadow-sm"
+                          : "border-transparent text-[#6A7B87] hover:text-[#0E3A66] bg-[#F3F6F8]"
+                      }`}
+                    >
+                      <span>ทั้งหมด (All)</span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#E8F3FA] text-[#0E3A66] text-[10px] font-bold font-mono">
+                        {allCount} คน
+                      </span>
+                    </button>
+
+                    {/* Tab 2: Active */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEmpStatusTab("Active")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                        selectedEmpStatusTab === "Active"
+                          ? "border-[#1E9C6E] text-[#1E9C6E] bg-white shadow-sm"
+                          : "border-transparent text-[#6A7B87] hover:text-[#1E9C6E] bg-[#F3F6F8]"
+                      }`}
+                    >
+                      <span>พนักงานปัจจุบัน (Active)</span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#E8F6F0] text-[#1E9C6E] text-[10px] font-bold font-mono">
+                        {activeCount} คน
+                      </span>
+                    </button>
+
+                    {/* Tab 3: On-Leave */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEmpStatusTab("On-Leave")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                        selectedEmpStatusTab === "On-Leave"
+                          ? "border-[#D99B14] text-[#D99B14] bg-white shadow-sm"
+                          : "border-transparent text-[#6A7B87] hover:text-[#D99B14] bg-[#F3F6F8]"
+                      }`}
+                    >
+                      <span>ลางาน / ลาพัก (On-Leave)</span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#FCF3DE] text-[#D99B14] text-[10px] font-bold font-mono">
+                        {onLeaveCount} คน
+                      </span>
+                    </button>
+
+                    {/* Tab 4: Resigned */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEmpStatusTab("Resigned")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+                        selectedEmpStatusTab === "Resigned"
+                          ? "border-[#B3352C] text-[#B3352C] bg-white shadow-sm"
+                          : "border-transparent text-[#6A7B87] hover:text-[#B3352C] bg-[#F3F6F8]"
+                      }`}
+                    >
+                      <span>คลังพนักงานลาออก / พ้นสภาพ</span>
+                      <span className="px-2 py-0.5 rounded-full bg-[#FBEAEA] text-[#B3352C] text-[10px] font-bold font-mono">
+                        {resignedCount} คน
+                      </span>
+                    </button>
+                  </div>
+                );
+              })()}
 
               {/* Employee roster list */}
               <div id="employee-roster-section"></div>
@@ -7628,8 +8588,16 @@ export default function App() {
                     <div>
                       <div className="flex items-center gap-2.5">
                         <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                          แสดง {filteredEmployees.length} จาก {(state?.employees || []).filter(e => selectedEmpStatusTab === "Resigned" ? (e.employmentStatus === "Resigned" || e.employmentStatus === "Inactive" || e.employmentStatus === "ลาออก") : (e.employmentStatus !== "Resigned" && e.employmentStatus !== "Inactive" && e.employmentStatus !== "ลาออก")).length} คน
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#DCE4EA] text-[#0E3A66] text-xs font-bold font-mono">
+                          แสดง {filteredEmployees.length} จาก {
+                            selectedEmpStatusTab === "All"
+                              ? (state?.employees || []).length
+                              : selectedEmpStatusTab === "Active"
+                              ? (state?.employees || []).filter(e => isActiveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                              : selectedEmpStatusTab === "On-Leave"
+                              ? (state?.employees || []).filter(e => isOnLeaveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                              : (state?.employees || []).filter(e => isResignedEmployee(e)).length
+                          } คน
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
@@ -9820,6 +10788,197 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* ===================================================================== */}
+                {/* Milestone 4: Company Traditional Holidays Configuration System (F4.1)  */}
+                {/* ===================================================================== */}
+                <div className="col-span-1 md:col-span-2 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#DCE4EA]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="tag t-b font-mono">F4.1 HOLIDAYS</span>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">ระบบวันหยุดตามประเพณีที่บริษัทกำหนด (13-15 วัน/ปี)</h4>
+                      </div>
+                      <p className="text-xs text-[#59656D] mt-0.5">
+                        กำหนดวันหยุดประเพณีของบริษัทตามกฎหมายแรงงานไทย วันที่ระบุจะคิดอัตราค่าล่วงเวลาวันหยุด (1.0x กะมาตรฐาน 8 ชม. และ 3.0x สำหรับ OT) อัตโนมัติ
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleResetDefaultHolidays}
+                        className="px-3 py-1.5 bg-[#F3F6F8] hover:bg-[#E8F3FA] text-[#0E3A66] border border-[#DCE4EA] rounded text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        รีเซ็ตค่ามาตรฐาน (15 วัน)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add New Custom Holiday Row */}
+                  <div className="p-3.5 bg-[#F3F6F8] rounded border border-[#DCE4EA] space-y-2">
+                    <span className="text-[11px] font-bold text-[#333B41] block">เพิ่มวันหยุดประเพณีพิเศษ / วันหยุดบริษัทเพิ่มเติม</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#6A7B87] mb-1">วันที่ (YYYY-MM-DD)</label>
+                        <input
+                          type="date"
+                          value={newHolidayDate}
+                          onChange={(e) => setNewHolidayDate(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs text-[#333B41] font-mono font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#6A7B87] mb-1">ชื่อวันหยุด (ไทย)</label>
+                        <input
+                          type="text"
+                          placeholder="เช่น วันหยุดพิเศษประจำปี"
+                          value={newHolidayNameTh}
+                          onChange={(e) => setNewHolidayNameTh(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs text-[#333B41]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#6A7B87] mb-1">ชื่อภาษาอังกฤษ (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="Special Company Holiday"
+                          value={newHolidayNameEn}
+                          onChange={(e) => setNewHolidayNameEn(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs text-[#333B41]"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={handleAddCustomHoliday}
+                          className="w-full py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-bold transition-colors cursor-pointer shadow-maritime-xs flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>บันทึกวันหยุด</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Holiday Table List */}
+                  <div className="overflow-x-auto border border-[#DCE4EA] rounded">
+                    <table className="w-full text-left text-xs text-[#333B41]">
+                      <thead className="bg-[#F3F6F8] text-[10px] uppercase font-bold text-[#6A7B87] border-b border-[#DCE4EA]">
+                        <tr>
+                          <th className="p-3 w-12 text-center">ลำดับ</th>
+                          <th className="p-3 w-32">วันที่</th>
+                          <th className="p-3">ชื่อวันหยุดตามประเพณี (ไทย)</th>
+                          <th className="p-3">ชื่อสากล (English)</th>
+                          <th className="p-3 w-28 text-center">สถานะ</th>
+                          <th className="p-3 w-20 text-center">จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#DCE4EA]">
+                        {companyHolidays.map((hol, idx) => (
+                          <tr key={hol.id} className="hover:bg-[#F3F6F8]/50 transition-colors">
+                            <td className="p-3 text-center font-mono text-[#6A7B87]">{idx + 1}</td>
+                            <td className="p-3 font-mono font-bold text-[#0E3A66]">{hol.date}</td>
+                            <td className="p-3 font-bold text-[#333B41]">{hol.nameTh}</td>
+                            <td className="p-3 text-[#59656D]">{hol.nameEn || "-"}</td>
+                            <td className="p-3 text-center">
+                              {hol.isCustom ? (
+                                <span className="tag t-y font-mono">กำหนดเอง</span>
+                              ) : (
+                                <span className="tag t-b font-mono">มาตรฐาน</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteHoliday(hol.id)}
+                                className="p-1 text-[#B3352C] hover:bg-[#FBEAEA] rounded transition-colors cursor-pointer"
+                                title="ลบวันหยุดนี้"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] text-[#6A7B87] pt-1">
+                    <span>จำนวนวันหยุดประเพณีที่ประกาศ: <b className="text-[#0E3A66] font-mono">{companyHolidays.length} วัน</b> (เกณฑ์กฎหมายไทย &ge; 13 วัน/ปี)</span>
+                    <span className="text-[#1E9C6E] font-bold">เชื่อมโยงตารางกะและ Payroll ทันที</span>
+                  </div>
+                </div>
+
+                {/* ===================================================================== */}
+                {/* Milestone 4: Weekly Rest Day Policy Configuration (F4.2)              */}
+                {/* ===================================================================== */}
+                <div className="col-span-1 md:col-span-2 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#DCE4EA]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="tag t-b font-mono">F4.2 REST DAYS</span>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">การกำหนดนโยบายวันหยุดประจำสัปดาห์รายแผนก</h4>
+                      </div>
+                      <p className="text-xs text-[#59656D] mt-0.5">
+                        กำหนดกฎวันหยุดประจำสัปดาห์ของแต่ละแผนก (เช่น วันอาทิตย์เท่านั้น, เสาร์-อาทิตย์, หรือระบบหมุนเวียนกะ 6 วันหยุด 1 วัน)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {(state?.departments || []).map((dept) => {
+                      const cleanId = dept.id.trim().toLowerCase().replace(/\s+/g, "");
+                      const currentPol = restDayPolicies.find(p => p.deptId.trim().toLowerCase().replace(/\s+/g, "") === cleanId) || {
+                        deptId: dept.id,
+                        policyType: "sunday_only" as const,
+                        customRestDays: [0]
+                      };
+
+                      return (
+                        <div key={dept.id} className="p-3.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] space-y-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-[#333B41]">{getDeptName(dept.id, state?.departments)}</span>
+                            <span className="tag t-b text-[10px] font-mono">
+                              {currentPol.policyType === "sunday_only" ? "หยุดวันอาทิตย์" : (currentPol.policyType === "sat_sun" ? "หยุดเสาร์-อาทิตย์" : "หมุนเวียน")}
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-[#6A7B87] mb-1">รูปแบบวันหยุดประจำสัปดาห์</label>
+                            <select
+                              value={currentPol.policyType}
+                              onChange={(e) => {
+                                const nextType = e.target.value as "sunday_only" | "sat_sun" | "rotating_6_1" | "custom";
+                                const updated = restDayPolicies.map(p => {
+                                  if (p.deptId.trim().toLowerCase().replace(/\s+/g, "") === cleanId) {
+                                    return {
+                                      ...p,
+                                      policyType: nextType,
+                                      customRestDays: nextType === "sat_sun" ? [0, 6] : [0]
+                                    };
+                                  }
+                                  return p;
+                                });
+                                if (!updated.some(p => p.deptId.trim().toLowerCase().replace(/\s+/g, "") === cleanId)) {
+                                  updated.push({ deptId: dept.id, policyType: nextType, customRestDays: nextType === "sat_sun" ? [0, 6] : [0] });
+                                }
+                                handleSaveRestDayPolicies(updated);
+                              }}
+                              className="w-full px-2.5 py-1.5 bg-white border border-[#DCE4EA] rounded text-xs font-bold text-[#333B41] cursor-pointer"
+                            >
+                              <option value="sunday_only">วันอาทิตย์เท่านั้น (Sunday Only - กฎหมายแรงงาน)</option>
+                              <option value="sat_sun">เสาร์ และ อาทิตย์ (Saturday &amp; Sunday)</option>
+                              <option value="rotating_6_1">ระบบหมุนเวียนกะ (Rotating 6-1 Shift)</option>
+                            </select>
+                          </div>
+
+                          <div className="text-[10px] text-[#59656D] pt-1 border-t border-[#DCE4EA]/60">
+                            <span>หากมาปฏิบัติงานในวันหยุดตามนโยบายนี้: คิดอัตราค่าทำงานวันหยุด <b>1.0x</b> และ OT วันหยุด <b>3.0x</b></span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Database Management / Clear data card */}
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                   <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded p-6 shadow-sm space-y-4">
@@ -10630,15 +11789,16 @@ export default function App() {
                       onChange={(e) => {
                         const val = e.target.value;
                         setNewEmpStatus(val);
-                        if (val === "Active") {
+                        if (val === "Active" || val === "On-Leave") {
                           setNewEmpResignationDate("");
                         }
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
                       <option value="Active">ปฏิบัติงานปกติ (Active)</option>
-                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
+                      <option value="On-Leave">ลางาน / ลาพัก (On-Leave)</option>
                       <option value="Resigned">พนักงานลาออก (Resigned)</option>
+                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
                       <option value="Retired">พนักงานเกษียณอายุ (Retired)</option>
                     </select>
                   </div>
@@ -10967,15 +12127,16 @@ export default function App() {
                       onChange={(e) => {
                         const val = e.target.value;
                         setEditEmpStatus(val);
-                        if (val === "Active") {
+                        if (val === "Active" || val === "On-Leave") {
                           setEditEmpResignationDate("");
                         }
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
                       <option value="Active">ปฏิบัติงานปกติ (Active)</option>
-                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
+                      <option value="On-Leave">ลางาน / ลาพัก (On-Leave)</option>
                       <option value="Resigned">พนักงานลาออก (Resigned)</option>
+                      <option value="Inactive">พ้นสภาพ / ไม่ได้ปฏิบัติงาน (Inactive)</option>
                       <option value="Retired">พนักงานเกษียณอายุ (Retired)</option>
                     </select>
                   </div>
@@ -11033,308 +12194,584 @@ export default function App() {
       {/* ======================================= */}
       {/* OVERLAY / MODAL: VIEW EMPLOYEE PROFILE DETAILS */}
       {/* ======================================= */}
-      {viewingEmployeeDetails && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded w-full max-w-2xl overflow-hidden shadow-lg border border-slate-200 flex flex-col max-h-[90vh]">
-            {/* Header / Avatar Banner */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-start">
-              <div className="flex items-center gap-5">
-                <EmployeeAvatar 
-                  empId={viewingEmployeeDetails.id} 
-                  empName={viewingEmployeeDetails.name} 
-                  className="w-24 h-24 sm:w-28 sm:h-28 text-2xl border-4 border-white shadow-xl rounded-2xl flex-shrink-0 object-cover" 
-                />
+      {viewingEmployeeDetails && (() => {
+        const emp = viewingEmployeeDetails;
+        const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+        const empShifts = getEmpShiftsArray(emp.shifts, currentMonthKey, emp.calendarType);
+        const breakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonthKey);
+
+        // 1. Accumulated Monthly Shift Hours
+        let accumulatedShiftHours = 0;
+        let workedDaysCount = 0;
+        empShifts.forEach(code => {
+          const dur = getShiftDurationHours(code);
+          accumulatedShiftHours += dur;
+          if (dur > 0) workedDaysCount++;
+        });
+        const standardHours = Math.max(0, accumulatedShiftHours - breakdown.totalOtHours);
+        const totalOtHours = breakdown.totalOtHours;
+        const standardHoursPct = accumulatedShiftHours > 0 
+          ? Math.round((standardHours / accumulatedShiftHours) * 100) 
+          : 0;
+        const otHoursPct = accumulatedShiftHours > 0 
+          ? Math.round((totalOtHours / accumulatedShiftHours) * 100) 
+          : 0;
+
+        // 2. OT Earnings Breakdown
+        const normalOtPay = Math.round(breakdown.normalOt * 1.5 * breakdown.hourlyRate);
+        const holidayWorkHours = breakdown.holidayWorkDays * 8;
+        const holidayWorkPay = Math.round(holidayWorkHours * 1.0 * breakdown.hourlyRate);
+        const holidayOtPay = Math.round(breakdown.holidayOt * 3.0 * breakdown.hourlyRate);
+        const totalOtPay = breakdown.totalOtPay;
+
+        // 3. Fatigue Status Telemetry
+        let maxWeeklyOt = 0;
+        for (let i = 0; i <= empShifts.length - 7; i++) {
+          let wOt = 0;
+          for (let j = 0; j < 7; j++) {
+            wOt += getShiftOtHours(empShifts[i + j]);
+          }
+          if (wOt > maxWeeklyOt) maxWeeklyOt = wOt;
+        }
+        for (let i = 0; i < empShifts.length; i += 7) {
+          const slice = empShifts.slice(i, Math.min(i + 7, empShifts.length));
+          const wOt = slice.reduce((acc, code) => acc + getShiftOtHours(code), 0);
+          if (wOt > maxWeeklyOt) maxWeeklyOt = wOt;
+        }
+
+        let maxConsecutiveDays = 0;
+        let curConsecutive = 0;
+        empShifts.forEach(code => {
+          const isOff = code === "O" || code === "OFF" || isLeaveCode(code);
+          if (!isOff) {
+            curConsecutive++;
+            if (curConsecutive > maxConsecutiveDays) maxConsecutiveDays = curConsecutive;
+          } else {
+            curConsecutive = 0;
+          }
+        });
+
+        let turnaroundViolations = 0;
+        for (let d = 0; d < empShifts.length - 1; d++) {
+          const today = empShifts[d] || "O";
+          const tomorrow = empShifts[d + 1] || "O";
+          const isNight = today === "N12" || today === "N8" || today === "N16";
+          const isMorning = tomorrow === "M8" || tomorrow === "M12" || tomorrow === "M16" || tomorrow === "D";
+          if (isNight && isMorning) turnaroundViolations++;
+        }
+
+        let fatigueRiskLevel: "Normal" | "Caution" | "Warning" = "Normal";
+        if (maxWeeklyOt > 36 || maxConsecutiveDays > 6 || turnaroundViolations > 0) {
+          fatigueRiskLevel = "Warning";
+        } else if (maxWeeklyOt >= 28 || maxConsecutiveDays === 6) {
+          fatigueRiskLevel = "Caution";
+        } else {
+          fatigueRiskLevel = "Normal";
+        }
+
+        // 4. Leave Records & Quota
+        const usedLeaveDays = (emp.sickLeaveUsed || 0) + (emp.personalLeaveUsed || 0) + (emp.vacationLeaveUsed || 0);
+        const remainingLeaveDays = Math.max(0, 46 - usedLeaveDays);
+
+        const derivedLeaves = (empShifts || []).flatMap((code, idx) => {
+          if (isLeaveCode(code)) {
+            const shiftDef = SHIFT_DEFINITIONS[code];
+            return [{
+              id: `shift-lvr-${idx + 1}`,
+              employeeId: emp.id,
+              employeeName: emp.name,
+              deptId: emp.deptId,
+              date: `${currentMonthKey}-${String(idx + 1).padStart(2, "0")}`,
+              leaveType: shiftDef?.name || code,
+              note: shiftDef?.description || "บันทึกจากการจัดกะ"
+            }];
+          }
+          return [];
+        });
+        const combinedLeaveRecords = empProfileLeaveRecords.length > 0 ? empProfileLeaveRecords : derivedLeaves;
+
+        // 5. Compliance Alerts
+        const complianceAlerts = auditEmployeeShiftsCompliance(empShifts, currentMonthKey);
+
+        // 6. Status determination
+        const isResigned = isResignedEmployee(emp);
+        const isOnLeave = isOnLeaveEmployee(emp, currentMonthKey);
+
+        const deptName = state?.departments?.find(d => d.id === emp.deptId)?.nameTh || emp.deptId;
+        const fullName = emp.name?.startsWith(emp.prefix || "")
+          ? emp.name
+          : `${emp.prefix || ""}${emp.name}`;
+
+        return (
+          <div className="fixed inset-0 bg-[#333B41]/70 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded w-full max-w-4xl overflow-hidden shadow-lg border border-[#DCE4EA] flex flex-col max-h-[92vh] my-auto">
+              
+              {/* Header Banner with Status Badge */}
+              <div className="p-5 sm:p-6 border-b border-[#DCE4EA] bg-[#F3F6F8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <EmployeeAvatar 
+                    empId={emp.id} 
+                    empName={emp.name} 
+                    className="w-16 h-16 sm:w-20 sm:h-20 text-xl border-2 border-white shadow-sm rounded-xl flex-shrink-0 object-cover" 
+                  />
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-black text-[#0E3A66] tracking-tight">
+                        {fullName}
+                      </h3>
+                      {emp.nickname && (
+                        <span className="bg-[#E8F3FA] text-[#0E3A66] px-2 py-0.5 rounded text-xs font-bold font-mono">
+                          ({emp.nickname})
+                        </span>
+                      )}
+                      {/* Status Badge */}
+                      {isResigned ? (
+                        <span className="px-2.5 py-1 rounded text-xs font-bold text-[#B3352C] bg-[#FBEAEA] border border-[#F4B8B4] flex items-center gap-1">
+                          <UserX className="w-3.5 h-3.5" />
+                          <span>พ้นสภาพ (Resigned)</span>
+                        </span>
+                      ) : isOnLeave ? (
+                        <span className="px-2.5 py-1 rounded text-xs font-bold text-[#D99B14] bg-[#FCF3DE] border border-[#F3D98F] flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>ลางาน (On-Leave)</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded text-xs font-bold text-[#1E9C6E] bg-[#E8F6F0] border border-[#A5DCC5] flex items-center gap-1">
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>ปฏิบัติงานปกติ (Active)</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-[#59656D]">
+                      <span>รหัส: <strong className="font-mono text-[#0E3A66]">{emp.id}</strong></span>
+                      <span>•</span>
+                      <span className="font-bold text-[#17538F]">{emp.role}</span>
+                      <span>•</span>
+                      <span>แผนก {deptName}</span>
+                      {emp.division && (
+                        <>
+                          <span>•</span>
+                          <span>ฝ่าย {emp.division}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <button 
+                    type="button"
+                    onClick={() => setViewingEmployeeDetails(null)}
+                    className="p-2 hover:bg-[#DCE4EA] rounded text-[#59656D] hover:text-[#333B41] transition-colors cursor-pointer"
+                    title="ปิดหน้าต่าง"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Bento Telemetry Grid Body */}
+              <div className="p-5 sm:p-6 space-y-6 overflow-y-auto flex-1 text-[#333B41] text-xs">
+                
+                {/* SECTION 1: WORK STATISTICS BENTO CARDS (3 COLS) */}
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-black text-slate-900">
-                      {viewingEmployeeDetails.name?.startsWith(viewingEmployeeDetails.prefix || "")
-                        ? viewingEmployeeDetails.name
-                        : `${viewingEmployeeDetails.prefix || ""}${viewingEmployeeDetails.name}`}
-                    </h3>
-                    {viewingEmployeeDetails.nickname && (
-                      <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-xl text-xs font-extrabold">
-                        ({viewingEmployeeDetails.nickname})
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 font-mono mt-1">รหัสพนักงาน: <span className="text-slate-800 font-bold">{viewingEmployeeDetails.id}</span></p>
-                  <p className="text-xs text-indigo-600 font-bold mt-1">
-                    {viewingEmployeeDetails.role} • แผนก {
-                      state.departments.find(d => d.id === viewingEmployeeDetails.deptId)?.nameTh || viewingEmployeeDetails.deptId
-                    }
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setViewingEmployeeDetails(null)}
-                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Profile Content Body */}
-            <div className="p-6 space-y-5 overflow-y-auto flex-1 text-slate-700 text-xs">
-              {/* Category 1: ข้อมูลทั่วไป */}
-              <div className="space-y-2.5">
-                <h4 className="font-extrabold text-blue-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  ข้อมูลทั่วไปของพนักงาน (General)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">คำนำหน้า</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.prefix || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">ชื่อจริง</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.firstName || viewingEmployeeDetails.name?.split(" ")[0] || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">นามสกุล</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.lastName || viewingEmployeeDetails.name?.split(" ")[1] || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">วันเกิด (ปี/เดือน/วัน)</span>
-                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.birthday || "-"}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">อายุ</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.age || viewingEmployeeDetails.calculatedAge || "-"} ปี</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Category 2: โครงสร้างสังกัด */}
-              <div className="space-y-2.5">
-                <h4 className="font-extrabold text-indigo-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  สังกัดและโครงสร้างสายปฏิบัติงาน (Organization)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">ตำแหน่งงาน</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.role || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">แผนกปฏิบัติการ</span>
-                    <span className="font-bold text-slate-800">
-                      {state.departments.find(d => d.id === viewingEmployeeDetails.deptId)?.nameTh || viewingEmployeeDetails.deptId}
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-black text-[#0E3A66] uppercase tracking-wider flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-[#17538F]" />
+                      <span>สถิติการทำงานและผลตอบแทนรายบุคคล</span>
+                    </h4>
+                    <span className="text-[11px] font-mono text-[#59656D]">
+                      รอบเดือน: <strong className="text-[#0E3A66]">{currentMonthKey}</strong>
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">ฝ่ายงาน</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.division || "-"}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl pt-0">
-                  <div className="col-span-2">
-                    <span className="block text-[10px] text-slate-400 font-medium">ปฏิทินปฏิบัติงาน</span>
-                    <span className="font-bold text-indigo-700">{viewingEmployeeDetails.calendarType || "-"}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Category 3: ประวัติพนักงานและการปฏิบัติงาน */}
-              <div className="space-y-2.5">
-                <h4 className="font-extrabold text-emerald-700 uppercase tracking-wider pb-1.5 border-b border-slate-100 flex items-center gap-1.5">
-                  ประวัติพนักงานและการปฏิบัติงาน (Employee Profile History)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-3 rounded-2xl">
-                  {canAccessSalary && (
-                    <div>
-                      <span className="block text-[10px] text-slate-400 font-medium">ฐานเงินเดือน ปี 2568</span>
-                      <span className="font-bold text-slate-800 font-mono">
-                        {viewingEmployeeDetails.salary?.toLocaleString() || "0"}
-                      </span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">วันเริ่มงาน</span>
-                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.startDate || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">อายุงานรวม</span>
-                    <span className="font-bold text-slate-800">{viewingEmployeeDetails.tenure || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-medium">วันที่ผ่านทดลองงาน</span>
-                    <span className="font-bold text-slate-800 font-mono">{viewingEmployeeDetails.probationDate || "-"}</span>
-                  </div>
-                </div>
-
-                {/* Leave Days Summary Card */}
-                <div className="space-y-2 pt-1">
-                  <span className="block text-[11px] font-extrabold text-amber-800">สรุปจำนวนวันลาพนักงาน (Leave Quota Summary)</span>
-                  <div className="grid grid-cols-3 gap-3 bg-amber-50/40 p-3 rounded-2xl border border-amber-100/60 text-center">
-                    <div className="bg-white p-2.5 rounded-xl border border-amber-200/60 shadow-sm">
-                      <span className="block text-[10px] font-bold text-amber-700">สิทธิวันลาทั้งหมด</span>
-                      <span className="text-sm font-black text-amber-900 font-mono">46 วัน</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-rose-200/60 shadow-sm">
-                      <span className="block text-[10px] font-bold text-rose-700">ใช้ไปแล้วรวม</span>
-                      <span className="text-sm font-black text-rose-700 font-mono">
-                        {((viewingEmployeeDetails.sickLeaveUsed || 0) + (viewingEmployeeDetails.personalLeaveUsed || 0) + (viewingEmployeeDetails.vacationLeaveUsed || 0))} วัน
-                      </span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200/60 shadow-sm">
-                      <span className="block text-[10px] font-bold text-emerald-700">วันลาคงเหลือรวม</span>
-                      <span className="text-sm font-black text-emerald-700 font-mono">
-                        {Math.max(0, 46 - ((viewingEmployeeDetails.sickLeaveUsed || 0) + (viewingEmployeeDetails.personalLeaveUsed || 0) + (viewingEmployeeDetails.vacationLeaveUsed || 0)))} วัน
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* OT Ratio % vs Base Salary */}
-                {(() => {
-                  const salary = viewingEmployeeDetails.salary || 15000;
-                  const actualOtHours = viewingEmployeeDetails.actualOt || 0;
-                  const hourlyRate = (salary / 240) * 1.5;
-                  const monthlyOtCost = Math.round(actualOtHours * hourlyRate);
-                  const otSalaryPct = Math.round((monthlyOtCost / salary) * 100);
-                  const isMax = otSalaryPct >= 100;
-
-                  return (
-                    <div className="space-y-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-extrabold text-slate-800">
-                          สัดส่วนค่า OT สะสมเทียบฐานเงินเดือน
-                        </span>
-                        {isMax ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#B3352C] text-white text-[11px] font-bold shadow-xs flex items-center gap-1">
-                            <AlertOctagon className="w-3.5 h-3.5" />
-                            <span>MAX ({otSalaryPct}%)</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    {/* Bento Card 1: Accumulated Shift Hours */}
+                    <div className="bg-white border border-[#DCE4EA] rounded p-4 flex flex-col justify-between hover:border-[#2E90CB] transition-colors">
+                      <div>
+                        <div className="flex items-center justify-between text-[#59656D] mb-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider">ชั่วโมงกะสะสม</span>
+                          <Clock className="w-4 h-4 text-[#17538F]" />
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-black text-[#0E3A66] font-mono tabular-nums">
+                            {accumulatedShiftHours}
                           </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-extrabold">
-                            {otSalaryPct}% ของฐานเงินเดือน
+                          <span className="text-xs font-bold text-[#59656D]">ชม. รวม</span>
+                        </div>
+                        <p className="text-[11px] text-[#59656D] mt-1">
+                          ปฏิบัติงานจริง <strong className="text-[#0E3A66] font-mono">{workedDaysCount}</strong> วันในรอบเดือน
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-[#DCE4EA] space-y-2">
+                        {/* Dual bar: standard vs OT */}
+                        <div className="w-full bg-[#F3F6F8] h-2 rounded overflow-hidden flex">
+                          <div 
+                            style={{ width: `${standardHoursPct}%` }} 
+                            className="bg-[#0E3A66] h-full"
+                            title={`เวลาปกติ: ${standardHours} ชม.`}
+                          />
+                          <div 
+                            style={{ width: `${otHoursPct}%` }} 
+                            className="bg-[#2E90CB] h-full"
+                            title={`ล่วงเวลา OT: ${totalOtHours} ชม.`}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-mono text-[#59656D]">
+                          <span>กะปกติ: <strong className="text-[#0E3A66]">{standardHours}</strong> ชม.</span>
+                          <span>OT: <strong className="text-[#2E90CB]">{totalOtHours}</strong> ชม.</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bento Card 2: OT Earnings Breakdown */}
+                    <div className="bg-white border border-[#DCE4EA] rounded p-4 flex flex-col justify-between hover:border-[#2E90CB] transition-colors">
+                      <div>
+                        <div className="flex items-center justify-between text-[#59656D] mb-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider">ค่าตอบแทนโอทีสะสม</span>
+                          <DollarSign className="w-4 h-4 text-[#1E9C6E]" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-3xl font-black text-[#0E3A66] font-mono tabular-nums">
+                            {totalOtPay.toLocaleString()}
                           </span>
+                          <span className="text-xs font-bold text-[#59656D]">บาท</span>
+                        </div>
+                        <p className="text-[11px] text-[#59656D] mt-1">
+                          คิดเป็น <strong className="text-[#17538F] font-mono">{breakdown.otPctSalary}%</strong> ของฐานเงินเดือน
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-[#DCE4EA] space-y-1 text-[11px] font-mono">
+                        <div className="flex justify-between text-[#59656D]">
+                          <span>กะปกติ OT (1.5x):</span>
+                          <span className="font-bold text-[#0E3A66]">{breakdown.normalOt} ชม. ({normalOtPay.toLocaleString()} บ.)</span>
+                        </div>
+                        <div className="flex justify-between text-[#59656D]">
+                          <span>งานวันหยุด (1.0x):</span>
+                          <span className="font-bold text-[#0E3A66]">{holidayWorkHours} ชม. ({holidayWorkPay.toLocaleString()} บ.)</span>
+                        </div>
+                        <div className="flex justify-between text-[#59656D]">
+                          <span>ล่วงเวลาวันหยุด (3.0x):</span>
+                          <span className="font-bold text-[#0E3A66]">{breakdown.holidayOt} ชม. ({holidayOtPay.toLocaleString()} บ.)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bento Card 3: Fatigue Status Telemetry */}
+                    <div className="bg-white border border-[#DCE4EA] rounded p-4 flex flex-col justify-between hover:border-[#2E90CB] transition-colors">
+                      <div>
+                        <div className="flex items-center justify-between text-[#59656D] mb-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider">ประเมินความล้าสะสม</span>
+                          <Activity className="w-4 h-4 text-[#17538F]" />
+                        </div>
+
+                        <div className="mt-1">
+                          {fatigueRiskLevel === "Warning" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-black text-[#B3352C] bg-[#FBEAEA] border border-[#F4B8B4]">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>Warning (ความเสี่ยงสูง)</span>
+                            </span>
+                          ) : fatigueRiskLevel === "Caution" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-black text-[#D99B14] bg-[#FCF3DE] border border-[#F3D98F]">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>Caution (เฝ้าระวัง)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-black text-[#1E9C6E] bg-[#E8F6F0] border border-[#A5DCC5]">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Normal (ปลอดภัย)</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-[#59656D] mt-2">
+                          เกณฑ์ความปลอดภัยสูงสุด: OT &le; 36 ชม./สัปดาห์, กะ &le; 6 วันติด
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-[#DCE4EA] space-y-1.5 text-[11px]">
+                        <div className="flex justify-between items-center font-mono">
+                          <span className="text-[#59656D]">ทำงานติดต่อกันสูงสุด:</span>
+                          <span className={`font-bold ${maxConsecutiveDays > 6 ? "text-[#B3352C]" : maxConsecutiveDays === 6 ? "text-[#D99B14]" : "text-[#1E9C6E]"}`}>
+                            {maxConsecutiveDays} / 6 วัน
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center font-mono">
+                          <span className="text-[#59656D]">OT สูงสุดใน 1 สัปดาห์:</span>
+                          <span className={`font-bold ${maxWeeklyOt > 36 ? "text-[#B3352C]" : maxWeeklyOt >= 28 ? "text-[#D99B14]" : "text-[#1E9C6E]"}`}>
+                            {maxWeeklyOt} / 36 ชม.
+                          </span>
+                        </div>
+                        {turnaroundViolations > 0 && (
+                          <div className="flex justify-between items-center font-mono text-[#B3352C]">
+                            <span>พักผ่อนต่ำกว่า 11 ชม.:</span>
+                            <span className="font-bold">{turnaroundViolations} ครั้ง</span>
+                          </div>
                         )}
                       </div>
+                    </div>
 
-                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
-                        <div 
-                          style={{ width: `${Math.min(100, otSalaryPct)}%` }}
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isMax ? "bg-gradient-to-r from-rose-500 via-red-600 to-rose-700" : "bg-gradient-to-r from-blue-500 to-indigo-600"
-                          }`}
-                        ></div>
+                  </div>
+                </div>
+
+                {/* SECTION 2: COMPLIANCE ALERTS & LEAVE HISTORY (2 COLS) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  
+                  {/* Card 4: Compliance Alerts */}
+                  <div className="bg-white border border-[#DCE4EA] rounded p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-[#DCE4EA] mb-3">
+                        <h4 className="text-xs font-black text-[#0E3A66] uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldAlert className="w-4 h-4 text-[#17538F]" />
+                          <span>การตรวจสอบข้อปฏิบัติตามกฎหมายแรงงาน</span>
+                        </h4>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-mono ${complianceAlerts.length === 0 ? "bg-[#E8F6F0] text-[#1E9C6E]" : "bg-[#FBEAEA] text-[#B3352C]"}`}>
+                          {complianceAlerts.length === 0 ? "100% สอดคล้อง" : `พบ ${complianceAlerts.length} ข้อควรระวัง`}
+                        </span>
                       </div>
 
-                      {isMax && (
-                        <div className="p-2.5 rounded-xl bg-rose-100/90 border border-rose-300 text-rose-950 text-[11px] font-bold flex items-center gap-2 mt-1.5 shadow-sm">
-                          <AlertTriangle className="w-4 h-4 text-rose-700 inline flex-shrink-0" />
-                          <span>แจ้งเตือนผู้จัดการ: สัดส่วนค่า OT ของพนักงานเกิน 100% ของฐานเงินเดือนแล้ว! (สถิติปัจจุบัน {otSalaryPct}%)</span>
+                      {complianceAlerts.length === 0 ? (
+                        <div className="p-4 bg-[#E8F6F0] border border-[#A5DCC5] rounded flex items-start gap-3 text-[#1E9C6E]">
+                          <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-xs">ผ่านเกณฑ์มาตรฐานความปลอดภัยตามกฎหมายแรงงาน 100%</p>
+                            <p className="text-[11px] text-[#59656D] mt-1">
+                              ไม่พบการทำงานล่วงเวลาเกิน 36 ชม./สัปดาห์ และไม่มีการทำงานติดต่อกันเกิน 6 วันโดยไม่มีวันหยุดประจำสัปดาห์
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                          {complianceAlerts.map((alert, idx) => (
+                            <div 
+                              key={idx}
+                              className={`p-3 rounded border text-xs flex items-start gap-2.5 ${
+                                alert.level === "danger" 
+                                  ? "bg-[#FBEAEA] border-[#F4B8B4] text-[#B3352C]" 
+                                  : "bg-[#FCF3DE] border-[#F3D98F] text-[#D99B14]"
+                              }`}
+                            >
+                              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <span className="font-bold block text-[11px]">
+                                  {alert.type === "weekly_ot" ? "ชั่วโมง OT เกินกำหนด" : alert.type === "consecutive_days" ? "ทำงานติดต่อกันเกินเกณฑ์" : "เวลาพักผ่อนไม่เพียงพอ"}
+                                </span>
+                                <span className="text-[11px] leading-tight block mt-0.5 text-[#333B41]">
+                                  {alert.message}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
-                  );
-                })()}
-              </div>
+                  </div>
 
-                {/* Category 4: โครงสร้างตำแหน่ง Job Value */}
-                {(() => {
-                  const matchJv = (jobValueRecords || []).find(r => 
-                    String(r?.empId || "").toLowerCase() === String(viewingEmployeeDetails.id || "").toLowerCase() ||
-                    String(r?.empName || "").toLowerCase() === String(viewingEmployeeDetails.name || "").toLowerCase()
-                  );
-                  if (!matchJv) return null;
-
-                  const p25 = Number(matchJv.profit2025) || 0;
-                  const p26 = Number(matchJv.profit2026) || 0;
-                  const diff = p26 - p25;
-                  const isGrowth = diff >= 0;
-
-                  return (
-                    <div className="space-y-2.5 pt-2">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                        <h4 className="font-extrabold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <TrendingUp className="w-4 h-4 text-blue-600" />
-                          <span>โครงสร้างตำแหน่ง Job Value (Job Value Structure & Growth 68/69)</span>
+                  {/* Card 5: Leave Quota & History */}
+                  <div className="bg-white border border-[#DCE4EA] rounded p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 border-b border-[#DCE4EA] mb-3">
+                        <h4 className="text-xs font-black text-[#0E3A66] uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-[#17538F]" />
+                          <span>ประวัติการลาและโควตาสิทธิ</span>
                         </h4>
-                        {isGrowth ? (
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black border border-emerald-300 shadow-sm">
-                            ต่อยอด (+{diff.toLocaleString()})
-                          </span>
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                          <span className="text-[#59656D]">ใช้ไป:</span>
+                          <strong className="text-[#B3352C]">{usedLeaveDays}</strong>
+                          <span className="text-[#59656D]">/</span>
+                          <span className="text-[#59656D]">คงเหลือ:</span>
+                          <strong className="text-[#1E9C6E]">{remainingLeaveDays} วัน</strong>
+                        </div>
+                      </div>
+
+                      {/* Quota Mini Bento Cards */}
+                      <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                        <div className="bg-[#F3F6F8] p-2 rounded border border-[#DCE4EA]">
+                          <span className="block text-[10px] font-bold text-[#59656D]">สิทธิทั้งหมด</span>
+                          <span className="text-xs font-black text-[#0E3A66] font-mono">46 วัน</span>
+                        </div>
+                        <div className="bg-[#FBEAEA] p-2 rounded border border-[#F4B8B4]">
+                          <span className="block text-[10px] font-bold text-[#B3352C]">ใช้แล้ว</span>
+                          <span className="text-xs font-black text-[#B3352C] font-mono">{usedLeaveDays} วัน</span>
+                        </div>
+                        <div className="bg-[#E8F6F0] p-2 rounded border border-[#A5DCC5]">
+                          <span className="block text-[10px] font-bold text-[#1E9C6E]">คงเหลือ</span>
+                          <span className="text-xs font-black text-[#1E9C6E] font-mono">{remainingLeaveDays} วัน</span>
+                        </div>
+                      </div>
+
+                      {/* Itemized Leave Records Table */}
+                      <div className="max-h-[120px] overflow-y-auto border border-[#DCE4EA] rounded">
+                        {loadingEmpProfileLeaveRecords ? (
+                          <div className="py-6 text-center text-[#59656D] flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-[#17538F]" />
+                            <span className="text-xs">กำลังโหลดบันทึกการลา...</span>
+                          </div>
+                        ) : combinedLeaveRecords.length > 0 ? (
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-[#F3F6F8] text-[#59656D] border-b border-[#DCE4EA] text-[10px] font-bold uppercase">
+                                <th className="px-2.5 py-1.5">วันที่</th>
+                                <th className="px-2.5 py-1.5">ประเภทการลา</th>
+                                <th className="px-2.5 py-1.5">หมายเหตุ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#DCE4EA]">
+                              {combinedLeaveRecords.map((rec: any, idx: number) => (
+                                <tr key={rec.id || idx} className="hover:bg-[#F3F6F8]">
+                                  <td className="px-2.5 py-1.5 font-mono text-[#0E3A66] font-bold whitespace-nowrap">
+                                    {rec.date}
+                                  </td>
+                                  <td className="px-2.5 py-1.5">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8F3FA] text-[#0E3A66]">
+                                      {rec.leaveType}
+                                    </span>
+                                  </td>
+                                  <td className="px-2.5 py-1.5 text-[#59656D] truncate max-w-[140px]">
+                                    {rec.note || "-"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         ) : (
-                          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black border border-rose-300 shadow-sm">
-                            ไม่ต่อยอด (-{Math.abs(diff).toLocaleString()})
-                          </span>
+                          <div className="py-4 text-center text-[#6A7B87] flex flex-col items-center justify-center gap-1">
+                            <CalendarCheck className="w-4 h-4 text-[#1E9C6E]" />
+                            <span className="text-[11px]">ไม่มีบันทึกประวัติการลาในระบบ</span>
+                          </div>
                         )}
                       </div>
+                    </div>
+                  </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
-                        <div>
-                          <span className="block text-[10px] text-emerald-700 font-bold">รายได้เฉลี่ย/เดือน</span>
-                          <span className="font-black text-emerald-800 font-mono text-sm">{(Number(matchJv.avgRevenue) || 0).toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] text-rose-700 font-bold">ต้นทุนเฉลี่ย/เดือน</span>
-                          <span className="font-black text-rose-800 font-mono text-sm">{(Number(matchJv.avgCost) || 0).toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] text-slate-600 font-bold">กำไรสะสมปี 2568 (2025)</span>
-                          <span className="font-bold text-slate-800 font-mono text-sm">{p25.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] text-blue-700 font-bold">กำไรสะสมปี 2569 (2026)</span>
-                          <span className="font-black text-blue-800 font-mono text-sm">{p26.toLocaleString()}</span>
-                        </div>
+                </div>
+
+                {/* SECTION 3: GENERAL PROFILE & JOB VALUE DETAILS */}
+                <div className="bg-white border border-[#DCE4EA] rounded p-4 space-y-3">
+                  <h4 className="text-xs font-black text-[#0E3A66] uppercase tracking-wider pb-2 border-b border-[#DCE4EA] flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-[#17538F]" />
+                    <span>ข้อมูลประวัติและสายปฏิบัติงานทั่วไป</span>
+                  </h4>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F3F6F8] p-3 rounded text-[11px]">
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">วันเกิด</span>
+                      <span className="font-mono font-bold text-[#0E3A66]">{emp.birthday || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">อายุ</span>
+                      <span className="font-bold text-[#0E3A66]">{emp.age || emp.calculatedAge || "-"} ปี</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">วันเริ่มงาน</span>
+                      <span className="font-mono font-bold text-[#0E3A66]">{emp.startDate || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">อายุงานรวม</span>
+                      <span className="font-bold text-[#0E3A66]">{emp.tenure || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">ผ่านทดลองงาน</span>
+                      <span className="font-mono font-bold text-[#0E3A66]">{emp.probationDate || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">ปฏิทินปฏิบัติงาน</span>
+                      <span className="font-bold text-[#17538F] truncate block">{emp.calendarType || "-"}</span>
+                    </div>
+                    {canAccessSalary && (
+                      <div>
+                        <span className="block text-[10px] text-[#6A7B87] font-bold">ฐานเงินเดือน</span>
+                        <span className="font-mono font-bold text-[#0E3A66]">
+                          {emp.salary ? `${Number(emp.salary).toLocaleString()} บ.` : "-"}
+                        </span>
                       </div>
+                    )}
+                    <div>
+                      <span className="block text-[10px] text-[#6A7B87] font-bold">เป้าหมาย OT</span>
+                      <span className="font-mono font-bold text-[#0E3A66]">{emp.targetOt || 48} ชม./ด.</span>
+                    </div>
+                  </div>
 
-                      {/* Comparison Growth Banner */}
-                      <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                        isGrowth ? "bg-emerald-50/90 border-emerald-200 text-emerald-950" : "bg-rose-50/90 border-rose-200 text-rose-950"
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isGrowth ? "bg-emerald-200/80 text-emerald-800" : "bg-rose-200/80 text-rose-800"}`}>
-                            {isGrowth ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                  {/* Optional Job Value integration if record exists */}
+                  {(() => {
+                    const matchJv = (jobValueRecords || []).find(r => 
+                      String(r?.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
+                      String(r?.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
+                    );
+                    if (!matchJv) return null;
+
+                    const p25 = Number(matchJv.profit2025) || 0;
+                    const p26 = Number(matchJv.profit2026) || 0;
+                    const diff = p26 - p25;
+                    const isGrowth = diff >= 0;
+
+                    return (
+                      <div className="pt-2 border-t border-[#DCE4EA]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-[#0E3A66] flex items-center gap-1">
+                            <TrendingUp className="w-3.5 h-3.5 text-[#17538F]" />
+                            <span>โครงสร้าง Job Value และการเติบโต 2568 / 2569</span>
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${isGrowth ? "bg-[#E8F6F0] text-[#1E9C6E]" : "bg-[#FBEAEA] text-[#B3352C]"}`}>
+                            {isGrowth ? `+${diff.toLocaleString()}` : `${diff.toLocaleString()}`} บ.
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#F3F6F8] p-2.5 rounded text-[10px] font-mono">
+                          <div>
+                            <span className="text-[#59656D] block">รายได้เฉลี่ย:</span>
+                            <span className="font-bold text-[#0E3A66]">{(Number(matchJv.avgRevenue) || 0).toLocaleString()} บ.</span>
                           </div>
                           <div>
-                            <div className="text-xs font-black">
-                              ผลการเปรียบเทียบกำไรปี 2568 -&gt; 2569: {isGrowth ? "เติบโตต่อยอด (Positive Growth)" : "ลดลงไม่ต่อยอด (Performance Decline)"}
-                            </div>
-                            <div className="text-[11px] font-semibold opacity-85 mt-0.5">
-                              ส่วนต่างผลงานสะสม: {isGrowth ? `เพิ่มขึ้น +${diff.toLocaleString()}` : `ลดลง -${Math.abs(diff).toLocaleString()}`}
-                            </div>
+                            <span className="text-[#59656D] block">ต้นทุนเฉลี่ย:</span>
+                            <span className="font-bold text-[#0E3A66]">{(Number(matchJv.avgCost) || 0).toLocaleString()} บ.</span>
+                          </div>
+                          <div>
+                            <span className="text-[#59656D] block">กำไร 2568:</span>
+                            <span className="font-bold text-[#0E3A66]">{p25.toLocaleString()} บ.</span>
+                          </div>
+                          <div>
+                            <span className="text-[#59656D] block">กำไร 2569:</span>
+                            <span className="font-bold text-[#0E3A66]">{p26.toLocaleString()} บ.</span>
                           </div>
                         </div>
-                        <div className={`px-3 py-1.5 rounded-xl font-mono font-black text-xs self-start sm:self-auto ${
-                          isGrowth ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
-                        }`}>
-                          {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
-                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
-            </div>
+                    );
+                  })()}
+                </div>
 
-            {/* Footer buttons */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewingEmployeeDetails(null);
-                  startEditEmployee(viewingEmployeeDetails);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>แก้ไขข้อมูลโปรไฟล์</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewingEmployeeDetails(null)}
-                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                ปิดหน้าต่าง
-              </button>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="p-4 border-t border-[#DCE4EA] bg-[#F3F6F8] flex justify-end items-center gap-2">
+                {isHrOrFullAccess && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewingEmployeeDetails(null);
+                      startEditEmployee(emp);
+                    }}
+                    className="px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white text-xs font-bold rounded transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>แก้ไขข้อมูลโปรไฟล์</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setViewingEmployeeDetails(null)}
+                  className="px-4 py-2 border border-[#DCE4EA] bg-white hover:bg-[#F3F6F8] text-[#59656D] text-xs font-bold rounded transition-colors cursor-pointer"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: GEMINI AI COMPLIANCE AUDIT */}
@@ -12374,143 +13811,351 @@ export default function App() {
       )}
 
       {/* Modal: Salary & OT Formula Details */}
-      {viewingSalaryFormulaEmployee && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white rounded shadow-lg border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col font-sans animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/20">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+      {viewingSalaryFormulaEmployee && (() => {
+        const modalMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+        const modalAuditRows = getEmpDailyShiftAuditRows(viewingSalaryFormulaEmployee.emp, modalMonthKey);
+        const modalJvRecord = (safeJobValueRecords || []).find((r: any) => r.empId === viewingSalaryFormulaEmployee.emp.id);
+        const modalJvBreakdown = getEmployeeJobValueBreakdown(viewingSalaryFormulaEmployee.emp, modalMonthKey, modalJvRecord);
+        const modalSalary = Number(viewingSalaryFormulaEmployee.salary) || Number(viewingSalaryFormulaEmployee.emp.salary) || 15000;
+        const modalHourlyRate = modalSalary > 0 ? (modalSalary / 240) : 62.5;
+        const modalNormalOtHrs = Number(viewingSalaryFormulaEmployee.normalOt) || 0;
+        const modalHolidayOtHrs = Number(viewingSalaryFormulaEmployee.holidayOt) || 0;
+        const modalHolidayWorkDays = Number(viewingSalaryFormulaEmployee.holidayWorkDays) || 0;
+        const modalNormalOtPay = Math.round(modalNormalOtHrs * 1.5 * modalHourlyRate);
+        const modalHolidayWorkPay = Math.round(modalHolidayWorkDays * 8 * 1.0 * modalHourlyRate);
+        const modalHolidayOtPay = Math.round(modalHolidayOtHrs * 3.0 * modalHourlyRate);
+        const modalTotalOtPay = Number(viewingSalaryFormulaEmployee.totalOtPay) || (modalNormalOtPay + modalHolidayWorkPay + modalHolidayOtPay);
+        const modalTotalLaborCost = modalSalary + modalTotalOtPay;
+        const modalTotalOtHours = modalNormalOtHrs + modalHolidayOtHrs + (modalHolidayWorkDays * 8);
+
+        return (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0E3A66]/60 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto">
+            <div className="bg-white rounded shadow-xl border border-[#DCE4EA] max-w-5xl w-full max-h-[92vh] flex flex-col font-sans animate-in zoom-in-95 duration-150 overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-[#0E3A66] text-white px-6 py-4 flex items-center justify-between border-b border-[#17538F]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#17538F] text-[#9FCEE8] flex items-center justify-center border border-[#2E90CB]/30 shadow-sm">
+                    <Calculator className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black leading-tight text-white">สูตรและผลการคำนวณค่าตอบแทนและคุณค่างาน</h3>
+                    <p className="text-[11px] text-[#9FCEE8] font-mono mt-0.5">
+                      {viewingSalaryFormulaEmployee.emp.name} ({viewingSalaryFormulaEmployee.emp.id}) • {viewingSalaryFormulaEmployee.emp.role || "Operator"} • {viewingSalaryFormulaEmployee.emp.department || viewingSalaryFormulaEmployee.emp.deptId || "Operations"}
+                    </p>
+                  </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleExportDailyAuditCsv(viewingSalaryFormulaEmployee.emp.name, viewingSalaryFormulaEmployee.emp.id, modalAuditRows)}
+                    className="px-3 py-1.5 bg-[#17538F] hover:bg-[#2E90CB] text-white rounded text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-[#2E90CB]/40 shadow-sm"
+                    title="ส่งออกรายงานการตรวจสอบรายวันเป็น CSV"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>ส่งออก CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingSalaryFormulaEmployee(null)}
+                    className="text-white/80 hover:text-white transition-colors cursor-pointer p-1.5 rounded hover:bg-white/10"
+                    title="ปิดหน้าต่าง"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-5 sm:p-6 space-y-6 overflow-y-auto bg-[#F3F7FA] flex-1 text-[#333B41]">
+                {/* 1. Six Summary KPI Cards */}
                 <div>
-                  <h3 className="text-sm font-black leading-tight">สูตรและวิธีการคำนวณเงินได้ค่าล่วงเวลา (OT)</h3>
-                  <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
-                    {viewingSalaryFormulaEmployee.emp.name} ({viewingSalaryFormulaEmployee.emp.id})
-                  </p>
+                  <h4 className="text-[11px] font-bold text-[#59656D] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#17538F]"></span>
+                    <span>สรุปยอดชั่วโมงและค่าตอบแทนสะสม (Compensation Summary)</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                    {/* Card 1: Total OT Hours */}
+                    <div className="bg-white border border-[#DCE4EA] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#59656D] font-bold">ชั่วโมง OT รวม</div>
+                      <div className="text-base font-black text-[#0E3A66] font-mono tabular-nums my-1">
+                        {modalTotalOtHours} <span className="text-[10px] font-normal text-[#59656D]">ชม.</span>
+                      </div>
+                      <div className="text-[9px] text-[#8897A2]">รวมทุกประเภทกะ</div>
+                    </div>
+
+                    {/* Card 2: Normal OT Pay (1.5x) */}
+                    <div className="bg-white border border-[#DCE4EA] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#17538F] font-bold">OT ปกติ (1.5x)</div>
+                      <div className="text-base font-black text-[#17538F] font-mono tabular-nums my-1">
+                        {modalNormalOtPay.toLocaleString()} <span className="text-[10px] font-normal text-[#59656D]">บาท</span>
+                      </div>
+                      <div className="text-[9px] text-[#8897A2]">{modalNormalOtHrs} ชม. × 1.5</div>
+                    </div>
+
+                    {/* Card 3: Holiday Standard Pay (1.0x) */}
+                    <div className="bg-white border border-[#DCE4EA] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#D99B14] font-bold">วันหยุดปกติ (1.0x)</div>
+                      <div className="text-base font-black text-[#D99B14] font-mono tabular-nums my-1">
+                        {modalHolidayWorkPay.toLocaleString()} <span className="text-[10px] font-normal text-[#59656D]">บาท</span>
+                      </div>
+                      <div className="text-[9px] text-[#8897A2]">{modalHolidayWorkDays * 8} ชม. ({modalHolidayWorkDays} วัน)</div>
+                    </div>
+
+                    {/* Card 4: Holiday OT Pay (3.0x) */}
+                    <div className="bg-white border border-[#DCE4EA] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#B3352C] font-bold">OT วันหยุด (3.0x)</div>
+                      <div className="text-base font-black text-[#B3352C] font-mono tabular-nums my-1">
+                        {modalHolidayOtPay.toLocaleString()} <span className="text-[10px] font-normal text-[#59656D]">บาท</span>
+                      </div>
+                      <div className="text-[9px] text-[#8897A2]">{modalHolidayOtHrs} ชม. × 3.0</div>
+                    </div>
+
+                    {/* Card 5: Base Salary */}
+                    <div className="bg-white border border-[#DCE4EA] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#59656D] font-bold">ฐานเงินเดือนหลัก</div>
+                      <div className="text-base font-black text-[#333B41] font-mono tabular-nums my-1">
+                        {modalSalary.toLocaleString()} <span className="text-[10px] font-normal text-[#59656D]">บาท</span>
+                      </div>
+                      <div className="text-[9px] text-[#8897A2]">เรท {modalHourlyRate.toFixed(2)} บ./ชม.</div>
+                    </div>
+
+                    {/* Card 6: Grand Total Labor Cost */}
+                    <div className="bg-[#E8F3FA] border border-[#9FCEE8] rounded-lg p-3 shadow-maritime-xs flex flex-col justify-between">
+                      <div className="text-[10px] text-[#0E3A66] font-bold">ต้นทุนแรงงานรวม</div>
+                      <div className="text-base font-black text-[#0E3A66] font-mono tabular-nums my-1">
+                        {modalTotalLaborCost.toLocaleString()} <span className="text-[10px] font-normal text-[#0E3A66]">บาท</span>
+                      </div>
+                      <div className="text-[9px] text-[#17538F]">เงินเดือน + รวม OT</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Formula Breakdown & Job Value Linkage */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {/* Block 1: Hourly Rate Base */}
+                  <div className="bg-white border border-[#DCE4EA] rounded-lg p-3.5 shadow-maritime-xs flex flex-col justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5 pb-2 border-b border-[#DCE4EA]">
+                        <Clock className="w-3.5 h-3.5 text-[#2E90CB]" />
+                        <span>1. ฐานอัตราจ้างรายชั่วโมง (Hourly Rate)</span>
+                      </div>
+                      <div className="mt-2.5 space-y-1.5 text-xs">
+                        <div className="text-[11px] text-[#59656D]">
+                          สูตร: <span className="font-mono font-bold text-[#333B41]">ฐานเงินเดือน ÷ 240 ชั่วโมง</span>
+                        </div>
+                        <div className="bg-[#F3F7FA] p-2 rounded border border-[#DCE4EA] font-mono text-[11px] text-[#0E3A66] space-y-0.5">
+                          <div>{modalSalary.toLocaleString()} ÷ 240 ชม.</div>
+                          <div className="font-bold text-[#17538F] border-t border-[#DCE4EA] pt-1">
+                            = {modalHourlyRate.toFixed(2)} บาท/ชั่วโมง
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[#8897A2] mt-2 leading-tight">
+                      คำนวณจากเกณฑ์มาตรฐาน 30 วัน × วันละ 8 ชม.
+                    </p>
+                  </div>
+
+                  {/* Block 2: Overtime Multipliers */}
+                  <div className="bg-white border border-[#DCE4EA] rounded-lg p-3.5 shadow-maritime-xs flex flex-col justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5 pb-2 border-b border-[#DCE4EA]">
+                        <Zap className="w-3.5 h-3.5 text-[#D99B14]" />
+                        <span>2. สูตรคำนวณตัวคูณค่าล่วงเวลา</span>
+                      </div>
+                      <div className="mt-2.5 space-y-1 text-[11px] font-mono">
+                        <div className="flex justify-between items-center text-[#17538F]">
+                          <span>• OT ปกติ (1.5x):</span>
+                          <span className="font-bold">{modalNormalOtPay.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#D99B14]">
+                          <span>• วันหยุดปกติ (1.0x):</span>
+                          <span className="font-bold">{modalHolidayWorkPay.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#B3352C]">
+                          <span>• OT วันหยุด (3.0x):</span>
+                          <span className="font-bold">{modalHolidayOtPay.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="border-t border-[#DCE4EA] pt-1 mt-1 flex justify-between items-center font-bold text-[#0E3A66] text-xs">
+                          <span>รวมเงิน OT สะสม:</span>
+                          <span>{modalTotalOtPay.toLocaleString()} บ.</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[#8897A2] mt-2 leading-tight">
+                      คิดเป็น {(modalSalary > 0 ? ((modalTotalOtPay / modalSalary) * 100).toFixed(2) : "0.00")}% ของฐานเงินเดือน
+                    </p>
+                  </div>
+
+                  {/* Block 3: Job Value Linkage */}
+                  <div className="bg-white border border-[#DCE4EA] rounded-lg p-3.5 shadow-maritime-xs flex flex-col justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5 pb-2 border-b border-[#DCE4EA]">
+                        <TrendingUp className="w-3.5 h-3.5 text-[#1E9C6E]" />
+                        <span>3. ความเชื่อมโยงคุณค่างาน (Job Value)</span>
+                      </div>
+                      <div className="mt-2.5 space-y-1 text-[11px]">
+                        <div className="flex justify-between items-center text-[#59656D]">
+                          <span>รายได้จากการดำเนินงาน:</span>
+                          <span className="font-mono font-bold text-[#333B41]">{modalJvBreakdown.monthlyRevenue.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#59656D]">
+                          <span>ต้นทุนแรงงานรวม:</span>
+                          <span className="font-mono font-bold text-[#B3352C]">{modalTotalLaborCost.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#1E9C6E] font-bold border-t border-[#DCE4EA] pt-1">
+                          <span>มูลค่าเพิ่ม (Value-Add):</span>
+                          <span className="font-mono">+{modalJvBreakdown.operationalValueAdd.toLocaleString()} บ.</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#17538F] font-mono text-[10px]">
+                          <span>Revenue/Cost Ratio:</span>
+                          <span className="font-bold">{modalJvBreakdown.revenueCostRatio.toFixed(2)}x ({modalJvBreakdown.profitMarginPct.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[#8897A2] mt-2 leading-tight">
+                      สะท้อนผลิตภาพและกำไรส่วนเพิ่มสุทธิของบทบาท
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Day-by-day table showing DailyShiftAuditRow */}
+                <div className="bg-white border border-[#DCE4EA] rounded-lg shadow-maritime-xs overflow-hidden">
+                  <div className="px-4 py-3 bg-[#F3F7FA] border-b border-[#DCE4EA] flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#0E3A66]" />
+                      <h4 className="text-xs font-bold text-[#0E3A66]">
+                        บันทึกการตรวจสอบรายวัน (Daily Shift Audit Trail) — {modalMonthKey}
+                      </h4>
+                      <span className="text-[10px] font-mono bg-[#E8F3FA] text-[#0E3A66] px-2 py-0.5 rounded border border-[#9FCEE8]">
+                        {modalAuditRows.length} วัน
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportDailyAuditCsv(viewingSalaryFormulaEmployee.emp.name, viewingSalaryFormulaEmployee.emp.id, modalAuditRows)}
+                      className="px-2.5 py-1 bg-white hover:bg-[#E8F3FA] text-[#0E3A66] border border-[#DCE4EA] rounded text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#17538F]" />
+                      <span>ส่งออก CSV</span>
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-[#E8F3FA] text-[#0E3A66] font-bold text-[11px] sticky top-0 z-10 border-b border-[#DCE4EA]">
+                        <tr>
+                          <th className="py-2.5 px-3 whitespace-nowrap">ลำดับ / วันที่</th>
+                          <th className="py-2.5 px-2 text-center whitespace-nowrap">แผนงาน</th>
+                          <th className="py-2.5 px-2 text-center whitespace-nowrap">ปฏิบัติจริง</th>
+                          <th className="py-2.5 px-2 whitespace-nowrap">ประเภทวัน</th>
+                          <th className="py-2.5 px-2 text-right whitespace-nowrap">OT ปกติ (1.5x)</th>
+                          <th className="py-2.5 px-2 text-right whitespace-nowrap">วันหยุด (1.0x)</th>
+                          <th className="py-2.5 px-2 text-right whitespace-nowrap">OT วันหยุด (3.0x)</th>
+                          <th className="py-2.5 px-3 text-right whitespace-nowrap">เงินได้สะสม</th>
+                          <th className="py-2.5 px-3 whitespace-nowrap min-w-[200px]">คำอธิบายสูตรคำนวณ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#DCE4EA] font-mono text-[11px]">
+                        {modalAuditRows.map((row) => (
+                          <tr key={row.day} className={`hover:bg-[#F3F7FA] transition-colors ${row.isHolidayOrRestDay ? "bg-amber-50/30" : ""}`}>
+                            <td className="py-2 px-3 font-sans font-bold text-[#333B41] whitespace-nowrap">
+                              #{row.day} <span className="text-[#59656D] font-normal">{row.dayOfWeekTh}</span> <span className="text-[10px] text-[#8897A2]">({row.dateStr})</span>
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${getShiftStyle(row.planShiftCode || row.shiftCode)}`}>
+                                {row.planShiftCode || row.shiftCode}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${getShiftStyle(row.actualShiftCode || row.shiftCode)}`}>
+                                {row.actualShiftCode || row.shiftCode}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 whitespace-nowrap font-sans">
+                              {row.isHolidayOrRestDay ? (
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded">
+                                  วันหยุด
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 bg-slate-100 text-[#59656D] text-[10px] font-bold rounded">
+                                  วันทำการ
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-right tabular-nums text-[#17538F] font-bold">
+                              {row.normalOtHours > 0 ? `${row.normalOtHours} ชม.` : <span className="text-slate-300 font-normal">-</span>}
+                            </td>
+                            <td className="py-2 px-2 text-right tabular-nums text-[#D99B14] font-bold">
+                              {row.holidayWorkHours > 0 ? `${row.holidayWorkHours} ชม.` : <span className="text-slate-300 font-normal">-</span>}
+                            </td>
+                            <td className="py-2 px-2 text-right tabular-nums text-[#B3352C] font-bold">
+                              {row.holidayOtHours > 0 ? `${row.holidayOtHours} ชม.` : <span className="text-slate-300 font-normal">-</span>}
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums font-bold text-[#0E3A66]">
+                              {row.dailyPayThb > 0 ? `${row.dailyPayThb.toLocaleString()} บ.` : <span className="text-slate-300 font-normal">-</span>}
+                            </td>
+                            <td className="py-2 px-3 font-sans text-[11px] text-[#59656D] truncate max-w-xs" title={row.explanation}>
+                              {row.explanation}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-[#E8F3FA] text-[#0E3A66] font-bold text-[11px] border-t-2 border-[#DCE4EA] sticky bottom-0 z-10 font-mono">
+                        <tr>
+                          <td colSpan={4} className="py-2.5 px-3 font-sans">
+                            รวมตลอดทั้งเดือน ({modalAuditRows.length} วัน)
+                          </td>
+                          <td className="py-2.5 px-2 text-right tabular-nums text-[#17538F]">
+                            {modalNormalOtHrs} ชม.
+                          </td>
+                          <td className="py-2.5 px-2 text-right tabular-nums text-[#D99B14]">
+                            {modalHolidayWorkDays * 8} ชม.
+                          </td>
+                          <td className="py-2.5 px-2 text-right tabular-nums text-[#B3352C]">
+                            {modalHolidayOtHrs} ชม.
+                          </td>
+                          <td className="py-2.5 px-3 text-right tabular-nums font-extrabold text-[#0E3A66]">
+                            {modalTotalOtPay.toLocaleString()} บ.
+                          </td>
+                          <td className="py-2.5 px-3 font-sans text-[10px] text-[#59656D]">
+                            ฐานเงินเดือน {modalSalary.toLocaleString()} บาท • รวมต้นทุนแรงงาน {modalTotalLaborCost.toLocaleString()} บาท
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={() => setViewingSalaryFormulaEmployee(null)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1 rounded-full hover:bg-white/10"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh] bg-slate-50/50">
-              {/* Financial Base Info */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
-                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                  <span>ฐานเงินเดือนที่ใช้คำนวณ (Financial Base)</span>
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1">
-                    <span className="text-slate-400 font-bold">ฐานเงินเดือนหลัก:</span>
-                    <div className="font-extrabold text-slate-800 font-mono text-sm">
-                      {viewingSalaryFormulaEmployee.salary.toLocaleString()} บาท
-                      {!viewingSalaryFormulaEmployee.emp.salary && (
-                        <span className="block text-[9px] text-amber-600 font-sans mt-0.5">*(ค่าเริ่มต้นระบบเนื่องจากไม่ได้ระบุข้อมูลใน DATA)*</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-slate-400 font-bold">อัตราจ้างรายชั่วโมง (Hourly Rate):</span>
-                    <div className="font-extrabold text-slate-800 font-mono text-sm">
-                      {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท/ชม.
-                      <span className="block text-[9px] text-slate-400 font-sans mt-0.5">สูตร: เงินเดือน ÷ 240 ชั่วโมง</span>
-                    </div>
-                  </div>
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-[#DCE4EA] bg-white flex flex-wrap items-center justify-between gap-3">
+                <div className="text-[11px] text-[#59656D] font-sans flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#1E9C6E]" />
+                  <span>สูตรมาตรฐาน: ปกติ 1.5 เท่า | ทำงานวันหยุด 1.0 เท่า | OT วันหยุด 3.0 เท่า | ฐานหาร 240 ชม.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleExportDailyAuditCsv(viewingSalaryFormulaEmployee.emp.name, viewingSalaryFormulaEmployee.emp.id, modalAuditRows)}
+                    className="px-4 py-2 bg-[#17538F] hover:bg-[#2E90CB] text-white rounded text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-maritime-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>ส่งออก CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingSalaryFormulaEmployee(null)}
+                    className="px-5 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded text-xs font-bold cursor-pointer transition-colors shadow-maritime-xs font-sans"
+                  >
+                    ปิดหน้าต่าง
+                  </button>
                 </div>
               </div>
-
-              {/* Detailed Breakdown */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
-                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                  <span>รายละเอียดชั่วโมงสะสมและเรทเงินได้ (Rate Calculations)</span>
-                </h4>
-
-                <div className="space-y-3.5 divide-y divide-slate-100 text-xs">
-                  {/* 1. Weekday OT (1.5x) */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">1. OT วันปฏิบัติงานปกติ (Weekday OT - 1.5x)</span>
-                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg border border-blue-200 font-mono font-black">{viewingSalaryFormulaEmployee.normalOt} ชม.</span>
-                    </div>
-                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
-                      <p>สูตร: [ชั่วโมงสะสม] × [อัตราจ้างรายชั่วโมง] × 1.5</p>
-                      <p>คำนวณ: {viewingSalaryFormulaEmployee.normalOt} ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 1.5</p>
-                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
-                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.normalOt * 1.5 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 2. Holiday OT (3.0x) */}
-                  <div className="space-y-1 pt-3.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">2. OT วันหยุดประจำสัปดาห์ (Holiday OT - 3.0x)</span>
-                      <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-lg border border-orange-200 font-mono font-black">{viewingSalaryFormulaEmployee.holidayOt} ชม.</span>
-                    </div>
-                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
-                      <p>สูตร: [ชั่วโมงสะสมวันหยุด] × [อัตราจ้างรายชั่วโมง] × 3.0</p>
-                      <p>คำนวณ: {viewingSalaryFormulaEmployee.holidayOt} ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 3.0</p>
-                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
-                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.holidayOt * 3.0 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 3. Holiday Work (1.0x) */}
-                  <div className="space-y-1 pt-3.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">3. ค่าจ้างทำงานในวันหยุดปกติ (Holiday Regular Work - 1.0x)</span>
-                      <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200 font-mono font-black">{viewingSalaryFormulaEmployee.holidayWorkDays} วัน (หรือ {viewingSalaryFormulaEmployee.holidayWorkDays * 8} ชม.)</span>
-                    </div>
-                    <div className="bg-slate-50 p-2.5 rounded-xl space-y-1 font-mono text-[10px] text-slate-600 border border-slate-100">
-                      <p>สูตร: [จำนวนวันทำงานในวันหยุด] × 8 ชม. × [อัตราจ้างรายชั่วโมง] × 1.0</p>
-                      <p>คำนวณ: {viewingSalaryFormulaEmployee.holidayWorkDays} วัน × 8 ชม. × {viewingSalaryFormulaEmployee.hourlyRate.toFixed(2)} บาท × 1.0</p>
-                      <p className="text-slate-900 font-extrabold text-xs mt-1 border-t border-slate-200/60 pt-1 text-right">
-                        รวมเงินส่วนนี้: {Math.round(viewingSalaryFormulaEmployee.holidayWorkDays * 8 * 1.0 * viewingSalaryFormulaEmployee.hourlyRate).toLocaleString()} บาท
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Summary */}
-              <div className="bg-blue-600 text-white rounded-2xl p-4 shadow-md space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-blue-200 uppercase tracking-widest font-sans">ยอดรวมเงินได้ค่าล่วงเวลาทั้งหมด</span>
-                  <span className="text-lg font-black font-mono">{viewingSalaryFormulaEmployee.totalOtPay.toLocaleString()} บาท</span>
-                </div>
-                <div className="border-t border-blue-500/50 pt-2 flex justify-between items-center text-xs">
-                  <span className="text-blue-200 font-bold font-sans">คิดเป็นสัดส่วนเปอร์เซ็นต์ของฐานเงินเดือน:</span>
-                  <span className="font-extrabold bg-blue-700 text-white px-2 py-0.5 rounded-lg border border-blue-500 font-mono">
-                    {viewingSalaryFormulaEmployee.otPctSalary}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-200 bg-white flex justify-end">
-              <button
-                type="button"
-                onClick={() => setViewingSalaryFormulaEmployee(null)}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-md font-sans"
-              >
-                ปิดหน้าต่าง
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ======================================= */}
       {/* OVERLAY / MODAL: RESIGNED & CASE MANAGEMENT */}

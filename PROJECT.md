@@ -1,43 +1,99 @@
-# Project: Radical Minimalism Product Design Overhaul
+# Project: Enterprise OT Management Portal — Comprehensive 4-Module System Upgrade
 
 ## Architecture
-- **Framework**: React 18, Vite, TypeScript, Tailwind CSS, Lucide React Icons.
-- **Backend & State**: Cloudflare D1 / SQLite backend API via `server.ts`, React local & cached app state (`AppState`).
-- **Core Modules**:
-  - `src/index.css` & `tailwind.config.js`: Global design tokens, strict 12-token maritime palette, typography scales, hairline borders (`1px solid #DCE4EA`), 8pt grid spacing.
-  - `src/components/Navbar.tsx` & Navigation: Executive minimal header, folder-tabs navigation, notification bell, user profile menu.
-  - `src/components/`: Minimalist reusable component system (`Button`, `Card`, `KPITile`, `Modal`, `Table`, `Badge/Tag`, `Input`, `PremiumShiftTimePickerModal`, `CircadianTimelineModal`, `ShiftRadialPicker`, `LiveSimulationHUD`, `CsvTemplateHubModal`).
-  - `src/App.tsx`: 11 core portal views (Dashboard, Job Value, Reports, Employees, Shifts, HR Editor, OT Records, Leave Records, Settings, Admin Permissions, Profile).
-  - `src/utils/`: High-precision calculation engines (`costSimulationEngine.ts`, `shiftRecommendation.ts`, `circadianEngine.ts`).
-  - `tests/`: Automated test suites (40 files, 313 test cases across Tiers 1 through 5).
+The Enterprise OT Management Portal is an executive-grade React + TypeScript application built for maritime port terminal workforce management, shift scheduling, overtime calculation, labor law safety compliance, and cost analytics.
+- **Frontend Stack**: React 18, TypeScript, Tailwind CSS, Lucide React icons, Vitest.
+- **Design System**: 12-token maritime design system (`#0E3A66`, `#17538F`, `#2E90CB`, `#9FCEE8`, `#E8F3FA`, Semantic `#1E9C6E`, `#D99B14`, `#B3352C`, Neutrals `#333B41` through `#FFFFFF`). Absolute zero emojis.
+- **Backend/State**: Node/Express with SQLite (`better-sqlite3`), Cloudflare Workers/D1 backend with offline fallback (`appState` in `server.ts`).
 
 ## Feature Inventory
-| # | Feature | Description | Milestone | Source | Status |
-|---|---------|-------------|-----------|--------|--------|
-| 1 | Strict Monochromatic Maritime Palette | Enforce Navy `#0E3A66`, Supporting Blues `#17538F`, `#2E90CB`, `#9FCEE8`, `#E8F3FA`, Semantic Accents `#1E9C6E`, `#D99B14`, `#B3352C`, Neutrals `#333B41`..`#FFFFFF`; purged 250+ rogue hex codes | M1 | Survey | DONE |
-| 2 | Typography Scale & Baseline Grid | Sans-serif only, max 3 font sizes and max 3 font weights (400, 500, 700) per view, 8pt grid alignment | M1 | Survey | DONE |
-| 3 | Surface Elevation & Hairline Borders | Eliminated all gradients (`bg-gradient-*`), heavy box shadows (`shadow-2xl`, `shadow-xl`), enforced flat surfaces & hairline borders (`1px solid #DCE4EA`) | M1 | Survey | DONE |
-| 4 | Iconography & Decorative Noise Purge | 0 emoji, removed Google Material Symbols, eliminated pulsing dots and sparkline decorations, functional Lucide vector icons only | M1 | Survey | DONE |
-| 5 | Sub-Module Minimalist Theming | Restyled `CircadianTimelineModal`, `ShiftRadialPicker`, `LiveSimulationHUD`, `CsvTemplateHubModal` to clean white/navy minimal design | M1 | Survey | DONE |
-| 6 | Top-5 Tasks Click-Friction Reduction | Reduced clicks by 50%–75% for (1) assign shift, (2) view OT summary, (3) filter department, (4) export CSV, (5) check compliance alerts | M2 | Survey | DONE |
-| 7 | Navigation & App Shell Consolidation | Streamlined `Navbar.tsx`, unified filter toolbars, quick action triggers, removed unused `Sidebar.tsx` imports | M2 | Survey | DONE |
-| 8 | View Section Count Reduction (>=20%) | Consolidated duplicate headers/panels across all 11 views, reducing total sections from 46 to 29 (-37.6%) | M3 | Survey | DONE |
-| 9 | Micro-Copy Ruthless Brevity | Button labels <=4 words, section headers <=6 words, placeholders <5 words, eliminated redundant explanatory subtitles | M3 | Survey | DONE |
-| 10 | Settings & Admin Deduplication | Removed redundant duplicate user accounts table in Settings View (keeping canonical table in Admin Permissions) | M3 | Survey | DONE |
-| 11 | 10 Data Tables Hairline & Row Padding | Uniform table headers, hairline separators (`divide-[#DCE4EA]`), generous row padding across all 10 tables | M4 | Survey | DONE |
-| 12 | Sticky/Frozen Columns on Mobile/Tablet | Frozen employee ID/name columns, horizontal touch scroll (`touch-pan-x`), responsive layout across 375px–1440px+ | M4 | Survey | DONE |
-| 13 | Calculation Engine Invariance | Verified 100% mathematical integrity for OT formulas ($\text{hourlyRate} = \text{salary} / 240$, 1.5x, 3.0x, 1.0x), 36h limit, 6-day fatigue, 24h/overnight shifts | M5 | Survey | DONE |
-| 14 | Build Integrity & 100% E2E Suite Pass | `npm run build` compiles with 0 errors, `npm run lint` passes with 0 errors, 100% E2E test suites pass (313/313 tests) | M5 | Survey | DONE |
+| # | Feature | Description | Milestone | Source |
+|---|---------|-------------|-----------|--------|
+| F1.1 | Shift OT to Job Value Integration | Connect shift overtime outputs (1.5x normal OT, 3.0x holiday OT, 1.0x holiday 8h) with base salary ($salary/240$) and operational value-add | M1 | ORIGINAL_REQUEST R1 |
+| F1.2 | Role-level Economic Ratios | Compute operational cost, revenue, profit, and revenue/cost ratio aggregated by role | M1 | ORIGINAL_REQUEST R1 |
+| F1.3 | Transparent Calculation Breakdown Modal | Inspectable day-by-day shift audit trail explaining exact Baht computation from raw shift codes | M1 | ORIGINAL_REQUEST R1 |
+| F2.1 | Employee Status Management | Seamless viewing, filtering, editing, and status management (`Active`, `On-Leave`, `Resigned`) across all departments and positions | M2 | ORIGINAL_REQUEST R2 |
+| F2.2 | Employee Backend Persistence Fix | Ensure `employmentStatus`, `resignationDate`, and offline `leave-records` filtering persist properly in `server.ts` | M2 | Survey Mod 2 & ORIGINAL_REQUEST R2 |
+| F2.3 | Individual Profile Telemetry Dashboard | Responsive Bento detail cards showing accumulated shift hours, accurate OT earnings, fatigue status, leave history, and compliance alerts | M2 | ORIGINAL_REQUEST R2 |
+| F3.1 | Shift-to-Cost Driver Tree | Visual hierarchy on Dashboard 01 showing how shift distributions (Standard M8/A8/N8 vs OT M12/N12/M16/M24) drive total OT hours and payout | M3 | ORIGINAL_REQUEST R3 |
+| F3.2 | Department Cost Driver Ranking | Identify and rank departments as primary drivers of overtime spend and plan-vs-actual variance ($\Delta\text{Hours}, \Delta\text{THB}, \Delta\%$) | M3 | ORIGINAL_REQUEST R3 |
+| F3.3 | Coverage Gap & Fatigue Risk Sensitivity | Correlate role staffing shortfalls with employee fatigue rates (>36h/week or 6 consecutive days) and operational bottleneck risk | M3 | ORIGINAL_REQUEST R3 |
+| F4.1 | Traditional & Company Holiday Configuration | Configure and maintain company-designated traditional holidays (13-15 days/year preset + custom add/delete/toggle) | M4 | ORIGINAL_REQUEST R4 |
+| F4.2 | Weekly Rest Day Policy Configuration | Configure weekly rest day policies (Sunday, Sat+Sun, 6-day workweek rotation, or department-specific schedules) | M4 | ORIGINAL_REQUEST R4 |
+| F4.3 | Automated Matrix & Payroll Synchronization | Dates marked as company holidays or rest days automatically trigger holiday OT rates in shift matrix, payroll engine, and cost simulation HUD | M4 | ORIGINAL_REQUEST R4 |
+| F5.1 | Full Invariant & Test Suite Pass | Maintain 100% automated test suite pass rate (314/314 Vitest tests, 0 failed across 40 test files) | M5 | ORIGINAL_REQUEST R5 |
+| F5.2 | Zero-Emoji & Design System Compliance | 0 emojis anywhere across UI text or codebase, adhering to 12-token maritime design system | M5 | ORIGINAL_REQUEST R5 |
+| F5.3 | Build & TypeScript Integrity | 0 TypeScript errors (`tsc --noEmit`), clean production build (`npm run build`) | M5 | ORIGINAL_REQUEST R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| E2E | E2E Testing Track | Independent Opaque-Box Test Suite for Radical Minimalism (Tiers 1–4) & `TEST_READY.md` | none | DONE |
-| M1 | Design System & Minimal Components | Global CSS, Palette Tokens, Hairline Borders, Typography Scale, Icon Cleanup, Component Primitives & Modal Theming | none | DONE |
-| M2 | Navigation, Shell & Task Friction Reduction | Navbar, Filter Bars, Top-5 Task 1-2 Click Flows, Shell Consolidations | M1 | DONE |
-| M3 | 11 Views Overhaul & Ruthless Brevity | All 11 Views Visual Overhaul, >=20% Section Reduction, Micro-Copy Brevity, Eliminating Noise | M1, M2 | DONE |
-| M4 | 10 Data Tables Frozen Columns & Responsiveness | Table Styling, Frozen Columns, Mobile/Tablet Viewports, Touch-Pan Scrolling | M1, M3 | DONE |
-| M5 | Full Integration, Calculation Precision & E2E Pass | Calculation Invariance Validation, 100% E2E Test Suite Execution, Forensic Integrity Audit, Clean Build Verification | M1, M2, M3, M4, E2E | DONE |
+| M1 | Overtime, Job Value & Compensation Engine | Connect shift OT multipliers (1.5x, 3.0x, 1.0x) with Job Value metrics, role ratios, and calculation breakdown audit modal | None | DONE |
+| M2 | Employee Roster & Profile Telemetry Dashboard | Status management (Active, On-Leave, Resigned), backend persistence fix, and individual profile telemetry cards | None | PLANNED |
+| M3 | Cause-and-Effect Dashboard 01 with Driver Tree | Shift-to-cost driver tree, department cost driver ranking, coverage gap & fatigue risk sensitivity matrix | M1 | PLANNED |
+| M4 | Company Holidays & Weekly Rest Day Configuration | Traditional holidays (13-15 days/yr), weekly rest day policies, and automated matrix/payroll synchronization | None | PLANNED |
+| M5 | Final Comprehensive Verification & Forensic Audit | Full test suite verification (314/314), zero-emoji scan, lint, build, and forensic integrity audit | M1, M2, M3, M4 | PLANNED |
 
 ## Interface Contracts
-- All global design tokens, calculation engine formulas, and responsive frozen column layouts are verified and active.
+
+### M1 ↔ Core Calculation & Types (`src/types.ts`, `src/App.tsx`) [VERIFIED & IMPLEMENTED]
+- `EmployeeJobValueBreakdown`:
+  - `employeeId: string`
+  - `baseSalary: number`
+  - `hourlyRate: number` ($salary / 240$)
+  - `monthlyOtHours: number`
+  - `monthlyOtPay: number`
+  - `totalLaborCost: number` ($\text{baseSalary} + \text{monthlyOtPay}$)
+  - `monthlyRevenue: number`
+  - `operationalValueAdd: number` ($\text{monthlyRevenue} - \text{totalLaborCost}$)
+  - `revenueCostRatio: number` ($\text{monthlyRevenue} / \text{totalLaborCost}$)
+- `DailyShiftAuditRow`:
+  - `day: number`
+  - `dateStr: string`
+  - `dayOfWeekTh: string`
+  - `isHolidayOrRestDay: boolean`
+  - `shiftCode: string`
+  - `normalOtHours: number`
+  - `holidayWorkHours: number`
+  - `holidayOtHours: number`
+  - `dailyPayThb: number`
+  - `explanation: string`
+
+### M4 ↔ Calendar, Shift Matrix & Payroll Synchronization
+- `CompanyHoliday`:
+  - `id: string`
+  - `date: string` (YYYY-MM-DD)
+  - `nameTh: string`
+  - `nameEn: string`
+  - `isCustom?: boolean`
+- `DepartmentRestDayPolicy`:
+  - `deptId: string`
+  - `policyType: "sunday_only" | "sat_sun" | "rotating_6_1" | "custom"`
+  - `customRestDays?: number[]` (0=Sun, 1=Mon, ..., 6=Sat)
+- Multiplier functions accept optional `holidays?: CompanyHoliday[]` and `restDayPolicy?: DepartmentRestDayPolicy` with defaults ensuring 100% backward compatibility for all 314 tests.
+
+### M2 ↔ Employee Data & Backend Persistence (`server.ts`, `src/App.tsx`)
+- `Employee.employmentStatus`: `"Active" | "On-Leave" | "Resigned"`
+- `server.ts` `/api/edit-employee` accepts and persists `employmentStatus` and `resignationDate`.
+- `server.ts` `/api/leave-records` filters `appState.leaveRecords` by `employeeId` in offline mode.
+
+### M3 ↔ Dashboard 01 Telemetry (`src/App.tsx`)
+- Shift-to-Cost Driver Tree:
+  - Tier 1: Total Shift Headcount / Days Worked
+  - Tier 2: Distribution of shifts (Standard M8/A8/N8 vs Overtime M12/N12/M16/M24 vs OND/Splits)
+  - Tier 3: Accumulation into Normal OT Hours ($1.5\times$), Holiday Work ($1.0\times$), Holiday OT ($3.0\times$)
+  - Tier 4: Total Financial Outlay (THB) & Overtime-to-Payroll Ratio
+- Department Cost Driver Ranking:
+  - Ranked by `totalOtSpendThb` descending with `varianceHours`, `varianceCostThb`, `variancePct` (Plan vs Actual)
+- Coverage Gap & Fatigue Risk Sensitivity:
+  - Staffing Coverage Index ($(\text{Required} - \text{Actual}) / \text{Required}$)
+  - Fatigue Concentration Rate (% exceeding 36h/week or 6 consecutive days)
+  - Bottleneck Hazard Level: Low, Moderate, High, Critical
+
+## Code Layout
+- `src/App.tsx`: Main application shell, state management, Dashboard 01 view, Employees view, Modals
+- `src/types.ts`: Global data models and domain types
+- `src/utils/costSimulationEngine.ts`: Simulation engine, shift overtime calculation, department budget simulation
+- `src/utils/shiftRecommendation.ts`: Shift code definitions, hours mapping, fatigue and labor law compliance audit
+- `server.ts`: Backend Express server with SQLite and in-memory `appState`
+- `tests/`: 40 test files in Tiers 1 through 5
