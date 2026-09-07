@@ -1375,17 +1375,39 @@ function HrDirectEditorView({
   state, 
   jobValueRecords, 
   setJobValueRecords, 
-  fetchJobValueRecords 
+  fetchJobValueRecords,
+  onOpenEmployeeDetails,
+  onOpenSalaryFormulaEmployee,
+  onOpenCsvTemplateHub,
+  onExportCsv,
+  onImportCsv,
+  onClearD1Data,
+  importLoading = false
 }: { 
   currentUser: any; 
   state: AppState; 
   jobValueRecords: JobValueRecord[]; 
   setJobValueRecords: React.Dispatch<React.SetStateAction<JobValueRecord[]>>; 
   fetchJobValueRecords: () => void; 
+  onOpenEmployeeDetails?: (emp: any) => void;
+  onOpenSalaryFormulaEmployee?: (params: any) => void;
+  onOpenCsvTemplateHub?: () => void;
+  onExportCsv?: () => void;
+  onImportCsv?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClearD1Data?: () => void;
+  importLoading?: boolean;
 }) {
   const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
   const userDeptName = !isHrOrFullAccess && currentUser?.deptId ? getDeptName(currentUser.deptId, state?.departments) : "all";
 
+  // Active Sub-Tab: 'roster' (ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทน) vs 'editor' (แก้ไขข้อมูลออนไลน์)
+  const [activeSubTab, setActiveSubTab] = useState<"roster" | "editor">("roster");
+
+  // Roster sub-view filters & search
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [rosterDeptFilter, setRosterDeptFilter] = useState("ทุกแผนก");
+
+  // Direct spreadsheet editor states
   const [editingRecords, setEditingRecords] = useState<any[]>([]);
   const [filterDept, setFilterDept] = useState<string>(userDeptName);
   const [search, setSearch] = useState("");
@@ -1402,6 +1424,9 @@ function HrDirectEditorView({
     profit2025: 0,
     profit2026: 0
   });
+
+  const safeJobValueRecords = Array.isArray(jobValueRecords) ? jobValueRecords : [];
+  const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
 
   useEffect(() => {
     if (jobValueRecords && jobValueRecords.length > 0) {
@@ -1517,222 +1542,549 @@ function HrDirectEditorView({
     return true;
   });
 
+  // Filtered employees for Job Value & Compensation breakdown roster
+  const empSourceList = (state?.employees && state.employees.length > 0)
+    ? state.employees
+    : safeJobValueRecords.map(jv => ({
+        id: jv.empId,
+        name: jv.empName,
+        role: jv.position,
+        deptId: jv.deptId || jv.department,
+        department: jv.department,
+        salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+        employmentStatus: jv.status || "Active",
+        shifts: []
+      }));
+
+  const rosterFilteredItems = empSourceList.filter(emp => {
+    if (!emp) return false;
+    const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "";
+
+    // Section Manager Permission Check
+    if (!isHrOrFullAccess && currentUser?.deptId) {
+      const managerDeptId = normalizeDeptId(currentUser.deptId);
+      const empDeptId = normalizeDeptId(emp.deptId || emp.department);
+      if (empDeptId !== managerDeptId && deptName !== getDeptName(currentUser.deptId, state?.departments)) {
+        return false;
+      }
+    }
+
+    if (!isJvDepartment(deptName) && !isJvDepartment(emp.deptId)) return false;
+
+    // Filter out inactive/resigned/retired employees from active list
+    const empStatus = emp.employmentStatus || "Active";
+    const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "Retired" || empStatus === "พ้นสภาพ" || empStatus === "ลาออก" || empStatus === "เกษียณ";
+    if (isInactive) return false;
+
+    const q = (rosterSearch || "").toLowerCase().trim();
+    const matchesSearch = !q || String(emp.id || "").toLowerCase().includes(q) || String(emp.name || "").toLowerCase().includes(q) || String(emp.role || "").toLowerCase().includes(q);
+    const matchesDept = !rosterDeptFilter || rosterDeptFilter === "ทุกแผนก" || deptName === rosterDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(rosterDeptFilter);
+    return matchesSearch && matchesDept;
+  });
+
   return (
-    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-      {/* Header Card */}
-      <div className="bg-white p-4 sm:p-6 rounded border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 font-sans">
+      {/* Header Card with Navigation Tabs & Action Buttons */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-slate-800 shrink-0" />
-            <span>ศูนย์จัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)</span>
-          </h3>
-          <p className="text-xs text-slate-500 mt-1">
-            แก้ไขข้อมูล รายได้ ต้นทุน และกำไรของพนักงานบนเว็บได้ทันทีโดยไม่ต้องอัปโหลดไฟล์ CSV ใหม่
-          </p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#0E3A66] text-white flex items-center justify-center shadow-sm">
+              <FileText className="w-5 h-5 text-[#9FCEE8]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-800">
+                  ศูนย์บริหารข้อมูลและรายได้พนักงาน (HR Data & Compensation Center)
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold font-mono">
+                  สิทธิ์เฉพาะ HR &amp; Admin
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ตรวจสอบคุณค่าตำแหน่งงาน ฐานเงินเดือน ต้นทุนแรงงาน ค่าล่วงเวลา (OT) และแก้ไขข้อมูลพนักงานออนไลน์
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          {isHrOrFullAccess && (
+        {/* Global Toolbar Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {onOpenCsvTemplateHub && (
             <button
               type="button"
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
+              onClick={onOpenCsvTemplateHub}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200"
+              title="ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับ Job Value และฐานข้อมูล"
             >
-              <span>เพิ่มพนักงานใหม่</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+              <span>แม่แบบ CSV</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className="px-4 sm:px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 min-h-[40px]"
-          >
-            <span>{isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไขไปยัง D1 Database"}</span>
-          </button>
+
+          {onExportCsv && (
+            <button
+              type="button"
+              onClick={onExportCsv}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-600" />
+              <span>ส่งออก CSV</span>
+            </button>
+          )}
+
+          {onImportCsv && (
+            <label 
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+              title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
+            >
+              <Upload className="w-3.5 h-3.5 text-white" />
+              <span>{importLoading ? "กำลังอัพโหลด..." : "อัพโหลด CSV"}</span>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={onImportCsv}
+                className="hidden"
+                disabled={importLoading}
+              />
+            </label>
+          )}
+
+          {onClearD1Data && safeJobValueRecords.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearD1Data}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-rose-200"
+              title="ล้างข้อมูล Job Value ทั้งหมดในฐานข้อมูล D1"
+              disabled={importLoading}
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>ล้างข้อมูลใน D1</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Filter & Department Selector Tabs Toolbar */}
-      <div className="bg-white p-4 sm:p-5 rounded border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Department Filter Tabs */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar touch-pan-x max-w-full">
-            {isHrOrFullAccess && (
-              <button
-                type="button"
-                onClick={() => setFilterDept("all")}
-                className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  filterDept === "all"
-                    ? "bg-white text-blue-700 shadow-sm font-extrabold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                ทุกแผนก (ทั้งหมด)
-              </button>
-            )}
+      {/* Sub-view Toggle Navigation Bar: Roster Breakdown vs Direct Web Spreadsheet Editor */}
+      <div className="flex items-center gap-2 border-b border-[#DCE4EA] px-1 overflow-x-auto no-scrollbar touch-pan-x">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("roster")}
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+            activeSubTab === "roster"
+              ? "border-[#0E3A66] text-[#0E3A66] bg-white shadow-sm"
+              : "border-transparent text-[#6A7B87] hover:text-[#0E3A66] bg-[#F3F6F8]"
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>ตารางคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</span>
+          <span className="px-2 py-0.5 rounded-full bg-[#E8F3FA] text-[#0E3A66] text-[10px] font-bold font-mono">
+            {rosterFilteredItems.length} คน
+          </span>
+        </button>
 
-            {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].map(dept => {
-              const deptIdVal = normalizeDeptId(dept);
-              const managerDeptId = normalizeDeptId(currentUser?.deptId);
-              const isAllowed = isHrOrFullAccess || managerDeptId === deptIdVal;
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("editor")}
+          className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-t-xl text-xs font-extrabold border-b-2 transition-all cursor-pointer ${
+            activeSubTab === "editor"
+              ? "border-[#0E3A66] text-[#0E3A66] bg-white shadow-sm"
+              : "border-transparent text-[#6A7B87] hover:text-[#0E3A66] bg-[#F3F6F8]"
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>แก้ไขข้อมูลผลตอบแทนออนไลน์ (Direct Spreadsheet Editor)</span>
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold font-mono border border-emerald-200">
+            D1 Sync
+          </span>
+        </button>
+      </div>
 
-              if (!isHrOrFullAccess && managerDeptId !== deptIdVal) return null;
+      {/* SUB-VIEW 1: ตารางคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน */}
+      {activeSubTab === "roster" && (
+        <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm space-y-0">
+          <div className="p-4 sm:p-6 border-b border-slate-100 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
+                  <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold font-mono">
+                    {rosterFilteredItems.length} บุคลากร
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  ตรวจสอบความเชื่อมโยงระหว่างฐานเงินเดือน ค่าล่วงเวลาจริง (OT) ต้นทุนแรงงานรวม รายได้ประเมิน และสัดส่วน Rev/Cost พร้อมปุ่มตรวจสอบสูตร 31 วัน
+                </p>
+              </div>
 
-              return (
+              {(rosterSearch || rosterDeptFilter !== "ทุกแผนก") && (
                 <button
-                  key={dept}
                   type="button"
-                  onClick={() => isAllowed && setFilterDept(dept)}
-                  disabled={!isAllowed}
-                  className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    filterDept === dept
-                      ? "bg-blue-600 text-white shadow-sm font-extrabold"
-                      : "bg-transparent text-slate-600 hover:bg-white/60"
-                  }`}
+                  onClick={() => {
+                    setRosterSearch("");
+                    setRosterDeptFilter("ทุกแผนก");
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto"
                 >
-                  แผนก {dept}
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>ล้างตัวกรอง</span>
                 </button>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Filter Toolbar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={rosterSearch}
+                  onChange={(e) => setRosterSearch(e.target.value)}
+                  placeholder="ค้นหารหัส, ชื่อ-นามสกุล, ตำแหน่ง..."
+                  className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                />
+                {rosterSearch && (
+                  <button onClick={() => setRosterSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Department Dropdown */}
+              <div className="relative">
+                <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={rosterDeptFilter}
+                  disabled={!isHrOrFullAccess}
+                  onChange={(e) => setRosterDeptFilter(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
+                >
+                  {isHrOrFullAccess && <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>}
+                  {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(d => {
+                    if (isHrOrFullAccess) return true;
+                    return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
+                  }).map(d => (
+                    <option key={d} value={d}>แผนก {d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Search Box */}
-          <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 border border-slate-200 rounded-2xl w-full md:w-72 shadow-inner">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="ค้นหารหัส, ชื่อ, ตำแหน่ง..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {!isHrOrFullAccess && (
-          <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
-            <span>สิทธิ์ผู้จัดการแผนก: ระบบแสดงผลและอนุญาตให้แก้ไขเฉพาะพนักงานในสังกัด {getDeptName(currentUser?.deptId, state?.departments)} เท่านั้น</span>
-          </div>
-        )}
-      </div>
-
-      {/* Interactive Spreadsheet Table */}
-      <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
-        <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
-          <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
-            <thead>
-              <tr className="bg-[#f1f5f9] border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
-                <th className="p-3 w-28 font-mono">รหัสพนักงาน</th>
-                <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
-                <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
-                <th className="p-3 w-36">แผนก</th>
-                <th className="p-3 text-right text-emerald-700 font-extrabold w-36">รายได้เฉลี่ย/เดือน</th>
-                <th className="p-3 text-right text-rose-700 font-extrabold w-36">ต้นทุนเฉลี่ย/เดือน</th>
-                <th className="p-3 text-right text-slate-600 font-bold w-32">กำไร 2568</th>
-                <th className="p-3 text-right text-blue-700 font-black w-32">กำไร 2569</th>
-                <th className="p-3 text-center w-20">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#DCE4EA] font-mono">
-              {filteredRecords.map((r, idx) => (
-                <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={r.empId || ""}
-                      onChange={(e) => handleCellChange(r.empId, "empId", e.target.value)}
-                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={r.empName || ""}
-                      onChange={(e) => handleCellChange(r.empId, "empName", e.target.value)}
-                      className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 font-sans"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="text"
-                      value={r.position || ""}
-                      onChange={(e) => handleCellChange(r.empId, "position", e.target.value)}
-                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 font-sans"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <select
-                      value={r.department || "INTER 2"}
-                      disabled={!isHrOrFullAccess}
-                      onChange={(e) => handleCellChange(r.empId, "department", e.target.value)}
-                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-sans disabled:opacity-75"
-                    >
-                      <option value="INTER 2">INTER 2</option>
-                      <option value="INTER 3">INTER 3</option>
-                      <option value="INTER 5">INTER 5</option>
-                      <option value="INTER 7">INTER 7</option>
-                      <option value="Heavy Machine">Heavy Machine</option>
-                      <option value="ECC">ECC</option>
-                    </select>
-                  </td>
-                    <td className="p-2 text-center">
-                      <select
-                        value={r.status || "Active"}
-                        onChange={(e) => handleCellChange(r.empId, "status", e.target.value)}
-                        className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-extrabold text-slate-700 font-sans"
-                      >
-                        <option value="Active">ปฏิบัติงาน (Active)</option>
-                        <option value="Inactive">พ้นสภาพ (Inactive)</option>
-                      </select>
-                    </td>
-                    <td className="p-2 text-right">
-                      <input
-                        type="number"
-                        value={r.avgRevenue ?? 0}
-                        onChange={(e) => handleCellChange(r.empId, "avgRevenue", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
-                      />
-                    </td>
-                    <td className="p-2 text-right">
-                      <input
-                        type="number"
-                        value={r.avgCost ?? 0}
-                        onChange={(e) => handleCellChange(r.empId, "avgCost", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-black text-slate-700 text-right"
-                      />
-                    </td>
-                    <td className="p-2 text-right">
-                      <input
-                        type="number"
-                        value={r.profit2025 ?? 0}
-                        onChange={(e) => handleCellChange(r.empId, "profit2025", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 text-right"
-                      />
-                    </td>
-                    <td className="p-2 text-right">
-                      <input
-                        type="number"
-                        value={r.profit2026 ?? 0}
-                        onChange={(e) => handleCellChange(r.empId, "profit2026", Number(e.target.value))}
-                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
-                      />
-                    </td>
-                    <td className="p-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRow(r.empId)}
-                        className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
-                        title="ลบแถวนี้"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1050px]">
+              <thead>
+                <tr className="bg-slate-100/90 border-b border-slate-200 text-xs font-black text-slate-700 uppercase tracking-wider">
+                  <th className="px-3.5 py-3 font-mono w-24">รหัสพนักงาน</th>
+                  <th className="px-3.5 py-3 min-w-[160px]">ชื่อ-นามสกุล</th>
+                  <th className="px-3.5 py-3 min-w-[120px]">ตำแหน่ง</th>
+                  <th className="px-3.5 py-3 w-28 text-center">แผนก</th>
+                  <th className="px-3.5 py-3 text-right text-slate-700 font-bold min-w-[100px]">ฐานเงินเดือน</th>
+                  <th className="px-3.5 py-3 text-right text-blue-700 font-bold min-w-[90px]">OT จริง (บาท)</th>
+                  <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[110px]">ต้นทุนรวม</th>
+                  <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[110px]">รายได้ประเมิน</th>
+                  <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">คุณค่าเพิ่มสุทธิ</th>
+                  <th className="px-3.5 py-3 text-center min-w-[90px]">Rev/Cost</th>
+                  <th className="px-3.5 py-3 text-center min-w-[100px]">การตรวจสอบ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#DCE4EA] text-slate-800 text-xs font-mono">
+                {rosterFilteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-6 py-12 text-center text-slate-500 font-sans">
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <FileSpreadsheet className="w-10 h-10 text-slate-300" />
+                        <p className="text-sm font-bold text-slate-700">ไม่พบข้อมูลคุณค่าตำแหน่งงานตามเงื่อนไข</p>
+                        <p className="text-xs text-slate-400">ตรวจสอบคำค้นหาหรือตัวกรองแผนกอีกครั้ง</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
-            </tbody>
-          </table>
+                ) : (
+                  rosterFilteredItems.map(emp => {
+                    const matchingJv = safeJobValueRecords.find(jv =>
+                      String(jv.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
+                      String(jv.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
+                    );
+                    const b = getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
+                    const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "-";
+                    const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonth);
+
+                    return (
+                      <tr
+                        key={emp.id}
+                        onClick={() => onOpenEmployeeDetails && onOpenEmployeeDetails(emp)}
+                        className="hover:bg-blue-50/60 transition-colors cursor-pointer group"
+                        title="คลิกเพื่อดูบัตรประจำตัวพนักงานและข้อมูลโปรไฟล์"
+                      >
+                        <td className="px-3.5 py-3 font-bold text-slate-600 text-xs">{emp.id || "-"}</td>
+                        <td className="px-3.5 py-3 font-bold text-slate-900 text-xs font-sans group-hover:text-blue-600 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <EmployeeAvatar empId={emp.id || ""} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
+                            <span className="underline-offset-2 group-hover:underline">{emp.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-3.5 py-3 font-medium text-slate-700 text-xs font-sans">{emp.role || "-"}</td>
+                        <td className="px-3.5 py-3 font-bold text-slate-700 text-center font-sans">
+                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
+                            {deptName}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-3 text-right text-slate-700 font-bold">{b.baseSalary.toLocaleString()}</td>
+                        <td className="px-3.5 py-3 text-right text-blue-700 font-bold">
+                          {b.monthlyOtPay > 0 ? b.monthlyOtPay.toLocaleString() : "-"}
+                        </td>
+                        <td className="px-3.5 py-3 text-right font-black text-rose-700">{b.totalLaborCost.toLocaleString()}</td>
+                        <td className="px-3.5 py-3 text-right font-black text-emerald-700">{b.monthlyRevenue.toLocaleString()}</td>
+                        <td className="px-3.5 py-3 text-right font-black text-blue-700">{b.operationalValueAdd.toLocaleString()}</td>
+                        <td className="px-3.5 py-3 text-center font-bold">
+                          <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 text-[11px]">
+                            {b.revenueCostRatio}x
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenSalaryFormulaEmployee) {
+                                onOpenSalaryFormulaEmployee({
+                                  emp,
+                                  salary: b.baseSalary,
+                                  hourlyRate: b.hourlyRate,
+                                  normalOt: otBreakdown.normalOt,
+                                  holidayOt: otBreakdown.holidayOt,
+                                  holidayWorkDays: otBreakdown.holidayWorkDays,
+                                  totalOtPay: b.monthlyOtPay,
+                                  otPctSalary: b.baseSalary > 0 ? ((b.monthlyOtPay / b.baseSalary) * 100).toFixed(2) : "0.00"
+                                });
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-sans font-bold flex items-center justify-center gap-1 mx-auto transition-colors cursor-pointer"
+                            title="ตรวจสอบสูตรคำนวณและประวัติกะ 31 วัน"
+                          >
+                            <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                            <span>ตรวจสอบ</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* SUB-VIEW 2: ตัวแก้ไขข้อมูลออนไลน์ (Direct Web Spreadsheet Editor) */}
+      {activeSubTab === "editor" && (
+        <div className="space-y-4">
+          {/* Sub Toolbar */}
+          <div className="bg-white p-4 sm:p-5 rounded border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Department Filter Tabs */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar touch-pan-x max-w-full">
+                {isHrOrFullAccess && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterDept("all")}
+                    className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      filterDept === "all"
+                        ? "bg-white text-blue-700 shadow-sm font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    ทุกแผนก (ทั้งหมด)
+                  </button>
+                )}
+
+                {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].map(dept => {
+                  const deptIdVal = normalizeDeptId(dept);
+                  const managerDeptId = normalizeDeptId(currentUser?.deptId);
+                  const isAllowed = isHrOrFullAccess || managerDeptId === deptIdVal;
+
+                  if (!isHrOrFullAccess && managerDeptId !== deptIdVal) return null;
+
+                  return (
+                    <button
+                      key={dept}
+                      type="button"
+                      onClick={() => isAllowed && setFilterDept(dept)}
+                      disabled={!isAllowed}
+                      className={`shrink-0 whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        filterDept === dept
+                          ? "bg-blue-600 text-white shadow-sm font-extrabold"
+                          : "bg-transparent text-slate-600 hover:bg-white/60"
+                      }`}
+                    >
+                      แผนก {dept}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Box & Editor Buttons */}
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 border border-slate-200 rounded-2xl w-full md:w-64 shadow-inner">
+                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหารหัส, ชื่อ, ตำแหน่ง..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+                  />
+                </div>
+
+                {isHrOrFullAccess && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(true)}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>เพิ่มพนักงาน</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveAll}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                >
+                  <span>{isSaving ? "กำลังบันทึก..." : "บันทึกลง D1"}</span>
+                </button>
+              </div>
+            </div>
+
+            {!isHrOrFullAccess && (
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-2">
+                <span>สิทธิ์ผู้จัดการแผนก: ระบบแสดงผลและอนุญาตให้แก้ไขเฉพาะพนักงานในสังกัด {getDeptName(currentUser?.deptId, state?.departments)} เท่านั้น</span>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive Spreadsheet Table */}
+          <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+            <div className="overflow-x-auto no-scrollbar touch-pan-x w-full max-w-full min-w-0">
+              <table className="w-full text-left border-collapse text-xs min-w-[1100px]">
+                <thead>
+                  <tr className="bg-[#f1f5f9] border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase">
+                    <th className="p-3 w-28 font-mono">รหัสพนักงาน</th>
+                    <th className="p-3 min-w-[160px]">ชื่อ-นามสกุล</th>
+                    <th className="p-3 min-w-[130px]">ตำแหน่ง</th>
+                    <th className="p-3 w-36">แผนก</th>
+                    <th className="p-3 text-center w-28">สถานะ</th>
+                    <th className="p-3 text-right text-emerald-700 font-extrabold w-36">รายได้เฉลี่ย/เดือน</th>
+                    <th className="p-3 text-right text-rose-700 font-extrabold w-36">ต้นทุนเฉลี่ย/เดือน</th>
+                    <th className="p-3 text-right text-slate-600 font-bold w-32">กำไร 2568</th>
+                    <th className="p-3 text-right text-blue-700 font-black w-32">กำไร 2569</th>
+                    <th className="p-3 text-center w-20">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#DCE4EA] font-mono">
+                  {filteredRecords.map((r, idx) => (
+                    <tr key={r.empId || idx} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={r.empId || ""}
+                          onChange={(e) => handleCellChange(r.empId, "empId", e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={r.empName || ""}
+                          onChange={(e) => handleCellChange(r.empId, "empName", e.target.value)}
+                          className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 font-sans"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={r.position || ""}
+                          onChange={(e) => handleCellChange(r.empId, "position", e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 font-sans"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <select
+                          value={r.department || "INTER 2"}
+                          disabled={!isHrOrFullAccess}
+                          onChange={(e) => handleCellChange(r.empId, "department", e.target.value)}
+                          className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-sans disabled:opacity-75"
+                        >
+                          <option value="INTER 2">INTER 2</option>
+                          <option value="INTER 3">INTER 3</option>
+                          <option value="INTER 5">INTER 5</option>
+                          <option value="INTER 7">INTER 7</option>
+                          <option value="Heavy Machine">Heavy Machine</option>
+                          <option value="ECC">ECC</option>
+                        </select>
+                      </td>
+                      <td className="p-2 text-center">
+                        <select
+                          value={r.status || "Active"}
+                          onChange={(e) => handleCellChange(r.empId, "status", e.target.value)}
+                          className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-extrabold text-slate-700 font-sans"
+                        >
+                          <option value="Active">ปฏิบัติงาน (Active)</option>
+                          <option value="Inactive">พ้นสภาพ (Inactive)</option>
+                        </select>
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          value={r.avgRevenue ?? 0}
+                          onChange={(e) => handleCellChange(r.empId, "avgRevenue", Number(e.target.value))}
+                          className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
+                        />
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          value={r.avgCost ?? 0}
+                          onChange={(e) => handleCellChange(r.empId, "avgCost", Number(e.target.value))}
+                          className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-black text-slate-700 text-right"
+                        />
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          value={r.profit2025 ?? 0}
+                          onChange={(e) => handleCellChange(r.empId, "profit2025", Number(e.target.value))}
+                          className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 text-right"
+                        />
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          value={r.profit2026 ?? 0}
+                          onChange={(e) => handleCellChange(r.empId, "profit2026", Number(e.target.value))}
+                          className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-black text-[#1d3ec7] text-right"
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRow(r.empId)}
+                          className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                          title="ลบแถวนี้"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add New Employee Record Modal */}
       {showAddModal && (
@@ -7323,219 +7675,38 @@ export default function App() {
                   })()}
                 </div>
 
-                {/* Roster Table of Job Value Records */}
-                <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
-                  <div className="p-6 border-b border-slate-100 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2.5">
-                          <h4 className="text-sm font-bold text-slate-800">ตารางข้อมูลคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน</h4>
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold font-mono">
-                            {((state?.employees || []).filter(e => isJvDepartment(e.department || e.deptId)).length || safeJobValueRecords.length)} บุคลากร
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">ใช้ช่องค้นหาหรือตัวกรองเพื่อค้นหารายพนักงาน และกดดูรายละเอียดเพื่อดูสถิติรายเดือน</p>
-                      </div>
-
-                      {(jobValueSearchQuery || jobValueDeptFilter !== "ทุกแผนก") && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setJobValueSearchQuery("");
-                            setJobValueDeptFilter("ทุกแผนก");
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>ล้างตัวกรอง</span>
-                        </button>
-                      )}
+                {/* Relocation Notice Card & Navigation to Tab 08 for HR */}
+                <div className="bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#0E3A66] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                      <ShieldCheck className="w-5 h-5 text-[#9FCEE8]" />
                     </div>
-
-                    {/* Filter Toolbar */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      {/* Search */}
-                      <div className="relative">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={jobValueSearchQuery}
-                          onChange={(e) => setJobValueSearchQuery(e.target.value)}
-                          placeholder="ค้นหา..."
-                          className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                        />
-                        {jobValueSearchQuery && (
-                          <button onClick={() => setJobValueSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-black text-[#0E3A66]">
+                          ความปลอดภัยและการจัดการข้อมูลรายได้รายบุคคล (Data Privacy &amp; Confidentiality)
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-white text-[#17538F] border border-[#9FCEE8] text-[10px] font-bold font-mono">
+                          PDPA &amp; HR Strict
+                        </span>
                       </div>
-
-                      {/* Department Dropdown */}
-                      <div className="relative">
-                        <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <select
-                          value={jobValueDeptFilter}
-                          disabled={!isHrOrFullAccess}
-                          onChange={(e) => setJobValueDeptFilter(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none disabled:opacity-80"
-                        >
-                          {isHrOrFullAccess && <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>}
-                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(d => {
-                            if (isHrOrFullAccess) return true;
-                            return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(d);
-                          }).map(d => (
-                            <option key={d} value={d}>แผนก {d}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <p className="text-xs text-[#59656D] mt-1 leading-relaxed">
+                        ตารางแจกแจงคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน (ฐานเงินเดือน, ค่าล่วงเวลาจริง, รายได้ประเมิน, และกำไรต่อคน) ได้รับการย้ายไปยัง <strong>เมนู 08 ข้อมูล &amp; รายได้</strong> เพื่อความปลอดภัยของข้อมูลส่วนบุคคลและสงวนสิทธิ์เฉพาะฝ่ายบุคคลและผู้บริหาร
+                      </p>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1050px]">
-                      <thead>
-                        <tr className="bg-slate-100/90 border-b border-slate-200 text-xs font-black text-slate-700 uppercase tracking-wider">
-                          <th className="px-3.5 py-3 font-mono w-24">รหัสพนักงาน</th>
-                          <th className="px-3.5 py-3 min-w-[160px]">ชื่อ-นามสกุล</th>
-                          <th className="px-3.5 py-3 min-w-[120px]">ตำแหน่ง</th>
-                          <th className="px-3.5 py-3 w-28 text-center">แผนก</th>
-                          <th className="px-3.5 py-3 text-right text-slate-700 font-bold min-w-[100px]">ฐานเงินเดือน</th>
-                          <th className="px-3.5 py-3 text-right text-blue-700 font-bold min-w-[90px]">OT จริง (บาท)</th>
-                          <th className="px-3.5 py-3 text-right text-rose-700 font-black min-w-[110px]">ต้นทุนรวม</th>
-                          <th className="px-3.5 py-3 text-right text-emerald-700 font-black min-w-[110px]">รายได้ประเมิน</th>
-                          <th className="px-3.5 py-3 text-right text-blue-700 font-black min-w-[110px]">คุณค่าเพิ่มสุทธิ</th>
-                          <th className="px-3.5 py-3 text-center min-w-[90px]">Rev/Cost</th>
-                          <th className="px-3.5 py-3 text-center min-w-[100px]">การตรวจสอบ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#DCE4EA] text-slate-800 text-xs font-mono">
-                        {(() => {
-                          const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
-                          const empSourceList = (state?.employees && state.employees.length > 0)
-                            ? state.employees
-                            : safeJobValueRecords.map(jv => ({
-                                id: jv.empId,
-                                name: jv.empName,
-                                role: jv.position,
-                                deptId: jv.deptId || jv.department,
-                                department: jv.department,
-                                salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
-                                employmentStatus: jv.status || "Active",
-                                shifts: []
-                              }));
-
-                          const filteredItems = empSourceList
-                            .filter(emp => {
-                              if (!emp) return false;
-                              const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "";
-
-                              // Section Manager Permission Check
-                              if (!isHrOrFullAccess && currentUser?.deptId) {
-                                const managerDeptId = normalizeDeptId(currentUser.deptId);
-                                const empDeptId = normalizeDeptId(emp.deptId || emp.department);
-                                if (empDeptId !== managerDeptId && deptName !== getDeptName(currentUser.deptId, state?.departments)) {
-                                  return false;
-                                }
-                              }
-
-                              if (!isJvDepartment(deptName) && !isJvDepartment(emp.deptId)) return false;
-
-                              // Filter out inactive/resigned/retired employees from active list
-                              const empStatus = emp.employmentStatus || "Active";
-                              const isInactive = empStatus === "Resigned" || empStatus === "Inactive" || empStatus === "Retired" || empStatus === "พ้นสภาพ" || empStatus === "ลาออก" || empStatus === "เกษียณ";
-                              if (isInactive) return false;
-
-                              const q = (jobValueSearchQuery || "").toLowerCase().trim();
-                              const matchesSearch = !q || String(emp.id || "").toLowerCase().includes(q) || String(emp.name || "").toLowerCase().includes(q) || String(emp.role || "").toLowerCase().includes(q);
-                              const matchesDept = !jobValueDeptFilter || jobValueDeptFilter === "ทุกแผนก" || deptName === jobValueDeptFilter || normalizeDeptId(deptName) === normalizeDeptId(jobValueDeptFilter);
-                              return matchesSearch && matchesDept;
-                            });
-
-                          if (filteredItems.length === 0) {
-                            return (
-                              <tr>
-                                <td colSpan={11} className="px-6 py-12 text-center text-slate-500 font-sans">
-                                  <div className="flex flex-col items-center justify-center space-y-3">
-                                    <FileSpreadsheet className="w-10 h-10 text-slate-300" />
-                                    <p className="text-sm font-bold text-slate-700">ไม่พบข้อมูลคุณค่าตำแหน่งงานตามเงื่อนไข</p>
-                                    <p className="text-xs text-slate-400">ตรวจสอบคำค้นหาหรือตัวกรองแผนกอีกครั้ง</p>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          }
-
-                          return filteredItems.map(emp => {
-                            const matchingJv = safeJobValueRecords.find(jv =>
-                              String(jv.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
-                              String(jv.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
-                            );
-                            const b = getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
-                            const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "-";
-                            const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonth);
-
-                            return (
-                              <tr
-                                key={emp.id}
-                                onClick={() => setViewingEmployeeDetails(emp as any)}
-                                className="hover:bg-blue-50/60 transition-colors cursor-pointer group"
-                                title="คลิกเพื่อดูบัตรประจำตัวพนักงานและข้อมูลโปรไฟล์"
-                              >
-                                <td className="px-3.5 py-3 font-bold text-slate-600 text-xs">{emp.id || "-"}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-900 text-xs font-sans group-hover:text-blue-600 transition-colors">
-                                  <div className="flex items-center gap-2">
-                                    <EmployeeAvatar empId={emp.id || ""} empName={emp.name} className="w-7 h-7 flex-shrink-0" />
-                                    <span className="underline-offset-2 group-hover:underline">{emp.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-3.5 py-3 font-medium text-slate-700 text-xs font-sans">{emp.role || "-"}</td>
-                                <td className="px-3.5 py-3 font-bold text-slate-700 text-center font-sans">
-                                  <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
-                                    {deptName}
-                                  </span>
-                                </td>
-                                <td className="px-3.5 py-3 text-right text-slate-700 font-bold">{b.baseSalary.toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right text-blue-700 font-bold">
-                                  {b.monthlyOtPay > 0 ? b.monthlyOtPay.toLocaleString() : "-"}
-                                </td>
-                                <td className="px-3.5 py-3 text-right font-black text-rose-700">{b.totalLaborCost.toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-black text-emerald-700">{b.monthlyRevenue.toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-right font-black text-blue-700">{b.operationalValueAdd.toLocaleString()}</td>
-                                <td className="px-3.5 py-3 text-center font-bold">
-                                  <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 text-[11px]">
-                                    {b.revenueCostRatio}x
-                                  </span>
-                                </td>
-                                <td className="px-3.5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setViewingSalaryFormulaEmployee({
-                                        emp,
-                                        salary: b.baseSalary,
-                                        hourlyRate: b.hourlyRate,
-                                        normalOt: otBreakdown.normalOt,
-                                        holidayOt: otBreakdown.holidayOt,
-                                        holidayWorkDays: otBreakdown.holidayWorkDays,
-                                        totalOtPay: b.monthlyOtPay,
-                                        otPctSalary: b.baseSalary > 0 ? ((b.monthlyOtPay / b.baseSalary) * 100).toFixed(2) : "0.00"
-                                      });
-                                    }}
-                                    className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-sans font-bold flex items-center justify-center gap-1 mx-auto transition-colors cursor-pointer"
-                                    title="ตรวจสอบสูตรคำนวณและประวัติกะ"
-                                  >
-                                    <Calculator className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>ตรวจสอบ</span>
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
+                  {isHrOrFullAccess && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("hr-editor")}
+                      className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer self-start md:self-auto shrink-0 min-h-[40px]"
+                      title="ไปยังหน้าจัดการข้อมูลและรายได้พนักงาน (เมนู 08)"
+                    >
+                      <FileText className="w-4 h-4 text-[#9FCEE8]" />
+                      <span>เปิดเมนู 08 ข้อมูล &amp; รายได้</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </ErrorBoundary>
@@ -10545,6 +10716,13 @@ export default function App() {
               jobValueRecords={jobValueRecords}
               setJobValueRecords={setJobValueRecords}
               fetchJobValueRecords={fetchJobValueRecords}
+              onOpenEmployeeDetails={(emp) => setViewingEmployeeDetails(emp)}
+              onOpenSalaryFormulaEmployee={(params) => setViewingSalaryFormulaEmployee(params)}
+              onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
+              onExportCsv={handleExportJobValueCsv}
+              onImportCsv={handleImportJobValueCsv}
+              onClearD1Data={handleClearJobValueData}
+              importLoading={importJvLoading}
             />
           )}
 
