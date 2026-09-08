@@ -157,16 +157,16 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className={`w-8 h-8 rounded border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
                     complianceNotifications.length > 0
-                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]"
-                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA]"
+                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F] shadow-xs"
+                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
                   }`}
                   title="การแจ้งเตือนข้อควรระวัง"
                 >
                   <Bell className="w-4 h-4" />
                   {complianceNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums shadow-xs">
                       {complianceNotifications.length}
                     </span>
                   )}
@@ -179,11 +179,11 @@ export default function Navbar({
                       className="fixed inset-0 z-40" 
                       onClick={() => setIsNotificationsOpen(false)} 
                     />
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
-                      <div className="p-3 bg-[#0E3A66] text-white flex items-center justify-between">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
+                      <div className="p-3.5 bg-[#0E3A66] text-white flex items-center justify-between border-b border-[#17538F]">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-[#F3D98F]" />
-                          <span className="text-xs font-bold">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
+                          <span className="text-xs font-bold tracking-wide">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
                         </div>
                       </div>
 
@@ -202,7 +202,7 @@ export default function Navbar({
                                 setIsNotificationsOpen(false);
                                 if (onOpenComplianceModal) onOpenComplianceModal(item);
                               }}
-                              className="p-2.5 hover:bg-[#E8F3FA] rounded transition-colors cursor-pointer group"
+                              className="p-2.5 hover:bg-[#E8F3FA] rounded-lg transition-colors cursor-pointer group"
                             >
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-[#0E3A66]">
@@ -231,10 +231,10 @@ export default function Navbar({
               {/* Profile button */}
               <button 
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] rounded transition-all text-left cursor-pointer btn-press focus-ring"
+                className="flex items-center gap-2 px-2.5 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] hover:border-[#9FCEE8] rounded-lg transition-all text-left cursor-pointer btn-press focus-ring"
                 title="ดูโปรไฟล์ของคุณ"
               >
-                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
                   {(currentUser?.name || "U")[0]}
                 </div>
                 <div className="text-left hidden lg:block pr-1">
@@ -245,7 +245,7 @@ export default function Navbar({
               {/* Logout button */}
               <button
                 onClick={onLogout}
-                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] hover:border-[#F4B8B4] rounded-lg transition-all cursor-pointer btn-press focus-ring"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-3.5 h-3.5" />

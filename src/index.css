@@ -364,3 +364,42 @@ nav.folder-tabs button:hover:not([aria-selected="true"]):not(.active) {
 .text-pretty {
   text-wrap: pretty;
 }
+
+/* ========================================================================= */
+/* High-End Agency Visual Architecture (Double-Bezel, Nested Shells & Spring) */
+/* ========================================================================= */
+.bezel-shell {
+  background: #F3F6F8;
+  border: 1px solid #DCE4EA;
+  border-radius: 12px;
+  padding: 4px;
+  transition: border-color 0.25s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.bezel-shell:hover {
+  border-color: #9FCEE8;
+}
+
+.bezel-core {
+  background: #FFFFFF;
+  border: 1px solid #DCE4EA;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(14, 58, 102, 0.05);
+}
+
+.btn-bezel {
+  transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.btn-bezel:active {
+  transform: scale(0.97) translateY(1px);
+}
+
+.icon-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.btn-bezel:hover .icon-pill {
+  transform: translateX(2px) scale(1.05);
+}

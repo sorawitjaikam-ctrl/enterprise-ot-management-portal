@@ -5952,120 +5952,122 @@ export default function App() {
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               
               {/* Executive Control Header & Toolbar */}
-              <div className="bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
-                    <h2 className="text-xl md:text-2xl font-bold text-[#0E3A66] tracking-tight">
-                      ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
-                    </h2>
-                    <p className="text-xs text-[#59656D] max-w-3xl leading-relaxed">
-                      ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
-                    </p>
-                  </div>
-                </div>
-
-                {/* Integrated Control Toolbar: Filters + Quick Action Buttons */}
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
-                  {/* Left Filter Cluster */}
-                  <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded border border-[#DCE4EA]">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
-                      <Filter className="w-3.5 h-3.5 text-[#0E3A66]" />
-                      <span className="text-xs font-bold text-[#0E3A66]">ตัวกรองแดชบอร์ด</span>
-                    </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedMonthFilter}
-                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
-                      >
-                        <option>เดือนปัจจุบัน</option>
-                        <option>3 เดือนที่ผ่านมา</option>
-                        <option>6 เดือนย้อนหลัง</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
-                    </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedDeptFilter}
-                        onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                        disabled={activeDeptId !== "all"}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] disabled:opacity-75 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <option>ทุกแผนก</option>
-                        <option>INTER 2</option>
-                        <option>INTER 3</option>
-                        <option>INTER 5</option>
-                        <option>INTER 7</option>
-                        <option>Heavy Machine</option>
-                        <option>ECC</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
-                    </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedRoleFilter}
-                        onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
-                      >
-                        <option>ทุกตำแหน่ง</option>
-                        <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
-                        <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
-                        <option>พนักงานขับเครน</option>
-                        <option>ปากเรือ</option>
-                        <option>ผู้ควบคุมงานจักรกลหนัก</option>
-                        <option>ช่างขับจักรกลหนัก</option>
-                        <option>O&M - Specialist</option>
-                        <option>O&M - Generator</option>
-                        <option>O&M - Mechanical</option>
-                        <option>O&M - Electrical</option>
-                        <option>ECC</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+              <div className="bezel-shell">
+                <div className="bezel-core p-4 sm:p-5 flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
+                      <h2 className="text-xl md:text-2xl font-bold text-[#0E3A66] tracking-tight">
+                        ระบบบริหารการปฏิบัติงานเทียบเรือ และจัดการเวลา OT หน้าท่า
+                      </h2>
+                      <p className="text-xs text-[#59656D] max-w-3xl leading-relaxed">
+                        ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
+                      </p>
                     </div>
                   </div>
 
-                  {/* Right Quick Action Cluster */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("shifts")}
-                      className="px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press shadow-maritime-xs min-h-[36px]"
-                      title="เปิดหน้าต่างจัดตารางกะพนักงาน"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>จัดตารางกะพนักงาน</span>
-                    </button>
+                  {/* Integrated Control Toolbar: Filters + Quick Action Buttons */}
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
+                    {/* Left Filter Cluster */}
+                    <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded-lg border border-[#DCE4EA]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
+                        <Filter className="w-3.5 h-3.5 text-[#0E3A66]" />
+                        <span className="text-xs font-bold text-[#0E3A66]">ตัวกรองแดชบอร์ด</span>
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedMonthFilter}
+                          onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        >
+                          <option>เดือนปัจจุบัน</option>
+                          <option>3 เดือนที่ผ่านมา</option>
+                          <option>6 เดือนย้อนหลัง</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedDeptFilter}
+                          onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                          disabled={activeDeptId !== "all"}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] disabled:opacity-75 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <option>ทุกแผนก</option>
+                          <option>INTER 2</option>
+                          <option>INTER 3</option>
+                          <option>INTER 5</option>
+                          <option>INTER 7</option>
+                          <option>Heavy Machine</option>
+                          <option>ECC</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedRoleFilter}
+                          onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        >
+                          <option>ทุกตำแหน่ง</option>
+                          <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
+                          <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                          <option>พนักงานขับเครน</option>
+                          <option>ปากเรือ</option>
+                          <option>ผู้ควบคุมงานจักรกลหนัก</option>
+                          <option>ช่างขับจักรกลหนัก</option>
+                          <option>O&M - Specialist</option>
+                          <option>O&M - Generator</option>
+                          <option>O&M - Mechanical</option>
+                          <option>O&M - Electrical</option>
+                          <option>ECC</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                    </div>
 
-                    <button 
-                      type="button"
-                      onClick={() => setShowOtRequestModal(true)}
-                      className="px-3 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/50 text-[#D99B14] border border-[#F3D98F] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
-                      <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
-                    </button>
+                    {/* Right Quick Action Cluster */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("shifts")}
+                        className="px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
+                        title="เปิดหน้าต่างจัดตารางกะพนักงาน"
+                      >
+                        <span className="icon-pill"><Calendar className="w-3.5 h-3.5" /></span>
+                        <span>จัดตารางกะพนักงาน</span>
+                      </button>
 
-                    <button 
-                      type="button"
-                      onClick={handleExportCsvReport}
-                      className="px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] font-medium rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ส่งออกรายงานสรุปข้อมูล OT ประจำแผนก"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#6A7B87]" />
-                      <span>ส่งออกรายงาน</span>
-                    </button>
+                      <button 
+                        type="button"
+                        onClick={() => setShowOtRequestModal(true)}
+                        className="px-3 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/50 text-[#D99B14] border border-[#F3D98F] font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
+                        <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
+                      </button>
 
-                    <button 
-                      type="button"
-                      onClick={handleNavigateToEmployees}
-                      className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#9FCEE8]/40 text-[#0E3A66] border border-[#9FCEE8] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ดูรายชื่อพนักงานทั้งหมด"
-                    >
-                      <Users className="w-3.5 h-3.5 text-[#0E3A66]" />
-                      <span>รายชื่อพนักงาน</span>
-                    </button>
+                      <button 
+                        type="button"
+                        onClick={handleExportCsvReport}
+                        className="px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] font-medium rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ส่งออกรายงานสรุปข้อมูล OT ประจำแผนก"
+                      >
+                        <span className="icon-pill"><Download className="w-3.5 h-3.5 text-[#6A7B87]" /></span>
+                        <span>ส่งออกรายงาน</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={handleNavigateToEmployees}
+                        className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#9FCEE8]/40 text-[#0E3A66] border border-[#9FCEE8] font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ดูรายชื่อพนักงานทั้งหมด"
+                      >
+                        <span className="icon-pill"><Users className="w-3.5 h-3.5 text-[#0E3A66]" /></span>
+                        <span>รายชื่อพนักงาน</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -6189,115 +6191,123 @@ export default function App() {
                     {/* ========================================================================= */}
                     
                     {/* Tile 1.1: MoM Overtime Pay Comparison */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
-                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold">
-                          {otComparePct < 0 ? (
-                            <TrendingDown className="w-4 h-4 text-[#1E9C6E]" />
-                          ) : (
-                            <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className="text-[11px] text-[#6A7B87] font-medium">{comparePeriodLabel}</span>
-                          {prevTotalSpent > 0 ? (
-                            otComparePct <= 0 ? (
-                              <span className="tag t-g">ประหยัดงบ</span>
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold shadow-xs">
+                            {otComparePct < 0 ? (
+                              <TrendingDown className="w-4 h-4 text-[#1E9C6E]" />
                             ) : (
-                              <span className="tag t-y">เพิ่มขึ้น</span>
-                            )
-                          ) : (
-                            <span className="tag t-b">เริ่มบันทึก</span>
-                          )}
+                              <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}
+                          </div>
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="text-[11px] text-[#6A7B87] font-medium">{comparePeriodLabel}</span>
+                            {prevTotalSpent > 0 ? (
+                              otComparePct <= 0 ? (
+                                <span className="tag t-g">ประหยัดงบ</span>
+                              ) : (
+                                <span className="tag t-y">เพิ่มขึ้น</span>
+                              )
+                            ) : (
+                              <span className="tag t-b">เริ่มบันทึก</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.2: Total Overtime Financial Spend */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ผลรวมค่าล่วงเวลาสะสม</h3>
-                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs">
-                          ฿
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ผลรวมค่าล่วงเวลาสะสม</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs shadow-xs">
+                            ฿
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {totalSpent.toLocaleString()} THB
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${singleMonthBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / singleMonthBaseSalary) * 100)) : 0}%` }}
-                            className="bg-[#0E3A66] h-full rounded-full transition-all"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
-                          <span>{periodLabel}</span>
-                          <span>{totalOtHrs.toLocaleString()} ชม.</span>
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {totalSpent.toLocaleString()} THB
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${singleMonthBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / singleMonthBaseSalary) * 100)) : 0}%` }}
+                              className="bg-[#0E3A66] h-full rounded-full transition-all"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                            <span>{periodLabel}</span>
+                            <span>{totalOtHrs.toLocaleString()} ชม.</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.3: Overtime Payroll Ratio */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">สัดส่วน OT เทียบเงินเดือน</h3>
-                        <div className="w-8 h-8 rounded bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold">
-                          <Settings className="w-4 h-4 text-[#333B41]" />
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">สัดส่วน OT เทียบเงินเดือน</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold shadow-xs">
+                            <Settings className="w-4 h-4 text-[#333B41]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">
-                          {otSalaryPct}%
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${Math.min(100, otSalaryPct)}%` }}
-                            className={`h-full rounded-full transition-all ${otSalaryPct > 25 ? "bg-[#D99B14]" : "bg-[#2E90CB]"}`}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
-                          <span>งบรวม ฿{totalBaseSalary.toLocaleString()}</span>
-                          {otSalaryPct > 25 ? (
-                            <span className="tag t-y">เกินเกณฑ์ 25%</span>
-                          ) : (
-                            <span className="tag t-g">ตามเกณฑ์</span>
-                          )}
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">
+                            {otSalaryPct}%
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${Math.min(100, otSalaryPct)}%` }}
+                              className={`h-full rounded-full transition-all ${otSalaryPct > 25 ? "bg-[#D99B14]" : "bg-[#2E90CB]"}`}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                            <span>งบรวม ฿{totalBaseSalary.toLocaleString()}</span>
+                            {otSalaryPct > 25 ? (
+                              <span className="tag t-y">เกินเกณฑ์ 25%</span>
+                            ) : (
+                              <span className="tag t-g">ตามเกณฑ์</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.4: Average Overtime Workload & Safety Index */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ชั่วโมง OT เฉลี่ยต่อคน</h3>
-                        <div className="w-8 h-8 rounded bg-[#FCF3DE] text-[#D99B14] border border-[#F3D98F] flex items-center justify-center font-bold">
-                          <Clock className="w-4 h-4 text-[#D99B14]" />
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ชั่วโมง OT เฉลี่ยต่อคน</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#FCF3DE] text-[#D99B14] border border-[#F3D98F] flex items-center justify-center font-bold shadow-xs">
+                            <Clock className="w-4 h-4 text-[#D99B14]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {avgOtPerEmp} hrs
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${Math.min(100, Math.round((avgOtPerEmp / 48) * 100))}%` }}
-                            className={`h-full rounded-full transition-all ${avgOtPerEmp > 36 ? "bg-[#B3352C]" : "bg-[#1E9C6E]"}`}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-medium mt-1.5">
-                          <span className="text-[#6A7B87]">{activeEmps} คน / ทั้งหมด {dashboardEmployees.length} คน</span>
-                          {avgOtPerEmp > 36 ? (
-                            <span className="tag t-r">เกิน 36 ชม.</span>
-                          ) : (
-                            <span className="tag t-g">เกณฑ์ปกติ</span>
-                          )}
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {avgOtPerEmp} hrs
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${Math.min(100, Math.round((avgOtPerEmp / 48) * 100))}%` }}
+                              className={`h-full rounded-full transition-all ${avgOtPerEmp > 36 ? "bg-[#B3352C]" : "bg-[#1E9C6E]"}`}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] font-medium mt-1.5">
+                            <span className="text-[#6A7B87]">{activeEmps} คน / ทั้งหมด {dashboardEmployees.length} คน</span>
+                            {avgOtPerEmp > 36 ? (
+                              <span className="tag t-r">เกิน 36 ชม.</span>
+                            ) : (
+                              <span className="tag t-g">เกณฑ์ปกติ</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
