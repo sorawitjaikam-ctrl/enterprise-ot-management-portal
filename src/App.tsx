@@ -7077,76 +7077,81 @@ export default function App() {
             <ErrorBoundary>
               <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
                 {/* Header card with database & import/export controls */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <h3 className="text-base sm:text-lg font-extrabold text-slate-800">Job Value</h3>
-                      <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        <span>ปี 2026</span>
-                      </span>
+                <div className="bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="eyebrow block">JOB VALUE &amp; COMPENSATION ENGINE</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 mt-0.5">
+                        <h3 className="text-base sm:text-lg font-bold text-[#0E3A66]">โครงสร้างคุณค่าตำแหน่งงาน (Job Value)</h3>
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F6F0] border border-[#A5DCC5] text-[#1E9C6E] text-xs font-bold flex items-center gap-1">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>ปี 2026</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#59656D] mt-1 leading-relaxed max-w-2xl">
+                        ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ (Revenue) ต้นทุน (Cost) กำไร (Profit) รายบุคคลและแผนก พร้อมแม่แบบ Checklist สำหรับ Google Calendar
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ (Revenue) ต้นทุน (Cost) กำไร (Profit) รายบุคคลและแผนก พร้อมแม่แบบ Checklist สำหรับ Google Calendar
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {isHrOrFullAccess && (
-                      <>
-                        {/* CSV Template Hub */}
-                        <button
-                          type="button"
-                          onClick={() => setIsCsvTemplateHubOpen(true)}
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200"
-                          title="ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับ Job Value และเมนูอื่น"
-                        >
-                          <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-                          <span>แม่แบบ CSV</span>
-                        </button>
-
-                        {/* Export CSV */}
-                        <button
-                          type="button"
-                          onClick={handleExportJobValueCsv}
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                          title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
-                        >
-                          <Download className="w-3.5 h-3.5 text-blue-600" />
-                          <span>ส่งออกข้อมูล (Export CSV)</span>
-                        </button>
-
-                        {/* Import CSV */}
-                        <label 
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
-                          title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-white" />
-                          <span>{importJvLoading ? "กำลังอัพโหลด..." : "อัพโหลดข้อมูล (Import CSV)"}</span>
-                          <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleImportJobValueCsv}
-                            className="hidden"
-                            disabled={importJvLoading}
-                          />
-                        </label>
-
-                        {/* Clear D1 Data */}
-                        {safeJobValueRecords.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isHrOrFullAccess && (
+                        <>
+                          {/* CSV Template Hub */}
                           <button
                             type="button"
-                            onClick={handleClearJobValueData}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-rose-200"
-                            title="ล้างข้อมูล Job Value ทั้งหมดในฐานข้อมูล D1"
-                            disabled={importJvLoading}
+                            onClick={() => setIsCsvTemplateHubOpen(true)}
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#E8F3FA] hover:bg-[#9FCEE8]/50 text-[#0E3A66] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#9FCEE8] btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
+                            title="ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับ Job Value และเมนูอื่น"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                            <span>ล้างข้อมูลใน D1 (Clear All)</span>
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-[#17538F]" />
+                            <span>แม่แบบ CSV</span>
                           </button>
-                        )}
-                      </>
-                    )}
+
+                          {/* Export CSV */}
+                          <button
+                            type="button"
+                            onClick={handleExportJobValueCsv}
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#F3F6F8] hover:bg-[#DCE4EA] text-[#333B41] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
+                            title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
+                          >
+                            <Download className="w-3.5 h-3.5 text-[#17538F]" />
+                            <span>ส่งออกข้อมูล (Export CSV)</span>
+                          </button>
+
+                          {/* Import CSV */}
+                          <label 
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-maritime-sm btn-press btn-bezel min-h-[36px]"
+                            title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
+                          >
+                            <Upload className="w-3.5 h-3.5 text-[#9FCEE8]" />
+                            <span>{importJvLoading ? "กำลังอัพโหลด..." : "อัพโหลดข้อมูล (Import CSV)"}</span>
+                            <input
+                              type="file"
+                              accept=".csv"
+                              onChange={handleImportJobValueCsv}
+                              className="hidden"
+                              disabled={importJvLoading}
+                            />
+                          </label>
+
+                          {/* Clear D1 Data */}
+                          {safeJobValueRecords.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearJobValueData}
+                              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#FBEAEA] hover:bg-[#F4B8B4]/40 text-[#B3352C] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#F4B8B4] btn-press btn-bezel min-h-[36px]"
+                              title="ล้างข้อมูล Job Value ทั้งหมดในฐานข้อมูล D1"
+                              disabled={importJvLoading}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-[#B3352C]" />
+                              <span>ล้างข้อมูลใน D1 (Clear All)</span>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -7189,26 +7194,34 @@ export default function App() {
                   const avgCostPerPerson = scopedEmpList.length > 0 ? Math.round(totalLaborCost / scopedEmpList.length) : 0;
 
                   return (
-                    <div className="kpis grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 font-sans">
-                      <div className="kpi g">
-                        <span className="lbl">รายได้ประเมินรวม (Total Revenue)</span>
-                        <span className="val">{totalRevenue.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">ประมาณการจาก {scopedEmpList.length} บุคลากร (เฉลี่ย {scopedEmpList.length > 0 ? Math.round(totalRevenue / scopedEmpList.length).toLocaleString() : 0} /คน)</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
+                      <div className="bezel-shell">
+                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">รายได้ประเมินรวม (Total Revenue)</span>
+                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalRevenue.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
+                          <span className="sub text-[11px] text-[#59656D] mt-1">ประมาณการจาก {scopedEmpList.length} บุคลากร (เฉลี่ย {scopedEmpList.length > 0 ? Math.round(totalRevenue / scopedEmpList.length).toLocaleString() : 0} /คน)</span>
+                        </div>
                       </div>
-                      <div className="kpi w">
-                        <span className="lbl">ต้นทุนแรงงานรวมต่อเดือน</span>
-                        <span className="val">{totalLaborCost.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">ฐานเงินเดือน {totalBaseSalary.toLocaleString()} + OT จริง {totalOtPay.toLocaleString()} THB</span>
+                      <div className="bezel-shell">
+                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">ต้นทุนแรงงานรวมต่อเดือน</span>
+                          <span className="val text-2xl font-bold font-mono text-[#B3352C] tabular-nums mt-1">{totalLaborCost.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
+                          <span className="sub text-[11px] text-[#59656D] mt-1">ฐานเงินเดือน {totalBaseSalary.toLocaleString()} + OT จริง {totalOtPay.toLocaleString()} THB</span>
+                        </div>
                       </div>
-                      <div className="kpi b">
-                        <span className="lbl">คุณค่าเพิ่มจากการดำเนินงาน (Value-Add)</span>
-                        <span className="val">{totalValueAdd.toLocaleString()}<span className="text-xs font-normal"> THB</span></span>
-                        <span className="sub">อัตรากำไรจากการดำเนินงาน {profitMarginPct}%</span>
+                      <div className="bezel-shell">
+                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">คุณค่าเพิ่มจากการดำเนินงาน (Value-Add)</span>
+                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalValueAdd.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
+                          <span className="sub text-[11px] text-[#59656D] mt-1">อัตรากำไรจากการดำเนินงาน {profitMarginPct}%</span>
+                        </div>
                       </div>
-                      <div className="kpi">
-                        <span className="lbl">สัดส่วนรายได้ต่อต้นทุน (Rev / Cost)</span>
-                        <span className="val">{revenueCostRatio}x <span className="text-xs font-normal text-[#6A7B87]">เท่า</span></span>
-                        <span className="sub">เฉลี่ย {avgCostPerPerson.toLocaleString()} THB / คน / เดือน</span>
+                      <div className="bezel-shell">
+                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">สัดส่วนรายได้ต่อต้นทุน (Rev / Cost)</span>
+                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{revenueCostRatio}x <span className="text-xs font-normal text-[#6A7B87]">เท่า</span></span>
+                          <span className="sub text-[11px] text-[#59656D] mt-1">เฉลี่ย {avgCostPerPerson.toLocaleString()} THB / คน / เดือน</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -7238,188 +7251,193 @@ export default function App() {
                   if (roleSummaries.length === 0) return null;
 
                   return (
-                    <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                        <div>
-                          <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-blue-600" />
-                            <span>สัดส่วนคุณค่าและผลประกอบการรายตำแหน่งงาน</span>
-                          </h4>
-                          <p className="text-xs text-slate-500 mt-1">
-                            วิเคราะห์ต้นทุนแรงงานจริง (ฐานเงินเดือน + ค่าล่วงเวลา) เทียบรายได้ประเมินและสัดส่วน Revenue / Cost แยกตามตำแหน่ง
-                          </p>
+                    <div className="bezel-shell">
+                      <div className="bezel-core p-5 sm:p-6 space-y-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DCE4EA] pb-4">
+                          <div>
+                            <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
+                              <TrendingUp className="w-5 h-5 text-[#2E90CB]" />
+                              <span>สัดส่วนคุณค่าและผลประกอบการรายตำแหน่งงาน</span>
+                            </h4>
+                            <p className="text-xs text-[#59656D] mt-1">
+                              วิเคราะห์ต้นทุนแรงงานจริง (ฐานเงินเดือน + ค่าล่วงเวลา) เทียบรายได้ประเมินและสัดส่วน Revenue / Cost แยกตามตำแหน่ง
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold rounded-full self-start md:self-auto font-mono">
+                            {roleSummaries.length} ตำแหน่งงาน
+                          </span>
                         </div>
-                        <span className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-full self-start md:self-auto font-mono">
-                          {roleSummaries.length} ตำแหน่งงาน
-                        </span>
-                      </div>
 
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[850px]">
-                          <thead>
-                            <tr className="bg-slate-100/80 border-b border-slate-200 text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                              <th className="px-3.5 py-2.5">ตำแหน่งงาน</th>
-                              <th className="px-3 py-2.5 text-center w-24">จำนวนคน</th>
-                              <th className="px-3.5 py-2.5 text-right">ฐานเงินเดือนเฉลี่ย</th>
-                              <th className="px-3.5 py-2.5 text-right">ชม. OT รวม</th>
-                              <th className="px-3.5 py-2.5 text-right text-rose-700 font-bold">ต้นทุนแรงงานรวม</th>
-                              <th className="px-3.5 py-2.5 text-right text-emerald-700 font-bold">รายได้ประเมินรวม</th>
-                              <th className="px-3.5 py-2.5 text-right text-blue-700 font-bold">คุณค่าเพิ่มสุทธิ</th>
-                              <th className="px-3.5 py-2.5 text-center">สัดส่วน Rev/Cost</th>
-                              <th className="px-3.5 py-2.5 text-center">อัตรากำไร %</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 text-xs font-mono">
-                            {roleSummaries.map(r => (
-                              <tr key={r.role} className="hover:bg-blue-50/40 transition-colors">
-                                <td className="px-3.5 py-2.5 font-sans font-bold text-slate-800">{r.role}</td>
-                                <td className="px-3 py-2.5 text-center font-sans">
-                                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px] font-bold text-slate-700">
-                                    {r.headcount} คน
-                                  </span>
-                                </td>
-                                <td className="px-3.5 py-2.5 text-right text-slate-600">{r.avgBaseSalary.toLocaleString()}</td>
-                                <td className="px-3.5 py-2.5 text-right text-slate-600">{r.totalOtHours.toLocaleString()} ชม.</td>
-                                <td className="px-3.5 py-2.5 text-right font-black text-rose-700">{r.totalLaborCost.toLocaleString()}</td>
-                                <td className="px-3.5 py-2.5 text-right font-black text-emerald-700">{r.totalRevenue.toLocaleString()}</td>
-                                <td className="px-3.5 py-2.5 text-right font-black text-blue-700">{r.operationalValueAdd.toLocaleString()}</td>
-                                <td className="px-3.5 py-2.5 text-center">
-                                  <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded font-bold text-[11px]">
-                                    {r.revenueCostRatio}x
-                                  </span>
-                                </td>
-                                <td className="px-3.5 py-2.5 text-center font-sans font-bold">
-                                  <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold ${r.profitMarginPct >= 0 ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"}`}>
-                                    {r.profitMarginPct}%
-                                  </span>
-                                </td>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse min-w-[850px]">
+                            <thead>
+                              <tr className="bg-[#F3F6F8] border-b border-[#DCE4EA] text-[11px] font-bold text-[#333B41] uppercase tracking-wider">
+                                <th className="px-3.5 py-2.5">ตำแหน่งงาน</th>
+                                <th className="px-3 py-2.5 text-center w-24">จำนวนคน</th>
+                                <th className="px-3.5 py-2.5 text-right">ฐานเงินเดือนเฉลี่ย</th>
+                                <th className="px-3.5 py-2.5 text-right">ชม. OT รวม</th>
+                                <th className="px-3.5 py-2.5 text-right text-[#B3352C] font-bold">ต้นทุนแรงงานรวม</th>
+                                <th className="px-3.5 py-2.5 text-right text-[#1E9C6E] font-bold">รายได้ประเมินรวม</th>
+                                <th className="px-3.5 py-2.5 text-right text-[#0E3A66] font-bold">คุณค่าเพิ่มสุทธิ</th>
+                                <th className="px-3.5 py-2.5 text-center">สัดส่วน Rev/Cost</th>
+                                <th className="px-3.5 py-2.5 text-center">อัตรากำไร %</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-[#DCE4EA] text-xs font-mono">
+                              {roleSummaries.map(r => (
+                                <tr key={r.role} className="hover:bg-[#E8F3FA]/50 transition-colors">
+                                  <td className="px-3.5 py-2.5 font-sans font-bold text-[#333B41]">{r.role}</td>
+                                  <td className="px-3 py-2.5 text-center font-sans">
+                                    <span className="px-2 py-0.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded text-[11px] font-bold text-[#59656D]">
+                                      {r.headcount} คน
+                                    </span>
+                                  </td>
+                                  <td className="px-3.5 py-2.5 text-right text-[#59656D]">{r.avgBaseSalary.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-right text-[#59656D]">{r.totalOtHours.toLocaleString()} ชม.</td>
+                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#B3352C]">{r.totalLaborCost.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#1E9C6E]">{r.totalRevenue.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#0E3A66]">{r.operationalValueAdd.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-center">
+                                    <span className="px-2 py-0.5 bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] rounded font-bold text-[11px]">
+                                      {r.revenueCostRatio}x
+                                    </span>
+                                  </td>
+                                  <td className="px-3.5 py-2.5 text-center font-sans font-bold">
+                                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${r.profitMarginPct >= 0 ? "bg-[#E8F6F0] text-[#1E9C6E] border border-[#A5DCC5]" : "bg-[#FBEAEA] text-[#B3352C] border border-[#F4B8B4]"}`}>
+                                      {r.profitMarginPct}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   );
                 })()}
 
                 {/* Department Job Value Summary Section */}
-                <div className="bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                    <div>
-                      <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
-                        <span>สรุปข้อมูลคุณค่าตำแหน่งงาน (Job Value) และผลตอบแทน แยกรายแผนก</span>
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1">เปรียบเทียบผลประกอบการสะสม 2568 - 2569 รายแผนกย่อย</p>
+                <div className="bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DCE4EA] pb-4">
+                      <div>
+                        <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-[#2E90CB]" />
+                          <span>สรุปข้อมูลคุณค่าตำแหน่งงาน (Job Value) และผลตอบแทน แยกรายแผนก</span>
+                        </h4>
+                        <p className="text-xs text-[#59656D] mt-1">เปรียบเทียบผลประกอบการสะสม 2568 - 2569 รายแผนกย่อย</p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(deptName => {
-                      if (isHrOrFullAccess) return true;
-                      return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
-                    }).map(deptName => {
-                      const targetDeptId = normalizeDeptId(deptName);
-                      const safeJv = jobValueRecords || [];
-                      const deptJvRecords = safeJv.filter(r => 
-                        (r.department === deptName || 
-                        normalizeDeptId(r.department) === targetDeptId ||
-                        normalizeDeptId(r.deptId) === targetDeptId) &&
-                        isJvRole(r.position)
-                      );
-                      const empList = (state.employees || []).filter(e => 
-                        (normalizeDeptId(e.deptId) === targetDeptId || 
-                        normalizeDeptId(e.department) === targetDeptId ||
-                        e.deptId === deptName ||
-                        e.department === deptName) &&
-                        isJvRole(e.role)
-                      );
-
-                      const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
-                      const deptBreakdowns = empList.map(e => {
-                        const matchingJv = safeJv.find(r =>
-                          String(r.empId || "").toLowerCase() === String(e.id || "").toLowerCase() ||
-                          String(r.empName || "").toLowerCase() === String(e.name || "").toLowerCase()
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(deptName => {
+                        if (isHrOrFullAccess) return true;
+                        return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
+                      }).map(deptName => {
+                        const targetDeptId = normalizeDeptId(deptName);
+                        const safeJv = jobValueRecords || [];
+                        const deptJvRecords = safeJv.filter(r => 
+                          (r.department === deptName || 
+                          normalizeDeptId(r.department) === targetDeptId ||
+                          normalizeDeptId(r.deptId) === targetDeptId) &&
+                          isJvRole(r.position)
                         );
-                        return getEmployeeJobValueBreakdown(e, currentMonth, matchingJv);
-                      });
+                        const empList = (state.employees || []).filter(e => 
+                          (normalizeDeptId(e.deptId) === targetDeptId || 
+                          normalizeDeptId(e.department) === targetDeptId ||
+                          e.deptId === deptName ||
+                          e.department === deptName) &&
+                          isJvRole(e.role)
+                        );
 
-                      let count = Math.max(deptJvRecords.length, empList.length);
-                      let totalRev = deptBreakdowns.length > 0
-                        ? deptBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0)
-                        : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
-                      let totalCost = deptBreakdowns.length > 0
-                        ? deptBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0)
-                        : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
-                      let p26 = (totalRev - totalCost);
-                      let p25 = deptJvRecords.length > 0
-                        ? deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0)
-                        : Math.round(p26 * 0.88);
+                        const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
+                        const deptBreakdowns = empList.map(e => {
+                          const matchingJv = safeJv.find(r =>
+                            String(r.empId || "").toLowerCase() === String(e.id || "").toLowerCase() ||
+                            String(r.empName || "").toLowerCase() === String(e.name || "").toLowerCase()
+                          );
+                          return getEmployeeJobValueBreakdown(e, currentMonth, matchingJv);
+                        });
 
-                      const diff = p26 - p25;
-                      const isGrowth = diff >= 0;
+                        let count = Math.max(deptJvRecords.length, empList.length);
+                        let totalRev = deptBreakdowns.length > 0
+                          ? deptBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0)
+                          : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
+                        let totalCost = deptBreakdowns.length > 0
+                          ? deptBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0)
+                          : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
+                        let p26 = (totalRev - totalCost);
+                        let p25 = deptJvRecords.length > 0
+                          ? deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0)
+                          : Math.round(p26 * 0.88);
 
-                      return (
-                        <div key={deptName} className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 hover:shadow-md transition-all space-y-3">
-                          <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                            <span className="font-extrabold text-slate-900 text-sm">แผนก {deptName}</span>
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-extrabold">
-                              {count} บุคลากร
-                            </span>
+                        const diff = p26 - p25;
+                        const isGrowth = diff >= 0;
+
+                        return (
+                          <div key={deptName} className="bg-[#F3F6F8] rounded-xl p-4 border border-[#DCE4EA] hover:border-[#9FCEE8] transition-all space-y-3">
+                            <div className="flex justify-between items-center pb-2 border-b border-[#DCE4EA]">
+                              <span className="font-bold text-[#0E3A66] text-sm">แผนก {deptName}</span>
+                              <span className="px-2 py-0.5 bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] rounded text-[10px] font-bold">
+                                {count} บุคลากร
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs font-mono">
+                              <div className="flex justify-between">
+                                <span className="text-[#59656D] font-sans">รายได้เฉลี่ย/เดือน:</span>
+                                <span className="font-bold text-[#1E9C6E]">{totalRev.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-[#59656D] font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
+                                <span className="font-bold text-[#B3352C]">{totalCost.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between pt-1 border-t border-[#DCE4EA]">
+                                <span className="text-[#59656D] font-sans">กำไรสะสม 2568:</span>
+                                <span className="font-bold text-[#59656D]">{p25.toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-[#59656D] font-sans">กำไรสะสม 2569:</span>
+                                <span className="font-bold text-[#0E3A66]">{p26.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <div className={`p-2 rounded-lg text-[11px] font-bold text-center border ${
+                              isGrowth ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#A5DCC5]" : "bg-[#FBEAEA] text-[#B3352C] border-[#F4B8B4]"
+                            }`}>
+                              {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
+                            </div>
                           </div>
-
-                          <div className="space-y-1.5 text-xs font-mono">
-                            <div className="flex justify-between">
-                              <span className="text-slate-500 font-sans">รายได้เฉลี่ย/เดือน:</span>
-                              <span className="font-bold text-emerald-700">{totalRev.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500 font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
-                              <span className="font-bold text-rose-700">{totalCost.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between pt-1 border-t border-slate-200/60">
-                              <span className="text-slate-500 font-sans">กำไรสะสม 2568:</span>
-                              <span className="font-bold text-slate-700">{p25.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500 font-sans">กำไรสะสม 2569:</span>
-                              <span className="font-extrabold text-blue-700">{p26.toLocaleString()}</span>
-                            </div>
-                          </div>
-
-                          <div className={`p-2 rounded-xl text-[11px] font-extrabold text-center border ${
-                            isGrowth ? "bg-emerald-100/90 text-emerald-900 border-emerald-300" : "bg-rose-100/90 text-rose-900 border-rose-300"
-                          }`}>
-                            {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 {/* Monthly Performance Trend & Financial Chart */}
-                <div className="bg-white p-6 rounded border border-slate-200 shadow-sm space-y-5">
-                  {/* Chart Header & Filter Controls */}
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                      <h4 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
-                        <span>เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</span>
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        เปรียบเทียบแนวโน้ม รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) สุภาพการเงินรายเดือน
-                      </p>
-                    </div>
+                <div className="bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 space-y-5">
+                    {/* Chart Header & Filter Controls */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
+                          <span>เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</span>
+                        </h4>
+                        <p className="text-xs text-[#59656D] mt-0.5">
+                          เปรียบเทียบแนวโน้ม รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) สุภาพการเงินรายเดือน
+                        </p>
+                      </div>
 
                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
                       {/* Department Selector Filter */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1.5 text-xs font-bold border border-slate-200/60 shrink-0">
-                        <span className="text-slate-500 pl-2 font-sans">แผนก:</span>
+                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1.5 text-xs font-bold border border-[#DCE4EA] shrink-0">
+                        <span className="text-[#59656D] pl-2 font-sans">แผนก:</span>
                         <select
                           value={financialChartDeptFilter}
                           disabled={!isHrOrFullAccess}
                           onChange={(e) => setFinancialChartDeptFilter(e.target.value)}
-                          className="bg-white text-blue-800 border border-slate-200 rounded-lg py-1 px-2.5 text-xs font-extrabold shadow-sm focus:ring-0 cursor-pointer disabled:opacity-80"
+                          className="bg-white text-[#0E3A66] border border-[#DCE4EA] rounded-md py-1 px-2.5 text-xs font-bold shadow-xs focus:ring-0 cursor-pointer disabled:opacity-80"
                         >
                           {isHrOrFullAccess && <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>}
                           {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(dept => {
@@ -7432,14 +7450,14 @@ export default function App() {
                       </div>
 
                       {/* Active Months vs 12 Months Filter */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60 shrink-0">
+                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1 text-xs font-bold border border-[#DCE4EA] shrink-0">
                         <button
                           type="button"
                           onClick={() => setFinancialChartOnlyActiveMonths(true)}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap btn-press ${
                             financialChartOnlyActiveMonths 
-                              ? "bg-white text-blue-700 shadow-sm font-extrabold" 
-                              : "text-slate-600 hover:text-slate-900"
+                              ? "bg-white text-[#0E3A66] shadow-xs font-bold border border-[#DCE4EA]" 
+                              : "text-[#59656D] hover:text-[#0E3A66]"
                           }`}
                         >
                           เฉพาะเดือนที่มีข้อมูล
@@ -7447,10 +7465,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFinancialChartOnlyActiveMonths(false)}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap btn-press ${
                             !financialChartOnlyActiveMonths 
-                              ? "bg-white text-blue-700 shadow-sm font-extrabold" 
-                              : "text-slate-600 hover:text-slate-900"
+                              ? "bg-white text-[#0E3A66] shadow-xs font-bold border border-[#DCE4EA]" 
+                              : "text-[#59656D] hover:text-[#0E3A66]"
                           }`}
                         >
                           แสดงทั้ง 12 เดือน
@@ -7458,14 +7476,14 @@ export default function App() {
                       </div>
 
                       {/* Trend Line vs Bar Chart Toggle */}
-                      <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold border border-slate-200/60 shrink-0">
+                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1 text-xs font-bold border border-[#DCE4EA] shrink-0">
                         <button
                           type="button"
                           onClick={() => setFinancialChartViewType("trend")}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 btn-press ${
                             financialChartViewType === "trend" 
-                              ? "bg-blue-600 text-white shadow-sm font-extrabold" 
-                              : "text-slate-600 hover:text-slate-900"
+                              ? "bg-[#0E3A66] text-white shadow-xs font-bold" 
+                              : "text-[#59656D] hover:text-[#0E3A66]"
                           }`}
                         >
                           <TrendingUp className="w-3.5 h-3.5" />
@@ -7474,10 +7492,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setFinancialChartViewType("bar")}
-                          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 btn-press ${
                             financialChartViewType === "bar" 
-                              ? "bg-blue-600 text-white shadow-sm font-extrabold" 
-                              : "text-slate-600 hover:text-slate-900"
+                              ? "bg-[#0E3A66] text-white shadow-xs font-bold" 
+                              : "text-[#59656D] hover:text-[#0E3A66]"
                           }`}
                         >
                           <BarChart3 className="w-3.5 h-3.5" />
@@ -7515,46 +7533,39 @@ export default function App() {
                     const maxVal = Math.max(1, ...displayData.map(d => Math.max(d.rev, d.cost, d.prof)));
 
                     return (
-                      <div className="space-y-4 pt-2 border-t border-slate-100">
+                      <div className="space-y-4 pt-2 border-t border-[#DCE4EA]">
                         {/* CHART CANVAS */}
                         {financialChartViewType === "trend" ? (
                           /* SVG TREND LINE CHART */
-                          <div className="w-full bg-slate-50/70 rounded-2xl p-4 border border-slate-200/70 overflow-x-auto">
+                          <div className="w-full bg-[#F3F6F8] rounded-xl p-4 border border-[#DCE4EA] overflow-x-auto">
                             <div className="min-w-[600px] h-[260px] relative flex flex-col justify-between">
                               <svg className="w-full h-[220px] overflow-visible" viewBox="0 0 800 220" preserveAspectRatio="none">
                                 <defs>
                                   <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                                    <stop offset="0%" stopColor="#1E9C6E" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#1E9C6E" stopOpacity="0.0" />
                                   </linearGradient>
                                   <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.2" />
-                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
+                                    <stop offset="0%" stopColor="#B3352C" stopOpacity="0.2" />
+                                    <stop offset="100%" stopColor="#B3352C" stopOpacity="0.0" />
                                   </linearGradient>
                                   <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+                                    <stop offset="0%" stopColor="#0E3A66" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#0E3A66" stopOpacity="0.0" />
                                   </linearGradient>
                                 </defs>
 
-                                {/* Y-Axis Grid Lines */}
-                                {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-                                  const y = 180 - ratio * 150;
-                                  const val = Math.round(maxVal * ratio);
-                                  return (
-                                    <g key={i}>
-                                      <line x1="50" y1={y} x2="780" y2={y} stroke="#e2e8f0" strokeDasharray="4 4" strokeWidth="1" />
-                                      <text x="45" y={y + 4} textAnchor="end" className="text-[10px] font-mono fill-slate-400">
-                                        {val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
-                                      </text>
-                                    </g>
-                                  );
-                                })}
+                                {/* Background Grid Lines */}
+                                <line x1="40" y1="30" x2="760" y2="30" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
+                                <line x1="40" y1="80" x2="760" y2="80" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
+                                <line x1="40" y1="130" x2="760" y2="130" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
+                                <line x1="40" y1="180" x2="760" y2="180" stroke="#B4C1C9" strokeWidth="1.5" />
 
+                                {/* SVG Polylines & Data Area Paths */}
                                 {(() => {
                                   const n = displayData.length;
-                                  const getX = (index: number) => 70 + (index / Math.max(1, n - 1)) * 690;
-                                  const getY = (val: number) => 180 - (val / maxVal) * 150;
+                                  const getX = (i: number) => 50 + (i * (700 / Math.max(1, n - 1)));
+                                  const getY = (val: number) => 180 - Math.round((val / maxVal) * 140);
 
                                   const revPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.rev) }));
                                   const costPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.cost) }));
@@ -7562,7 +7573,6 @@ export default function App() {
 
                                   const makePath = (pts: { x: number; y: number }[]) => {
                                     if (pts.length === 0) return "";
-                                    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
                                     let path = `M ${pts[0].x} ${pts[0].y}`;
                                     for (let i = 0; i < pts.length - 1; i++) {
                                       const p0 = pts[i];
@@ -7590,9 +7600,9 @@ export default function App() {
                                       <path d={profArea} fill="url(#profGrad)" />
 
                                       {/* Trend Lines */}
-                                      <path d={revPath} fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" />
-                                      <path d={costPath} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 5" />
-                                      <path d={profPath} fill="none" stroke="#2563eb" strokeWidth="3.5" strokeLinecap="round" />
+                                      <path d={revPath} fill="none" stroke="#1E9C6E" strokeWidth="3.5" strokeLinecap="round" />
+                                      <path d={costPath} fill="none" stroke="#B3352C" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 5" />
+                                      <path d={profPath} fill="none" stroke="#0E3A66" strokeWidth="3.5" strokeLinecap="round" />
 
                                       {/* Data Dots & Interactive Circles */}
                                       {displayData.map((d, i) => {
@@ -7604,14 +7614,14 @@ export default function App() {
                                         return (
                                           <g key={d.month} className="group/dot cursor-pointer">
                                             {/* Vertical hover line */}
-                                            <line x1={px} y1="30" x2={px} y2="180" stroke="#cbd5e1" strokeDasharray="3 3" strokeWidth="1.5" className="opacity-0 group-hover/dot:opacity-100 transition-opacity" />
+                                            <line x1={px} y1="30" x2={px} y2="180" stroke="#B4C1C9" strokeDasharray="3 3" strokeWidth="1.5" className="opacity-0 group-hover/dot:opacity-100 transition-opacity" />
 
                                             {/* Revenue Dot */}
-                                            <circle cx={px} cy={ry} r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
+                                            <circle cx={px} cy={ry} r="5" fill="#1E9C6E" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
                                             {/* Cost Dot */}
-                                            <circle cx={px} cy={cy} r="4" fill="#f43f5e" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-6" />
+                                            <circle cx={px} cy={cy} r="4" fill="#B3352C" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-6" />
                                             {/* Profit Dot */}
-                                            <circle cx={px} cy={py} r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
+                                            <circle cx={px} cy={py} r="5" fill="#0E3A66" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
                                           </g>
                                         );
                                       })}
@@ -7621,7 +7631,7 @@ export default function App() {
                               </svg>
 
                               {/* X-Axis Month Labels */}
-                              <div className="flex justify-between px-[50px] text-xs font-black text-slate-700 pt-2 border-t border-slate-200/80">
+                              <div className="flex justify-between px-[50px] text-xs font-bold text-[#333B41] pt-2 border-t border-[#DCE4EA]">
                                 {displayData.map(d => (
                                   <div key={d.month} className="text-center">
                                     <span>{d.month}</span>
@@ -7640,24 +7650,24 @@ export default function App() {
 
                               return (
                                 <div key={d.month} className="flex flex-col items-center gap-2 group">
-                                  <div className="h-36 w-full bg-slate-50 rounded-2xl flex items-end justify-center p-1.5 gap-1 relative overflow-hidden border border-slate-100 shadow-inner">
+                                  <div className="h-36 w-full bg-[#F3F6F8] rounded-xl flex items-end justify-center p-1.5 gap-1 relative overflow-hidden border border-[#DCE4EA] shadow-inner">
                                     <div 
-                                      className="w-1/3 bg-emerald-500 rounded-t-md transition-all duration-300 group-hover:bg-emerald-600 shadow-sm" 
+                                      className="w-1/3 bg-[#1E9C6E] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
                                       style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
                                       title={`Revenue (${d.month}): ${d.rev.toLocaleString()}`}
                                     />
                                     <div 
-                                      className="w-1/3 bg-rose-400 rounded-t-md transition-all duration-300 group-hover:bg-rose-500 shadow-sm" 
+                                      className="w-1/3 bg-[#B3352C] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
                                       style={{ height: `${Math.max(8, Math.min(100, costPct))}%` }}
                                       title={`Cost (${d.month}): ${d.cost.toLocaleString()}`}
                                     />
                                     <div 
-                                      className="w-1/3 bg-blue-600 rounded-t-md transition-all duration-300 group-hover:bg-blue-700 shadow-sm" 
+                                      className="w-1/3 bg-[#0E3A66] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
                                       style={{ height: `${Math.max(5, Math.min(100, profPct))}%` }}
                                       title={`Profit (${d.month}): ${d.prof.toLocaleString()}`}
                                     />
                                   </div>
-                                  <span className="text-xs font-black text-slate-700">{d.month}</span>
+                                  <span className="text-xs font-bold text-[#333B41]">{d.month}</span>
                                 </div>
                               );
                             })}
@@ -7665,41 +7675,41 @@ export default function App() {
                         )}
 
                         {/* Chart Legend */}
-                        <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-xs font-extrabold border-t border-slate-100">
+                        <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-xs font-bold border-t border-[#DCE4EA]">
                           <div className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm" />
-                            <span className="text-slate-700">Revenue (รายได้เฉลี่ยรวม)</span>
+                            <span className="w-3 h-3 rounded-full bg-[#1E9C6E]" />
+                            <span className="text-[#333B41]">Revenue (รายได้เฉลี่ยรวม)</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm border border-dashed border-rose-600" />
-                            <span className="text-slate-700">Cost (ต้นทุนเฉลี่ยรวม)</span>
+                            <span className="w-3 h-3 rounded-full bg-[#B3352C] border border-dashed border-[#B3352C]" />
+                            <span className="text-[#333B41]">Cost (ต้นทุนเฉลี่ยรวม)</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 rounded-full bg-blue-600 shadow-sm" />
-                            <span className="text-slate-700">Profit (กำไรสุทธิ)</span>
+                            <span className="w-3 h-3 rounded-full bg-[#0E3A66]" />
+                            <span className="text-[#333B41]">Profit (กำไรสุทธิ)</span>
                           </div>
                         </div>
 
                         {/* Monthly Exact Numbers Pill Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-3">
                           {displayData.map(d => (
-                            <div key={d.month} className="bg-slate-50/90 rounded-2xl p-3 border border-slate-200/80 space-y-1 text-left font-mono">
-                              <div className="flex justify-between items-center pb-1 border-b border-slate-200/60 font-sans">
-                                <span className="font-black text-slate-900 text-xs">{d.month}</span>
-                                <span className="text-[10px] font-bold text-slate-400">2026</span>
+                            <div key={d.month} className="bg-[#F3F6F8] rounded-xl p-3 border border-[#DCE4EA] space-y-1 text-left font-mono">
+                              <div className="flex justify-between items-center pb-1 border-b border-[#DCE4EA] font-sans">
+                                <span className="font-bold text-[#0E3A66] text-xs">{d.month}</span>
+                                <span className="text-[10px] font-bold text-[#6A7B87]">2026</span>
                               </div>
                               <div className="text-[11px] space-y-0.5 pt-1">
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500 font-sans">รายได้:</span>
-                                  <span className="font-extrabold text-emerald-700">{d.rev.toLocaleString()}</span>
+                                  <span className="text-[#59656D] font-sans">รายได้:</span>
+                                  <span className="font-bold text-[#1E9C6E]">{d.rev.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500 font-sans">ต้นทุน:</span>
-                                  <span className="font-extrabold text-rose-700">{d.cost.toLocaleString()}</span>
+                                  <span className="text-[#59656D] font-sans">ต้นทุน:</span>
+                                  <span className="font-bold text-[#B3352C]">{d.cost.toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between pt-0.5 border-t border-slate-200/40">
-                                  <span className="text-slate-500 font-sans">กำไร:</span>
-                                  <span className="font-black text-blue-700">{d.prof.toLocaleString()}</span>
+                                <div className="flex justify-between pt-0.5 border-t border-[#DCE4EA]">
+                                  <span className="text-[#59656D] font-sans">กำไร:</span>
+                                  <span className="font-bold text-[#0E3A66]">{d.prof.toLocaleString()}</span>
                                 </div>
                               </div>
                             </div>
@@ -7708,6 +7718,7 @@ export default function App() {
                       </div>
                     );
                   })()}
+                  </div>
                 </div>
 
                 {/* Relocation Notice Card & Navigation to Tab 08 for HR */}
@@ -7753,49 +7764,52 @@ export default function App() {
           {activeTab === "reports" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card with analytics label and selectors */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">รายงานข้อมูลและงบประมาณรายแผนก</h3>
-                  <p className="text-xs text-slate-500 mt-1">วิเคราะห์งบการเงิน OT, ความสมดุลของตาราง และการใช้ทรัพยากรส่วนบุคคล</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold select-none">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                    <select
-                      value={selectedMonthFilter}
-                      onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold"
-                    >
-                      <option value="เดือนปัจจุบัน">เดือนปัจจุบัน</option>
-                      <option value="ตุลาคม 2023">ตุลาคม 2023</option>
-                      <option value="พฤศจิกายน 2023">พฤศจิกายน 2023</option>
-                      <option value="ธันวาคม 2023">ธันวาคม 2023</option>
-                    </select>
+              <div className="bezel-shell">
+                <div className="bezel-core p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                  <div>
+                    <span className="eyebrow block">DEPARTMENT REPORTS &amp; BUDGET CONTROL</span>
+                    <h3 className="text-base sm:text-lg font-bold text-[#0E3A66] mt-0.5">รายงานข้อมูลและงบประมาณรายแผนก</h3>
+                    <p className="text-xs text-[#59656D] mt-1">วิเคราะห์งบการเงิน OT, ความสมดุลของตาราง และการใช้ทรัพยากรส่วนบุคคล</p>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold select-none">
-                    <Filter className="w-3.5 h-3.5 text-blue-500" />
-                    <select
-                      value={selectedDeptFilter === "ทุกแผนก" ? "ทุกแผนกทำงาน" : selectedDeptFilter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedDeptFilter(val === "ทุกแผนกทำงาน" ? "ทุกแผนก" : val);
-                      }}
-                      disabled={activeDeptId !== "all"}
-                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-lg text-xs text-[#333B41] font-bold select-none">
+                      <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                      <select
+                        value={selectedMonthFilter}
+                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                        className="bg-transparent border-none text-xs rounded p-0 focus:ring-0 cursor-pointer text-[#0E3A66] font-bold"
+                      >
+                        <option value="เดือนปัจจุบัน">เดือนปัจจุบัน</option>
+                        <option value="ตุลาคม 2023">ตุลาคม 2023</option>
+                        <option value="พฤศจิกายน 2023">พฤศจิกายน 2023</option>
+                        <option value="ธันวาคม 2023">ธันวาคม 2023</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-lg text-xs text-[#333B41] font-bold select-none">
+                      <Filter className="w-3.5 h-3.5 text-[#17538F]" />
+                      <select
+                        value={selectedDeptFilter === "ทุกแผนก" ? "ทุกแผนกทำงาน" : selectedDeptFilter}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedDeptFilter(val === "ทุกแผนกทำงาน" ? "ทุกแผนก" : val);
+                        }}
+                        disabled={activeDeptId !== "all"}
+                        className="bg-transparent border-none text-xs rounded p-0 focus:ring-0 cursor-pointer text-[#0E3A66] font-bold disabled:opacity-80 disabled:cursor-not-allowed"
+                      >
+                        <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
+                        {state.departments.map(d => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button 
+                      onClick={() => window.print()}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#0E3A66] text-white rounded-lg text-xs font-bold hover:bg-[#17538F] transition-colors shadow-maritime-sm cursor-pointer btn-press btn-bezel min-h-[36px]"
                     >
-                      <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
-                      {state.departments.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
+                      <Download className="w-3.5 h-3.5 text-[#9FCEE8]" />
+                      <span>ส่งออกรายงาน PDF</span>
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>ส่งออกรายงาน PDF</span>
-                  </button>
                 </div>
               </div>
 
@@ -7803,170 +7817,174 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Visual Chart representation: Spending correlation */}
-                <div className="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">
-                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
-                          ? `ชั่วโมงการทำงานล่วงเวลารายบุคคล - ${selectedDeptFilter}` 
-                          : "เปรียบเทียบชั่วโมงทำโอทีกับความสัมพันธ์ด้านงบประมาณ (OT vs Spending)"
-                        }
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
-                          ? "ชั่วโมงการทำงานล่วงเวลาสะสมจริงของพนักงานแต่ละท่านเทียบกับเป้าหมายความปลอดภัย" 
-                          : "วิเคราะห์ความสัมพันธ์ระหว่างชั่วโมงทำงานกับค่าใช้จ่ายงบประมาณรวมสะสม"
-                        }
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 select-none">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        <>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                            <span className="text-[10px] font-bold text-slate-500">ชั่วโมง OT (ปกติ)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 bg-red-500 rounded-sm"></span>
-                            <span className="text-[10px] font-bold text-slate-500">เกินเป้าความปลอดภัย</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                          <span className="text-[10px] font-bold text-slate-500">ชั่วโมงทำงานจริง (ชม.)</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="h-64 relative mt-4">
-                    {/* Simulated composite chart with exact axes from picture 2 */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 ml-10 mr-10">
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-300"></div>
-                    </div>
-
-                    <div className="absolute inset-x-10 bottom-6 top-0 flex items-end justify-between gap-2">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        filteredEmployeesForReport.map((emp) => {
-                          const actualOt = getDynamicEmployeeOt(emp.id, selectedMonthFilter);
-                          const maxOt = 100;
-                          const otHeight = Math.min(100, Math.round((actualOt / maxOt) * 100));
-                          const isOverLimit = actualOt > emp.targetOt;
-                          return (
-                            <div key={emp.id} className="flex-1 flex flex-col items-center group relative h-full">
-                              <div 
-                                style={{ height: `${otHeight}%` }}
-                                className={`w-8 absolute bottom-0 rounded-t transition-all hover:scale-105 shadow-sm cursor-pointer ${
-                                  isOverLimit ? "bg-red-500 hover:bg-red-600" : "bg-blue-600 hover:bg-blue-700"
-                                }`}
-                                title={`${emp.name}: ${actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
-                              ></div>
-                              <span className="absolute -bottom-6 text-[9px] font-bold text-slate-500 text-center truncate max-w-[70px]" title={emp.name}>
-                                {emp.name.split(" ")[0]}
-                              </span>
+                <div className="lg:col-span-8 bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 flex flex-col justify-between h-full">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">
+                          {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
+                            ? `ชั่วโมงการทำงานล่วงเวลารายบุคคล - ${selectedDeptFilter}` 
+                            : "เปรียบเทียบชั่วโมงทำโอทีกับความสัมพันธ์ด้านงบประมาณ (OT vs Spending)"
+                          }
+                        </h4>
+                        <p className="text-xs text-[#59656D] mt-1">
+                          {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
+                            ? "ชั่วโมงการทำงานล่วงเวลาสะสมจริงของพนักงานแต่ละท่านเทียบกับเป้าหมายความปลอดภัย" 
+                            : "วิเคราะห์ความสัมพันธ์ระหว่างชั่วโมงทำงานกับค่าใช้จ่ายงบประมาณรวมสะสม"
+                          }
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 select-none">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 bg-[#0E3A66] rounded-xs"></span>
+                              <span className="text-[10px] font-bold text-[#59656D]">ชั่วโมง OT (ปกติ)</span>
                             </div>
-                          );
-                        })
-                      ) : (
-                        reportDepartments.slice(0, 5).map((dept) => {
-                          const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
-                          const budgetUsed = dept.budgetUsed || 0;
-                          
-                          const maxOt = Math.max(...reportDepartments.map(d => d.otHours), 50);
-                          const maxBudget = Math.max(...reportDepartments.map(d => d.budgetUsed), 10000);
-                          
-                          const otHeight = Math.round((otHours / maxOt) * 100);
-                          const budgetHeight = Math.round((budgetUsed / maxBudget) * 100);
-                          return (
-                            <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
-                              <div className="flex items-end justify-center gap-1.5 w-full h-full pb-6">
-                                {/* OT Hours Bar */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 bg-[#B3352C] rounded-xs"></span>
+                              <span className="text-[10px] font-bold text-[#59656D]">เกินเป้าความปลอดภัย</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-2.5 h-2.5 bg-[#0E3A66] rounded-xs"></span>
+                            <span className="text-[10px] font-bold text-[#59656D]">ชั่วโมงทำงานจริง (ชม.)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="h-64 relative mt-4">
+                      {/* Simulated composite chart with exact axes from picture 2 */}
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 ml-10 mr-10">
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#B4C1C9]"></div>
+                      </div>
+
+                      <div className="absolute inset-x-10 bottom-6 top-0 flex items-end justify-between gap-2">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          filteredEmployeesForReport.map((emp) => {
+                            const actualOt = getDynamicEmployeeOt(emp.id, selectedMonthFilter);
+                            const maxOt = 100;
+                            const otHeight = Math.min(100, Math.round((actualOt / maxOt) * 100));
+                            const isOverLimit = actualOt > emp.targetOt;
+                            return (
+                              <div key={emp.id} className="flex-1 flex flex-col items-center group relative h-full">
                                 <div 
                                   style={{ height: `${otHeight}%` }}
-                                  className="w-3 bg-blue-600 rounded-t transition-all hover:bg-blue-700 shadow-sm cursor-pointer"
-                                  title={`${dept.nameTh}: OT ${otHours} ชม.`}
+                                  className={`w-8 absolute bottom-0 rounded-t transition-all hover:scale-105 shadow-xs cursor-pointer ${
+                                    isOverLimit ? "bg-[#B3352C] hover:brightness-110" : "bg-[#0E3A66] hover:bg-[#17538F]"
+                                  }`}
+                                  title={`${emp.name}: ${actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
                                 ></div>
-                                {/* Spending Bar */}
-                                <div 
-                                  style={{ height: `${budgetHeight}%` }}
-                                  className="w-3 bg-amber-500 rounded-t transition-all hover:bg-amber-600 shadow-sm cursor-pointer"
-                                  title={`${dept.nameTh}: งบประมาณ ${budgetUsed.toLocaleString()}`}
-                                ></div>
+                                <span className="absolute -bottom-6 text-[9px] font-bold text-[#59656D] text-center truncate max-w-[70px]" title={emp.name}>
+                                  {emp.name.split(" ")[0]}
+                                </span>
                               </div>
-                              <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 text-center truncate max-w-[70px]">{dept.name}</span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                            );
+                          })
+                        ) : (
+                          reportDepartments.slice(0, 5).map((dept) => {
+                            const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+                            const budgetUsed = dept.budgetUsed || 0;
+                            
+                            const maxOt = Math.max(...reportDepartments.map(d => d.otHours), 50);
+                            const maxBudget = Math.max(...reportDepartments.map(d => d.budgetUsed), 10000);
+                            
+                            const otHeight = Math.round((otHours / maxOt) * 100);
+                            const budgetHeight = Math.round((budgetUsed / maxBudget) * 100);
+                            return (
+                              <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
+                                <div className="flex items-end justify-center gap-1.5 w-full h-full pb-6">
+                                  {/* OT Hours Bar */}
+                                  <div 
+                                    style={{ height: `${otHeight}%` }}
+                                    className="w-3 bg-[#0E3A66] rounded-t transition-all hover:bg-[#17538F] shadow-xs cursor-pointer"
+                                    title={`${dept.nameTh}: OT ${otHours} ชม.`}
+                                  ></div>
+                                  {/* Spending Bar */}
+                                  <div 
+                                    style={{ height: `${budgetHeight}%` }}
+                                    className="w-3 bg-[#D99B14] rounded-t transition-all hover:brightness-110 shadow-xs cursor-pointer"
+                                    title={`${dept.nameTh}: งบประมาณ ${budgetUsed.toLocaleString()}`}
+                                  ></div>
+                                </div>
+                                <span className="absolute -bottom-6 text-[10px] font-bold text-[#59656D] text-center truncate max-w-[70px]">{dept.name}</span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
 
-                    {/* Left axis (Hours) */}
-                    <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold text-slate-400 pb-6">
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50))}h`}</span>
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50) / 2)}h`}</span>
-                      <span>0h</span>
-                    </div>
+                      {/* Left axis (Hours) */}
+                      <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold text-[#6A7B87] pb-6 font-mono">
+                        <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50))}h`}</span>
+                        <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50) / 2)}h`}</span>
+                        <span>0h</span>
+                      </div>
 
-                    {/* Right axis (Cost) */}
-                    <div className="absolute right-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold pb-6 text-right">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        <>
-                          <span className="text-slate-400">100%</span>
-                          <span className="text-slate-400">50%</span>
-                          <span className="text-slate-400">0%</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
-                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
-                          <span className="text-slate-400">0</span>
-                        </>
-                      )}
+                      {/* Right axis (Cost) */}
+                      <div className="absolute right-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold pb-6 text-right font-mono">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          <>
+                            <span className="text-[#6A7B87]">100%</span>
+                            <span className="text-[#6A7B87]">50%</span>
+                            <span className="text-[#6A7B87]">0%</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[#D99B14]">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
+                            <span className="text-[#D99B14]">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
+                            <span className="text-[#6A7B87]">0</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Sidebar managers list */}
-                <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">หัวหน้าแผนกผู้ควบคุม (Summary)</h4>
-                    <p className="text-xs text-slate-500 mb-6">ผู้รับผิดชอบงบประมาณและเวลา</p>
-                  </div>
+                <div className="lg:col-span-4 bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">หัวหน้าแผนกผู้ควบคุม (Summary)</h4>
+                      <p className="text-xs text-[#59656D] mb-5">ผู้รับผิดชอบงบประมาณและเวลา</p>
+                    </div>
 
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {reportDepartments.map((dept) => {
-                      const managerInfo = getDeptManagerInfo(dept.id);
-                      const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
-                      return (
-                        <div key={dept.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
-                          <div className="flex items-center gap-3">
-                            <EmployeeAvatar empId={managerInfo.username} empName={managerInfo.name} avatarUrl={managerInfo.avatar} className="w-9 h-9 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-bold text-slate-800">{managerInfo.name}</p>
-                              <p className="text-[9px] text-blue-600 font-mono font-bold uppercase tracking-wider">{managerInfo.role}</p>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {reportDepartments.map((dept) => {
+                        const managerInfo = getDeptManagerInfo(dept.id);
+                        const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+                        return (
+                          <div key={dept.id} className="flex items-center justify-between p-3 bg-[#F3F6F8] rounded-xl border border-[#DCE4EA] hover:border-[#9FCEE8] transition-all">
+                            <div className="flex items-center gap-3">
+                              <EmployeeAvatar empId={managerInfo.username} empName={managerInfo.name} avatarUrl={managerInfo.avatar} className="w-9 h-9 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-bold text-[#0E3A66]">{managerInfo.name}</p>
+                                <p className="text-[9px] text-[#17538F] font-mono font-bold uppercase tracking-wider">{managerInfo.role}</p>
+                              </div>
+                            </div>
+                            <div className="text-right font-mono">
+                              <p className="text-xs font-bold text-[#0E3A66]">{otHours} ชม.</p>
+                              <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-[#B3352C]' : 'text-[#1E9C6E]'}`}>
+                                {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
+                              </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs font-extrabold text-blue-600">{otHours} ชม.</p>
-                            <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-red-500' : 'text-emerald-600'}`}>
-                              {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
 
-                  <button 
-                    onClick={() => setActiveTab("employees")}
-                    className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors mt-4"
-                  >
-                    ดูข้อมูลหัวหน้าทั้งหมด
-                  </button>
+                    <button 
+                      onClick={() => setActiveTab("employees")}
+                      className="w-full py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] text-[#0E3A66] rounded-lg text-xs font-bold transition-colors mt-4 btn-press btn-bezel"
+                    >
+                      ดูข้อมูลหัวหน้าทั้งหมด
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -7975,345 +7993,368 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Heatmap block */}
-                <div className="lg:col-span-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
-                      <p className="text-xs text-slate-500 mt-1">วิเคราะห์ช่วงกะเวลาที่มีกำลังพลทำงานล่วงเวลาสูงที่สุดในแต่ละวัน</p>
-                    </div>
-                    {/* Scale labels */}
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                      <span>Low</span>
-                      <div className="flex gap-0.5">
-                        <div className="w-3.5 h-3.5 bg-blue-100 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-300 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-500 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-800 rounded-sm"></div>
+                <div className="lg:col-span-6 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
+                        <p className="text-xs text-[#59656D] mt-1">วิเคราะห์ช่วงกะเวลาที่มีกำลังพลทำงานล่วงเวลาสูงที่สุดในแต่ละวัน</p>
                       </div>
-                      <span>High</span>
+                      {/* Scale labels */}
+                      <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#6A7B87]">
+                        <span>Low</span>
+                        <div className="flex gap-0.5">
+                          <div className="w-3.5 h-3.5 bg-[#E8F3FA] border border-[#9FCEE8]/50 rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#9FCEE8] rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#2E90CB] rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#0E3A66] rounded-xs"></div>
+                        </div>
+                        <span>High</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Calendar Heatmap Grid */}
-                  <div className="overflow-x-auto no-scrollbar touch-pan-x">
-                    <div className="grid grid-cols-8 gap-1.5 pt-2 min-w-[340px]">
-                      <div></div>
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                        <div key={d} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
-                      ))}
-                      
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">17:00-19:00</div>
-                      {heatmapGrid[0].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                    {/* Calendar Heatmap Grid */}
+                    <div className="overflow-x-auto no-scrollbar touch-pan-x">
+                      <div className="grid grid-cols-8 gap-1.5 pt-2 min-w-[340px]">
+                        <div></div>
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                          <div key={d} className="text-center text-[10px] font-bold text-[#59656D]">{d}</div>
+                        ))}
+                        
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">17:00-19:00</div>
+                        {heatmapGrid[0].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
 
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">19:00-21:00</div>
-                      {heatmapGrid[1].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">19:00-21:00</div>
+                        {heatmapGrid[1].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
 
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">21:00-23:00</div>
-                      {heatmapGrid[2].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">21:00-23:00</div>
+                        {heatmapGrid[2].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Radar Chart KPIs */}
-                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
-                    <p className="text-xs text-slate-500 mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
-                  </div>
-
-                  <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
-                    {dashboardEmployees.length === 0 && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-2xl z-20">
-                        <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-500">ยังไม่มีข้อมูลพนักงาน</p>
-                        <p className="text-[10px] text-slate-400 mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
-                      </div>
-                    )}
-                    <svg className="w-40 h-40 overflow-visible" viewBox="0 0 100 100">
-                      {/* Grid */}
-                      <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <polygon points="50,30 69,44 62,66 38,66 31,44" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      {/* Axis lines */}
-                      <line x1="50" y1="50" x2="50" y2="10" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="88" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="74" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="26" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="12" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
-                      {/* Baseline */}
-                      <polygon points={safetyBaselinePoints} fill="rgba(249,115,22,0.05)" stroke="#f97316" strokeWidth="1.2" strokeDasharray="2,2" />
-                      {/* Company polygon */}
-                      <polygon points={companyPoints} fill="rgba(59, 130, 246, 0.15)" stroke="#2563eb" strokeWidth="1.5" />
-                      {/* Dots at vertices */}
-                      {companyPoints.split(" ").map((pt, i) => {
-                        const [x, y] = pt.split(",").map(Number);
-                        return <circle key={i} cx={x} cy={y} r="2" fill="#2563eb" />;
-                      })}
-                    </svg>
-                    {/* Labels */}
-                    <span className="absolute top-1 text-[8px] font-bold text-slate-500 text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
-                    <span className="absolute top-16 right-0 text-[8px] font-bold text-slate-500">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
-                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-500">ความคุ้มค่า ({Math.round(costEfficiencyPct * 100)}%)</span>
-                    <span className="absolute bottom-1 left-2 text-[8px] font-bold text-slate-500">ความปลอดภัย ({Math.round(safetyPct * 100)}%)</span>
-                    <span className="absolute top-16 left-0 text-[8px] font-bold text-slate-500">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
-                  </div>
-
-                  <div className="flex gap-4 justify-center text-[9px] font-bold text-slate-600 mt-2">
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 bg-blue-600 rounded-sm"></span>
-                      <span>ดัชนี (Current)</span>
+                <div className="lg:col-span-3 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
+                      <p className="text-xs text-[#59656D] mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
-                      <span>เกณฑ์ (Baseline)</span>
+
+                    <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
+                      {dashboardEmployees.length === 0 && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-xl z-20">
+                          <BarChart3 className="w-10 h-10 text-[#B4C1C9] mx-auto mb-2" />
+                          <p className="text-xs font-bold text-[#59656D]">ยังไม่มีข้อมูลพนักงาน</p>
+                          <p className="text-[10px] text-[#6A7B87] mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
+                        </div>
+                      )}
+                      <svg className="w-40 h-40 overflow-visible" viewBox="0 0 100 100">
+                        {/* Grid */}
+                        <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <polygon points="50,30 69,44 62,66 38,66 31,44" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        {/* Axis lines */}
+                        <line x1="50" y1="50" x2="50" y2="10" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="88" y2="38" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="74" y2="82" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="26" y2="82" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="12" y2="38" stroke="#DCE4EA" strokeWidth="0.5" />
+                        {/* Baseline */}
+                        <polygon points={safetyBaselinePoints} fill="rgba(217,155,20,0.05)" stroke="#D99B14" strokeWidth="1.2" strokeDasharray="2,2" />
+                        {/* Company polygon */}
+                        <polygon points={companyPoints} fill="rgba(14, 58, 102, 0.15)" stroke="#0E3A66" strokeWidth="1.5" />
+                        {/* Dots at vertices */}
+                        {companyPoints.split(" ").map((pt, i) => {
+                          const [x, y] = pt.split(",").map(Number);
+                          return <circle key={i} cx={x} cy={y} r="2" fill="#0E3A66" />;
+                        })}
+                      </svg>
+                      {/* Labels */}
+                      <span className="absolute top-1 text-[8px] font-bold text-[#59656D] text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
+                      <span className="absolute top-16 right-0 text-[8px] font-bold text-[#59656D]">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
+                      <span className="absolute bottom-1 right-2 text-[8px] font-bold text-[#59656D]">ความคุ้มค่า ({Math.round(costEfficiencyPct * 100)}%)</span>
+                      <span className="absolute bottom-1 left-2 text-[8px] font-bold text-[#59656D]">ความปลอดภัย ({Math.round(safetyPct * 100)}%)</span>
+                      <span className="absolute top-16 left-0 text-[8px] font-bold text-[#59656D]">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
+                    </div>
+
+                    <div className="flex gap-4 justify-center text-[9px] font-bold text-[#59656D] mt-2">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-[#0E3A66] rounded-xs"></span>
+                        <span>ดัชนี (Current)</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 border border-dashed border-[#D99B14] bg-[#FCF3DE] rounded-xs"></span>
+                        <span>เกณฑ์ (Baseline)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* OT Distribution by Position */}
-                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
-                    <p className="text-[10px] text-slate-500 mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
-                  </div>
+                <div className="lg:col-span-3 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
+                      <p className="text-[10px] text-[#59656D] mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
+                    </div>
 
-                  <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
-                    {roleOtData.map((item, idx) => {
-                      const pct = Math.round((item.totalOt / maxRoleOt) * 100);
-                      return (
-                        <div key={idx} className="group">
-                          <div className="flex justify-between items-center text-[10px] mb-0.5">
-                            <span className="font-bold text-slate-600 group-hover:text-blue-600 truncate max-w-[130px] transition-colors" title={item.role}>
-                              {item.role}
-                            </span>
-                            <span className="font-bold text-slate-900 font-mono">{item.totalOt} ชม. ({item.empCount} คน)</span>
+                    <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
+                      {roleOtData.map((item, idx) => {
+                        const pct = Math.round((item.totalOt / maxRoleOt) * 100);
+                        return (
+                          <div key={idx} className="group">
+                            <div className="flex justify-between items-center text-[10px] mb-0.5">
+                              <span className="font-bold text-[#333B41] group-hover:text-[#0E3A66] truncate max-w-[130px] transition-colors" title={item.role}>
+                                {item.role}
+                              </span>
+                              <span className="font-bold text-[#0E3A66] font-mono">{item.totalOt} ชม. ({item.empCount} คน)</span>
+                            </div>
+                            <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
+                              <div 
+                                style={{ width: `${pct}%` }}
+                                className="bg-[#17538F] h-full rounded-full transition-all"
+                              ></div>
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden shadow-inner">
-                            <div 
-                              style={{ width: `${pct}%` }}
-                              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all"
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div className="pt-2.5 border-t border-slate-100 mt-4 flex items-center justify-between text-[9px] font-bold text-slate-400">
-                    <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
-                    <span className="text-blue-600">วิเคราะห์เอนเอียง</span>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="pt-2.5 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[9px] font-bold text-[#6A7B87]">
+                      <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
+                      <span className="text-[#0E3A66]">วิเคราะห์เอนเอียง</span>
+                    </div>
                   </div>
                 </div>
 
               </div>
 
               {/* Row: Cargo Tonnage vs OT Analytics Card */}
-              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-4 sm:p-6 rounded border border-amber-200 shadow-sm space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
-                      <Ship className="w-5 h-5 text-amber-600 inline" />
-                      <span>การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)</span>
-                    </h4>
-                    <p className="text-xs text-amber-800/80 mt-0.5">
-                      วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2.5 rounded-2xl border border-amber-200 shadow-sm">
-                    <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-500">ปริมาณงานสินค้ารวม</span>
-                      <span className="text-base font-black text-amber-600 font-mono">
-                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0).toLocaleString()} <span className="text-xs font-bold">ตัน</span>
-                      </span>
-                    </div>
-                    <div className="h-8 w-px bg-amber-200" />
-                    <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-500">อัตราเฉลี่ย OT / 1,000 ตัน</span>
-                      <span className="text-base font-black text-blue-600 font-mono">
-                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) > 0 
-                          ? (state.employees.reduce((s, e) => s + (e.actualOt || 0), 0) / (vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) / 1000)).toFixed(1)
-                          : "0.0"} <span className="text-xs font-bold">ชม.</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vessel Tonnage vs OT Comparison Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-                  {vesselSchedules.length === 0 ? (
-                    <div className="col-span-full py-8 text-center bg-white/60 rounded-2xl border border-dashed border-amber-200 text-xs font-bold text-amber-700">
-                      ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
-                    </div>
-                  ) : vesselSchedules.map((vs) => {
-                    const ton = Number(vs.tonnage) || 0;
-                    const dept = state.departments.find(d => d.id === vs.deptId);
-                    const deptEmps = state.employees.filter(e => e.deptId === vs.deptId);
-                    const deptOt = deptEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
-                    return (
-                      <div key={vs.id} className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-between space-y-3">
-                        <div>
-                          <div className="flex justify-between items-start">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 font-mono uppercase">
-                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType})
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400">{vs.startDate}</span>
-                          </div>
-                          <h5 className="text-xs font-black text-slate-800 mt-2 truncate" title={vs.name}>{vs.name}</h5>
-                          <p className="text-[10px] text-slate-500">แผนกรับผิดชอบ: {dept?.nameTh || vs.deptId}</p>
-                        </div>
-
-                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600 flex items-center gap-1">
-                              <Package className="w-3.5 h-3.5 text-amber-500 inline" /> ปริมาณงาน:
-                            </span>
-                            <span className="text-amber-600 font-mono">{ton.toLocaleString()} ตัน</span>
-                          </div>
-                          <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600 flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-blue-500 inline" /> OT สะสมแผนก:
-                            </span>
-                            <span className="text-blue-600 font-mono">{deptOt} ชม.</span>
-                          </div>
-                        </div>
+              <div className="bezel-shell p-1.5 bg-[#FCF3DE]/50 border border-[#D99B14]/30 rounded-2xl shadow-none">
+                <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#D99B14]/20 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FCF3DE] text-[#D99B14] border border-[#D99B14]/30">
+                          <Ship className="w-3.5 h-3.5 text-[#D99B14] inline" />
+                          <span>Maritime Operations Telemetry</span>
+                        </span>
                       </div>
-                    );
-                  })}
+                      <h4 className="text-sm sm:text-base font-black text-[#333B41] tracking-tight">
+                        การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)
+                      </h4>
+                      <p className="text-xs text-[#59656D] mt-0.5">
+                        วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 bg-[#F3F6F8] px-4 py-2.5 rounded-xl border border-[#DCE4EA]">
+                      <div className="text-right">
+                        <span className="block text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">ปริมาณงานสินค้ารวม</span>
+                        <span className="text-base font-black text-[#D99B14] font-mono tabular-nums">
+                          {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0).toLocaleString()} <span className="text-xs font-bold text-[#59656D]">ตัน</span>
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-[#DCE4EA]" />
+                      <div className="text-right">
+                        <span className="block text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">อัตราเฉลี่ย OT / 1,000 ตัน</span>
+                        <span className="text-base font-black text-[#0E3A66] font-mono tabular-nums">
+                          {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) > 0 
+                            ? (state.employees.reduce((s, e) => s + (e.actualOt || 0), 0) / (vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) / 1000)).toFixed(1)
+                            : "0.0"} <span className="text-xs font-bold text-[#59656D]">ชม.</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vessel Tonnage vs OT Comparison Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                    {vesselSchedules.length === 0 ? (
+                      <div className="col-span-full py-8 text-center bg-[#F3F6F8] rounded-xl border border-dashed border-[#DCE4EA] text-xs font-bold text-[#6A7B87]">
+                        ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
+                      </div>
+                    ) : vesselSchedules.map((vs) => {
+                      const ton = Number(vs.tonnage) || 0;
+                      const dept = state.departments.find(d => d.id === vs.deptId);
+                      const deptEmps = state.employees.filter(e => e.deptId === vs.deptId);
+                      const deptOt = deptEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
+                      return (
+                        <div key={vs.id} className="bezel-shell p-1 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl shadow-none">
+                          <div className="bezel-core p-3.5 bg-white rounded-lg border border-[#DCE4EA] flex flex-col justify-between space-y-3 h-full">
+                            <div>
+                              <div className="flex justify-between items-start">
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-[#FCF3DE] text-[#D99B14] border border-[#D99B14]/30 font-mono uppercase">
+                                  {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType})
+                                </span>
+                                <span className="text-[10px] font-bold text-[#6A7B87] font-mono">{vs.startDate}</span>
+                              </div>
+                              <h5 className="text-xs font-black text-[#333B41] mt-2 truncate" title={vs.name}>{vs.name}</h5>
+                              <p className="text-[10px] text-[#59656D]">แผนกรับผิดชอบ: {dept?.nameTh || vs.deptId}</p>
+                            </div>
+
+                            <div className="space-y-2 pt-2 border-t border-[#DCE4EA]">
+                              <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-[#59656D] flex items-center gap-1">
+                                  <Package className="w-3.5 h-3.5 text-[#D99B14] inline" /> ปริมาณงาน:
+                                </span>
+                                <span className="text-[#D99B14] font-mono tabular-nums">{ton.toLocaleString()} ตัน</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-[#59656D] flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5 text-[#0E3A66] inline" /> OT สะสมแผนก:
+                                </span>
+                                <span className="text-[#0E3A66] font-mono tabular-nums">{deptOt} ชม.</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               {/* Comprehensive Statistics Table */}
-              <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">ตารางสรุปงบประมาณและข้อมูลประสิทธิภาพรายแผนก</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">การวิเคราะห์พฤติกรรมการใช้งบประมาณและกำลังพล</p>
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none overflow-hidden">
+                <div className="bezel-core bg-white rounded-xl border border-[#DCE4EA] overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-[#DCE4EA] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                          <BarChart3 className="w-3 h-3 text-[#0E3A66]" />
+                          <span>Departmental Efficiency Ledger</span>
+                        </span>
+                      </div>
+                      <h4 className="text-sm sm:text-base font-bold text-[#333B41]">ตารางสรุปงบประมาณและข้อมูลประสิทธิภาพรายแผนก</h4>
+                      <p className="text-xs text-[#59656D] mt-0.5">การวิเคราะห์พฤติกรรมการใช้งบประมาณและกำลังพล</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-[#F3F6F8] border border-[#DCE4EA] px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">เรียงตาม:</span>
+                      <select 
+                        value={reportSortBy}
+                        onChange={(e) => setReportSortBy(e.target.value)}
+                        className="bg-transparent border-none text-[10px] font-extrabold focus:ring-0 cursor-pointer text-[#333B41]"
+                      >
+                        <option>OT Hours (High to Low)</option>
+                        <option>Department Name</option>
+                        <option>Budget Used</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                    <span className="text-[10px] font-bold text-slate-500">เรียงตาม:</span>
-                    <select 
-                      value={reportSortBy}
-                      onChange={(e) => setReportSortBy(e.target.value)}
-                      className="bg-transparent border-none text-[10px] font-extrabold focus:ring-0 cursor-pointer text-slate-700"
-                    >
-                      <option>OT Hours (High to Low)</option>
-                      <option>Department Name</option>
-                      <option>Budget Used</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">ชื่อแผนก</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">พนักงานทำ OT</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">ชั่วโมงงานสะสม</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">งบประมาณที่ใช้จริง</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">สัดส่วนการใช้งบสูงสุด</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">สถานะควบคุม</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#DCE4EA] text-slate-700 text-xs">
-                      {sortedDepartments.map((dept) => (
-                        <tr key={dept.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded bg-[#E8F3FA] flex items-center justify-center text-[#0E3A66] border border-[#9FCEE8]">
-                                <Building2 className="w-4 h-4 text-[#0E3A66]" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-800">{dept.nameTh}</p>
-                                <p className="text-[10px] text-slate-400">หน่วยการผลิตย่อย {dept.name}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center font-bold font-mono">{dept.employeesCount} คน</td>
-                          <td className="px-6 py-4 text-right font-extrabold text-slate-800 font-mono">{dept.otHours} ชม.</td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="font-extrabold text-slate-800 font-mono">{dept.budgetUsed.toLocaleString()}</div>
-                            <div className={`flex items-center justify-end gap-0.5 text-[9px] font-bold ${
-                              dept.budgetUsedChangePct > 0 ? 'text-red-500' : 'text-emerald-600'
-                            }`}>
-                              {dept.budgetUsedChangePct > 0 ? (
-                                <>
-                                  <ArrowUpRight className="w-3 h-3" />
-                                  <span>+{dept.budgetUsedChangePct}%</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ArrowDownRight className="w-3 h-3" />
-                                  <span>{dept.budgetUsedChangePct}%</span>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex-grow bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                <div 
-                                  style={{ width: `${dept.budgetUtilization}%` }}
-                                  className={`h-full rounded-full ${
-                                    dept.budgetUtilization > 90 ? 'bg-red-500' : 'bg-blue-600'
-                                  }`}
-                                ></div>
-                              </div>
-                              <span className="font-extrabold text-slate-800 font-mono w-8">{dept.budgetUtilization}%</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border ${
-                              dept.status === "On Track" 
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                : "bg-red-50 text-red-700 border-red-100"
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                dept.status === "On Track" ? "bg-emerald-500" : "bg-red-500"
-                              }`}></span>
-                              {dept.status === "On Track" ? "On Track" : "Warning"}
-                            </span>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                      <thead>
+                        <tr className="bg-[#F3F6F8] border-b border-[#DCE4EA]">
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider">ชื่อแผนก</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-center">พนักงานทำ OT</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-right">ชั่วโมงงานสะสม</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-right">งบประมาณที่ใช้จริง</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider">สัดส่วนการใช้งบสูงสุด</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-center">สถานะควบคุม</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-[#DCE4EA] text-[#333B41] text-xs">
+                        {sortedDepartments.map((dept) => (
+                          <tr key={dept.id} className="hover:bg-[#F3F6F8]/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] flex items-center justify-center text-[#0E3A66] border border-[#9FCEE8]">
+                                  <Building2 className="w-4 h-4 text-[#0E3A66]" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-[#333B41]">{dept.nameTh}</p>
+                                  <p className="text-[10px] text-[#6A7B87]">หน่วยการผลิตย่อย {dept.name}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center font-bold font-mono tabular-nums">{dept.employeesCount} คน</td>
+                            <td className="px-6 py-4 text-right font-extrabold text-[#0E3A66] font-mono tabular-nums">{dept.otHours} ชม.</td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="font-extrabold text-[#333B41] font-mono tabular-nums">{dept.budgetUsed.toLocaleString()}</div>
+                              <div className={`flex items-center justify-end gap-0.5 text-[9px] font-bold ${
+                                dept.budgetUsedChangePct > 0 ? 'text-[#B3352C]' : 'text-[#1E9C6E]'
+                              }`}>
+                                {dept.budgetUsedChangePct > 0 ? (
+                                  <>
+                                    <ArrowUpRight className="w-3 h-3" />
+                                    <span>+{dept.budgetUsedChangePct}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDownRight className="w-3 h-3" />
+                                    <span>{dept.budgetUsedChangePct}%</span>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-grow bg-[#DCE4EA] h-2 rounded-full overflow-hidden">
+                                  <div 
+                                    style={{ width: `${dept.budgetUtilization}%` }}
+                                    className={`h-full rounded-full transition-all ${
+                                      dept.budgetUtilization > 90 ? 'bg-[#B3352C]' : 'bg-[#0E3A66]'
+                                    }`}
+                                  ></div>
+                                </div>
+                                <span className="font-extrabold text-[#333B41] font-mono tabular-nums w-8">{dept.budgetUtilization}%</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                                dept.status === "On Track" 
+                                  ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#1E9C6E]/30" 
+                                  : "bg-[#FBEAEA] text-[#B3352C] border-[#B3352C]/30"
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  dept.status === "On Track" ? "bg-[#1E9C6E]" : "bg-[#B3352C]"
+                                }`}></span>
+                                {dept.status === "On Track" ? "On Track" : "Warning"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                {/* Footer stats metadata */}
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs font-semibold text-slate-500">
-                  <p>แสดง 6 แผนกหลัก</p>
-                  <div className="flex gap-1">
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-white text-slate-500">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold">1</button>
+                  {/* Footer stats metadata */}
+                  <div className="px-6 py-4 bg-[#F3F6F8] border-t border-[#DCE4EA] flex justify-between items-center text-xs font-semibold text-[#6A7B87]">
+                    <p>แสดง 6 แผนกหลัก</p>
+                    <div className="flex gap-1">
+                      <button className="btn-bezel w-8 h-8 flex items-center justify-center rounded-lg border border-[#DCE4EA] hover:bg-white text-[#59656D]">
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button className="btn-bezel w-8 h-8 flex items-center justify-center rounded-lg bg-[#0E3A66] text-white font-bold font-mono">1</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -8374,52 +8415,60 @@ export default function App() {
 
                       return (
                         <>
-                          <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs">
-                                <Users className="w-5 h-5 text-blue-700" />
+                          {/* Card 1: Current Total Employees (Double Bezel) */}
+                          <div className="bezel-shell p-1.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl shadow-none">
+                            <div className="bezel-core p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-col justify-between min-h-[160px]">
+                              <div className="flex justify-between items-start">
+                                <div className="w-10 h-10 rounded-xl bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center">
+                                  <Users className="w-5 h-5 text-[#0E3A66]" />
+                                </div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                                  Workforce Telemetry
+                                </span>
                               </div>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Current Total Employees</h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-slate-900">{activeEmps}/{totalEmps}</span>
-                                <span className="text-xs font-semibold text-slate-500">in total</span>
+                              
+                              <div className="mt-4">
+                                <h4 className="text-xs font-bold text-[#6A7B87] uppercase tracking-wider mb-1">Current Total Employees</h4>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl sm:text-4xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">{activeEmps}/{totalEmps}</span>
+                                  <span className="text-xs font-semibold text-[#6A7B87]">in total</span>
+                                </div>
+                                <p className="text-xs font-extrabold text-[#0E3A66] pt-1 font-mono tabular-nums">({activeRatioPct}% active workforce)</p>
                               </div>
-                              <p className="text-xs font-extrabold text-blue-600 pt-1">({activeRatioPct}% active workforce)</p>
                             </div>
                           </div>
 
-                          {/* Card 2: Case and Resigned (Current Month Calculation) */}
-                          <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shadow-2xs">
-                                <UserX className="w-5 h-5 text-rose-600" />
-                              </div>
+                          {/* Card 2: Case and Resigned (Double Bezel) */}
+                          <div className="bezel-shell p-1.5 bg-[#FBEAEA] border border-[#B3352C]/30 rounded-2xl shadow-none">
+                            <div className="bezel-core p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-col justify-between min-h-[160px]">
+                              <div className="flex justify-between items-start">
+                                <div className="w-10 h-10 rounded-xl bg-[#FBEAEA] text-[#B3352C] border border-[#B3352C]/30 flex items-center justify-center">
+                                  <UserX className="w-5 h-5 text-[#B3352C]" />
+                                </div>
 
-                              {isHrOrFullAccess && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedEmpStatusTab("Resigned");
-                                    setShowResignedModal(true);
-                                  }}
-                                  className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-black transition-all border border-rose-200/80 cursor-pointer shadow-xs hover:scale-105 active:scale-95 flex items-center gap-1.5"
-                                  title="เปิดหน้าต่างจัดการข้อมูลพนักงานลาออก / พ้นสภาพ"
-                                >
-                                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                                  <span>จัดการข้อมูล</span>
-                                </button>
-                              )}
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Case and Resigned</h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-slate-900">{thisMonthCaseCount} Case</span>
+                                {isHrOrFullAccess && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedEmpStatusTab("Resigned");
+                                      setShowResignedModal(true);
+                                    }}
+                                    className="btn-bezel px-3.5 py-1.5 bg-[#FBEAEA] hover:bg-[#F8D7D7] text-[#B3352C] rounded-xl text-xs font-black transition-all border border-[#B3352C]/30 cursor-pointer flex items-center gap-1.5"
+                                    title="เปิดหน้าต่างจัดการข้อมูลพนักงานลาออก / พ้นสภาพ"
+                                  >
+                                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                                    <span>จัดการข้อมูล</span>
+                                  </button>
+                                )}
                               </div>
-                              <p className="text-xs font-extrabold text-rose-600 pt-1">ประจำเดือน {formatMonthThai(currentMonthKey)} (สะสมทั้งหมด {allResignedEmps.length} เคส)</p>
+                              
+                              <div className="mt-4">
+                                <h4 className="text-xs font-bold text-[#6A7B87] uppercase tracking-wider mb-1">Case and Resigned</h4>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl sm:text-4xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">{thisMonthCaseCount} Case</span>
+                                </div>
+                                <p className="text-xs font-extrabold text-[#B3352C] pt-1">ประจำเดือน {formatMonthThai(currentMonthKey)} (สะสมทั้งหมด {allResignedEmps.length} เคส)</p>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -8529,117 +8578,126 @@ export default function App() {
                     const activeIconsCount = Math.min(10, Math.round((activeRatioPct / 100) * 10));
 
                     return (
-                      <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                      <div className="lg:col-span-2 space-y-4 sm:space-y-6 flex flex-col justify-between">
                         
-                        {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart */}
-                        <div className="bg-white border border-slate-200/80 rounded p-4 sm:p-6 shadow-sm flex-1 flex flex-col justify-between">
-                          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                            <div>
-                              <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
-                              <p className="text-[10px] text-slate-400 font-medium mt-0.5">จำนวนพนักงานแยกตามแผนก Jan - Oct</p>
-                            </div>
-                            
-                            {/* Section Legend Pills with Real Live Headcounts */}
-                            <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
-                                <span className="text-slate-700">INTER 2 ({countInter2} คน)</span>
+                        {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart (Double Bezel) */}
+                        <div className="bezel-shell p-1.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl shadow-none flex-1 flex flex-col justify-between">
+                          <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#DCE4EA] flex-1 flex flex-col justify-between">
+                            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                                    Headcount Dynamics
+                                  </span>
+                                </div>
+                                <h3 className="text-xs sm:text-sm font-black text-[#333B41] tracking-wider uppercase">DASHBOARD BY SECTION</h3>
+                                <p className="text-[10px] text-[#6A7B87] font-medium mt-0.5">จำนวนพนักงานแยกตามแผนก Jan - Oct</p>
                               </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
-                                <span className="text-slate-700">INTER 3 ({countInter3} คน)</span>
+                              
+                              {/* Section Legend Pills with Real Live Headcounts */}
+                              <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#0E3A66]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 2 ({countInter2} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#1E9C6E]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 3 ({countInter3} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#17538F]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 5 ({countInter5} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#D99B14]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 7 ({countInter7} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#2E90CB]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">HVM ({countHvm} คน)</span>
+                                </div>
                               </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></span>
-                                <span className="text-slate-700">INTER 5 ({countInter5} คน)</span>
-                              </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
-                                <span className="text-slate-700">INTER 7 ({countInter7} คน)</span>
-                              </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>
-                                <span className="text-slate-700">HVM ({countHvm} คน)</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SVG Stacked Area Chart */}
-                          <div className="h-48 relative pt-4 flex flex-col justify-between border-t border-slate-100">
-                            
-                            {/* Y-Axis Labels */}
-                            <div className="absolute left-0 top-2 bottom-6 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none">
-                              <span>80</span>
-                              <span>60</span>
-                              <span>40</span>
-                              <span>20</span>
-                              <span>0</span>
                             </div>
 
-                            {/* Grid Lines */}
-                            <div className="absolute left-7 right-0 top-2 bottom-6 flex flex-col justify-between pointer-events-none">
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-200"></div>
-                            </div>
+                            {/* SVG Stacked Area Chart */}
+                            <div className="h-48 relative pt-4 flex flex-col justify-between border-t border-[#DCE4EA]">
+                              
+                              {/* Y-Axis Labels */}
+                              <div className="absolute left-0 top-2 bottom-6 flex flex-col justify-between text-[10px] font-bold text-[#6A7B87] pointer-events-none font-mono tabular-nums">
+                                <span>80</span>
+                                <span>60</span>
+                                <span>40</span>
+                                <span>20</span>
+                                <span>0</span>
+                              </div>
 
-                            {/* Area Chart SVG Stacked Layers (Dynamic Polygons) */}
-                            <div className="pl-8 h-full w-full relative">
-                              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                {/* Layer 5: HVM (Sky Blue) */}
-                                <polygon points={polyLayer5} fill="#0284c7" opacity="0.35" />
-                                {/* Layer 4: INTER 7 (Amber Gold) */}
-                                <polygon points={polyLayer4} fill="#d97706" opacity="0.4" />
-                                {/* Layer 3: INTER 5 (Indigo Purple) */}
-                                <polygon points={polyLayer3} fill="#6366f1" opacity="0.5" />
-                                {/* Layer 2: INTER 3 (Emerald Green) */}
-                                <polygon points={polyLayer2} fill="#059669" opacity="0.6" />
-                                {/* Layer 1: INTER 2 (Royal Blue) */}
-                                <polygon points={polyLayer1} fill="#2563eb" opacity="0.8" />
-                              </svg>
-                            </div>
+                              {/* Grid Lines */}
+                              <div className="absolute left-7 right-0 top-2 bottom-6 flex flex-col justify-between pointer-events-none">
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#DCE4EA]"></div>
+                              </div>
 
-                            {/* X-Axis Month Labels */}
-                            <div className="pl-8 flex justify-between text-[11px] font-bold text-slate-500 pt-2 border-t border-slate-100">
-                              {monthNames.map(m => (
-                                <span key={m}>{m}</span>
-                              ))}
-                            </div>
+                              {/* Area Chart SVG Stacked Layers (Dynamic Polygons) */}
+                              <div className="pl-8 h-full w-full relative">
+                                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                  {/* Layer 5: HVM (Sky Blue) */}
+                                  <polygon points={polyLayer5} fill="#2E90CB" opacity="0.4" />
+                                  {/* Layer 4: INTER 7 (Amber Gold) */}
+                                  <polygon points={polyLayer4} fill="#D99B14" opacity="0.4" />
+                                  {/* Layer 3: INTER 5 (Maritime Blue) */}
+                                  <polygon points={polyLayer3} fill="#17538F" opacity="0.5" />
+                                  {/* Layer 2: INTER 3 (Emerald Green) */}
+                                  <polygon points={polyLayer2} fill="#1E9C6E" opacity="0.6" />
+                                  {/* Layer 1: INTER 2 (Deep Maritime Navy) */}
+                                  <polygon points={polyLayer1} fill="#0E3A66" opacity="0.8" />
+                                </svg>
+                              </div>
 
+                              {/* X-Axis Month Labels */}
+                              <div className="pl-8 flex justify-between text-[11px] font-bold text-[#6A7B87] pt-2 border-t border-[#DCE4EA]">
+                                {monthNames.map(m => (
+                                  <span key={m}>{m}</span>
+                                ))}
+                              </div>
+
+                            </div>
                           </div>
                         </div>
 
-                        {/* Bottom Panel: Organization Chart People Silhouettes Bar */}
-                        <div className="bg-white border border-slate-200/80 rounded p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
-                          
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                              <Globe className="w-6 h-6 text-white" />
+                        {/* Bottom Panel: Organization Chart People Silhouettes Bar (Double Bezel) */}
+                        <div className="bezel-shell p-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-2xl shadow-none">
+                          <div className="bezel-core p-4 sm:p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-wrap items-center justify-between gap-4 font-sans">
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-[#0E3A66] text-white flex items-center justify-center">
+                                <Globe className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-extrabold text-[#333B41]">Organization chart</h4>
+                                <p className="text-[10px] text-[#6A7B87] font-medium">สัดส่วนพนักงานปฏิบัติงานปัจจุบัน</p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
-                              <p className="text-[10px] text-slate-500 font-medium">สัดส่วนพนักงานปฏิบัติงานปัจจุบัน</p>
+
+                            {/* 10 People Icon Silhouettes */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F3F6F8] rounded-xl border border-[#DCE4EA]">
+                              {Array.from({ length: 10 }).map((_, idx) => (
+                                <Users 
+                                  key={idx} 
+                                  className={`w-4 h-4 ${idx < activeIconsCount ? "text-[#0E3A66]" : "text-[#B4C1C9]"}`} 
+                                />
+                              ))}
                             </div>
-                          </div>
 
-                          {/* 10 People Icon Silhouettes */}
-                          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
-                            {Array.from({ length: 10 }).map((_, idx) => (
-                              <Users 
-                                key={idx} 
-                                className={`w-5 h-5 ${idx < activeIconsCount ? "text-blue-600" : "text-slate-300"}`} 
-                              />
-                            ))}
-                          </div>
+                            {/* Percent badge */}
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl sm:text-3xl font-black text-[#0E3A66] font-mono tabular-nums">{activeRatioPct}%</span>
+                              <span className="text-xs font-bold text-[#6A7B87] font-mono tabular-nums">({activeEmpsList.length} จาก {empsList.length} คน)</span>
+                            </div>
 
-                          {/* Percent badge */}
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
-                            <span className="text-xs font-bold text-slate-500">({activeEmpsList.length} จาก {empsList.length} คน)</span>
                           </div>
-
                         </div>
 
                       </div>
@@ -8649,62 +8707,69 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Header block with employee database controls */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
-                  <p className="text-xs text-slate-500 mt-1">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
-                    <>
-                      {/* Export Button */}
+              {/* Header block with employee database controls (Double Bezel) */}
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none">
+                <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#DCE4EA] flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                        Personnel Telemetry Ledger
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-extrabold text-[#333B41]">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
+                    <p className="text-xs text-[#59656D] mt-0.5">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
+                      <>
+                        {/* Export Button */}
+                        <button 
+                          onClick={handleExportEmployees}
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] text-[#333B41] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] min-h-[38px]"
+                          title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#0E3A66]" />
+                          <span>ส่งออกข้อมูล (Export CSV)</span>
+                        </button>
+
+                        {/* Import Button */}
+                        <label 
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] text-[#333B41] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] min-h-[38px]"
+                          title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-[#17538F]" />
+                          <span>นำเข้าข้อมูล (Import CSV)</span>
+                          <input 
+                            type="file"
+                            accept=".csv"
+                            onChange={handleImportEmployees}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* CSV Template Hub */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCsvTemplateHubOpen(true)}
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#E8F3FA] hover:bg-[#9FCEE8]/30 text-[#0E3A66] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#9FCEE8] min-h-[38px]"
+                          title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-[#0E3A66]" />
+                          <span>แม่แบบ CSV</span>
+                        </button>
+                      </>
+                    )}
+                    
+                    {isHrOrFullAccess && (
                       <button 
-                        onClick={handleExportEmployees}
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
-                        title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
+                        onClick={handleOpenAddEmployeeModal}
+                        className="btn-bezel btn-press flex items-center gap-2 px-4 py-2 bg-[#0E3A66] text-white rounded-xl text-xs font-bold hover:bg-[#17538F] transition-colors border border-[#0E3A66] cursor-pointer min-h-[38px]"
                       >
-                        <Download className="w-3.5 h-3.5 text-blue-600" />
-                        <span>ส่งออกข้อมูล (Export CSV)</span>
+                        <Plus className="w-4 h-4" />
+                        <span>เพิ่มพนักงานใหม่</span>
                       </button>
-
-                      {/* Import Button */}
-                      <label 
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
-                        title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>นำเข้าข้อมูล (Import CSV)</span>
-                        <input 
-                          type="file"
-                          accept=".csv"
-                          onChange={handleImportEmployees}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {/* CSV Template Hub */}
-                      <button
-                        type="button"
-                        onClick={() => setIsCsvTemplateHubOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200 min-h-[40px]"
-                        title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
-                      >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-                        <span>แม่แบบ CSV</span>
-                      </button>
-                    </>
-                  )}
-                  
-                  {isHrOrFullAccess && (
-                    <button 
-                      onClick={handleOpenAddEmployeeModal}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>เพิ่มพนักงานใหม่</span>
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -8788,101 +8853,102 @@ export default function App() {
 
               {/* Employee roster list */}
               <div id="employee-roster-section"></div>
-              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
-                <div className="p-4 sm:p-6 border-b border-slate-100 space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2.5">
-                        <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#DCE4EA] text-[#0E3A66] text-xs font-bold font-mono">
-                          แสดง {filteredEmployees.length} จาก {
-                            selectedEmpStatusTab === "All"
-                              ? (state?.employees || []).length
-                              : selectedEmpStatusTab === "Active"
-                              ? (state?.employees || []).filter(e => isActiveEmployee(e, state?.shiftConfig?.currentMonth)).length
-                              : selectedEmpStatusTab === "On-Leave"
-                              ? (state?.employees || []).filter(e => isOnLeaveEmployee(e, state?.shiftConfig?.currentMonth)).length
-                              : (state?.employees || []).filter(e => isResignedEmployee(e)).length
-                          } คน
-                        </span>
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none overflow-hidden">
+                <div className="bezel-core bg-white border border-[#DCE4EA] rounded-xl overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-[#DCE4EA] space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <h4 className="text-sm sm:text-base font-black text-[#333B41]">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold font-mono tabular-nums">
+                            แสดง {filteredEmployees.length} จาก {
+                              selectedEmpStatusTab === "All"
+                                ? (state?.employees || []).length
+                                : selectedEmpStatusTab === "Active"
+                                ? (state?.employees || []).filter(e => isActiveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                                : selectedEmpStatusTab === "On-Leave"
+                                ? (state?.employees || []).filter(e => isOnLeaveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                                : (state?.employees || []).filter(e => isResignedEmployee(e)).length
+                            } คน
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#59656D] mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
-                    </div>
 
-                    {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEmpSearchQuery("");
-                          setEmpDeptFilter("ทุกแผนก");
-                          setEmpDivisionFilter("ทุกฝ่าย");
-                          setEmpRoleFilter("ทุกตำแหน่ง");
-                          setSearchQuery("");
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto min-h-[36px]"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>ล้างตัวกรองทั้งหมด</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Filter Toolbar Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-                    {/* 1. Quick Search Box */}
-                    <div className="relative">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={empSearchQuery}
-                        onChange={(e) => setEmpSearchQuery(e.target.value)}
-                        placeholder="ค้นหารหัส, ชื่อ-นามสกุล..."
-                        className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                      {empSearchQuery && (
-                        <button 
+                      {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
+                        <button
                           type="button"
-                          onClick={() => setEmpSearchQuery("")}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setEmpSearchQuery("");
+                            setEmpDeptFilter("ทุกแผนก");
+                            setEmpDivisionFilter("ทุกฝ่าย");
+                            setEmpRoleFilter("ทุกตำแหน่ง");
+                            setSearchQuery("");
+                          }}
+                          className="btn-bezel flex items-center gap-1.5 px-3 py-1.5 bg-[#FBEAEA] text-[#B3352C] hover:bg-[#F8D7D7] rounded-xl text-xs font-bold transition-all border border-[#B3352C]/30 cursor-pointer self-start md:self-auto min-h-[36px]"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>ล้างตัวกรองทั้งหมด</span>
                         </button>
                       )}
                     </div>
 
-                    {/* 2. Department Dropdown */}
-                    <div className="relative">
-                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={empDeptFilter}
-                        onChange={(e) => setEmpDeptFilter(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
-                      >
-                        <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>
-                        {uniqueRosterDepts.map(d => (
-                          <option key={d} value={d}>แผนก {d}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Filter Toolbar Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                      {/* 1. Quick Search Box */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={empSearchQuery}
+                          onChange={(e) => setEmpSearchQuery(e.target.value)}
+                          placeholder="ค้นหารหัส, ชื่อ-นามสกุล..."
+                          className="w-full pl-9 pr-8 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all"
+                        />
+                        {empSearchQuery && (
+                          <button 
+                            type="button"
+                            onClick={() => setEmpSearchQuery("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6A7B87] hover:text-[#333B41]"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
 
-                    {/* 3. Division Dropdown */}
-                    <div className="relative">
-                      <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={empDivisionFilter}
-                        onChange={(e) => setEmpDivisionFilter(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
-                      >
-                        <option value="ทุกฝ่าย">ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
-                        {uniqueRosterDivisions.map(div => (
-                          <option key={div} value={div}>ฝ่าย {div}</option>
-                        ))}
-                      </select>
-                    </div>
+                      {/* 2. Department Dropdown */}
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={empDeptFilter}
+                          onChange={(e) => setEmpDeptFilter(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all cursor-pointer appearance-none"
+                        >
+                          <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>
+                          {uniqueRosterDepts.map(d => (
+                            <option key={d} value={d}>แผนก {d}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    {/* 4. Position / Role Dropdown */}
-                    <div className="relative">
-                      <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      {/* 3. Division Dropdown */}
+                      <div className="relative">
+                        <Briefcase className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={empDivisionFilter}
+                          onChange={(e) => setEmpDivisionFilter(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all cursor-pointer appearance-none"
+                        >
+                          <option value="ทุกฝ่าย">ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
+                          {uniqueRosterDivisions.map(div => (
+                            <option key={div} value={div}>ฝ่าย {div}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 4. Position / Role Dropdown */}
+                      <div className="relative">
+                        <UserCheck className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <select
                         value={empRoleFilter}
                         onChange={(e) => setEmpRoleFilter(e.target.value)}
@@ -9205,9 +9271,10 @@ export default function App() {
                   </table>
                 </div>
               </div>
-
             </div>
-          )}
+
+          </div>
+        )}
 
           {/* ======================================= */}
           {/* VIEW: SHIFT MANAGEMENT */}
