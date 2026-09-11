@@ -90,6 +90,7 @@ import {
   isDateCompanyHoliday,
   isDateWeeklyRestDay
 } from "./constants/companyHolidays";
+import { useUrlRouting, getInitialTabFromUrl } from "./hooks/useUrlRouting";
 import { 
   getComplementaryShift, 
   generateTwoTeamPairSchedules, 
@@ -2657,7 +2658,8 @@ export default function App() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeTab, setActiveTab] = useState<string>(getInitialTabFromUrl);
+  useUrlRouting(activeTab, setActiveTab);
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem("isNavbarCollapsed");
     return stored === null ? true : stored === "true";
