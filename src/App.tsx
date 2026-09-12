@@ -81,6 +81,7 @@ import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
+import ExecutiveDashboardView from "./components/dashboard/ExecutiveDashboardView";
 import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
 import { getShiftCircadianSegments } from "./utils/circadianEngine";
 import { AppState, Employee, Department, JobValueRecord, DailyShiftAuditRow, EmployeeJobValueBreakdown, RoleJobValueSummary, CompanyHoliday, DepartmentRestDayPolicy } from "./types";
@@ -2660,6 +2661,41 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTabFromUrl);
   useUrlRouting(activeTab, setActiveTab);
+
+  // Executive Mode vs Operational Mode State (Requirement R1)
+  const [dashboardMode, setDashboardMode] = useState<"executive" | "operational">(() => {
+    if (typeof window !== "undefined") {
+      const modeParam = new URLSearchParams(window.location.search).get("mode");
+      if (modeParam === "operational" || modeParam === "executive") {
+        return modeParam;
+      }
+    }
+    return "executive";
+  });
+
+  const handleToggleDashboardMode = (newMode: "executive" | "operational") => {
+    setDashboardMode(newMode);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("mode", newMode);
+      const newSearch = params.toString() ? `?${params.toString()}` : "";
+      const newUrl = `${window.location.pathname}${newSearch}`;
+      window.history.replaceState({ ...window.history.state, mode: newMode }, "", newUrl);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== "undefined") {
+        const modeParam = new URLSearchParams(window.location.search).get("mode");
+        if (modeParam === "operational" || modeParam === "executive") {
+          setDashboardMode(modeParam);
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem("isNavbarCollapsed");
     return stored === null ? true : stored === "true";
@@ -5965,10 +6001,68 @@ export default function App() {
                       ติดตามการทำงานล่วงเวลา สรุปสถิติจำนวนชั่วโมงกะ และงบประมาณโลจิสติกส์การขนถ่ายสินค้าทางเรือ (MV / Tug Boat) แบบ Real-time Enterprise System
                     </p>
                   </div>
+
+                  {/* Mode Switcher Segmented Control (R1) */}
+                  <div
+                    role="group"
+                    aria-label="Dashboard View Mode"
+                    className="flex items-center bg-[#F3F6F8] p-1 rounded border border-[#DCE4EA] self-stretch sm:self-auto flex-shrink-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleToggleDashboardMode("executive")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
+                        dashboardMode === "executive"
+                          ? "bg-[#0E3A66] text-white shadow-maritime-xs"
+                          : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
+                      }`}
+                    >
+                      <Briefcase className="w-3.5 h-3.5" />
+                      <span>Executive View</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleDashboardMode("operational")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
+                        dashboardMode === "operational"
+                          ? "bg-[#0E3A66] text-white shadow-maritime-xs"
+                          : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
+                      }`}
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span>Operational View</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Integrated Control Toolbar: Filters + Quick Action Buttons */}
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
+                {dashboardMode === "executive" ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#0E3A66]">รอบการประเมิน:</span>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedMonthFilter}
+                          onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        >
+                          <option>เดือนปัจจุบัน</option>
+                          <option>3 เดือนที่ผ่านมา</option>
+                          <option>6 เดือนย้อนหลัง</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#59656D]">
+                        โหมดผู้บริหาร (Executive View): คาดการณ์งบประมาณสิ้นเดือนและเรดาร์ความเสี่ยงเชิงรุก
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Integrated Control Toolbar: Filters + Quick Action Buttons */
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
                   {/* Left Filter Cluster */}
                   <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded border border-[#DCE4EA]">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
@@ -6070,10 +6164,27 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+              )}
               </div>
 
-              {/* Dynamic Metric Calculations for Active Month & Filter Selection */}
-              {(() => {
+              {/* Conditional View: Executive Mode vs Operational Mode */}
+              {dashboardMode === "executive" ? (
+                <ExecutiveDashboardView
+                  state={state}
+                  employees={dashboardEmployees}
+                  departments={state?.departments || []}
+                  otRequests={otRequests}
+                  setOtRequests={setOtRequests}
+                  selectedMonthFilter={selectedMonthFilter}
+                  setSelectedMonthFilter={setSelectedMonthFilter}
+                  onNavigateToShifts={() => setActiveTab("shifts")}
+                  onNavigateToEmployees={handleNavigateToEmployees}
+                  getEmpCalculatedOt={getEmpCalculatedOt}
+                  getEmpCalculatedOtPay={getEmpCalculatedOtPay}
+                />
+              ) : (
+                /* Dynamic Metric Calculations for Active Month & Filter Selection (Operational Mode) */
+                (() => {
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
 
                 // Function to get the EXACT array of month keys corresponding to the user filter
@@ -7056,7 +7167,8 @@ export default function App() {
 
                   </div>
                 );
-              })()}
+              })()
+            )}
 
             </div>
 
