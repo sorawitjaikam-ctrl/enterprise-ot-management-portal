@@ -9516,6 +9516,25 @@ export default function App() {
                         </>
                       )}
                     </div>
+                    
+                    {/* Go to Today Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date();
+                        const currentY = today.getFullYear();
+                        const currentM = String(today.getMonth() + 1).padStart(2, "0");
+                        const nextM = `${currentY}-${currentM}`;
+                        handleShiftConfigMonthChange(nextM);
+                        setSelectedWeek("all");
+                        setDaysLimit(30);
+                      }}
+                      className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer font-sans flex items-center gap-1.5 shadow-2xs transition-colors"
+                      title="กลับไปยังวันปัจจุบัน"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>วันนี้</span>
+                    </button>
                   </div>
 
                   {/* Actions in row 2: Legend & Fullscreen */}
