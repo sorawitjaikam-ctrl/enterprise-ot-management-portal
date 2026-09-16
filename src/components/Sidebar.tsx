@@ -12,7 +12,8 @@ import {
   FileText,
   ShieldCheck,
   ChevronLeft,
-  TrendingUp
+  TrendingUp,
+  Building2
 } from "lucide-react";
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     { id: "shifts",     label: "จัดตารางกะเทียบเรือ (Shifts)", icon: Calendar },
     { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
     { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
+    { id: "manpower",   label: "โครงสร้างอัตรากำลัง (Manpower)", icon: Building2 },
     ...(isHrOrFullAccess ? [
       { id: "hr-editor",  label: "จัดการข้อมูล & รายได้ (HR Direct)", icon: FileText },
       { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: ClipboardList },

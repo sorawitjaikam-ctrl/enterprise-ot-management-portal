@@ -177,3 +177,17 @@ export interface AppState {
   restDayPolicies?: DepartmentRestDayPolicy[];
   d1Connected?: boolean;
 }
+
+export interface ManpowerPosition {
+  id: string;
+  empId: string;
+  name: string;
+  role: string;
+  unit: string;
+  isMgr: boolean;
+  isEng: boolean;
+  status: "Active" | "Vacant";
+  ocType: "OLD" | "NEW";
+  img?: string | null;
+}
+

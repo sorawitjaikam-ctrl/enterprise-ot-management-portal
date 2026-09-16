@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Port Operations: Manpower Dashboard & Headcount Analytics</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS CDN for Excel import/export -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Prompt:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Prompt', -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+
+    /* Minimal Line and Card Elements (Clean, neutral styling) */
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px 20px;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+    .metric-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* Drag and drop zone highlight */
+    .drag-active {
+      border-color: #2563eb !important;
+      background-color: #f8fafc !important;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#f8fafc]">
+
+  <!-- Toast Notification -->
+  <div id="toast">
+    <span id="toast-icon">✓</span>
+    <span id="toast-msg">Success</span>
+  </div>
+
+  <!-- Modal: Edit / Add Employee -->
+  <div id="modal-edit-person" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-300 rounded-lg max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 id="modal-title" class="text-sm font-bold text-slate-900">Edit Personnel</h3>
+        <button onclick="closePersonModal()" class="text-slate-400 hover:text-slate-700 text-lg leading-none">&times;</button>
+      </div>
+
+      <form id="person-form" onsubmit="savePersonModal(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="form-id" />
+
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Employee ID <span class="text-slate-400 font-normal">(เฉพาะคน Active เช่น 688172)</span></label>
+          <input type="text" id="form-emp-id" placeholder="ใส่รหัสพนักงาน (ว่างไว้ถ้ายังไม่มีคนครอง)" 
+                 class="w-full px-3 py-1.5 border border-slate-200 rounded font-mono-num text-slate-900 focus:outline-none focus:border-slate-800" />
+        </div>
+
+        <div>
+          <label class="block text-slate-700 font-medium mb-1">Name <span class="text-slate-500">*</span></label>
+          <input type="text" id="form-name" required placeholder="Name or Vacant" 
+                 class="w-full px-3 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Role <span class="text-slate-500">*</span></label>
+            <input type="text" id="form-role" list="role-datalist" required placeholder="เลือกหรือพิมพ์ตำแหน่ง..."
+                   class="w-full px-2.5 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800" />
+            <datalist id="role-datalist">
+              <option value="พนักงานขับเครน">
+              <option value="ช่างขับจักรกลหนัก">
+              <option value="ผู้ควบคุมงานจักรกลหนัก">
+              <option value="ผู้ควบคุมงานขนถ่ายสินค้า">
+              <option value="ช่างปากเรือ">
+              <option value="O&M Specialist">
+              <option value="O&M Generator">
+              <option value="O&M Mechanical">
+              <option value="O&M Electrical">
+              <option value="เจ้าหน้าที่ศูนย์ควบคุม">
+              <option value="Operation Engineer">
+              <option value="Improvement Engineer">
+              <option value="ผู้จัดการฝ่ายปฏิบัติการ">
+              <option value="ผู้จัดการแผนก">
+              <option value="Maintenance Improvement">
+            </datalist>
+          </div>
+
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Unit <span class="text-slate-500">*</span></label>
+            <input type="text" id="form-unit" list="unit-datalist" required placeholder="เลือกหรือพิมพ์ทุ่น/ฝ่าย..."
+                   class="w-full px-2.5 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800" />
+            <datalist id="unit-datalist">
+              <option value="INTER 2">
+              <option value="INTER 3">
+              <option value="INTER 5">
+              <option value="INTER 7">
+              <option value="Heavy Machine">
+              <option value="Improvement">
+              <option value="CONTROL">
+              <option value="Management">
+            </datalist>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">OC Type <span class="text-slate-500">*</span></label>
+            <select id="form-octype" class="w-full px-2.5 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800">
+              <option value="OLD">OLD (2T Base)</option>
+              <option value="NEW">NEW (+3T Expan.)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Status</label>
+            <select id="form-status" onchange="onStatusChangeModal()" class="w-full px-2.5 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800">
+              <option value="Active">Active</option>
+              <option value="Vacant">Vacant</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-700 font-medium mb-1">Level</label>
+            <select id="form-level" class="w-full px-2.5 py-1.5 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-800">
+              <option value="staff">Staff</option>
+              <option value="mgr">Manager</option>
+              <option value="eng">Engineer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+          <button type="button" id="btn-delete-person" onclick="deleteCurrentPerson()" class="text-slate-500 hover:text-slate-800 hover:underline">
+            Delete
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closePersonModal()" class="px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-1.5 rounded bg-slate-900 text-white font-medium hover:bg-slate-800">
+              Save
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Top App Navigation -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-[1750px] mx-auto px-6 h-14 flex items-center justify-between">
+      
+      <div class="flex items-center gap-3">
+        <span class="font-bold text-sm tracking-tight text-slate-900">Port Operations</span>
+        <span class="text-slate-300">/</span>
+        <span class="text-xs text-slate-600 font-medium">Manpower Dashboard & Headcount Analytics</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="exportExcel()" class="px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-medium hover:bg-slate-800 flex items-center gap-1.5">
+          <span>Export Excel</span>
+        </button>
+        <button onclick="openAddPersonModal()" class="px-3 py-1.5 bg-slate-800 text-white rounded text-xs font-medium hover:bg-slate-700 flex items-center gap-1">
+          <span>+ Add Person</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Canvas Area -->
+  <main class="flex-1 max-w-[1750px] w-full mx-auto p-6 flex flex-col space-y-6">
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 1: KPI OVERVIEW CARDS (Clean Direct Terms: Full OC, Current, Active, Vacant) -->
+    <!-- ========================================================================= -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      
+      <!-- Card 1: Full OC -->
+      <div class="metric-card">
+        <div class="flex items-center justify-between pb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Full OC</span>
+          <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold font-mono-num text-slate-900" id="card-target-quota">137</span>
+          <span class="text-xs text-slate-500 font-mono-num" id="card-target-subtext">3 Teams Full OC</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
+          <span>Master Matrix Benchmark</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Current Headcount -->
+      <div class="metric-card">
+        <div class="flex items-center justify-between pb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current</span>
+          <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold font-mono-num text-slate-900" id="card-current-headcount">0</span>
+          <span class="text-xs text-slate-500 font-mono-num">People</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-500" id="card-diff-text">
+          Diff vs Full OC: <strong class="text-slate-800 font-mono-num">0</strong>
+        </div>
+      </div>
+
+      <!-- Card 3: Active Headcount -->
+      <div class="metric-card">
+        <div class="flex items-center justify-between pb-2">
+          <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Active</span>
+          <span class="w-2 h-2 rounded-full bg-slate-700"></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold font-mono-num text-slate-800" id="card-active-headcount">0</span>
+          <span class="text-xs text-slate-500 font-mono-num">People</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-500">
+          Active Rate: <strong class="text-slate-800 font-mono-num" id="card-active-rate">0%</strong>
+        </div>
+      </div>
+
+      <!-- Card 4: Vacant Positions -->
+      <div class="metric-card">
+        <div class="flex items-center justify-between pb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vacant</span>
+          <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold font-mono-num text-slate-600" id="card-vacant-headcount">0</span>
+          <span class="text-xs text-slate-500 font-mono-num">Positions</span>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-500">
+          Vacant Rate: <strong class="text-slate-700 font-mono-num" id="card-vacant-rate">0%</strong>
+        </div>
+      </div>
+
+      <!-- Card 5: Fill Rate -->
+      <div class="metric-card">
+        <div class="flex items-center justify-between pb-2">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Fill Rate</span>
+          <span class="w-2 h-2 rounded-full bg-slate-800"></span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold font-mono-num text-slate-900" id="card-fill-rate">0%</span>
+          <span class="text-xs text-slate-400 font-mono-num" id="card-fill-sub">Active vs Full OC</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2 mt-2.5 overflow-hidden">
+          <div id="card-fill-bar" class="bg-slate-700 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 2: CHARTS (Full OC vs Active vs Vacant by Unit & by Role) -->
+    <!-- ========================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Chart 1: Unit Headcount (Full OC vs Active vs Vacant) -->
+      <div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+          <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase">Unit Headcount (Sorted High to Low)</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Ranked by Full OC & shortage status</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs font-mono-num">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-300 rounded-sm"></span> Full OC</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-700 rounded-sm"></span> Active</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-rose-400 rounded-sm"></span> Vacant (Shortage)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-400 rounded-sm"></span> Vacant</span>
+          </div>
+        </div>
+        <div class="relative flex-1 min-h-[420px]">
+          <canvas id="unitComparisonChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Role Breakdown (Full OC vs Active vs Vacant) -->
+      <div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col">
+        <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+          <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase">Role Breakdown (Sorted High to Low)</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Ranked by Full OC & vacancy status</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs font-mono-num">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-300 rounded-sm"></span> Full OC</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-800 rounded-sm"></span> Active</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-rose-400 rounded-sm"></span> Vacant (Shortage)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-400 rounded-sm"></span> Vacant</span>
+          </div>
+        </div>
+        <div class="relative flex-1 min-h-[420px]">
+          <canvas id="roleBreakdownChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 3: UNIT & ROLE MANPOWER BREAKDOWN TABLES -->
+    <!-- ========================================================================= -->
+    <div class="space-y-6">
+      <!-- Unit Table -->
+      <div class="bg-white border border-slate-200 rounded-lg p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase">Unit Manpower Breakdown</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Comparison of Full OC, Current, Active, Vacant, Diff, and Fill Rate</p>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-medium text-slate-500">Full OC Mode:</span>
+            <div class="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-100 font-medium text-xs">
+              <button class="shift-btn-3t px-3 py-1 rounded bg-white text-slate-900 shadow-sm font-semibold transition-all" onclick="setShiftMode('3T')">
+                3 Teams (Full OC 137)
+              </button>
+              <button class="shift-btn-2t px-3 py-1 rounded text-slate-600 hover:text-slate-900 transition-all" onclick="setShiftMode('2T')">
+                2 Teams (Full OC 102)
+              </button>
+            </div>
+            <span class="text-xs font-mono-num text-slate-400 hidden sm:inline">* Real-time calculated</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs table-fixed">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 text-[11px]">
+                <th class="py-2.5 px-3 font-semibold w-[28%]">Unit / Department</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-500 whitespace-nowrap">Full OC</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-800 whitespace-nowrap">Current</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-800 whitespace-nowrap">Active</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-600 whitespace-nowrap">Vacant</th>
+                <th class="py-2.5 px-2 w-[8%] text-center font-semibold text-slate-600 whitespace-nowrap">Diff</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-800 whitespace-nowrap">Fill Rate</th>
+                <th class="py-2.5 px-2 w-[14%] text-center font-semibold text-slate-500 whitespace-nowrap">Status</th>
+              </tr>
+            </thead>
+            <tbody id="unit-breakdown-tbody" class="divide-y divide-slate-100 font-mono-num text-slate-700">
+              <!-- Dynamically injected -->
+            </tbody>
+            <tfoot id="unit-breakdown-tfoot" class="border-t-2 border-slate-300 font-mono-num font-bold text-slate-900 text-xs bg-slate-50/50">
+              <!-- Dynamic totals -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Role Table: Separated by 2 Teams / 3 Teams and Vacancies -->
+      <div class="bg-white border border-slate-200 rounded-lg p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase">Role Manpower Breakdown (แยกรายตำแหน่ง)</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Comparison across positions: 2 Teams (OLD), 3 Teams (Full OC), Current, Active, Vacant, Diff, and Fill Rate</p>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <!-- Full OC Mode Selector -->
+            <div class="inline-flex rounded-md border border-slate-200 p-0.5 bg-slate-100 font-medium text-xs">
+              <button class="shift-btn-3t px-3 py-1 rounded bg-white text-slate-900 shadow-sm font-semibold transition-all" onclick="setShiftMode('3T')">
+                3 Teams (Full OC 137)
+              </button>
+              <button class="shift-btn-2t px-3 py-1 rounded text-slate-600 hover:text-slate-900 transition-all" onclick="setShiftMode('2T')">
+                2 Teams (Full OC 102)
+              </button>
+            </div>
+
+            <!-- Level Filter for Role Breakdown -->
+            <div class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded border border-slate-200">
+              <label for="roleLevelFilter" class="text-xs font-medium text-slate-600">Level:</label>
+              <select id="roleLevelFilter" onchange="renderDashboard()" class="bg-transparent text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer">
+                <option value="ALL">All Levels (ทุกระดับ)</option>
+                <option value="mgr">Manager (ผู้จัดการ)</option>
+                <option value="eng">Engineer (วิศวกร)</option>
+                <option value="staff">Staff (ปฏิบัติการ)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-3 text-xs font-mono-num text-slate-500">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-rose-400 rounded-sm"></span> High Vacancy</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-200 rounded-sm"></span> 2 Teams Quota (OLD)</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-slate-300 rounded-sm"></span> 3 Teams Quota (Full OC)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs table-fixed">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 text-[11px]">
+                <th class="py-2.5 px-3 font-semibold w-[26%]">Position / Role (ตำแหน่ง)</th>
+                <th class="py-2.5 px-2 w-[9%] text-center font-semibold text-slate-500 whitespace-nowrap">2 Teams (OLD)</th>
+                <th class="py-2.5 px-2 w-[10%] text-center font-semibold text-slate-600 whitespace-nowrap">3 Teams (Full OC)</th>
+                <th class="py-2.5 px-2 w-[8%] text-center font-semibold text-slate-800 whitespace-nowrap">Current</th>
+                <th class="py-2.5 px-2 w-[8%] text-center font-semibold text-slate-900 whitespace-nowrap">Active</th>
+                <th class="py-2.5 px-2 w-[9%] text-center font-semibold text-slate-600 whitespace-nowrap">Vacant (ขาด)</th>
+                <th class="py-2.5 px-2 w-[8%] text-center font-semibold text-slate-600 whitespace-nowrap">Diff</th>
+                <th class="py-2.5 px-2 w-[9%] text-center font-semibold text-slate-800 whitespace-nowrap">Fill Rate</th>
+                <th class="py-2.5 px-2 w-[13%] text-center font-semibold text-slate-500 whitespace-nowrap">Status</th>
+              </tr>
+            </thead>
+            <tbody id="role-breakdown-tbody" class="divide-y divide-slate-100 font-mono-num text-slate-700">
+              <!-- Dynamically injected -->
+            </tbody>
+            <tfoot id="role-breakdown-tfoot" class="border-t-2 border-slate-300 font-mono-num font-bold text-slate-900 text-xs bg-slate-50/50">
+              <!-- Dynamic totals -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 4: EXCEL UPLOAD TOOLBAR & QUICK ACTIONS -->
+    <!-- ========================================================================= -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- 1. Drag & Drop Excel File -->
+      <div id="drop-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
+           class="bg-white border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg p-5 flex flex-col items-center justify-center text-center transition cursor-pointer"
+           onclick="document.getElementById('excel-file-input').click()">
+        <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" onchange="handleFileSelect(event)" class="hidden" />
+        <svg class="w-7 h-7 text-slate-400 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+        <span class="text-xs font-bold text-slate-800">Upload Excel (.xlsx / .csv)</span>
+        <span class="text-[11px] text-slate-400 mt-0.5">Drag & drop or click to upload headcount file</span>
+      </div>
+
+      <!-- 2. Export & Template Buttons -->
+      <div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-800 uppercase block mb-1">Export & Template</span>
+          <p class="text-[11px] text-slate-500">Export current roster with Active / Vacant status to Excel</p>
+        </div>
+        <div class="flex items-center gap-2 pt-3">
+          <button onclick="exportExcel()" class="flex-1 px-3 py-1.5 bg-slate-900 text-white rounded text-xs font-medium hover:bg-slate-800 flex items-center justify-center gap-1.5">
+            <span>Export Excel</span>
+          </button>
+          <button onclick="downloadTemplate()" class="px-3 py-1.5 border border-slate-200 text-slate-700 rounded text-xs font-medium hover:bg-slate-50">
+            Download Template
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Manual Add & Reset -->
+      <div class="bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-800 uppercase block mb-1">Add Personnel / Reset</span>
+          <p class="text-[11px] text-slate-500">Add individuals manually or reset to initial dataset</p>
+        </div>
+        <div class="flex items-center gap-2 pt-3">
+          <button onclick="openAddPersonModal()" class="flex-1 px-3 py-1.5 bg-slate-800 text-white rounded text-xs font-medium hover:bg-slate-700 flex items-center justify-center gap-1">
+            <span>+ Add Person</span>
+          </button>
+          <button onclick="resetDefaultData()" class="px-3 py-1.5 border border-slate-200 text-slate-600 rounded text-xs font-medium hover:bg-slate-50" title="Reset default data">
+            Reset
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 5: PERSONNEL ROSTER TABLE -->
+    <!-- ========================================================================= -->
+    <div class="bg-white border border-slate-200 rounded-lg p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-slate-900 uppercase">Personnel Roster (<span id="roster-count-label">0</span> People)</span>
+          <span class="text-[11px] text-slate-400">* Edit name inline or click Edit to update status</span>
+        </div>
+        
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Level Filter -->
+          <select id="levelFilter" onchange="filterRoster()" class="px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-700 focus:outline-none font-medium">
+            <option value="ALL">All Levels</option>
+            <option value="mgr">Manager (ผู้จัดการ)</option>
+            <option value="eng">Engineer (วิศวกร)</option>
+            <option value="staff">Staff (ปฏิบัติการ)</option>
+          </select>
+
+          <!-- OC Type Filter -->
+          <select id="ocTypeFilter" onchange="filterRoster()" class="px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-700 focus:outline-none font-medium">
+            <option value="ALL">All OC Types</option>
+            <option value="OLD">OLD (2 Teams Base)</option>
+            <option value="NEW">NEW (+3 Teams)</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select id="statusFilter" onchange="filterRoster()" class="px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-700 focus:outline-none">
+            <option value="ALL">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Vacant">Vacant</option>
+          </select>
+
+          <!-- Unit Filter -->
+          <select id="unitFilter" onchange="filterRoster()" class="px-2.5 py-1.5 border border-slate-200 rounded text-xs text-slate-700 focus:outline-none">
+            <option value="ALL">All Units</option>
+            <option value="INTER 2">INTER 2</option>
+            <option value="INTER 3">INTER 3</option>
+            <option value="INTER 5">INTER 5</option>
+            <option value="INTER 7">INTER 7</option>
+            <option value="Heavy Machine">Heavy Machine</option>
+            <option value="Improvement">Improvement</option>
+            <option value="CONTROL">CONTROL</option>
+            <option value="Management">Management</option>
+          </select>
+
+          <!-- Search Box -->
+          <input type="text" id="rosterSearch" onkeyup="filterRoster()" placeholder="Search name, role, ID..." 
+                 class="px-3 py-1.5 border border-slate-200 rounded text-xs w-48 focus:outline-none focus:border-slate-400">
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs table-fixed">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-400 text-[11px]">
+              <th class="py-2 px-1 w-[4%] text-center font-medium">No.</th>
+              <th class="py-2 px-1 w-[5%] text-center font-medium">Photo</th>
+              <th class="py-2 px-2 w-[11%] font-medium">Employee ID</th>
+              <th class="py-2 px-2 w-[20%] font-medium">Name</th>
+              <th class="py-2 px-2 w-[18%] font-medium">Role</th>
+              <th class="py-2 px-2 w-[12%] font-medium">Unit</th>
+              <th class="py-2 px-1 w-[9%] text-center font-medium">Level</th>
+              <th class="py-2 px-1 w-[7%] text-center font-medium">OC Type</th>
+              <th class="py-2 px-1 w-[8%] text-center font-medium">Status</th>
+              <th class="py-2 px-1 w-[6%] text-center font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody id="roster-tbody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Standard Quota Specs for Units (Fixed 137 for 3T, 102 for 2T)
+    const quotaSpecs = {
+      '3T': {
+        'INTER 2': 29,
+        'INTER 3': 38,
+        'INTER 5': 31,
+        'INTER 7': 31,
+        'CONTROL': 8,
+        'Improvement': 2,
+        'Heavy Machine': 2,
+        'Management': 1,
+        'TOTAL': 137
+      },
+      '2T': {
+        'INTER 2': 22,
+        'INTER 3': 29,
+        'INTER 5': 22,
+        'INTER 7': 22,
+        'CONTROL': 7,
+        'Improvement': 2,
+        'Heavy Machine': 2,
+        'Management': 1,
+        'TOTAL': 102
+      }
+    };
+
+    // Canonical Role Definitions with Smart Multi-keyword & Alias Matchers
+    const standardRoleCategories = [
+      {
+        id: 'crane',
+        label: 'พนักงานขับเครน',
+        level: 'staff',
+        quota2T: 16,
+        quota3T: 24,
+        patterns: [/เครน/i, /crane/i]
+      },
+      {
+        id: 'heavy_op',
+        label: 'ช่างขับจักรกลหนัก',
+        level: 'staff',
+        quota2T: 24,
+        quota3T: 27,
+        patterns: [/ช่างขับจักรกล/i, /ขับจักรกล/i, /heavy machine operator/i, /operator/i, /คนขับจักรกล/i]
+      },
+      {
+        id: 'heavy_sup',
+        label: 'ผู้ควบคุมงานจักรกลหนัก',
+        level: 'staff',
+        quota2T: 8,
+        quota3T: 8,
+        patterns: [/ควบคุมงานจักรกล/i, /ควบคุมจักรกล/i, /คุมจักรกล/i, /heavy supervisor/i]
+      },
+      {
+        id: 'cargo_sup',
+        label: 'ผู้ควบคุมงานขนถ่ายสินค้า',
+        level: 'staff',
+        quota2T: 8,
+        quota3T: 12,
+        patterns: [/ขนถ่ายสินค้า/i, /ขนถ่าย/i, /cargo/i]
+      },
+      {
+        id: 'deck',
+        label: 'ช่างปากเรือ',
+        level: 'staff',
+        quota2T: 8,
+        quota3T: 12,
+        patterns: [/ปากเรือ/i, /deck/i]
+      },
+      {
+        id: 'om_spec',
+        label: 'O&M Specialist',
+        level: 'staff',
+        quota2T: 4,
+        quota3T: 5,
+        patterns: [/specialist/i, /ผู้เชี่ยวชาญ/i]
+      },
+      {
+        id: 'om_gen',
+        label: 'O&M Generator',
+        level: 'staff',
+        quota2T: 8,
+        quota3T: 12,
+        patterns: [/generator/i, /generaotor/i, /เยนเนอเรเตอร์/i, /เจเนอเรเตอร์/i]
+      },
+      {
+        id: 'om_mech',
+        label: 'O&M Mechanical',
+        level: 'staff',
+        quota2T: 9,
+        quota3T: 13,
+        patterns: [/mechanical/i, /ช่างกล/i]
+      },
+      {
+        id: 'om_elec',
+        label: 'O&M Electrical',
+        level: 'staff',
+        quota2T: 8,
+        quota3T: 12,
+        patterns: [/electrical/i, /elcetrical/i, /ไฟฟ้า/i, /ช่างไฟ/i]
+      },
+      {
+        id: 'control',
+        label: 'เจ้าหน้าที่ศูนย์ควบคุม',
+        level: 'staff',
+        quota2T: 7,
+        quota3T: 8,
+        patterns: [/ศูนย์ควบคุม/i, /control/i, /ควบคุมระบบ/i]
+      },
+      {
+        id: 'eng',
+        label: 'วิศวกร (Engineers)',
+        level: 'eng',
+        quota2T: 5,
+        quota3T: 5,
+        patterns: [/engineer/i, /วิศวกร/i, /วิศว/i]
+      },
+      {
+        id: 'mgr',
+        label: 'ผู้จัดการ (Managers)',
+        level: 'mgr',
+        quota2T: 6,
+        quota3T: 6,
+        patterns: [/ผู้จัดการ/i, /manager/i, /incharge/i, /incharged/i, /ฝ่ายปฏิบัติการ/i]
+      },
+      {
+        id: 'maint_imp',
+        label: 'Maintenance Improvement',
+        level: 'mgr',
+        quota2T: 1,
+        quota3T: 1,
+        patterns: [/improvement/i, /ปรับปรุง/i, /maintenance/i]
+      }
+    ];
+
+    // Helper: Categorize any personnel entry into a canonical category
+    function matchCategory(person) {
+      const roleStr = (person.role || '').trim();
+      for (const cat of standardRoleCategories) {
+        for (const pat of cat.patterns) {
+          if (pat.test(roleStr)) {
+            return cat;
+          }
+        }
+      }
+      if (person.isEng) return standardRoleCategories.find(c => c.id === 'eng');
+      if (person.isMgr) return standardRoleCategories.find(c => c.id === 'mgr');
+      return null;
+    }
+
+    // Dynamic Computation for Unit Data (derived directly from entered data)
+    function computeAllUnitData() {
+      const unitsInMaster = [...new Set(masterList.map(p => (p.unit || '').trim()).filter(Boolean))];
+      const unitKeysToUse = unitsInMaster.length > 0 
+        ? unitsInMaster 
+        : ['INTER 2', 'INTER 3', 'INTER 5', 'INTER 7', 'Heavy Machine', 'CONTROL', 'Improvement', 'Management'];
+
+      return unitKeysToUse.map(uKey => {
+        const inUnit = masterList.filter(p => (p.unit || '').trim() === uKey);
+        const total = inUnit.length;
+        const vacant = inUnit.filter(p => p.status === 'Vacant').length;
+        const active = total - vacant;
+
+        const oldInUnit = inUnit.filter(p => p.ocType === 'OLD').length;
+        const newInUnit = inUnit.filter(p => p.ocType === 'NEW').length;
+
+        let quota2T = oldInUnit;
+        let quota3T = total;
+        if (oldInUnit === 0 && newInUnit === 0) {
+          quota2T = total;
+          quota3T = total;
+        }
+
+        const target = currentShiftMode === '2T' ? quota2T : quota3T;
+        const diff = total - target;
+        const fill = target > 0 ? Math.round((active / target) * 100) : (active > 0 ? 100 : 0);
+
+        return {
+          key: uKey,
+          title: uKey,
+          quota2T,
+          quota3T,
+          target,
+          total,
+          active,
+          vacant,
+          diff,
+          fill
+        };
+      });
+    }
+
+    // Dynamic Computation for Role Data (derived directly from entered data)
+    function computeAllRoleData() {
+      const roleLevelFilter = document.getElementById('roleLevelFilter') ? document.getElementById('roleLevelFilter').value : 'ALL';
+
+      // Extract unique role names directly from entered data
+      const presentRoleNames = [...new Set(masterList.map(p => (p.role || '').trim()).filter(Boolean))];
+
+      const roleRows = [];
+
+      presentRoleNames.forEach(rName => {
+        const inRole = masterList.filter(p => (p.role || '').trim() === rName);
+        if (inRole.length === 0) return;
+
+        // Detect Level for this role
+        let level = 'staff';
+        const firstPerson = inRole[0];
+        const cat = matchCategory(firstPerson);
+        if ((cat && cat.level === 'mgr') || inRole.some(p => p.isMgr) || /ผู้จัดการ|manager|incharge|ฝ่ายปฏิบัติการ/i.test(rName)) {
+          level = 'mgr';
+        } else if ((cat && cat.level === 'eng') || inRole.some(p => p.isEng) || /engineer|วิศวกร|วิศว/i.test(rName)) {
+          level = 'eng';
+        }
+
+        // Apply Level filter
+        if (roleLevelFilter !== 'ALL' && level !== roleLevelFilter) return;
+
+        const total = inRole.length;
+        const vacant = inRole.filter(p => p.status === 'Vacant').length;
+        const active = total - vacant;
+
+        const oldInRole = inRole.filter(p => p.ocType === 'OLD').length;
+        const newInRole = inRole.filter(p => p.ocType === 'NEW').length;
+
+        let quota2T = oldInRole;
+        let quota3T = total;
+        if (oldInRole === 0 && newInRole === 0) {
+          quota2T = total;
+          quota3T = total;
+        }
+
+        const activeTarget = currentShiftMode === '2T' ? quota2T : quota3T;
+        const diff = total - activeTarget;
+        const fill = activeTarget > 0 ? Math.round((active / activeTarget) * 100) : (active > 0 ? 100 : 0);
+
+        roleRows.push({
+          id: rName,
+          label: rName, // Exact entered role name!
+          level,
+          quota2T,
+          quota3T,
+          target: activeTarget,
+          total,
+          active,
+          vacant,
+          diff,
+          fill
+        });
+      });
+
+      return roleRows;
+    }
+
+    let currentShiftMode = '3T'; // '3T' or '2T'
+    let curIdx = 1;
+    let masterList = [];
+    let unitComparisonChartInstance = null;
+    let roleBreakdownChartInstance = null;
+
+    function setShiftMode(mode) {
+      currentShiftMode = mode;
+      
+      document.querySelectorAll('.shift-btn-3t').forEach(b => {
+        b.className = mode === '3T'
+          ? "shift-btn-3t px-3 py-1 rounded bg-white text-slate-900 shadow-sm font-semibold transition-all"
+          : "shift-btn-3t px-3 py-1 rounded text-slate-600 hover:text-slate-900 transition-all";
+      });
+
+      document.querySelectorAll('.shift-btn-2t').forEach(b => {
+        b.className = mode === '2T'
+          ? "shift-btn-2t px-3 py-1 rounded bg-white text-slate-900 shadow-sm font-semibold transition-all"
+          : "shift-btn-2t px-3 py-1 rounded text-slate-600 hover:text-slate-900 transition-all";
+      });
+
+      const cardSubtext = document.getElementById('card-target-subtext');
+      if (cardSubtext) {
+        cardSubtext.innerText = mode === '3T' ? '3 Teams Full OC' : '2 Teams Full OC';
+      }
+
+      renderDashboard();
+    }
+
+    function makeEntry(role, name, unit, isMgr = false, isEng = false, status = "Active", empId = null, ocType = "OLD") {
+      const isVacant = status === 'Vacant';
+      const posId = `POS-${String(curIdx++).padStart(3, '0')}`;
+      const actualEmpId = isVacant ? '' : (empId || String(688000 + curIdx));
+      masterList.push({
+        id: posId,
+        empId: actualEmpId,
+        role,
+        name,
+        unit,
+        isMgr,
+        isEng,
+        status,
+        ocType: ocType || 'OLD',
+        img: isVacant ? null : getEmpPhotoUrl(actualEmpId)
+      });
+    }
+
+    // Default Seed Dataset Generator (102 OLD + 35 NEW = 137 Full OC)
+    function initDefaultData() {
+      curIdx = 1;
+      masterList = [];
+
+      // Leaders (1 OLD)
+      makeEntry("ผู้จัดการฝ่ายปฏิบัติการ", "คุณพนม ศรีอำ (Incharged)", "Management", true, false, "Active", "688172", "OLD");
+
+      // INTER 2 (29 คน = 22 OLD + 7 NEW)
+      makeEntry("ผู้จัดการแผนก", "คุณสมคิด ขำฉ่ำ", "INTER 2", true, false, "Active", "688173", "OLD");
+      makeEntry("Operation Engineer", "คุณสุดหล่อ สามารถ", "INTER 2", false, true, "Active", "688174", "OLD");
+      makeEntry("O&M Specialist", `คุณสุดหล่อ สามารถ (1)`, "INTER 2", false, false, "Active", "688175", "OLD");
+      makeEntry("O&M Specialist", `คุณสุดหล่อ สามารถ (2)`, "INTER 2", false, false, "Active", "688176", "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Generator", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("O&M Generator", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Mechanical", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("O&M Mechanical", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Electrical", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("O&M Electrical", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ช่างปากเรือ", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("ช่างปากเรือ", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("พนักงานขับเครน", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      makeEntry("พนักงานขับเครน", `คุณสุดหล่อ สามารถ (3)`, "INTER 2", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานจักรกลหนัก", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+      for(let i=1; i<=6; i++) makeEntry("ช่างขับจักรกลหนัก", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", null, "OLD");
+
+      // INTER 3 (38 คน = 29 OLD + 9 NEW)
+      makeEntry("ผู้จัดการแผนก", "Vacant", "INTER 3", true, false, "Vacant", null, "OLD");
+      makeEntry("Operation Engineer", "คุณกรวิชญ์ ดำรงศิลป์", "INTER 3", false, true, "Active", "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80", "OLD");
+      makeEntry("O&M Specialist", `นายเชี่ยวชาญ ระบบ`, "INTER 3", false, false, "Active", null, "OLD");
+      for(let i=1; i<=2; i++) makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (3)`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=3; i++) makeEntry("O&M Mechanical", `ช่างกลโรงงาน (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("O&M Mechanical", `ช่างกลโรงงาน (4)`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Electrical", `ช่างไฟฟ้า (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("O&M Electrical", `ช่างไฟฟ้า (3)`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (3)`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("ช่างปากเรือ", `ปากเรือ (3)`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=6; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 3", false, false, "Active", null, "OLD");
+      for(let i=7; i<=9; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 3", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 3", false, false, "Active", null, "OLD");
+      for(let i=1; i<=8; i++) makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 3", false, false, "Active", null, "OLD");
+      makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ 9`, "INTER 3", false, false, "Active", null, "NEW");
+
+      // INTER 5 (31 คน = 22 OLD + 9 NEW)
+      makeEntry("ผู้จัดการแผนก", "คุณสมเกียรติ กลิ่นกิ่งทอง", "INTER 5", true, false, "Active", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80", "OLD");
+      makeEntry("Operation Engineer", "Vacant", "INTER 5", false, true, "Vacant", null, "OLD");
+      makeEntry("O&M Specialist", `นายประสิทธิ์ ช่างทุ่น 5`, "INTER 5", false, false, "Active", null, "OLD");
+      for(let i=1; i<=2; i++) makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (3)`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Mechanical", `ช่างกล (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("O&M Mechanical", `ช่างกล (3)`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Electrical", `ช่างไฟ (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("O&M Electrical", `ช่างไฟ (3)`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (3)`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("ช่างปากเรือ", `ปากเรือ (3)`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=4; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 5", false, false, "Active", null, "OLD");
+      for(let i=5; i<=6; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 5", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 5", false, false, "Active", null, "OLD");
+      for(let i=1; i<=5; i++) makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 5", false, false, "Active", null, "OLD");
+      makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ 6`, "INTER 5", false, false, "Active", null, "NEW");
+
+      // INTER 7 (31 คน = 22 OLD + 9 NEW)
+      makeEntry("ผู้จัดการแผนก", "คุณปิยะศักดิ์ วิทิยสะอาด", "INTER 7", true, false, "Active", "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80", "OLD");
+      makeEntry("Operation Engineer", "คุณตันตพงษ์ จันทประภาส", "INTER 7", false, true, "Active", "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80", "OLD");
+      makeEntry("O&M Specialist", `นายธนาวุฒิ ทุ่น 7`, "INTER 7", false, false, "Active", null, "OLD");
+      for(let i=1; i<=2; i++) makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("O&M Generator", `ช่างเยนเนอเรเตอร์ (3)`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Mechanical", `ช่างกล (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("O&M Mechanical", `ช่างกล (3)`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("O&M Electrical", `ช่างไฟ (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("O&M Electrical", `ช่างไฟ (3)`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (3)`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("ช่างปากเรือ", `ปากเรือ (3)`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=4; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 7", false, false, "Active", null, "OLD");
+      for(let i=5; i<=6; i++) makeEntry("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 7", false, false, "Active", null, "NEW");
+      for(let i=1; i<=2; i++) makeEntry("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 7", false, false, "Active", null, "OLD");
+      for(let i=1; i<=5; i++) makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 7", false, false, "Active", null, "OLD");
+      makeEntry("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ 6`, "INTER 7", false, false, "Active", null, "NEW");
+
+      // Improvement (2 OLD)
+      makeEntry("Maintenance Improvement", "วิศวกรรมส่วนกลาง", "Improvement", true, false, "Active", null, "OLD");
+      makeEntry("Improvement Engineer", "คุณณภัทรชญ์ เจริญศรี", "Improvement", false, true, "Active", "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80", "OLD");
+
+      // Heavy Machine Leaders (2 OLD)
+      makeEntry("ผู้จัดการแผนก", "คุณสมคิด ขำฉ่ำ (Incharge)", "Heavy Machine", true, false, "Active", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80", "OLD");
+      makeEntry("Operation Engineer", "คุณเมธา วงศ์ชอบ", "Heavy Machine", false, true, "Active", "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80", "OLD");
+
+      // Control Center (7 OLD + 1 NEW = 8)
+      for(let i=1; i<=7; i++) {
+        makeEntry("เจ้าหน้าที่ศูนย์ควบคุม", `เจ้าหน้าที่ควบคุมระบบ (${i})`, "CONTROL", false, false, "Active", null, "OLD");
+      }
+      makeEntry("เจ้าหน้าที่ศูนย์ควบคุม", `เจ้าหน้าที่ควบคุมระบบ (8)`, "CONTROL", false, false, "Vacant", null, "NEW");
+
+      // Check LocalStorage
+      const saved = localStorage.getItem('port_ops_masterList');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            masterList = parsed.map(item => {
+              let role = (item.role || '').trim();
+              if (role === 'O&M Generaotor') role = 'O&M Generator';
+              if (role === 'O&M Elcetrical') role = 'O&M Electrical';
+              if (role === 'ปากเรือ') role = 'ช่างปากเรือ';
+              return {
+                ...item,
+                role,
+                ocType: item.ocType || 'OLD'
+              };
+            });
+            let maxId = 0;
+            masterList.forEach(item => {
+              const num = parseInt(item.id.replace('EMP-', ''), 10);
+              if (!isNaN(num) && num > maxId) maxId = num;
+            });
+            curIdx = maxId + 1;
+          }
+        } catch(e) {
+          console.error("LocalStorage load error:", e);
+        }
+      }
+    }
+
+    function persistData() {
+      localStorage.setItem('port_ops_masterList', JSON.stringify(masterList));
+      renderDashboard();
+    }
+
+    function resetDefaultData() {
+      if (confirm('Are you sure you want to reset all data back to the default 137 records?')) {
+        localStorage.removeItem('port_ops_masterList');
+        initDefaultData();
+        renderDashboard();
+        showToast('Reset successfully', '✓');
+      }
+    }
+
+    // =========================================================================
+    // DASHBOARD CALCULATIONS & CHARTS
+    // =========================================================================
+    function updateUnitFilterOptions() {
+      const select = document.getElementById('unitFilter');
+      if (!select) return;
+      const currentVal = select.value;
+      const unitsInMaster = [...new Set(masterList.map(p => (p.unit || '').trim()).filter(Boolean))];
+      
+      const unitsToUse = unitsInMaster.length > 0 
+        ? unitsInMaster 
+        : ['INTER 2', 'INTER 3', 'INTER 5', 'INTER 7', 'Heavy Machine', 'Improvement', 'CONTROL', 'Management'];
+
+      let html = '<option value="ALL">All Units</option>';
+      unitsToUse.forEach(u => {
+        html += `<option value="${u}">${u}</option>`;
+      });
+      select.innerHTML = html;
+      if (unitsToUse.includes(currentVal) || currentVal === 'ALL') {
+        select.value = currentVal;
+      } else {
+        select.value = 'ALL';
+      }
+    }
+
+    function renderDashboard() {
+      updateUnitFilterOptions();
+
+      const allUnits = computeAllUnitData();
+      const targetQuota = allUnits.reduce((acc, u) => acc + u.target, 0);
+      const totalInSystem = masterList.length;
+      const vacantCount = masterList.filter(p => p.status === 'Vacant').length;
+      const activeCount = totalInSystem - vacantCount;
+
+      const fillRate = targetQuota > 0 ? ((activeCount / targetQuota) * 100).toFixed(1) : 0;
+      const vacantRate = totalInSystem > 0 ? ((vacantCount / totalInSystem) * 100).toFixed(1) : 0;
+      const activeRate = totalInSystem > 0 ? ((activeCount / totalInSystem) * 100).toFixed(1) : 0;
+
+      // Update KPI Cards (Direct English Terms)
+      document.getElementById('card-target-quota').innerText = targetQuota;
+      document.getElementById('card-current-headcount').innerText = totalInSystem;
+      document.getElementById('card-active-headcount').innerText = activeCount;
+      document.getElementById('card-vacant-headcount').innerText = vacantCount;
+
+      document.getElementById('card-active-rate').innerText = activeRate + '%';
+      document.getElementById('card-vacant-rate').innerText = vacantRate + '%';
+      document.getElementById('card-fill-rate').innerText = fillRate + '%';
+      document.getElementById('card-fill-bar').style.width = Math.min(fillRate, 100) + '%';
+
+      const diff = totalInSystem - targetQuota;
+      const diffEl = document.getElementById('card-diff-text');
+      if (diff > 0) {
+        diffEl.innerHTML = `Diff vs Target: <strong class="text-slate-900 font-mono-num">+${diff}</strong> (Over)`;
+      } else if (diff < 0) {
+        diffEl.innerHTML = `Diff vs Target: <strong class="text-slate-600 font-mono-num">${diff}</strong> (Under)`;
+      } else {
+        diffEl.innerHTML = `Diff vs Target: <strong class="text-slate-900 font-mono-num">0 (100% Match)</strong>`;
+      }
+
+      // Render Charts
+      renderUnitChart();
+      renderRoleBreakdownChart();
+
+      // Render Summary Tables
+      renderBreakdownTable();
+      renderRoleBreakdownTable();
+
+      // Render Personnel Table
+      renderRosterTable();
+    }
+
+    // 1. Unit Comparison Chart (Full OC vs Active vs Vacant) - Sorted High to Low
+    function renderUnitChart() {
+      const allUnits = computeAllUnitData();
+      const unitDataList = allUnits.filter(u => u.total > 0 || u.target > 0).map(u => ({
+        unit: u.title,
+        target: u.target,
+        active: u.active,
+        vacant: u.vacant
+      }));
+
+      // Sort descending: by target (highest to lowest), then by total members
+      unitDataList.sort((a, b) => b.target - a.target || (b.active + b.vacant) - (a.active + a.vacant));
+
+      const labels = unitDataList.map(d => d.unit);
+      const targetData = unitDataList.map(d => d.target);
+      const activeData = unitDataList.map(d => d.active);
+      const vacantData = unitDataList.map(d => d.vacant);
+
+      // Color logic: if group has vacancy -> soft elegant rose red
+      const vacantColors = unitDataList.map(d => {
+        if (d.vacant >= 2 || (d.vacant >= 1 && d.active < d.target)) {
+          return '#f43f5e'; // Elegant Rose / Crimson
+        }
+        return '#94a3b8'; // Neutral Slate 400
+      });
+
+      const ctx = document.getElementById('unitComparisonChart').getContext('2d');
+      if (unitComparisonChartInstance) {
+        unitComparisonChartInstance.destroy();
+      }
+
+      unitComparisonChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Target',
+              data: targetData,
+              backgroundColor: '#cbd5e1', // Slate 300
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            },
+            {
+              label: 'Active',
+              data: activeData,
+              backgroundColor: '#334155', // Slate 700
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            },
+            {
+              label: 'Vacant',
+              data: vacantData,
+              backgroundColor: vacantColors,
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleFont: { family: 'Prompt', size: 12 },
+              bodyFont: { family: 'JetBrains Mono', size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                afterLabel: (tooltipItem) => {
+                  if (tooltipItem.datasetIndex === 2 && tooltipItem.raw > 0) {
+                    const idx = tooltipItem.dataIndex;
+                    const d = unitDataList[idx];
+                    if (d.vacant >= 2 || (d.vacant >= 1 && d.active < d.target)) {
+                      return '⚠️ High Shortage / Position Vacant';
+                    }
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'Prompt', size: 11 }, color: '#475569' }
+            },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#64748b', stepSize: 5 }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Role Breakdown (Full OC vs Active vs Vacant) - Sorted High to Low (All Canonical Roles Guaranteed)
+    function renderRoleBreakdownChart() {
+      // Calculate role metrics using unified classifier
+      const roleDataList = computeAllRoleData();
+
+      // Attach active target based on currentShiftMode (3T vs 2T)
+      const roleWithTarget = roleDataList.map(r => {
+        const target = currentShiftMode === '2T' ? r.quota2T : r.quota3T;
+        return {
+          ...r,
+          target
+        };
+      });
+
+      // Sort descending: by Full OC target (highest to lowest), then by total headcount, then by vacant
+      const sortedRoles = [...roleWithTarget].sort((a, b) => b.target - a.target || b.total - a.total || b.vacant - a.vacant);
+
+      const labels = sortedRoles.map(r => r.label);
+      const targetCounts = sortedRoles.map(r => r.target);
+      const activeCounts = sortedRoles.map(r => r.active);
+      const vacantCounts = sortedRoles.map(r => r.vacant);
+
+      // Color logic: if role is missing/vacant >= 2 or vacancy rate >= 15% or active < target -> soft elegant rose red
+      const vacantColors = sortedRoles.map(r => {
+        if (r.vacant >= 2 || (r.vacant >= 1 && r.total > 0 && (r.vacant / r.total) >= 0.15) || (r.target > 0 && r.active < r.target)) {
+          return '#f43f5e'; // Elegant Rose / Crimson (แดงนุ่มหรู ไม่แจ๊ด)
+        }
+        return '#94a3b8'; // Slate 400
+      });
+
+      const ctx = document.getElementById('roleBreakdownChart').getContext('2d');
+      if (roleBreakdownChartInstance) {
+        roleBreakdownChartInstance.destroy();
+      }
+
+      roleBreakdownChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Full OC',
+              data: targetCounts,
+              backgroundColor: '#cbd5e1', // Slate 300
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            },
+            {
+              label: 'Active',
+              data: activeCounts,
+              backgroundColor: '#1e293b', // Slate 800
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            },
+            {
+              label: 'Vacant',
+              data: vacantCounts,
+              backgroundColor: vacantColors,
+              borderRadius: 3,
+              barPercentage: 0.8,
+              categoryPercentage: 0.75
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleFont: { family: 'Prompt', size: 12 },
+              bodyFont: { family: 'JetBrains Mono', size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                afterLabel: (tooltipItem) => {
+                  const idx = tooltipItem.dataIndex;
+                  const r = sortedRoles[idx];
+                  if (tooltipItem.datasetIndex === 0) {
+                    return `Target (${currentShiftMode}): ${r.target}`;
+                  }
+                  if (tooltipItem.datasetIndex === 1) {
+                    return `Active: ${r.active}`;
+                  }
+                  if (tooltipItem.datasetIndex === 2) {
+                    if (r.vacant > 0 || r.active < r.target) {
+                      return `⚠️ Vacant: ${r.vacant} (Fill: ${r.fill}%)`;
+                    }
+                    return 'Vacant: 0';
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#64748b', stepSize: 5 }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: 'Prompt', size: 10.5 }, color: '#334155' }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Unit Breakdown Table
+    function renderBreakdownTable() {
+      const allUnits = computeAllUnitData();
+      const displayUnits = allUnits.filter(u => u.total > 0 || u.target > 0);
+
+      const tbody = document.getElementById('unit-breakdown-tbody');
+      tbody.innerHTML = '';
+
+      let sumTarget = 0, sumTotal = 0, sumActive = 0, sumVacant = 0;
+
+      displayUnits.forEach(u => {
+        sumTarget += u.target;
+        sumTotal += u.total;
+        sumActive += u.active;
+        sumVacant += u.vacant;
+
+        let diffBadge = `<span class="text-slate-400">0</span>`;
+        if (u.diff > 0) diffBadge = `<span class="text-slate-800 font-bold">+${u.diff}</span>`;
+        else if (u.diff < 0) diffBadge = `<span class="text-slate-500 font-bold">${u.diff}</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors cursor-pointer";
+        tr.onclick = () => filterByUnit(u.key);
+        tr.title = `Click to filter roster by ${u.title}`;
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-sans font-medium text-slate-900 truncate">${u.title}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-500">${u.target}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-900">${u.total}</td>
+          <td class="py-2 px-2 text-center text-slate-800 font-bold">${u.active}</td>
+          <td class="py-2 px-2 text-center text-slate-500 font-medium">${u.vacant}</td>
+          <td class="py-2 px-2 text-center">${diffBadge}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-800">${u.fill}%</td>
+          <td class="py-2 px-2 text-center">
+            <div class="w-20 bg-slate-200 rounded-full h-1.5 mx-auto overflow-hidden">
+              <div class="bg-slate-700 h-1.5 rounded-full" style="width: ${Math.min(u.fill, 100)}%"></div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Total row
+      const tfoot = document.getElementById('unit-breakdown-tfoot');
+      const totalFill = sumTarget > 0 ? Math.round((sumActive / sumTarget) * 100) : (sumActive > 0 ? 100 : 0);
+      const sumDiff = sumTotal - sumTarget;
+      let sumDiffBadge = `<span class="text-slate-400">0</span>`;
+      if (sumDiff > 0) sumDiffBadge = `<span class="text-slate-800 font-bold">+${sumDiff}</span>`;
+      else if (sumDiff < 0) sumDiffBadge = `<span class="text-slate-500 font-bold">${sumDiff}</span>`;
+
+      tfoot.innerHTML = `
+        <tr>
+          <td class="py-2.5 px-3 font-sans font-bold">Total</td>
+          <td class="py-2.5 px-2 text-center text-slate-600 font-bold">${sumTarget}</td>
+          <td class="py-2.5 px-2 text-center text-slate-900 font-extrabold">${sumTotal}</td>
+          <td class="py-2.5 px-2 text-center text-slate-800 font-bold">${sumActive}</td>
+          <td class="py-2.5 px-2 text-center text-slate-600 font-bold">${sumVacant}</td>
+          <td class="py-2.5 px-2 text-center">${sumDiffBadge}</td>
+          <td class="py-2.5 px-2 text-center text-slate-900 font-bold">${totalFill}%</td>
+          <td class="py-2.5 px-2 text-center">
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] bg-slate-200 text-slate-800 font-medium">
+              ${sumVacant === 0 && totalFill >= 100 ? '100% Filled' : (sumVacant > 0 ? `Vacant: ${sumVacant}` : 'Matched')}
+            </span>
+          </td>
+        </tr>
+      `;
+    }
+
+    function filterByUnit(unitKey) {
+      const uSelect = document.getElementById('unitFilter');
+      if (uSelect) uSelect.value = unitKey;
+      filterRoster();
+      const table = document.getElementById('roster-tbody');
+      if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function filterByRole(roleName) {
+      const searchInput = document.getElementById('rosterSearch');
+      if (searchInput) {
+        searchInput.value = roleName;
+        filterRoster();
+        const table = document.getElementById('roster-tbody');
+        if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // 4. Role Breakdown Table (แยก 2 ทีม (OLD), 3 ทีม (Full OC), Current, Active, Vacant, Diff, Fill Rate)
+    function renderRoleBreakdownTable() {
+      const tbody = document.getElementById('role-breakdown-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let sumQuota2T = 0;
+      let sumQuota3T = 0;
+      let sumCurrent = 0;
+      let sumActive = 0;
+      let sumVacant = 0;
+
+      // Calculate for each role using unified classifier
+      const roleRows = computeAllRoleData();
+
+      // Sort descending by total roles, then by vacant
+      roleRows.sort((a, b) => b.total - a.total || b.vacant - a.vacant);
+
+      roleRows.forEach(row => {
+        sumQuota2T += row.quota2T;
+        sumQuota3T += row.quota3T;
+        sumCurrent += row.total;
+        sumActive += row.active;
+        sumVacant += row.vacant;
+
+        let diffBadge = `<span class="text-slate-400">0</span>`;
+        if (row.diff > 0) diffBadge = `<span class="text-slate-800 font-bold">+${row.diff}</span>`;
+        else if (row.diff < 0) diffBadge = `<span class="text-slate-500 font-bold">${row.diff}</span>`;
+
+        // Highlight if vacant >= 2 or vacancy rate >= 15%
+        const isHighVacant = row.vacant >= 2 || (row.vacant >= 1 && row.total > 0 && (row.vacant / row.total) >= 0.15);
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors cursor-pointer";
+        tr.onclick = () => filterByRole(row.label);
+        tr.title = `Click to filter roster by ${row.label}`;
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-sans font-medium text-slate-900 flex items-center gap-2">
+            ${isHighVacant ? `<span class="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0" title="High Shortage"></span>` : `<span class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></span>`}
+            <span class="truncate">${row.label}</span>
+          </td>
+          <td class="py-2 px-2 text-center font-bold text-slate-500">${row.quota2T}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-600">${row.quota3T}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-900">${row.total}</td>
+          <td class="py-2 px-2 text-center text-slate-800 font-bold">${row.active}</td>
+          <td class="py-2 px-2 text-center font-bold ${isHighVacant ? 'text-rose-600 bg-rose-50/50 rounded' : 'text-slate-500'}">
+            ${row.vacant > 0 ? row.vacant : '0'}
+          </td>
+          <td class="py-2 px-2 text-center">${diffBadge}</td>
+          <td class="py-2 px-2 text-center font-bold text-slate-800">${row.fill}%</td>
+          <td class="py-2 px-2 text-center">
+            <div class="w-20 bg-slate-200 rounded-full h-1.5 mx-auto overflow-hidden">
+              <div class="${isHighVacant ? 'bg-rose-500' : 'bg-slate-700'} h-1.5 rounded-full" style="width: ${Math.min(row.fill, 100)}%"></div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Total row for Role Breakdown
+      const tfoot = document.getElementById('role-breakdown-tfoot');
+      if (tfoot) {
+        const activeBenchmark = currentShiftMode === '2T' ? sumQuota2T : sumQuota3T;
+        const totalFill = activeBenchmark > 0 ? Math.round((sumActive / activeBenchmark) * 100) : (sumActive > 0 ? 100 : 0);
+        const sumDiff = sumCurrent - activeBenchmark;
+        let sumDiffBadge = `<span class="text-slate-400">0</span>`;
+        if (sumDiff > 0) sumDiffBadge = `<span class="text-slate-800 font-bold">+${sumDiff}</span>`;
+        else if (sumDiff < 0) sumDiffBadge = `<span class="text-slate-500 font-bold">${sumDiff}</span>`;
+
+        tfoot.innerHTML = `
+          <tr>
+            <td class="py-2.5 px-3 font-sans font-bold">Total</td>
+            <td class="py-2.5 px-2 text-center text-slate-500 font-bold">${sumQuota2T}</td>
+            <td class="py-2.5 px-2 text-center text-slate-600 font-bold">${sumQuota3T}</td>
+            <td class="py-2.5 px-2 text-center text-slate-900 font-extrabold">${sumCurrent}</td>
+            <td class="py-2.5 px-2 text-center text-slate-800 font-bold">${sumActive}</td>
+            <td class="py-2.5 px-2 text-center font-bold ${sumVacant > 0 ? 'text-rose-600' : 'text-slate-600'}">${sumVacant}</td>
+            <td class="py-2.5 px-2 text-center">${sumDiffBadge}</td>
+            <td class="py-2.5 px-2 text-center text-slate-900 font-bold">${totalFill}%</td>
+            <td class="py-2.5 px-2 text-center">
+              <span class="inline-block px-2 py-0.5 rounded text-[10px] ${sumVacant > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-800'} font-medium">
+                ${sumVacant > 0 ? `Vacant: ${sumVacant}` : '100% Filled'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // =========================================================================
+    // PERSONNEL ROSTER TABLE LOGIC
+    // =========================================================================
+    function getFilteredRoster() {
+      const q = document.getElementById('rosterSearch') ? document.getElementById('rosterSearch').value.trim().toLowerCase() : '';
+      const unit = document.getElementById('unitFilter') ? document.getElementById('unitFilter').value : 'ALL';
+      const status = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : 'ALL';
+      const ocType = document.getElementById('ocTypeFilter') ? document.getElementById('ocTypeFilter').value : 'ALL';
+      const level = document.getElementById('levelFilter') ? document.getElementById('levelFilter').value : 'ALL';
+
+      return masterList.filter(p => {
+        const matchUnit = (unit === 'ALL') || (p.unit === unit);
+        const matchStatus = (status === 'ALL') || (p.status === status);
+        const matchOcType = (ocType === 'ALL') || (p.ocType === ocType);
+
+        let pLevel = 'staff';
+        const cat = matchCategory(p);
+        if (cat) {
+          pLevel = cat.level;
+        } else if (p.isMgr) {
+          pLevel = 'mgr';
+        } else if (p.isEng) {
+          pLevel = 'eng';
+        }
+        const matchLevel = (level === 'ALL') || (pLevel === level);
+
+        const matchQ = !q || 
+          p.name.toLowerCase().includes(q) || 
+          p.role.toLowerCase().includes(q) || 
+          p.unit.toLowerCase().includes(q) ||
+          (p.empId && p.empId.toLowerCase().includes(q)) ||
+          p.id.toLowerCase().includes(q);
+        return matchUnit && matchStatus && matchOcType && matchLevel && matchQ;
+      });
+    }
+
+    function filterRoster() {
+      renderRosterTable();
+    }
+
+    function renderRosterTable() {
+      const listToRender = getFilteredRoster();
+      const tbody = document.getElementById('roster-tbody');
+      tbody.innerHTML = '';
+
+      document.getElementById('roster-count-label').innerText = listToRender.length;
+
+      listToRender.forEach((p, idx) => {
+        const isVacant = p.status === 'Vacant';
+        const isNew = p.ocType === 'NEW';
+        const displayEmpId = isVacant ? '<span class="text-slate-300 font-medium">--</span>' : (p.empId || '<span class="text-slate-400 italic font-mono-num text-[11px]">No ID</span>');
+        const photoUrl = isVacant ? null : (p.img || getEmpPhotoUrl(p.empId));
+
+        let levelBadge = '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">Staff</span>';
+        const cat = matchCategory(p);
+        if ((cat && cat.level === 'mgr') || p.isMgr) {
+          levelBadge = '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-white">Manager</span>';
+        } else if ((cat && cat.level === 'eng') || p.isEng) {
+          levelBadge = '<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-800 border border-slate-300">Engineer</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.id = `row-${p.id}`;
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-2 px-1 text-center font-mono-num text-slate-400 font-semibold">${idx+1}</td>
+          <td class="py-2 px-1 text-center">
+            <div class="w-8 h-8 rounded border border-slate-200 overflow-hidden mx-auto bg-slate-50 flex items-center justify-center cursor-pointer" onclick="openEditPersonModal('${p.id}')">
+              ${photoUrl ? `<img src="${photoUrl}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=e2e8f0&color=475569&size=64';" class="w-full h-full object-cover" />` : `<span class="text-[9px] text-slate-400 font-medium">--</span>`}
+            </div>
+          </td>
+          <td class="py-2 px-1.5 font-mono-num font-medium text-slate-700">${displayEmpId}</td>
+          <td class="py-2 px-2">
+            <input type="text" value="${p.name}" onchange="syncName('${p.id}', this.value)" 
+                   class="w-full px-2 py-1 text-xs border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white rounded transition bg-transparent text-slate-900 font-medium" />
+          </td>
+          <td class="py-2 px-2">
+            <input type="text" list="role-datalist" value="${p.role}" onchange="syncRole('${p.id}', this.value)"
+                   class="w-full px-1.5 py-1 text-xs border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white rounded transition bg-transparent text-slate-800 font-medium" />
+          </td>
+          <td class="py-2 px-1.5">
+            <input type="text" list="unit-datalist" value="${p.unit}" onchange="syncUnit('${p.id}', this.value)"
+                   class="w-full px-1.5 py-1 text-[11px] font-mono-num font-semibold border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white rounded transition bg-transparent text-slate-800" />
+          </td>
+          <td class="py-2 px-1 text-center">${levelBadge}</td>
+          <td class="py-2 px-1 text-center">
+            <button type="button" onclick="toggleOcType('${p.id}')" title="คลิกเพื่อสลับ OLD / NEW"
+                    class="inline-block px-2 py-0.5 rounded text-[10px] font-mono-num font-semibold cursor-pointer transition ${isNew ? 'bg-slate-200 text-slate-900 border border-slate-300 hover:bg-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+              ${p.ocType || 'OLD'}
+            </button>
+          </td>
+          <td class="py-2 px-1 text-center">
+            <button type="button" onclick="toggleStatus('${p.id}')" title="คลิกเพื่อสลับ Active / Vacant"
+                    class="inline-block px-2.5 py-0.5 rounded text-[10.5px] font-semibold cursor-pointer transition ${isVacant ? 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200' : 'bg-slate-800 text-white hover:bg-slate-900'}">
+              ${p.status}
+            </button>
+          </td>
+          <td class="py-2 px-1 text-center">
+            <button onclick="openEditPersonModal('${p.id}')" class="text-xs text-slate-700 hover:text-slate-950 font-medium underline">
+              Edit
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function syncName(id, newName) {
+      const p = masterList.find(x => x.id === id);
+      if (p) {
+        p.name = newName.trim();
+        if (p.name.toLowerCase().includes('vacant') || p.name === 'ว่าง' || p.name === '') {
+          p.status = 'Vacant';
+          p.empId = '';
+          p.img = null;
+        } else {
+          if (p.status === 'Vacant') p.status = 'Active';
+          if (p.empId) p.img = getEmpPhotoUrl(p.empId);
+        }
+        persistData();
+        showToast('Name updated', '✓');
+      }
+    }
+
+    function syncRole(id, newRole) {
+      const p = masterList.find(x => x.id === id);
+      if (p) {
+        p.role = newRole.trim();
+        persistData();
+        showToast('Role updated', '✓');
+      }
+    }
+
+    function syncUnit(id, newUnit) {
+      const p = masterList.find(x => x.id === id);
+      if (p) {
+        p.unit = newUnit.trim();
+        persistData();
+        showToast('Unit updated', '✓');
+      }
+    }
+
+    function toggleOcType(id) {
+      const p = masterList.find(x => x.id === id);
+      if (p) {
+        p.ocType = p.ocType === 'NEW' ? 'OLD' : 'NEW';
+        persistData();
+        showToast(`OC Type: ${p.ocType}`, '✓');
+      }
+    }
+
+    function toggleStatus(id) {
+      const p = masterList.find(x => x.id === id);
+      if (p) {
+        if (p.status === 'Active') {
+          p.status = 'Vacant';
+          if (!p.name.toLowerCase().includes('vacant') && p.name !== 'ว่าง') {
+            p._prevName = p.name;
+          }
+          p.name = 'Vacant';
+          p.img = null;
+          p.empId = '';
+        } else {
+          p.status = 'Active';
+          if (p.name === 'Vacant' || p.name === 'ว่าง') {
+            p.name = p._prevName || 'พนักงานใหม่';
+          }
+        }
+        persistData();
+        showToast(`Status: ${p.status}`, '✓');
+      }
+    }
+
+    // =========================================================================
+    // MODAL PERSON EDITOR LOGIC
+    // =========================================================================
+    // Auto Image resolver: intranet employeecard by Employee ID
+    function getEmpPhotoUrl(empId) {
+      if (!empId) return null;
+      const cleanId = empId.toString().trim().replace(/^EMP-0*/i, '').replace(/\D/g, '');
+      if (cleanId) {
+        return `https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg`;
+      }
+      return null;
+    }
+
+    function onStatusChangeModal() {
+      const status = document.getElementById('form-status').value;
+      const empInput = document.getElementById('form-emp-id');
+      if (status === 'Vacant') {
+        empInput.value = '';
+        empInput.disabled = true;
+        empInput.placeholder = 'ตำแหน่งว่าง (ไม่มีรหัสพนักงาน)';
+      } else {
+        empInput.disabled = false;
+        empInput.placeholder = 'เช่น 688172';
+      }
+    }
+
+    function openEditPersonModal(id) {
+      const p = masterList.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('modal-title').innerText = 'Edit Personnel';
+      document.getElementById('form-id').value = p.id;
+      
+      const empInput = document.getElementById('form-emp-id');
+      empInput.value = p.empId || (p.status === 'Active' && !p.id.startsWith('POS-') ? p.id : '');
+      document.getElementById('form-name').value = p.name;
+      document.getElementById('form-role').value = p.role;
+      document.getElementById('form-unit').value = p.unit;
+      document.getElementById('form-status').value = p.status;
+      document.getElementById('form-octype').value = p.ocType || 'OLD';
+
+      onStatusChangeModal();
+
+      let level = 'staff';
+      if (p.isMgr) level = 'mgr';
+      else if (p.isEng) level = 'eng';
+      document.getElementById('form-level').value = level;
+
+      document.getElementById('btn-delete-person').classList.remove('hidden');
+      document.getElementById('modal-edit-person').classList.remove('hidden');
+    }
+
+    function openAddPersonModal() {
+      const posId = `POS-${String(curIdx++).padStart(3, '0')}`;
+      document.getElementById('modal-title').innerText = 'Add New Position / Personnel';
+      document.getElementById('form-id').value = posId;
+      document.getElementById('form-emp-id').value = '';
+      document.getElementById('form-name').value = '';
+      document.getElementById('form-role').value = 'ช่างขับจักรกลหนัก';
+      document.getElementById('form-unit').value = 'INTER 2';
+      document.getElementById('form-status').value = 'Active';
+      document.getElementById('form-octype').value = 'OLD';
+      document.getElementById('form-level').value = 'staff';
+
+      onStatusChangeModal();
+
+      document.getElementById('btn-delete-person').classList.add('hidden');
+      document.getElementById('modal-edit-person').classList.remove('hidden');
+    }
+
+    function closePersonModal() {
+      document.getElementById('modal-edit-person').classList.add('hidden');
+    }
+
+    function savePersonModal(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-id').value;
+      const rawEmpId = document.getElementById('form-emp-id').value.trim();
+      const name = document.getElementById('form-name').value.trim();
+      const role = document.getElementById('form-role').value;
+      const unit = document.getElementById('form-unit').value;
+      const status = document.getElementById('form-status').value;
+      const ocType = document.getElementById('form-octype').value;
+      const level = document.getElementById('form-level').value;
+
+      const isVacant = status === 'Vacant' || name.toLowerCase().includes('vacant') || name === 'ว่าง' || !name;
+      const finalStatus = isVacant ? 'Vacant' : 'Active';
+      const finalEmpId = isVacant ? '' : rawEmpId;
+      const finalImg = isVacant ? null : getEmpPhotoUrl(finalEmpId);
+
+      const existingIndex = masterList.findIndex(x => x.id === id);
+      const isMgr = level === 'mgr';
+      const isEng = level === 'eng';
+
+      const record = {
+        id,
+        empId: finalEmpId,
+        name: isVacant ? 'Vacant' : name,
+        role,
+        unit,
+        status: finalStatus,
+        ocType,
+        isMgr,
+        isEng,
+        img: finalImg
+      };
+
+      if (existingIndex >= 0) {
+        masterList[existingIndex] = record;
+        showToast('Saved successfully', '✓');
+      } else {
+        masterList.push(record);
+        showToast('Added successfully', '✓');
+      }
+
+      closePersonModal();
+      persistData();
+    }
+
+    function deleteCurrentPerson() {
+      const id = document.getElementById('form-id').value;
+      if (confirm(`Are you sure you want to delete ${id}?`)) {
+        masterList = masterList.filter(x => x.id !== id);
+        closePersonModal();
+        persistData();
+        showToast('Deleted successfully', '✓');
+      }
+    }
+
+    // =========================================================================
+    // EXCEL IMPORT & EXPORT ENGINE (SheetJS)
+    // =========================================================================
+    function exportExcel() {
+      if (typeof XLSX === 'undefined') {
+        alert('Please wait, loading Excel module...');
+        return;
+      }
+
+      const exportData = masterList.map((p, idx) => ({
+        'No': idx + 1,
+        'Employee ID': p.status === 'Vacant' ? '' : (p.empId || ''),
+        'Name': p.name,
+        'Role': p.role,
+        'Unit': p.unit,
+        'OC Type': p.ocType || 'OLD',
+        'Status': p.status,
+        'Level': p.isMgr ? 'Manager' : (p.isEng ? 'Engineer' : 'Staff')
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Manpower_Dashboard");
+
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Port_Operations_Manpower_${today}.xlsx`);
+      showToast('Exported Excel successfully', '📥');
+    }
+
+    function downloadTemplate() {
+      if (typeof XLSX === 'undefined') {
+        alert('Please wait, loading Excel module...');
+        return;
+      }
+
+      const templateData = [
+        {
+          'Employee ID': '688172',
+          'Name': 'สมชาย สายตรวจ',
+          'Role': 'พนักงานขับเครน',
+          'Unit': 'INTER 2',
+          'OC Type': 'OLD',
+          'Status': 'Active',
+          'Level': 'Staff'
+        },
+        {
+          'Employee ID': '',
+          'Name': 'Vacant',
+          'Role': 'ช่างขับจักรกลหนัก',
+          'Unit': 'INTER 3',
+          'OC Type': 'NEW',
+          'Status': 'Vacant',
+          'Level': 'Staff'
+        }
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Template");
+      XLSX.writeFile(wb, "Port_Manpower_Template.xlsx");
+      showToast('Downloaded template successfully', '📥');
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) processExcelFile(file);
+      e.target.value = '';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('drag-active');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-active');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-active');
+      if (e.dataTransfer.files.length > 0) {
+        processExcelFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function processExcelFile(file) {
+      if (typeof XLSX === 'undefined') {
+        alert('Loading Excel module, please try again.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+          if (!json || json.length === 0) {
+            alert('Excel file is empty.');
+            return;
+          }
+
+          parseImportedData(json);
+        } catch(err) {
+          console.error(err);
+          alert('Cannot read Excel file: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parseImportedData(rows) {
+      let importedList = [];
+      let nextIdNum = 1;
+
+      rows.forEach((row, index) => {
+        const findKey = (candidates) => {
+          for (const c of candidates) {
+            for (const k of Object.keys(row)) {
+              if (k.trim().toLowerCase() === c.toLowerCase()) return row[k];
+            }
+          }
+          return null;
+        };
+
+        const rawId = (findKey(['employee id', 'รหัสพนักงาน', 'รหัส', 'id', 'emp id', 'empid']) || '').toString().trim();
+        const name = (findKey(['name', 'ชื่อ-นามสกุล', 'ชื่อ', 'fullname', 'employee name']) || '').toString().trim();
+        let role = (findKey(['role', 'ตำแหน่ง', 'position', 'title']) || 'พนักงานปฏิบัติการ').toString().trim();
+        if (role === 'O&M Generaotor') role = 'O&M Generator';
+        if (role === 'O&M Elcetrical') role = 'O&M Electrical';
+        if (role === 'ปากเรือ') role = 'ช่างปากเรือ';
+        const unitRaw = (findKey(['unit', 'สังกัดทุ่น/ฝ่าย', 'สังกัด', 'department', 'berth', 'ทุ่น']) || 'INTER 2').toString().trim();
+        const statusRaw = (findKey(['status', 'สถานะ', 'สถานะ (Active/Vacant)']) || '').toString().trim();
+        const ocTypeRaw = (findKey(['oc type', 'octype', 'type', 'กรอบอัตรา', 'กรอบ', 'โครงสร้าง', 'oc_type']) || 'OLD').toString().trim().toUpperCase();
+        const levelRaw = (findKey(['level', 'ระดับ (Staff/Manager/Engineer)', 'ระดับ']) || '').toString().toLowerCase();
+
+        if (!name && !role) return;
+
+        let unit = unitRaw;
+        if (/inter\s*2/i.test(unitRaw)) unit = 'INTER 2';
+        else if (/inter\s*3/i.test(unitRaw)) unit = 'INTER 3';
+        else if (/inter\s*5/i.test(unitRaw)) unit = 'INTER 5';
+        else if (/inter\s*7/i.test(unitRaw)) unit = 'INTER 7';
+        else if (/heavy|จักรกล/i.test(unitRaw)) unit = 'Heavy Machine';
+        else if (/improve|ปรับปรุง/i.test(unitRaw)) unit = 'Improvement';
+        else if (/control|ศูนย์/i.test(unitRaw)) unit = 'CONTROL';
+        else if (/manage|ฝ่ายปฏิบัติการ/i.test(unitRaw)) unit = 'Management';
+
+        let status = 'Active';
+        if (statusRaw.toLowerCase() === 'vacant' || name.toLowerCase().includes('vacant') || name.includes('ว่าง') || !name) {
+          status = 'Vacant';
+        }
+
+        const ocType = ocTypeRaw.includes('NEW') || ocTypeRaw.includes('ใหม่') || ocTypeRaw.includes('3') ? 'NEW' : 'OLD';
+        const isMgr = levelRaw.includes('mgr') || levelRaw.includes('manager') || role.includes('ผู้จัดการ');
+        const isEng = levelRaw.includes('eng') || role.toLowerCase().includes('engineer') || role.includes('วิศวกร');
+
+        const posId = `POS-${String(nextIdNum++).padStart(3, '0')}`;
+        const finalEmpId = status === 'Vacant' ? '' : rawId;
+
+        importedList.push({
+          id: posId,
+          empId: finalEmpId,
+          name: name || (status === 'Vacant' ? 'Vacant' : 'Unassigned'),
+          role,
+          unit,
+          status,
+          ocType,
+          isMgr,
+          isEng,
+          img: status === 'Vacant' ? null : getEmpPhotoUrl(finalEmpId)
+        });
+      });
+
+      if (importedList.length === 0) {
+        alert('No matching columns found in Excel. Please check headers.');
+        return;
+      }
+
+      if (confirm(`Found ${importedList.length} personnel records.\nDo you want to replace current data and update dashboard now?`)) {
+        masterList = importedList;
+        curIdx = nextIdNum;
+        persistData();
+        showToast(`Imported ${importedList.length} records!`, '🚀');
+      }
+    }
+
+    // =========================================================================
+    // UI Helpers & Toast
+    // =========================================================================
+    let toastTimer = null;
+    function showToast(msg, icon = '✓') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      document.getElementById('toast-icon').innerText = icon;
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initDefaultData();
+      renderDashboard();
+    });
+  </script>
+</body>
+</html>
