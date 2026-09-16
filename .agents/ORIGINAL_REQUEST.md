@@ -150,3 +150,32 @@ Integrity mode: development
 - [ ] `npm run build` passes with 0 errors.
 - [ ] All existing calculation logic (OT hours, salary formulas, plan/actual diff) remains mathematically unchanged.
 - [ ] All 10 data tables render correctly with frozen columns on mobile viewports.
+
+## 2026-09-12T12:22:31+07:00
+
+Refactor the existing operational dashboard into an Executive Dashboard that prioritizes month-end budget forecasts, risk/fatigue alerts, and actionable triggers for C-level management.
+
+Working directory: `C:\Users\ssrwj\.gemini\antigravity\worktrees\mysterious-einstein\fix_dashboard_layout_highlighting`
+
+## Requirements
+
+### R1. Executive Mode vs Operational Mode
+Implement a toggle or distinct layout that separates the high-level Executive view (focusing on forecasts and risks) from the Operational view (focusing on daily tracking and raw hours).
+
+### R2. Month-End Budget Forecast & Burn Rate
+Add dynamic projections to the Executive view showing the expected month-end OT budget burn rate, comparing current trajectory against target budget allocations.
+
+### R3. Advanced Risk & Fatigue Radar
+Enhance the fatigue alerts to act as a proactive Risk Radar, highlighting specific departments or roles that are understaffed or at high risk of safety compliance violations before they happen.
+
+### R4. Strategic Action Hub
+Implement clear, one-click actionable triggers (e.g., batch approvals for OT requests, export of board-ready summaries) prominently in the Executive view.
+
+## Acceptance Criteria
+
+### Verification & Quality
+- [ ] Programmatic verification: The application must build successfully (`npm run build`) with zero TypeScript or linting errors.
+- [ ] All existing 91 tests across tier2 and tier4 suites must continue to pass (`npx vitest run`).
+- [ ] The new Executive Mode toggle must function without breaking existing routing (`useUrlRouting`).
+- [ ] The UI must render correctly on both desktop and mobile viewports, maintaining the existing design system standards (Tailwind CSS, Lucide icons, maritime color palette).
+
