@@ -201,19 +201,19 @@ html, body, table, th, td, input, select, button, .tabular-nums, .font-mono, .kp
 nav.folder-tabs {
   display: flex;
   width: 100%;
-  gap: 3px;
+  gap: 2px;
   align-items: stretch;
 }
 nav.folder-tabs button {
   flex: 1 1 0;
   min-width: max-content;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   background: var(--gray-xl);
   color: var(--ink2);
   border: 1px solid var(--line);
   border-bottom: none;
-  padding: 8px 10px;
+  padding: 6px 8px;
   cursor: pointer;
   border-radius: 6px 6px 0 0;
   position: relative;
@@ -222,12 +222,16 @@ nav.folder-tabs button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   white-space: nowrap;
+}
+nav.folder-tabs button svg {
+  width: 14px;
+  height: 14px;
 }
 nav.folder-tabs button .num {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   opacity: 0.7;
   font-weight: 600;
 }
