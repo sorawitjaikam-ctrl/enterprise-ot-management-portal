@@ -5,6 +5,7 @@ import {
   Bell, 
   LogOut,
   Menu,
+  Monitor,
   X,
   User,
   CheckCircle2,
@@ -227,6 +228,23 @@ export default function Navbar({
                   </>
                 )}
               </div>
+
+              <button
+                onClick={() => {
+                  const isDark = document.documentElement.classList.contains("dark");
+                  if (isDark) {
+                    document.documentElement.classList.remove("dark");
+                    localStorage.setItem("theme", "light");
+                  } else {
+                    document.documentElement.classList.add("dark");
+                    localStorage.setItem("theme", "dark");
+                  }
+                }}
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 text-[#6A7B87] hover:text-[#0E3A66] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
+                title="สลับธีม (Dark/Light)"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </button>
 
               {/* Profile button */}
               <button 

@@ -78,6 +78,8 @@ import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
+import CommandPalette from "./components/CommandPalette";
+import { useCommandPalette } from "./hooks/useCommandPalette";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
@@ -2242,6 +2244,34 @@ function HrDirectEditorView({
 }
 
 export default function App() {
+  const { isOpen: isCommandPaletteOpen, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
+  
+  const handleCommandPaletteSelect = (action: string, payload?: any) => {
+    if (action === "navigate") {
+      // payload is tab id
+      if (payload === "dashboard") {
+        setDashboardMode("executive");
+      } else if (payload === "shift") {
+        setDashboardMode("operational");
+      }
+      setActiveTab(payload);
+    } else if (action === "export_csv") {
+      const exportBtn = document.querySelector('[title="ส่งออกรายงาน (Export CSV)"]') as HTMLButtonElement;
+      if (exportBtn) exportBtn.click();
+    } else if (action === "toggle_theme") {
+      const isDark = document.documentElement.classList.contains("dark");
+      if (isDark) {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      } else {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      }
+    } else if (action === "toggle_compact") {
+      document.body.classList.toggle("compact-mode");
+    }
+  };
+
   // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("adminLoggedIn") === "true"
@@ -14842,6 +14872,11 @@ export default function App() {
         ))}
       </div>
 
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setCommandPaletteOpen(false)} 
+        onSelectOption={handleCommandPaletteSelect} 
+      />
     </div>
   );
 }

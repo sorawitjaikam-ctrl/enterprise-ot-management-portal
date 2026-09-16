@@ -68,7 +68,7 @@ body, html {
 }
 
 /* Tabular figures for stable data grids and numerical displays */
-table, .tabular-nums, .kpi .val, .num, [data-num] {
+html, body, table, th, td, input, select, button, .tabular-nums, .font-mono, .kpi .val, .num, [data-num] {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
@@ -363,4 +363,80 @@ nav.folder-tabs button:hover:not([aria-selected="true"]):not(.active) {
 }
 .text-pretty {
   text-wrap: pretty;
+}
+
+/* Dark Mode Overrides */
+html.dark {
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #0B1120 !important;
+  color: #F1F5F9 !important;
+}
+html.dark [class*="bg-[#F3F6F8]"],
+html.dark [class*="bg-[#E8F3FA]"],
+html.dark [class*="bg-slate-50"],
+html.dark [class*="bg-blue-50"] {
+  background-color: #0F172A !important;
+}
+html.dark [class*="bg-white"] {
+  background-color: #1E293B !important;
+}
+html.dark [class*="text-[#0E3A66]"],
+html.dark [class*="text-blue-700"],
+html.dark [class*="text-blue-800"],
+html.dark [class*="text-[#333B41]"] {
+  color: #9FCEE8 !important;
+}
+html.dark [class*="text-slate-800"],
+html.dark [class*="text-slate-700"] {
+  color: #E2E8F0 !important;
+}
+html.dark [class*="text-[#6A7B87]"],
+html.dark [class*="text-[#59656D]"],
+html.dark [class*="text-slate-600"],
+html.dark [class*="text-slate-500"] {
+  color: #94A3B8 !important;
+}
+html.dark [class*="border-[#DCE4EA]"],
+html.dark [class*="border-slate-200"],
+html.dark [class*="border-slate-100"] {
+  border-color: #334155 !important;
+}
+html.dark [class*="hover:bg-slate-50"]:hover {
+  background-color: #334155 !important;
+}
+html.dark .card-editorial, html.dark .kpi {
+  background-color: #111C35 !important;
+  border-color: #1E293B !important;
+}
+html.dark .kpis {
+  background-color: #0F172A !important;
+  border-color: #1E293B !important;
+}
+html.dark .text-slate-900, html.dark .text-black {
+  color: #F8FAFC !important;
+}
+
+/* Compact Mode */
+body.compact-mode .shift-matrix-table td,
+body.compact-mode .shift-matrix-table th {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  font-size: 0.7rem !important;
+}
+body.compact-mode .shift-matrix-table .w-8.h-8 {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+body.compact-mode .shift-matrix-table .text-xs {
+  font-size: 0.65rem !important;
+}
+
+/* Shift Matrix Crosshair Hover (R5) */
+.shift-matrix-table tbody tr:hover td {
+  background-color: rgba(56, 189, 248, 0.05) !important;
+}
+html.dark .shift-matrix-table tbody tr:hover td {
+  background-color: rgba(56, 189, 248, 0.15) !important;
 }
