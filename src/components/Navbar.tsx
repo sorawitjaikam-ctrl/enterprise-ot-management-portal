@@ -17,9 +17,7 @@ import {
   ShieldCheck,
   FileText,
   Settings,
-  Building2,
-  Pin,
-  PinOff
+  Building2
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -59,25 +57,7 @@ export default function Navbar({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  // Tab titles Auto-Hide state (default: true -> hide inactive titles, keep active tab full with title)
-  const [isAutoHideTitles, setIsAutoHideTitles] = useState<boolean>(() => {
-    const stored = localStorage.getItem("navbar_autohide_tab_titles");
-    if (stored !== null) return stored === "true";
-    if (typeof isNavbarCollapsed === "boolean") return isNavbarCollapsed;
-    return true;
-  });
   const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem("navbar_autohide_tab_titles", String(isAutoHideTitles));
-    setIsNavbarCollapsed?.(isAutoHideTitles);
-  }, [isAutoHideTitles, setIsNavbarCollapsed]);
-
-  useEffect(() => {
-    if (typeof isNavbarCollapsed === "boolean" && isNavbarCollapsed !== isAutoHideTitles) {
-      setIsAutoHideTitles(isNavbarCollapsed);
-    }
-  }, [isNavbarCollapsed]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -179,33 +159,6 @@ export default function Navbar({
               <PWAOfflineBadge />
               <PWAInstallButton />
 
-              {/* Auto-hide / Toggle Tab Titles Button */}
-              <button
-                type="button"
-                onClick={() => setIsAutoHideTitles(!isAutoHideTitles)}
-                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer active:scale-95 btn-press focus-ring ${
-                  isAutoHideTitles
-                    ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8] hover:bg-[#D5EAF7]"
-                    : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
-                }`}
-                title={
-                  isAutoHideTitles
-                    ? "สถานะ: ย่อหัวข้อเหลือเฉพาะแท็บที่เปิด (คลิกเพื่อแสดงหัวข้อเต็มทุกแท็บ)"
-                    : "สถานะ: แสดงหัวข้อเต็มทุกแท็บ (คลิกเพื่อย่อเหลือเฉพาะแท็บที่เปิด)"
-                }
-              >
-                {isAutoHideTitles ? (
-                  <>
-                    <PinOff className="w-3.5 h-3.5 text-[#17538F]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">ซ่อนหัวข้อ (โลโก้)</span>
-                  </>
-                ) : (
-                  <>
-                    <Pin className="w-3.5 h-3.5 text-[#6A7B87]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">แสดงหัวข้อเต็ม</span>
-                  </>
-                )}
-              </button>
 
               {/* Notification Bell */}
               <div className="relative">
@@ -315,8 +268,8 @@ export default function Navbar({
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               const isHovered = hoveredTabId === tab.id;
-              // Active tab always has full title. Inactive tabs collapse when isAutoHideTitles is on unless hovered
-              const isExpanded = !isAutoHideTitles || isActive || isHovered;
+              // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover
+              const isExpanded = isActive || isHovered;
               return (
                 <button
                   key={tab.id}
@@ -325,9 +278,9 @@ export default function Navbar({
                   title={`${tab.num} · ${tab.label}`}
                   onMouseEnter={() => setHoveredTabId(tab.id)}
                   onMouseLeave={() => setHoveredTabId(null)}
-                  style={{ flex: isAutoHideTitles ? "0 0 auto" : "1 1 0" }}
+                  style={{ flex: "0 0 auto" }}
                   className={`btn-press focus-ring transition-all duration-200 ${
-                    isActive ? "active px-3.5" : isHovered ? "px-3" : isAutoHideTitles ? "px-2.5" : "px-2.5"
+                    isActive ? "active px-3.5" : isHovered ? "px-3" : "px-2.5"
                   }`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
