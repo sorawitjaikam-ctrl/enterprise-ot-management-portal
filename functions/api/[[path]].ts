@@ -69,6 +69,83 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           try { await db.prepare("ALTER TABLE employees ADD COLUMN employmentStatus TEXT DEFAULT 'Active'").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN planShifts TEXT DEFAULT '[]'").run(); } catch (e) {}
           empsRes = await db.prepare("SELECT * FROM employees").all();
+
+          // Auto-reconcile any active manpower positions missing from employees
+          try {
+            await db.prepare(`CREATE TABLE IF NOT EXISTS manpower_positions (
+              id TEXT PRIMARY KEY,
+              empId TEXT DEFAULT '',
+              name TEXT NOT NULL,
+              role TEXT NOT NULL,
+              unit TEXT NOT NULL,
+              isMgr INTEGER DEFAULT 0,
+              isEng INTEGER DEFAULT 0,
+              status TEXT DEFAULT 'Active',
+              ocType TEXT DEFAULT 'OLD',
+              img TEXT DEFAULT '',
+              createdAt TEXT DEFAULT '',
+              updatedAt TEXT DEFAULT ''
+            )`).run();
+            const manpowerRes = await db.prepare("SELECT * FROM manpower_positions WHERE status = 'Active'").all();
+            if (manpowerRes && manpowerRes.results && manpowerRes.results.length > 0) {
+              const currentEmpIds = new Set((empsRes.results || []).map((e: any) => e.id));
+              const currentEmpNames = new Set((empsRes.results || []).map((e: any) => e.name));
+              let didInsert = false;
+              for (const pos of manpowerRes.results as any[]) {
+                const pName = (pos.name || "").trim();
+                if (!pName || pName.toLowerCase().includes("vacant") || pName === "ว่าง") continue;
+                const empId = pos.empId && pos.empId.trim() ? pos.empId.trim() : `EMP-${String(pos.id).replace(/\D/g, "")}`;
+                if (!currentEmpIds.has(empId) && !currentEmpNames.has(pName)) {
+                  const defaultShifts = Array(31).fill("D");
+                  const shiftsJson = JSON.stringify(defaultShifts);
+                  const rawUnit = (pos.unit || "INTER 2").trim();
+                  const uLower = rawUnit.toLowerCase().replace(/\s+/g, "");
+                  let finalDeptId = "inter2";
+                  if (uLower.includes("inter2")) finalDeptId = "inter2";
+                  else if (uLower.includes("inter3")) finalDeptId = "inter3";
+                  else if (uLower.includes("inter5")) finalDeptId = "inter5";
+                  else if (uLower.includes("inter7")) finalDeptId = "inter7";
+                  else if (uLower.includes("heavy")) finalDeptId = "heavy";
+                  else if (uLower.includes("ecc")) finalDeptId = "ecc";
+                  else finalDeptId = rawUnit;
+
+                  await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                      empId,
+                      pName,
+                      finalDeptId,
+                      pos.role || "พนักงานขับเครน",
+                      48,
+                      "Group A",
+                      shiftsJson,
+                      shiftsJson,
+                      20000,
+                      "ฝ่ายปฏิบัติการท่าเรือ",
+                      "นาย",
+                      pName.split(" ")[0] || pName,
+                      pName.split(" ").slice(1).join(" ") || "",
+                      "",
+                      "",
+                      30,
+                      30,
+                      new Date().toISOString().slice(0, 10),
+                      "1 ปี",
+                      "",
+                      "ปฏิทินกะ 4-on-2-off",
+                      "",
+                      "Active"
+                    ).run();
+                  didInsert = true;
+                }
+              }
+              if (didInsert) {
+                empsRes = await db.prepare("SELECT * FROM employees").all();
+              }
+            }
+          } catch (mSyncErr) {
+            console.warn("Manpower reconciliation error:", mSyncErr);
+          }
+
           accountsRes = await db.prepare("SELECT * FROM accounts").all();
           vesselSchedulesRes = await db.prepare("SELECT * FROM vessel_schedules").all();
           otRequestsRes = await db.prepare("SELECT * FROM ot_requests").all();
@@ -1059,14 +1136,68 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               pos.img || "",
               new Date().toISOString()
             ).run();
+
+          // Sync to employees
+          const rawName = (pos.name || "").trim();
+          const isVacant = !rawName || rawName.toLowerCase().includes("vacant") || rawName === "ว่าง" || pos.status === "Vacant";
+          if (!isVacant) {
+            const empId = (pos.empId && pos.empId.trim()) ? pos.empId.trim() : `EMP-${String(pos.id).replace(/\D/g, "")}`;
+            const fullName = rawName;
+            const finalRole = pos.role || "พนักงานขับเครน";
+            const rawUnit = (pos.unit || "INTER 2").trim();
+            const uLower = rawUnit.toLowerCase().replace(/\s+/g, "");
+            let finalDeptId = "inter2";
+            if (uLower.includes("inter2")) finalDeptId = "inter2";
+            else if (uLower.includes("inter3")) finalDeptId = "inter3";
+            else if (uLower.includes("inter5")) finalDeptId = "inter5";
+            else if (uLower.includes("inter7")) finalDeptId = "inter7";
+            else if (uLower.includes("heavy")) finalDeptId = "heavy";
+            else if (uLower.includes("ecc")) finalDeptId = "ecc";
+            else finalDeptId = rawUnit;
+
+            const existingEmp: any = await db.prepare("SELECT id FROM employees WHERE id = ? OR name = ? LIMIT 1").bind(empId, fullName).first();
+            if (existingEmp && existingEmp.id) {
+              await db.prepare("UPDATE employees SET name = ?, role = ?, deptId = ?, employmentStatus = 'Active' WHERE id = ?")
+                .bind(fullName, finalRole, finalDeptId, existingEmp.id).run();
+            } else {
+              const defaultShifts = Array(31).fill("D");
+              const shiftsJson = JSON.stringify(defaultShifts);
+              await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                  empId,
+                  fullName,
+                  finalDeptId,
+                  finalRole,
+                  48,
+                  "Group A",
+                  shiftsJson,
+                  shiftsJson,
+                  20000,
+                  "ฝ่ายปฏิบัติการท่าเรือ",
+                  "นาย",
+                  fullName.split(" ")[0] || fullName,
+                  fullName.split(" ").slice(1).join(" ") || "",
+                  "",
+                  "",
+                  30,
+                  30,
+                  new Date().toISOString().slice(0, 10),
+                  "1 ปี",
+                  "",
+                  "ปฏิทินกะ 4-on-2-off",
+                  "",
+                  "Active"
+                ).run();
+            }
+          }
         } catch (e) {
           console.error("D1 Upsert Manpower Position Error:", e);
         }
       }
-      return Response.json({ success: true, message: "บันทึกตำแหน่งงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
+      return Response.json({ success: true, message: "บันทึกตำแหน่งงานและเชื่อมโยงข้อมูลพนักงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
-    // 18. POST /api/manpower/bulk (Bulk save / replace all positions)
+    // 18. POST /api/manpower/bulk (Bulk save / replace all positions with 100% employees sync)
     if (path === "/api/manpower/bulk" && request.method === "POST") {
       const body = await getBody();
       const positions = body.positions || [];
@@ -1102,12 +1233,68 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 pos.img || "",
                 new Date().toISOString()
               ).run();
+
+            // 100% Two-Way Automatic Sync with employees table
+            const rawName = (pos.name || "").trim();
+            const isVacant = !rawName || rawName.toLowerCase().includes("vacant") || rawName === "ว่าง" || pos.status === "Vacant";
+            if (!isVacant) {
+              const empId = (pos.empId && pos.empId.trim()) ? pos.empId.trim() : `EMP-${String(pos.id).replace(/\D/g, "")}`;
+              const fullName = rawName;
+              const finalRole = pos.role || "พนักงานขับเครน";
+              const rawUnit = (pos.unit || "INTER 2").trim();
+              const uLower = rawUnit.toLowerCase().replace(/\s+/g, "");
+              let finalDeptId = "inter2";
+              if (uLower.includes("inter2")) finalDeptId = "inter2";
+              else if (uLower.includes("inter3")) finalDeptId = "inter3";
+              else if (uLower.includes("inter5")) finalDeptId = "inter5";
+              else if (uLower.includes("inter7")) finalDeptId = "inter7";
+              else if (uLower.includes("heavy")) finalDeptId = "heavy";
+              else if (uLower.includes("ecc")) finalDeptId = "ecc";
+              else finalDeptId = rawUnit;
+
+              // Check if employee already exists by id or full name
+              const existingEmp: any = await db.prepare("SELECT id FROM employees WHERE id = ? OR name = ? LIMIT 1")
+                .bind(empId, fullName).first();
+              if (existingEmp && existingEmp.id) {
+                await db.prepare("UPDATE employees SET name = ?, role = ?, deptId = ?, employmentStatus = 'Active' WHERE id = ?")
+                  .bind(fullName, finalRole, finalDeptId, existingEmp.id).run();
+              } else {
+                const defaultShifts = Array(31).fill("D");
+                const shiftsJson = JSON.stringify(defaultShifts);
+                await db.prepare(`INSERT OR REPLACE INTO employees (id, name, deptId, role, targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName, nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType, resignationDate, employmentStatus)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                    empId,
+                    fullName,
+                    finalDeptId,
+                    finalRole,
+                    48,
+                    "Group A",
+                    shiftsJson,
+                    shiftsJson,
+                    20000,
+                    "ฝ่ายปฏิบัติการท่าเรือ",
+                    "นาย",
+                    fullName.split(" ")[0] || fullName,
+                    fullName.split(" ").slice(1).join(" ") || "",
+                    "",
+                    "",
+                    30,
+                    30,
+                    new Date().toISOString().slice(0, 10),
+                    "1 ปี",
+                    "",
+                    "ปฏิทินกะ 4-on-2-off",
+                    "",
+                    "Active"
+                  ).run();
+              }
+            }
           }
         } catch (e) {
           console.error("D1 Bulk Save Manpower Error:", e);
         }
       }
-      return Response.json({ success: true, count: positions.length, message: "บันทึกโครงสร้างอัตรากำลังเรียบร้อยแล้ว" }, { headers: corsHeaders });
+      return Response.json({ success: true, count: positions.length, message: "บันทึกโครงสร้างอัตรากำลังและเชื่อมโยงข้อมูลพนักงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
     // 19. DELETE /api/manpower (Delete position by id or clear all)

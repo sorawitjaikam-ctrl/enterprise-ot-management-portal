@@ -59,15 +59,14 @@ export default function Navbar({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  // Tab titles Auto-Hide state (default: true -> hide titles and show only logos, expand on hover)
+  // Tab titles Auto-Hide state (default: true -> hide inactive titles, keep active tab full with title)
   const [isAutoHideTitles, setIsAutoHideTitles] = useState<boolean>(() => {
     const stored = localStorage.getItem("navbar_autohide_tab_titles");
     if (stored !== null) return stored === "true";
     if (typeof isNavbarCollapsed === "boolean") return isNavbarCollapsed;
     return true;
   });
-  const [isTabsHovered, setIsTabsHovered] = useState<boolean>(false);
-  const hoverTimeoutRef = useRef<number | null>(null);
+  const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("navbar_autohide_tab_titles", String(isAutoHideTitles));
@@ -79,18 +78,6 @@ export default function Navbar({
       setIsAutoHideTitles(isNavbarCollapsed);
     }
   }, [isNavbarCollapsed]);
-
-  const handleTabsMouseEnter = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsTabsHovered(true);
-  };
-
-  const handleTabsMouseLeave = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsTabsHovered(false);
-    }, 250);
-  };
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -203,8 +190,8 @@ export default function Navbar({
                 }`}
                 title={
                   isAutoHideTitles
-                    ? "สถานะ: ซ่อนหัวข้อ เหลือเฉพาะโลโก้ (ชี้เมาส์ที่แถบเมนูเพื่อแสดงชื่อเต็ม)"
-                    : "สถานะ: แสดงหัวข้อเต็มตลอดเวลา (คลิกเพื่อซ่อนหัวข้อ เหลือเฉพาะโลโก้)"
+                    ? "สถานะ: ย่อหัวข้อเหลือเฉพาะแท็บที่เปิด (คลิกเพื่อแสดงหัวข้อเต็มทุกแท็บ)"
+                    : "สถานะ: แสดงหัวข้อเต็มทุกแท็บ (คลิกเพื่อย่อเหลือเฉพาะแท็บที่เปิด)"
                 }
               >
                 {isAutoHideTitles ? (
@@ -321,22 +308,27 @@ export default function Navbar({
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
         <div 
-          onMouseEnter={handleTabsMouseEnter}
-          onMouseLeave={handleTabsMouseLeave}
           className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x"
         >
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const isExpanded = !isAutoHideTitles || isTabsHovered;
+              const isHovered = hoveredTabId === tab.id;
+              // Active tab always has full title. Inactive tabs collapse when isAutoHideTitles is on unless hovered
+              const isExpanded = !isAutoHideTitles || isActive || isHovered;
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
                   title={`${tab.num} · ${tab.label}`}
-                  className={`btn-press focus-ring transition-all duration-200 ${isActive ? "active" : ""}`}
+                  onMouseEnter={() => setHoveredTabId(tab.id)}
+                  onMouseLeave={() => setHoveredTabId(null)}
+                  style={{ flex: isAutoHideTitles ? "0 0 auto" : "1 1 0" }}
+                  className={`btn-press focus-ring transition-all duration-200 ${
+                    isActive ? "active px-3.5" : isHovered ? "px-3" : isAutoHideTitles ? "px-2.5" : "px-2.5"
+                  }`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>

@@ -7864,7 +7864,14 @@ export default function App() {
           {/* VIEW: MANPOWER & HEADCOUNT ANALYTICS */}
           {/* ======================================= */}
           {activeTab === "manpower" && (
-            <ManpowerDashboard />
+            <ManpowerDashboard 
+              employees={state?.employees || []}
+              onSyncEmployees={(updatedEmps) => {
+                setState((prev: any) => prev ? { ...prev, employees: updatedEmps } : prev);
+                setTempEmployees(updatedEmps);
+              }}
+              onRefreshPortalState={fetchPortalState}
+            />
           )}
 
           {/* ======================================= */}

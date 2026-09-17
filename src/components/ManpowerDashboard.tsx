@@ -102,7 +102,29 @@ function getInitialPositions(): ManpowerPosition[] {
   return [];
 }
 
-export default function ManpowerDashboard() {
+function normalizeUnitToDeptId(unit?: string): string {
+  if (!unit) return "inter2";
+  const clean = String(unit).trim().toLowerCase().replace(/\s+/g, "");
+  if (clean.includes("inter2")) return "inter2";
+  if (clean.includes("inter3")) return "inter3";
+  if (clean.includes("inter5")) return "inter5";
+  if (clean.includes("inter7")) return "inter7";
+  if (clean.includes("heavy")) return "heavy";
+  if (clean.includes("ecc")) return "ecc";
+  return clean;
+}
+
+export interface ManpowerDashboardProps {
+  employees?: any[];
+  onSyncEmployees?: (updatedEmployees: any[]) => void;
+  onRefreshPortalState?: () => Promise<void>;
+}
+
+export default function ManpowerDashboard({
+  employees = [],
+  onSyncEmployees,
+  onRefreshPortalState
+}: ManpowerDashboardProps = {}) {
   const [shiftMode, setShiftMode] = useState<"3T" | "2T">("3T");
   const [positions, setPositions] = useState<ManpowerPosition[]>(getInitialPositions);
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
@@ -204,6 +226,7 @@ export default function ManpowerDashboard() {
         });
         if (res.ok) {
           setSyncStatus("synced");
+          onRefreshPortalState?.();
         } else {
           setSyncStatus("offline");
         }
@@ -510,13 +533,68 @@ export default function ManpowerDashboard() {
       showToast("บันทึกการแก้ไขเรียบร้อย");
     }
 
+    // 100% Immediate synchronization with Employee Directory & Shift Matrix
+    if (onSyncEmployees && employees) {
+      let updatedEmployees = [...employees];
+      const mappedDept = normalizeUnitToDeptId(formUnit);
+      if (!isVacant) {
+        const empId = finalEmpId || `EMP-${formId.replace(/\D/g, "") || Date.now().toString().slice(-4)}`;
+        const existingIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === finalName);
+        if (existingIdx !== -1) {
+          updatedEmployees[existingIdx] = {
+            ...updatedEmployees[existingIdx],
+            name: finalName,
+            role: formRole.trim(),
+            deptId: mappedDept,
+            department: formUnit.trim(),
+            employmentStatus: "Active"
+          };
+        } else {
+          const defaultShifts = Array(31).fill("D");
+          const newEmp: any = {
+            id: empId,
+            name: finalName,
+            deptId: mappedDept,
+            department: formUnit.trim(),
+            role: formRole.trim(),
+            targetOt: 48,
+            actualOt: 0,
+            otPct: 0,
+            status: "On Track",
+            groupName: "Group A",
+            shifts: defaultShifts,
+            planShifts: defaultShifts,
+            salary: 20000,
+            division: "ฝ่ายปฏิบัติการท่าเรือ",
+            calendarType: "ปฏิทินกะ 4-on-2-off",
+            employmentStatus: "Active"
+          };
+          updatedEmployees.push(newEmp);
+        }
+      } else if (finalEmpId) {
+        const existingIdx = updatedEmployees.findIndex(e => e.id === finalEmpId);
+        if (existingIdx !== -1) {
+          updatedEmployees[existingIdx] = {
+            ...updatedEmployees[existingIdx],
+            employmentStatus: "Vacant"
+          };
+        }
+      }
+      onSyncEmployees(updatedEmployees);
+    }
+
     setIsEditModalOpen(false);
   };
 
   // Delete Position
   const handleDeletePosition = (id: string) => {
+    const targetPos = positions.find(p => p.id === id);
     if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบตำแหน่ง ${id}?`)) {
       setPositions(prev => prev.filter(p => p.id !== id));
+      if (onSyncEmployees && employees && targetPos && targetPos.empId) {
+        const updated = employees.filter(e => e.id !== targetPos.empId);
+        onSyncEmployees(updated);
+      }
       setIsEditModalOpen(false);
       showToast("ลบตำแหน่งเรียบร้อย");
     }
@@ -674,6 +752,49 @@ export default function ManpowerDashboard() {
         if (window.confirm(`พบข้อมูลพนักงานทั้งหมด ${imported.length} รายการ ต้องการแทนที่ข้อมูลปัจจุบันหรือไม่?`)) {
           setPositions(imported);
           showToast(`นำเข้าข้อมูล ${imported.length} รายการเรียบร้อย`);
+
+          if (onSyncEmployees && employees) {
+            let updatedEmployees = [...employees];
+            for (const pos of imported) {
+              const isV = pos.status === "Vacant" || !pos.name || pos.name.toLowerCase().includes("vacant") || pos.name === "ว่าง";
+              if (!isV) {
+                const empId = pos.empId || `EMP-${pos.id.replace(/\D/g, "")}`;
+                const mappedDept = normalizeUnitToDeptId(pos.unit);
+                const exIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === pos.name);
+                if (exIdx !== -1) {
+                  updatedEmployees[exIdx] = {
+                    ...updatedEmployees[exIdx],
+                    name: pos.name,
+                    role: pos.role,
+                    deptId: mappedDept,
+                    department: pos.unit,
+                    employmentStatus: "Active"
+                  };
+                } else {
+                  const defaultShifts = Array(31).fill("D");
+                  updatedEmployees.push({
+                    id: empId,
+                    name: pos.name,
+                    deptId: mappedDept,
+                    department: pos.unit,
+                    role: pos.role,
+                    targetOt: 48,
+                    actualOt: 0,
+                    otPct: 0,
+                    status: "On Track",
+                    groupName: "Group A",
+                    shifts: defaultShifts,
+                    planShifts: defaultShifts,
+                    salary: 20000,
+                    division: "ฝ่ายปฏิบัติการท่าเรือ",
+                    calendarType: "ปฏิทินกะ 4-on-2-off",
+                    employmentStatus: "Active"
+                  });
+                }
+              }
+            }
+            onSyncEmployees(updatedEmployees);
+          }
         }
       } catch (err: any) {
         alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err?.message || err}`);
