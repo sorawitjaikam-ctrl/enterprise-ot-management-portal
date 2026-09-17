@@ -1703,17 +1703,7 @@ export default function ManpowerDashboard({
         </div>
       </div>
 
-      {/* Datalists for autocompletion */}
-      <datalist id="manpower-role-datalist">
-        {standardRoleNames.map(r => (
-          <option key={r} value={r} />
-        ))}
-      </datalist>
-      <datalist id="manpower-unit-datalist">
-        {availableUnits.map(u => (
-          <option key={u} value={u} />
-        ))}
-      </datalist>
+
 
       {/* ========================================================================= */}
       {/* SECTION 7: EDIT / ADD POSITION MODAL */}
@@ -1775,14 +1765,19 @@ export default function ManpowerDashboard({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[#6A7B87] font-semibold mb-1">ตำแหน่งงาน (Role)</label>
-                  <input
-                    type="text"
-                    list="manpower-role-datalist"
+                  <select
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
                     required
-                    className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
-                  />
+                    className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
+                  >
+                    {standardRoleNames.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                    {formRole && !standardRoleNames.includes(formRole) && (
+                      <option value={formRole}>{formRole}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>

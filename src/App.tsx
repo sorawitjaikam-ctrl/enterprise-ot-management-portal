@@ -9395,10 +9395,11 @@ export default function App() {
                                 <button
                                   type="button"
                                   onClick={() => setCalendarModalEmployee(emp)}
-                                  className="p-1.5 text-[#17538F] hover:text-[#0E3A66] hover:bg-[#E8F3FA] rounded-lg transition-all cursor-pointer"
-                                  title="บริหารวันทำงาน & จัดกะรายบุคคล (ปฏิทินกะ)"
+                                  className="px-2 py-1 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                                  title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
                                 >
-                                  <Calendar className="w-4 h-4 text-[#17538F]" />
+                                  <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                                  <span>ตั้งกะ</span>
                                 </button>
                                 <button
                                   type="button"
@@ -9560,6 +9561,24 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 h-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const activeList = isEditingShifts ? tempEmployees : (state?.employees || []);
+                            const deptEmps = activeList.filter((e: Employee) => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+                            const targetEmp = deptEmps[0] || activeList[0] || null;
+                            if (targetEmp) {
+                              setCalendarModalEmployee(targetEmp);
+                            } else {
+                              alert("ไม่พบข้อมูลพนักงานในแผนกนี้");
+                            }
+                          }}
+                          className="h-10 px-3.5 bg-[#0E3A66] text-white hover:bg-[#17538F] rounded-2xl text-xs font-black cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all"
+                          title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
+                        >
+                          <Calendar className="w-4 h-4 text-sky-300" />
+                          <span>ตั้งกะรายคน</span>
+                        </button>
                         <button onClick={() => setShowVesselModal(true)}
                           className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
                           <Ship className="w-4 h-4 text-white" />
@@ -10474,21 +10493,22 @@ export default function App() {
                                 return (
                                   <div key={emp.id} className="flex w-full min-w-fit hover:bg-blue-50/40 transition-colors group">
                                      {/* Employee ID & Name head */}
-                                     <div onClick={(e) => { e.stopPropagation(); openModalForEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินบันทึกกะ 24H สำหรับพนักงานคนนี้">
-                                      <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
+                                     <div onClick={(e) => { e.stopPropagation(); setCalendarModalEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2 px-2.5 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)">
+                                      <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7 shrink-0" />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-1">
-                                          <p className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={emp.name}>{emp.name}</p>
+                                          <p className="text-xs font-bold text-slate-800 truncate max-w-[95px]" title={emp.name}>{emp.name}</p>
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setCalendarModalEmployee(emp);
                                             }}
-                                            className="p-1 hover:bg-[#E8F3FA] rounded text-[#17538F] hover:text-[#0E3A66] transition-colors shrink-0"
-                                            title="เปิดปฏิทินบริหารวันทำงานและกำหนดกะรายวัน"
+                                            className="px-1.5 py-0.5 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded text-[10px] font-black transition-all shrink-0 flex items-center gap-1 cursor-pointer shadow-2xs"
+                                            title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
                                           >
-                                            <Calendar className="w-3.5 h-3.5" />
+                                            <Calendar className="w-3 h-3 text-[#17538F]" />
+                                            <span>ตั้งกะ</span>
                                           </button>
                                         </div>
                                         <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
@@ -13959,11 +13979,12 @@ export default function App() {
         );
       })()}
 
-      {/* Individual Employee Working Days & Shift Calendar Modal */}
       <EmployeeShiftCalendarModal
         isOpen={Boolean(calendarModalEmployee)}
         onClose={() => setCalendarModalEmployee(null)}
         employee={calendarModalEmployee}
+        employees={isEditingShifts ? tempEmployees : (state?.employees || [])}
+        onSelectEmployee={(emp) => setCalendarModalEmployee(emp)}
         currentYear={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[0]) || 2026}
         currentMonth={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[1]) || 11}
         onSaveEmployeeShifts={async (empId, year, month, shifts) => {
