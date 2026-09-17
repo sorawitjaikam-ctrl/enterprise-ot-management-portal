@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Users, 
   Calendar, 
@@ -1325,37 +1325,57 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
 function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { empId: string; empName?: string; avatarUrl?: string; className?: string }) {
   const cleanId = String(empId || "").trim();
   
-  // Build candidate image URLs list
-  const candidates: string[] = [];
-  if (avatarUrl && !avatarUrl.includes("ui-avatars.com")) {
-    candidates.push(avatarUrl);
-  }
-  if (cleanId) {
-    candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg`);
-    if (/^\d+$/.test(cleanId) && cleanId.length < 7) {
-      candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.padStart(7, '0')}.jpg`);
+  // Build deduplicated candidate image URLs list
+  const candidates = useMemo(() => {
+    const list: string[] = [];
+    const trimmed = (avatarUrl || "").trim();
+    if (trimmed && !trimmed.includes("ui-avatars.com")) {
+      list.push(trimmed);
     }
-    const noLeadingZeros = cleanId.replace(/^0+/, '');
-    if (noLeadingZeros && noLeadingZeros !== cleanId) {
-      candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${noLeadingZeros}.jpg`);
+    if (cleanId) {
+      list.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId}.jpg`);
+      if (/^\d+$/.test(cleanId) && cleanId.length < 7) {
+        list.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.padStart(7, "0")}.jpg`);
+      }
+      const noLeadingZeros = cleanId.replace(/^0+/, "");
+      if (noLeadingZeros && noLeadingZeros !== cleanId) {
+        list.push(`https://intranet.advanceagro.net/employeecard/empimages/${noLeadingZeros}.jpg`);
+      }
+      if (cleanId.toUpperCase() !== cleanId) {
+        list.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.toUpperCase()}.jpg`);
+      }
     }
-    candidates.push(`https://intranet.advanceagro.net/employeecard/empimages/${cleanId.toUpperCase()}.jpg`);
-  }
+    // Deduplicate unique non-empty URLs while preserving priority
+    return Array.from(new Set(list.filter(Boolean)));
+  }, [cleanId, avatarUrl]);
 
   const [candidateIndex, setCandidateIndex] = useState(0);
+  const [hasFailedAll, setHasFailedAll] = useState(false);
 
   useEffect(() => {
     setCandidateIndex(0);
-  }, [empId, avatarUrl]);
+    setHasFailedAll(false);
+  }, [candidates]);
 
-  // Clean name without Thai honorific prefixes for nice monogram initials
+  // Clean name without Thai/Eng honorific prefixes for nice monogram initials
   const cleanName = (empName || "")
-    .replace(/^(นาย|นางสาว|นาง|น\.ส\.|นส\.|Mr\.|Mrs\.|Miss|Ms\.)\s*/gi, "")
+    .replace(/^(นาย|นางสาว|นาง|น\.ส\.|นส\.|ว่าที่\s*ร\.ต\.|Mr\.|Mrs\.|Miss|Ms\.)\s*/gi, "")
     .trim();
   
-  const initials = cleanName.length >= 2 
-    ? cleanName.substring(0, 2) 
-    : (cleanName.length === 1 ? cleanName : (cleanId ? cleanId.substring(0, 2).toUpperCase() : "??"));
+  // High-end monogram initials: 2 chars (first letters of words or first 2 chars)
+  const parts = cleanName.split(/\s+/).filter(Boolean);
+  let initials = "";
+  if (parts.length >= 2) {
+    initials = (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  } else if (cleanName.length >= 2) {
+    initials = cleanName.substring(0, 2).toUpperCase();
+  } else if (cleanName.length === 1) {
+    initials = cleanName.toUpperCase();
+  } else if (cleanId) {
+    initials = cleanId.substring(0, 2).toUpperCase();
+  } else {
+    initials = "--";
+  }
 
   // Deterministic avatar gradient
   const gradients = [
@@ -1370,9 +1390,22 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
 
   const currentSrc = candidates[candidateIndex];
 
-  if (!currentSrc || candidateIndex >= candidates.length) {
+  const handleImgError = () => {
+    setCandidateIndex(prev => {
+      const next = prev + 1;
+      if (next >= candidates.length) {
+        setHasFailedAll(true);
+      }
+      return next;
+    });
+  };
+
+  if (hasFailedAll || !currentSrc || candidateIndex >= candidates.length) {
     return (
-      <div className={`${className} rounded-full bg-gradient-to-br ${selectedGradient} border-2 border-white/60 text-white font-black flex items-center justify-center text-xs flex-shrink-0 shadow-md select-none`}>
+      <div 
+        title={empName || empId}
+        className={`${className} rounded-full bg-gradient-to-br ${selectedGradient} border-2 border-white/60 text-white font-black flex items-center justify-center text-xs flex-shrink-0 shadow-md select-none`}
+      >
         {initials}
       </div>
     );
@@ -1380,9 +1413,12 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
 
   return (
     <img 
+      key={`${cleanId}-${currentSrc}`}
       src={currentSrc} 
-      alt={empName || empId}
-      onError={() => setCandidateIndex(prev => prev + 1)}
+      alt={cleanName || cleanId}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onError={handleImgError}
       className={`${className} rounded-full object-cover border-2 border-white/80 flex-shrink-0 shadow-md`}
     />
   );
