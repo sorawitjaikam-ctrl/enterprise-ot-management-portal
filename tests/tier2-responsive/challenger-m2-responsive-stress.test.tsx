@@ -151,7 +151,6 @@ describe('Milestone 2 Challenger Empirical Stress Suite', () => {
         { id: "shifts", label: "ตารางจัดกะพนักงาน" },
         { id: "employees", label: "รายชื่อพนักงาน" },
         { id: "job_value", label: "โครงสร้าง Job Value" },
-        { id: "hr-editor", label: "ข้อมูล & รายได้" },
         { id: "leave-records", label: "บันทึกวันลา" },
         { id: "ot-records", label: "ประวัติ OT จากกะ" },
         { id: "reports", label: "รายงานรายแผนก" },

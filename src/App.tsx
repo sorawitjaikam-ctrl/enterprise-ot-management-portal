@@ -81,6 +81,7 @@ import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
+import EmployeeShiftCalendarModal from "./components/EmployeeShiftCalendarModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
 import ExecutiveDashboardView from "./components/dashboard/ExecutiveDashboardView";
 import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
@@ -2847,6 +2848,7 @@ export default function App() {
 
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
+  const [calendarModalEmployee, setCalendarModalEmployee] = useState<Employee | null>(null);
   const [empProfileLeaveRecords, setEmpProfileLeaveRecords] = useState<any[]>([]);
   const [loadingEmpProfileLeaveRecords, setLoadingEmpProfileLeaveRecords] = useState<boolean>(false);
 
@@ -5962,7 +5964,6 @@ export default function App() {
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
-            activeTab === "hr-editor" ? "ระบบจัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)" :
             activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
             activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
             activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
@@ -5983,7 +5984,7 @@ export default function App() {
       {/* Main container area */}
       <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh]">
         {/* Dynamic page container */}
-        <main id="main-content" className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : isNavbarCollapsed ? "mt-16 sm:mt-16 lg:mt-18 p-3 sm:p-4 lg:p-8" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
+        <main id="main-content" className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
@@ -7187,7 +7188,7 @@ export default function App() {
           {/* ======================================= */}
           {/* VIEW: JOB VALUE & EXECUTIVE DASHBOARD */}
           {/* ======================================= */}
-          {(activeTab === "job_value" || activeTab === "jobValue") && (
+          {(activeTab === "job_value" || activeTab === "jobValue" || activeTab === "hr-editor") && (
             <ErrorBoundary>
               <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
                 {/* Header card with database & import/export controls */}
@@ -7836,38 +7837,25 @@ export default function App() {
                 </div>
 
                 {/* Relocation Notice Card & Navigation to Tab 08 for HR */}
-                <div className="bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#0E3A66] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                      <ShieldCheck className="w-5 h-5 text-[#9FCEE8]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-black text-[#0E3A66]">
-                          ความปลอดภัยและการจัดการข้อมูลรายได้รายบุคคล (Data Privacy &amp; Confidentiality)
-                        </h4>
-                        <span className="px-2 py-0.5 rounded-full bg-white text-[#17538F] border border-[#9FCEE8] text-[10px] font-bold font-mono">
-                          PDPA &amp; HR Strict
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#59656D] mt-1 leading-relaxed">
-                        ตารางแจกแจงคุณค่าตำแหน่งงานและผลตอบแทนรายพนักงาน (ฐานเงินเดือน, ค่าล่วงเวลาจริง, รายได้ประเมิน, และกำไรต่อคน) ได้รับการย้ายไปยัง <strong>เมนู 08 ข้อมูล &amp; รายได้</strong> เพื่อความปลอดภัยของข้อมูลส่วนบุคคลและสงวนสิทธิ์เฉพาะฝ่ายบุคคลและผู้บริหาร
-                      </p>
-                    </div>
+                {/* Embedded Direct Editor & Compensation Management */}
+                {isHrOrFullAccess && (
+                  <div className="mt-6">
+                    <HrDirectEditorView 
+                      currentUser={currentUser} 
+                      state={state}
+                      jobValueRecords={jobValueRecords}
+                      setJobValueRecords={setJobValueRecords}
+                      fetchJobValueRecords={fetchJobValueRecords}
+                      onOpenEmployeeDetails={(emp) => setViewingEmployeeDetails(emp)}
+                      onOpenSalaryFormulaEmployee={(params) => setViewingSalaryFormulaEmployee(params)}
+                      onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
+                      onExportCsv={handleExportJobValueCsv}
+                      onImportCsv={handleImportJobValueCsv}
+                      onClearD1Data={handleClearJobValueData}
+                      importLoading={importJvLoading}
+                    />
                   </div>
-
-                  {isHrOrFullAccess && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("hr-editor")}
-                      className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-extrabold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 cursor-pointer self-start md:self-auto shrink-0 min-h-[40px]"
-                      title="ไปยังหน้าจัดการข้อมูลและรายได้พนักงาน (เมนู 08)"
-                    >
-                      <FileText className="w-4 h-4 text-[#9FCEE8]" />
-                      <span>เปิดเมนู 08 ข้อมูล &amp; รายได้</span>
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             </ErrorBoundary>
           )}
@@ -9322,6 +9310,14 @@ export default function App() {
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   type="button"
+                                  onClick={() => setCalendarModalEmployee(emp)}
+                                  className="p-1.5 text-[#17538F] hover:text-[#0E3A66] hover:bg-[#E8F3FA] rounded-lg transition-all cursor-pointer"
+                                  title="บริหารวันทำงาน & จัดกะรายบุคคล (ปฏิทินกะ)"
+                                >
+                                  <Calendar className="w-4 h-4 text-[#17538F]" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => setViewingEmployeeDetails(emp)}
                                   className="p-1.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
                                   title="ดูรายละเอียดพนักงาน"
@@ -10397,9 +10393,19 @@ export default function App() {
                                      <div onClick={(e) => { e.stopPropagation(); openModalForEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินบันทึกกะ 24H สำหรับพนักงานคนนี้">
                                       <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 flex-wrap">
+                                        <div className="flex items-center justify-between gap-1">
                                           <p className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={emp.name}>{emp.name}</p>
-                                          
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setCalendarModalEmployee(emp);
+                                            }}
+                                            className="p-1 hover:bg-[#E8F3FA] rounded text-[#17538F] hover:text-[#0E3A66] transition-colors shrink-0"
+                                            title="เปิดปฏิทินบริหารวันทำงานและกำหนดกะรายวัน"
+                                          >
+                                            <Calendar className="w-3.5 h-3.5" />
+                                          </button>
                                         </div>
                                         <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
                                       </div>
@@ -10948,25 +10954,7 @@ export default function App() {
             </div>
           )}
 
-          {/* ======================================= */}
-          {/* VIEW: HR DIRECT DATA EDITOR */}
-          {/* ======================================= */}
-          {activeTab === "hr-editor" && (
-            <HrDirectEditorView 
-              currentUser={currentUser} 
-              state={state}
-              jobValueRecords={jobValueRecords}
-              setJobValueRecords={setJobValueRecords}
-              fetchJobValueRecords={fetchJobValueRecords}
-              onOpenEmployeeDetails={(emp) => setViewingEmployeeDetails(emp)}
-              onOpenSalaryFormulaEmployee={(params) => setViewingSalaryFormulaEmployee(params)}
-              onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
-              onExportCsv={handleExportJobValueCsv}
-              onImportCsv={handleImportJobValueCsv}
-              onClearD1Data={handleClearJobValueData}
-              importLoading={importJvLoading}
-            />
-          )}
+
 
           {/* ======================================= */}
           {/* VIEW: OT RECORDS FROM SHIFTS */}
@@ -12779,6 +12767,15 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => setCalendarModalEmployee(emp)}
+                    className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    title="เปิดปฏิทินบริหารวันทำงานและกะรายบุคคล"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                    <span>บริหารวันทำงาน & จัดกะ</span>
+                  </button>
                   <button 
                     type="button"
                     onClick={() => setViewingEmployeeDetails(null)}
@@ -14037,6 +14034,64 @@ export default function App() {
           </div>
         );
       })()}
+
+      {/* Individual Employee Working Days & Shift Calendar Modal */}
+      <EmployeeShiftCalendarModal
+        isOpen={Boolean(calendarModalEmployee)}
+        onClose={() => setCalendarModalEmployee(null)}
+        employee={calendarModalEmployee}
+        currentYear={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[0]) || 2026}
+        currentMonth={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[1]) || 11}
+        onSaveEmployeeShifts={async (empId, year, month, shifts) => {
+          const mKey = `${year}-${String(month).padStart(2, "0")}`;
+          setState((prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              employees: (prev.employees || []).map((e: Employee) => {
+                if (e.id === empId) {
+                  let existingShiftsRaw: any = e.shifts;
+                  let nextShifts: any;
+                  if (Array.isArray(existingShiftsRaw)) {
+                    nextShifts = shifts;
+                  } else if (existingShiftsRaw && typeof existingShiftsRaw === "object") {
+                    nextShifts = { ...existingShiftsRaw, [mKey]: shifts };
+                  } else {
+                    nextShifts = shifts;
+                  }
+                  return { ...e, shifts: nextShifts };
+                }
+                return e;
+              })
+            };
+          });
+          setTempEmployees((prev: Employee[]) => prev.map((e: Employee) => {
+            if (e.id === empId) {
+              return { ...e, shifts };
+            }
+            return e;
+          }));
+
+          const targetEmp = (state?.employees || []).find((e: Employee) => e.id === empId);
+          if (targetEmp) {
+            await fetch("/api/save-shifts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                year,
+                month,
+                employees: [
+                  {
+                    ...targetEmp,
+                    shifts
+                  }
+                ]
+              })
+            });
+            fetchPortalState(mKey);
+          }
+        }}
+      />
 
       {/* ======================================= */}
       <PremiumShiftTimePickerModal

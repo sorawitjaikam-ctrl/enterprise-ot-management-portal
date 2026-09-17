@@ -48,7 +48,6 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         { label: /บันทึกวันลา/i, id: 'leave-records' },
         { label: /ประวัติ OT จากกะ/i, id: 'ot-records' },
         { label: /รายงานรายแผนก/i, id: 'reports' },
-        { label: /ข้อมูล & รายได้/i, id: 'hr-editor' },
         { label: /สิทธิ์ผู้ใช้งาน/i, id: 'admin-permissions' },
         { label: /ตั้งค่าระบบ/i, id: 'settings' },
       ];
@@ -91,7 +90,6 @@ describe('Milestone 2 Challenger 2: Empirical Verification of Navigation & Deskt
         { id: 'leave-records', label: 'บันทึกวันลา' },
         { id: 'ot-records', label: 'ประวัติ OT จากกะ' },
         { id: 'reports', label: 'รายงานรายแผนก' },
-        { id: 'hr-editor', label: 'ข้อมูล & รายได้' },
         { id: 'admin-permissions', label: 'สิทธิ์ผู้ใช้งาน' },
         { id: 'settings', label: 'ตั้งค่าระบบ' }
       ];

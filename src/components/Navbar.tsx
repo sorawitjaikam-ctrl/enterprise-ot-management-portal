@@ -19,8 +19,7 @@ import {
   Settings,
   Building2,
   Pin,
-  PinOff,
-  ChevronDown
+  PinOff
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -60,91 +59,37 @@ export default function Navbar({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  // Auto-hide mode state (default: true)
-  const [isAutoHideEnabled, setIsAutoHideEnabled] = useState<boolean>(() => {
-    const stored = localStorage.getItem("navbar_autohide_enabled");
-    return stored === null ? true : stored === "true";
+  // Tab titles Auto-Hide state (default: true -> hide titles and show only logos, expand on hover)
+  const [isAutoHideTitles, setIsAutoHideTitles] = useState<boolean>(() => {
+    const stored = localStorage.getItem("navbar_autohide_tab_titles");
+    if (stored !== null) return stored === "true";
+    if (typeof isNavbarCollapsed === "boolean") return isNavbarCollapsed;
+    return true;
   });
-  const [isScrollVisible, setIsScrollVisible] = useState<boolean>(true);
-  const [isHeaderHovered, setIsHeaderHovered] = useState<boolean>(false);
+  const [isTabsHovered, setIsTabsHovered] = useState<boolean>(false);
   const hoverTimeoutRef = useRef<number | null>(null);
 
-  // Save preference
   useEffect(() => {
-    localStorage.setItem("navbar_autohide_enabled", String(isAutoHideEnabled));
-  }, [isAutoHideEnabled]);
+    localStorage.setItem("navbar_autohide_tab_titles", String(isAutoHideTitles));
+    setIsNavbarCollapsed?.(isAutoHideTitles);
+  }, [isAutoHideTitles, setIsNavbarCollapsed]);
 
-  // Scroll listener on window and #main-content
   useEffect(() => {
-    if (!isAutoHideEnabled) {
-      setIsScrollVisible(true);
-      return;
+    if (typeof isNavbarCollapsed === "boolean" && isNavbarCollapsed !== isAutoHideTitles) {
+      setIsAutoHideTitles(isNavbarCollapsed);
     }
+  }, [isNavbarCollapsed]);
 
-    let lastScroll = 0;
-    let ticking = false;
-
-    const getScrollTop = () => {
-      const winScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      const mainEl = document.getElementById("main-content");
-      const mainScroll = mainEl ? mainEl.scrollTop : 0;
-      return Math.max(winScroll, mainScroll);
-    };
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScroll = getScrollTop();
-
-          if (currentScroll <= 30) {
-            setIsScrollVisible(true);
-          } else if (currentScroll > lastScroll + 15 && currentScroll > 60) {
-            setIsScrollVisible(false);
-          } else if (currentScroll < lastScroll - 15) {
-            setIsScrollVisible(true);
-          }
-
-          lastScroll = currentScroll;
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    const mainEl = document.getElementById("main-content");
-    if (mainEl) {
-      mainEl.addEventListener("scroll", handleScroll, { passive: true });
-    }
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (mainEl) {
-        mainEl.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, [isAutoHideEnabled]);
-
-  // Tabs visibility determination
-  const isTabsVisible = !isAutoHideEnabled || isScrollVisible || isHeaderHovered;
-
-  // Propagate to parent if setIsNavbarCollapsed is provided
-  useEffect(() => {
-    if (setIsNavbarCollapsed) {
-      setIsNavbarCollapsed(!isTabsVisible);
-    }
-  }, [isTabsVisible, setIsNavbarCollapsed]);
-
-  const handleMouseEnter = () => {
+  const handleTabsMouseEnter = () => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsHeaderHovered(true);
+    setIsTabsHovered(true);
   };
 
-  const handleMouseLeave = () => {
+  const handleTabsMouseLeave = () => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsHeaderHovered(false);
-    }, 400);
+      setIsTabsHovered(false);
+    }, 250);
   };
 
   // Lock body scroll when mobile drawer is open
@@ -188,9 +133,8 @@ export default function Navbar({
     { id: "leave-records", num: "07", label: "บันทึกวันลา", icon: ClipboardList },
     { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ", icon: Calendar },
     ...(isHrOrFullAccess ? [
-      { id: "hr-editor", num: "09", label: "ข้อมูล & รายได้", icon: FileText },
-      { id: "admin-permissions", num: "10", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
-      { id: "settings", num: "11", label: "ตั้งค่าระบบ", icon: Settings },
+      { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
+      { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
   ];
 
@@ -198,8 +142,6 @@ export default function Navbar({
     <>
       {/* Editorial Fixed Header */}
       <header 
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans transition-all duration-300 shadow-2xs"
       >
         
@@ -250,36 +192,30 @@ export default function Navbar({
               <PWAOfflineBadge />
               <PWAInstallButton />
 
-              {/* Auto-hide / Pin Tabs Button */}
+              {/* Auto-hide / Toggle Tab Titles Button */}
               <button
                 type="button"
-                onClick={() => {
-                  const next = !isAutoHideEnabled;
-                  setIsAutoHideEnabled(next);
-                  if (!next) {
-                    setIsScrollVisible(true);
-                  }
-                }}
+                onClick={() => setIsAutoHideTitles(!isAutoHideTitles)}
                 className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer active:scale-95 btn-press focus-ring ${
-                  isAutoHideEnabled
+                  isAutoHideTitles
                     ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8] hover:bg-[#D5EAF7]"
                     : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
                 }`}
                 title={
-                  isAutoHideEnabled
-                    ? "สถานะ: Auto-hide เปิดใช้งาน (เลื่อนลงเพื่อซ่อนแถบเมนู / นำเมาส์มาชี้เพื่อแสดง)"
-                    : "สถานะ: ตรึงแถบเมนู (แสดงตลอดเวลา)"
+                  isAutoHideTitles
+                    ? "สถานะ: ซ่อนหัวข้อ เหลือเฉพาะโลโก้ (ชี้เมาส์ที่แถบเมนูเพื่อแสดงชื่อเต็ม)"
+                    : "สถานะ: แสดงหัวข้อเต็มตลอดเวลา (คลิกเพื่อซ่อนหัวข้อ เหลือเฉพาะโลโก้)"
                 }
               >
-                {isAutoHideEnabled ? (
+                {isAutoHideTitles ? (
                   <>
                     <PinOff className="w-3.5 h-3.5 text-[#17538F]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">Auto-hide</span>
+                    <span className="text-[11px] font-medium hidden xl:inline">ซ่อนหัวข้อ (โลโก้)</span>
                   </>
                 ) : (
                   <>
                     <Pin className="w-3.5 h-3.5 text-[#6A7B87]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">Pinned</span>
+                    <span className="text-[11px] font-medium hidden xl:inline">แสดงหัวข้อเต็ม</span>
                   </>
                 )}
               </button>
@@ -385,48 +321,40 @@ export default function Navbar({
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
         <div 
-          className={`hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x transition-all duration-300 ease-in-out origin-top ${
-            isTabsVisible 
-              ? "max-h-16 opacity-100 translate-y-0" 
-              : "max-h-0 opacity-0 -translate-y-2 pointer-events-none pb-0"
-          }`}
+          onMouseEnter={handleTabsMouseEnter}
+          onMouseLeave={handleTabsMouseLeave}
+          className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x"
         >
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const isExpanded = !isAutoHideTitles || isTabsHovered;
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
-                  className={`btn-press focus-ring ${isActive ? "active" : ""}`}
+                  title={`${tab.num} · ${tab.label}`}
+                  className={`btn-press focus-ring transition-all duration-200 ${isActive ? "active" : ""}`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                    <Icon className="w-3.5 h-3.5 opacity-80" />
-                    <span>{tab.label}</span>
+                  <Icon className="w-3.5 h-3.5 opacity-85 shrink-0" />
+                  <span 
+                    className={`transition-all duration-200 ease-out whitespace-nowrap overflow-hidden inline-block ${
+                      isExpanded 
+                        ? "max-w-[180px] opacity-100 ml-1" 
+                        : "max-w-0 opacity-0 w-0 m-0 pointer-events-none"
+                    }`}
+                  >
+                    {tab.label}
                   </span>
                 </button>
               );
             })}
           </nav>
         </div>
-
-        {/* Collapsed Tab Bar Quick Hint Strip */}
-        {!isTabsVisible && (
-          <div 
-            onClick={() => setIsScrollVisible(true)}
-            className="hidden md:flex items-center justify-center w-full py-0.5 bg-[#F8FAFC] text-[#17538F] text-[10px] font-medium cursor-pointer hover:bg-[#E8F3FA] transition-colors border-t border-[#DCE4EA]/40 select-none"
-            title="คลิกหรือเลื่อนเมาส์มาชี้เพื่อแสดงแถบเมนูนำทาง"
-          >
-            <div className="flex items-center gap-1 opacity-80 hover:opacity-100">
-              <ChevronDown className="w-3 h-3 text-[#2E90CB] animate-bounce" />
-              <span>แสดงแถบเมนู (Tabs)</span>
-            </div>
-          </div>
-        )}
 
       </header>
 
