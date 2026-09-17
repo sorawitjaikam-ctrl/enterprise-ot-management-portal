@@ -760,8 +760,11 @@ export default function ManpowerDashboard({
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const text = event.target?.result as string;
+        let text = event.target?.result as string;
         if (!text) return;
+
+        // Strip UTF-8 BOM if present
+        text = text.replace(/^\uFEFF/, "");
 
         const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
         if (lines.length <= 1) {
@@ -769,35 +772,69 @@ export default function ManpowerDashboard({
           return;
         }
 
-        const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
+        // Detect delimiter (comma, semicolon, tab)
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semiCount = (firstLine.match(/;/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+        let delimiter = ",";
+        if (semiCount > commaCount && semiCount > tabCount) delimiter = ";";
+        else if (tabCount > commaCount && tabCount > semiCount) delimiter = "\t";
+
+        const parseLine = (line: string, delim: string) => {
+          if (delim === "\t") return line.split("\t").map(c => c.trim().replace(/^"|"$/g, ""));
+          const res: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delim && !inQuotes) {
+              res.push(current.trim().replace(/^"|"$/g, ""));
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          res.push(current.trim().replace(/^"|"$/g, ""));
+          return res;
+        };
+
+        const headers = parseLine(lines[0], delimiter).map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
         const findIndex = (candidates: string[]) => {
           for (const c of candidates) {
-            const idx = headers.findIndex(h => h.includes(c));
+            const idx = headers.findIndex(h => h.includes(c.toLowerCase()));
             if (idx >= 0) return idx;
           }
           return -1;
         };
 
-        const idIdx = findIndex(["employee id", "รหัสพนักงาน", "id", "รหัส"]);
-        const nameIdx = findIndex(["name", "ชื่อ", "fullname"]);
-        const roleIdx = findIndex(["role", "ตำแหน่ง", "position"]);
-        const unitIdx = findIndex(["unit", "ทุ่น", "ฝ่าย", "สังกัด", "department"]);
+        const idIdx = findIndex(["employee id", "รหัสพนักงาน", "id", "รหัส", "empid"]);
+        const nameIdx = findIndex(["name", "ชื่อ", "fullname", "ชื่อ-สกุล", "ชื่อ - นามสกุล", "ชื่อพนักงาน"]);
+        const roleIdx = findIndex(["role", "ตำแหน่ง", "position", "สายงาน"]);
+        const unitIdx = findIndex(["unit", "ทุ่น", "ฝ่าย", "สังกัด", "department", "หน่วยงาน", "แผนก"]);
         const levelIdx = findIndex(["level", "ระดับ", "ตำแหน่งระดับ"]);
-        const ocTypeIdx = findIndex(["oc type", "octype", "type", "กรอบ"]);
-        const statusIdx = findIndex(["status", "สถานะ"]);
+        const ocTypeIdx = findIndex(["oc type", "octype", "type", "กรอบ", "กรอบอัตรากำลัง"]);
+        const statusIdx = findIndex(["status", "สถานะ", "สถานะการทำงาน"]);
 
         let nextIdx = 1;
         const imported: ManpowerPosition[] = [];
 
         for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-          const name = nameIdx >= 0 ? cols[nameIdx] : "";
-          const role = roleIdx >= 0 ? cols[roleIdx] : "พนักงานปฏิบัติการ";
-          const unitRaw = unitIdx >= 0 ? cols[unitIdx] : "INTER 2";
-          const empId = idIdx >= 0 ? cols[idIdx] : "";
-          const levelRaw = levelIdx >= 0 ? cols[levelIdx] : "";
-          const statusRaw = statusIdx >= 0 ? cols[statusIdx] : "Active";
-          const ocTypeRaw = ocTypeIdx >= 0 ? cols[ocTypeIdx].toUpperCase() : "OLD";
+          const cols = parseLine(lines[i], delimiter);
+          const name = nameIdx >= 0 && cols[nameIdx] ? cols[nameIdx] : "";
+          const role = roleIdx >= 0 && cols[roleIdx] ? cols[roleIdx] : "พนักงานปฏิบัติการ";
+          const unitRaw = unitIdx >= 0 && cols[unitIdx] ? cols[unitIdx] : "INTER 2";
+          const empId = idIdx >= 0 && cols[idIdx] ? cols[idIdx] : "";
+          const levelRaw = levelIdx >= 0 && cols[levelIdx] ? cols[levelIdx] : "";
+          const statusRaw = statusIdx >= 0 && cols[statusIdx] ? cols[statusIdx] : "Active";
+          const ocTypeRaw = ocTypeIdx >= 0 && cols[ocTypeIdx] ? cols[ocTypeIdx].toUpperCase() : "OLD";
 
           if (!name && !role) continue;
 
@@ -855,7 +892,8 @@ export default function ManpowerDashboard({
           return;
         }
 
-        if (window.confirm(`พบข้อมูลพนักงานทั้งหมด ${imported.length} รายการ ต้องการแทนที่ข้อมูลปัจจุบันหรือไม่?`)) {
+        const shouldImport = positions.length === 0 || window.confirm(`พบข้อมูลพนักงานทั้งหมด ${imported.length} รายการ ต้องการแทนที่ข้อมูลปัจจุบันหรือไม่?`);
+        if (shouldImport) {
           setPositions(imported);
           showToast(`นำเข้าข้อมูล ${imported.length} รายการเรียบร้อย`);
 
@@ -906,7 +944,7 @@ export default function ManpowerDashboard({
         alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err?.message || err}`);
       }
     };
-    reader.readAsText(file);
+    reader.readAsText(file, "UTF-8");
     e.target.value = "";
   };
 
@@ -1400,10 +1438,17 @@ export default function ManpowerDashboard({
         {/* Export & Templates */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Export &amp; Template</span>
-            <p className="text-[11px] text-[#6A7B87]">ส่งออกข้อมูลพนักงานและดาวน์โหลดแบบฟอร์ม</p>
+            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Import / Export &amp; Template</span>
+            <p className="text-[11px] text-[#6A7B87]">นำเข้า/ส่งออกข้อมูลพนักงาน และดาวน์โหลดแบบฟอร์ม</p>
           </div>
           <div className="flex items-center gap-2 pt-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 px-3 py-1.5 bg-[#17538F] text-white rounded-lg text-xs font-bold hover:bg-[#0E3A66] flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Import CSV</span>
+            </button>
             <button
               onClick={handleExportCsv}
               className="flex-1 px-3 py-1.5 bg-[#0E3A66] text-white rounded-lg text-xs font-bold hover:bg-[#17538F] flex items-center justify-center gap-1.5 transition cursor-pointer"
@@ -1883,6 +1928,16 @@ export default function ManpowerDashboard({
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Hidden File Input for CSV Import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv,application/vnd.ms-excel"
+        onChange={handleFileUpload}
+        className="hidden"
+        data-testid="manpower-csv-file-input"
+      />
 
     </div>
   );
