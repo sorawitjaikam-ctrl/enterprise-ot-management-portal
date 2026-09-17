@@ -837,6 +837,25 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "ลบตารางเรือเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
+    // 13.5 POST /api/clear-mock-data OR /api/clear-all-data
+    if ((path === "/api/clear-mock-data" || path === "/api/clear-all-data") && request.method === "POST") {
+      if (db) {
+        try {
+          await db.prepare("DELETE FROM employees").run();
+          await db.prepare("DELETE FROM ot_daily_records").run();
+          await db.prepare("DELETE FROM leave_records").run();
+          try { await db.prepare("DELETE FROM job_value_records").run(); } catch (_) {}
+          try { await db.prepare("DELETE FROM vessel_schedules").run(); } catch (_) {}
+          try { await db.prepare("DELETE FROM ot_requests").run(); } catch (_) {}
+          try { await db.prepare("DELETE FROM manpower_positions").run(); } catch (_) {}
+          try { await db.prepare("DELETE FROM audit_logs").run(); } catch (_) {}
+        } catch (e) {
+          console.error("D1 Clear Mock Data Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ล้างข้อมูลทั้งหมดในระบบเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
     // 14. POST /api/save-ot-request
     if (path === "/api/save-ot-request" && request.method === "POST") {
       const body = await getBody();
