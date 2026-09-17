@@ -518,10 +518,11 @@ const initD1Database = async () => {
     // Manpower Positions table
     await queryD1(`CREATE TABLE IF NOT EXISTS manpower_positions (
       id TEXT PRIMARY KEY, empId TEXT DEFAULT '', name TEXT NOT NULL, role TEXT NOT NULL,
-      unit TEXT NOT NULL, isMgr INTEGER DEFAULT 0, isEng INTEGER DEFAULT 0,
+      unit TEXT NOT NULL, level TEXT DEFAULT '', isMgr INTEGER DEFAULT 0, isEng INTEGER DEFAULT 0,
       status TEXT DEFAULT 'Active', ocType TEXT DEFAULT 'OLD',
       img TEXT DEFAULT '', createdAt TEXT, updatedAt TEXT
     )`);
+    try { await queryD1("ALTER TABLE manpower_positions ADD COLUMN level TEXT DEFAULT ''"); } catch (_) {}
 
     // Add canBackup if missing
     try { await queryD1("SELECT canBackup FROM accounts LIMIT 1"); }
@@ -1612,6 +1613,7 @@ app.get("/api/manpower", async (req, res) => {
         name: r.name,
         role: r.role,
         unit: r.unit,
+        level: r.level || "",
         isMgr: Boolean(r.isMgr),
         isEng: Boolean(r.isEng),
         status: r.status || "Active",
@@ -1633,10 +1635,10 @@ app.post("/api/manpower", async (req, res) => {
 
     if (isD1Enabled()) {
       await queryD1(
-        `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, level, isMgr, isEng, status, ocType, img, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "",
+          pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "", pos.level || "",
           pos.isMgr ? 1 : 0, pos.isEng ? 1 : 0, pos.status || "Active",
           pos.ocType || "OLD", pos.img || "", new Date().toISOString()
         ]
@@ -1663,10 +1665,10 @@ app.post("/api/manpower/bulk", async (req, res) => {
       await queryD1("DELETE FROM manpower_positions");
       for (const pos of positions) {
         await queryD1(
-          `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, level, isMgr, isEng, status, ocType, img, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "",
+            pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "", pos.level || "",
             pos.isMgr ? 1 : 0, pos.isEng ? 1 : 0, pos.status || "Active",
             pos.ocType || "OLD", pos.img || "", new Date().toISOString()
           ]

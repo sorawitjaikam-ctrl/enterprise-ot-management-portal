@@ -27,34 +27,61 @@ import {
 } from "lucide-react";
 import { ManpowerPosition } from "../types";
 
-// Standard canonical categories for level classification
-const STANDARD_ROLE_CATEGORIES = [
-  { id: 'crane', label: 'พนักงานขับเครน', level: 'staff' as const, patterns: [/เครน/i, /crane/i] },
-  { id: 'heavy_op', label: 'ช่างขับจักรกลหนัก', level: 'staff' as const, patterns: [/ช่างขับจักรกล/i, /ขับจักรกล/i, /heavy machine operator/i, /operator/i, /คนขับจักรกล/i] },
-  { id: 'heavy_sup', label: 'ผู้ควบคุมงานจักรกลหนัก', level: 'staff' as const, patterns: [/ควบคุมงานจักรกล/i, /ควบคุมจักรกล/i, /คุมจักรกล/i, /heavy supervisor/i] },
-  { id: 'cargo_sup', label: 'ผู้ควบคุมงานขนถ่ายสินค้า', level: 'staff' as const, patterns: [/ขนถ่ายสินค้า/i, /ขนถ่าย/i, /cargo/i] },
-  { id: 'deck', label: 'ช่างปากเรือ', level: 'staff' as const, patterns: [/ปากเรือ/i, /deck/i] },
-  { id: 'om_spec', label: 'O&M Specialist', level: 'staff' as const, patterns: [/o&m spec/i, /specialist/i, /ช่างทุ่น/i] },
-  { id: 'om_gen', label: 'O&M Generator', level: 'staff' as const, patterns: [/o&m gen/i, /generator/i, /เยนเนอเรเตอร์/i] },
-  { id: 'om_mech', label: 'O&M Mechanical', level: 'staff' as const, patterns: [/o&m mech/i, /mechanical/i, /เครื่องกล/i, /ช่างกล/i] },
-  { id: 'om_elec', label: 'O&M Electrical', level: 'staff' as const, patterns: [/o&m elec/i, /electrical/i, /ไฟฟ้า/i, /ช่างไฟ/i] },
-  { id: 'control', label: 'เจ้าหน้าที่ศูนย์ควบคุม', level: 'staff' as const, patterns: [/ศูนย์ควบคุม/i, /control/i, /ควบคุมระบบ/i] },
-  { id: 'eng', label: 'วิศวกร (Operation & Improvement)', level: 'eng' as const, patterns: [/engineer/i, /วิศวกร/i, /วิศว/i] },
-  { id: 'mgr', label: 'ผู้จัดการ (Managers)', level: 'mgr' as const, patterns: [/ผู้จัดการ/i, /manager/i, /incharge/i, /incharged/i, /ฝ่ายปฏิบัติการ/i] },
-  { id: 'maint_imp', label: 'Maintenance Improvement', level: 'mgr' as const, patterns: [/improvement/i, /ปรับปรุง/i, /maintenance/i] }
-];
+// Standard canonical definitions per organizational specification
+export const STANDARD_UNITS = [
+  "INTER 2",
+  "INTER 3",
+  "INTER 5",
+  "INTER 7",
+  "Control Center",
+  "Improvemnet Engineering",
+  "Heavy Machine"
+] as const;
 
-// Helper: Categorize role into level
-function getRoleLevel(role: string, isMgr?: boolean, isEng?: boolean): 'mgr' | 'eng' | 'staff' {
+export const OC_TYPES = ["OLD", "NEW"] as const;
+
+export const MANPOWER_STATUSES = ["Active", "Resigned", "Vacant"] as const;
+
+export const STANDARD_LEVELS = [
+  "Worker - Worker",
+  "Worker - Skill",
+  "Staff",
+  "Officer",
+  "Engineer",
+  "Section Manager",
+  "Department Manager",
+  "Director"
+] as const;
+
+export type StandardLevel = typeof STANDARD_LEVELS[number];
+
+// Helper: Canonical Level resolver
+export function resolvePositionLevel(pos: Partial<ManpowerPosition>): StandardLevel {
+  if (pos.level && (STANDARD_LEVELS as readonly string[]).includes(pos.level)) {
+    return pos.level as StandardLevel;
+  }
+  const role = (pos.role || "").trim();
+  if (pos.isMgr) {
+    if (/director|ผู้อำนวยการ/i.test(role)) return "Director";
+    if (/department|ฝ่าย/i.test(role)) return "Department Manager";
+    return "Section Manager";
+  }
+  if (pos.isEng || /engineer|วิศวกร|วิศว/i.test(role)) return "Engineer";
+  if (/director|ผู้อำนวยการ/i.test(role)) return "Director";
+  if (/ผู้จัดการฝ่าย|department manager/i.test(role)) return "Department Manager";
+  if (/ผู้จัดการ|manager|incharge|incharged/i.test(role)) return "Section Manager";
+  if (/officer|เจ้าหน้าที่/i.test(role)) return "Officer";
+  if (/skill|ช่าง|specialist|ผู้ควบคุม/i.test(role)) return "Worker - Skill";
+  if (/worker|คนงาน|กรรมกร/i.test(role)) return "Worker - Worker";
+  return "Staff";
+}
+
+// Backward-compatible role level mapper
+export function getRoleLevel(role: string, isMgr?: boolean, isEng?: boolean): 'mgr' | 'eng' | 'staff' {
   if (isMgr) return 'mgr';
   if (isEng) return 'eng';
   const r = (role || '').trim();
-  for (const cat of STANDARD_ROLE_CATEGORIES) {
-    for (const pat of cat.patterns) {
-      if (pat.test(r)) return cat.level;
-    }
-  }
-  if (/ผู้จัดการ|manager|incharge|ฝ่ายปฏิบัติการ/i.test(r)) return 'mgr';
+  if (/director|ผู้อำนวยการ|ผู้จัดการ|manager|incharge|ฝ่ายปฏิบัติการ/i.test(r)) return 'mgr';
   if (/engineer|วิศวกร|วิศว/i.test(r)) return 'eng';
   return 'staff';
 }
@@ -109,8 +136,10 @@ function normalizeUnitToDeptId(unit?: string): string {
   if (clean.includes("inter3")) return "inter3";
   if (clean.includes("inter5")) return "inter5";
   if (clean.includes("inter7")) return "inter7";
-  if (clean.includes("heavy")) return "heavy";
+  if (clean.includes("control")) return "ecc";
   if (clean.includes("ecc")) return "ecc";
+  if (clean.includes("heavy")) return "heavy";
+  if (clean.includes("improve")) return "inter2";
   return clean;
 }
 
@@ -148,10 +177,10 @@ export default function ManpowerDashboard({
   const [formEmpId, setFormEmpId] = useState("");
   const [formName, setFormName] = useState("");
   const [formRole, setFormRole] = useState("");
-  const [formUnit, setFormUnit] = useState("");
-  const [formStatus, setFormStatus] = useState<"Active" | "Vacant">("Active");
+  const [formUnit, setFormUnit] = useState<string>(STANDARD_UNITS[0]);
+  const [formStatus, setFormStatus] = useState<"Active" | "Resigned" | "Vacant">("Active");
   const [formOcType, setFormOcType] = useState<"OLD" | "NEW">("OLD");
-  const [formLevel, setFormLevel] = useState<"staff" | "mgr" | "eng">("staff");
+  const [formLevel, setFormLevel] = useState<StandardLevel>("Staff");
 
   // File input ref for trigger from empty state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -239,12 +268,10 @@ export default function ManpowerDashboard({
     return () => clearTimeout(timer);
   }, [positions]);
 
-  // Dynamic unit list derived directly from data
+  // Dynamic unit list prioritizing standard units
   const availableUnits = useMemo(() => {
     const unitsInMaster = Array.from(new Set(positions.map(p => (p.unit || "").trim()).filter(Boolean)));
-    return unitsInMaster.length > 0
-      ? unitsInMaster
-      : ["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "CONTROL", "Improvement", "Management"];
+    return Array.from(new Set([...STANDARD_UNITS, ...unitsInMaster]));
   }, [positions]);
 
   // Standard roles list for suggestions
@@ -276,7 +303,8 @@ export default function ManpowerDashboard({
       const inUnit = positions.filter(p => (p.unit || "").trim() === uKey);
       const total = inUnit.length;
       const vacant = inUnit.filter(p => p.status === "Vacant").length;
-      const active = total - vacant;
+      const resigned = inUnit.filter(p => p.status === "Resigned").length;
+      const active = inUnit.filter(p => p.status === "Active").length;
 
       const oldInUnit = inUnit.filter(p => p.ocType === "OLD").length;
       const newInUnit = inUnit.filter(p => p.ocType === "NEW").length;
@@ -301,6 +329,7 @@ export default function ManpowerDashboard({
         total,
         active,
         vacant,
+        resigned,
         diff,
         fill
       };
@@ -314,11 +343,13 @@ export default function ManpowerDashboard({
       const inRole = positions.filter(p => (p.role || "").trim() === rName);
       if (inRole.length === 0) return null;
 
-      const level = getRoleLevel(rName, inRole.some(p => p.isMgr), inRole.some(p => p.isEng));
+      const firstPos = inRole[0];
+      const level = resolvePositionLevel(firstPos);
 
       const total = inRole.length;
       const vacant = inRole.filter(p => p.status === "Vacant").length;
-      const active = total - vacant;
+      const resigned = inRole.filter(p => p.status === "Resigned").length;
+      const active = inRole.filter(p => p.status === "Active").length;
 
       const oldInRole = inRole.filter(p => p.ocType === "OLD").length;
       const newInRole = inRole.filter(p => p.ocType === "NEW").length;
@@ -344,19 +375,21 @@ export default function ManpowerDashboard({
         total,
         active,
         vacant,
+        resigned,
         diff,
         fill
       };
     }).filter(Boolean) as Array<{
       id: string;
       label: string;
-      level: 'mgr' | 'eng' | 'staff';
+      level: StandardLevel;
       quota2T: number;
       quota3T: number;
       target: number;
       total: number;
       active: number;
       vacant: number;
+      resigned: number;
       diff: number;
       fill: number;
     }>;
@@ -375,10 +408,12 @@ export default function ManpowerDashboard({
     const targetQuota = unitBreakdownData.reduce((acc, u) => acc + u.target, 0);
     const totalInSystem = positions.length;
     const vacantCount = positions.filter(p => p.status === "Vacant").length;
-    const activeCount = totalInSystem - vacantCount;
+    const resignedCount = positions.filter(p => p.status === "Resigned").length;
+    const activeCount = positions.filter(p => p.status === "Active").length;
 
     const fillRate = targetQuota > 0 ? ((activeCount / targetQuota) * 100).toFixed(1) : "0.0";
     const vacantRate = totalInSystem > 0 ? ((vacantCount / totalInSystem) * 100).toFixed(1) : "0.0";
+    const resignedRate = totalInSystem > 0 ? ((resignedCount / totalInSystem) * 100).toFixed(1) : "0.0";
     const activeRate = totalInSystem > 0 ? ((activeCount / totalInSystem) * 100).toFixed(1) : "0.0";
     const diff = totalInSystem - targetQuota;
 
@@ -387,8 +422,10 @@ export default function ManpowerDashboard({
       totalInSystem,
       activeCount,
       vacantCount,
+      resignedCount,
       fillRate,
       vacantRate,
+      resignedRate,
       activeRate,
       diff
     };
@@ -401,13 +438,14 @@ export default function ManpowerDashboard({
       const matchUnit = unitFilter === "ALL" || p.unit === unitFilter;
       const matchStatus = statusFilter === "ALL" || p.status === statusFilter;
       const matchOcType = ocTypeFilter === "ALL" || p.ocType === ocTypeFilter;
-      const pLevel = getRoleLevel(p.role, p.isMgr, p.isEng);
+      const pLevel = resolvePositionLevel(p);
       const matchLevel = levelFilter === "ALL" || pLevel === levelFilter;
 
       const matchQ = !q ||
         p.name.toLowerCase().includes(q) ||
         p.role.toLowerCase().includes(q) ||
         p.unit.toLowerCase().includes(q) ||
+        (p.level && p.level.toLowerCase().includes(q)) ||
         (p.empId && p.empId.toLowerCase().includes(q)) ||
         p.id.toLowerCase().includes(q);
 
@@ -436,15 +474,29 @@ export default function ManpowerDashboard({
   const handleSyncRole = (id: string, newRole: string) => {
     setPositions(prev => prev.map(p => {
       if (p.id !== id) return p;
-      const level = getRoleLevel(newRole);
+      const inferredLevel = resolvePositionLevel({ ...p, role: newRole });
       return {
         ...p,
         role: newRole.trim(),
-        isMgr: level === "mgr",
-        isEng: level === "eng"
+        level: p.level || inferredLevel,
+        isMgr: ["Director", "Department Manager", "Section Manager"].includes(p.level || inferredLevel),
+        isEng: (p.level || inferredLevel) === "Engineer"
       };
     }));
     showToast("บันทึกตำแหน่งงานเรียบร้อย");
+  };
+
+  const handleSyncLevel = (id: string, newLevel: string) => {
+    setPositions(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      return {
+        ...p,
+        level: newLevel,
+        isMgr: ["Director", "Department Manager", "Section Manager"].includes(newLevel),
+        isEng: newLevel === "Engineer"
+      };
+    }));
+    showToast("บันทึกระดับตำแหน่งเรียบร้อย");
   };
 
   const handleSyncUnit = (id: string, newUnit: string) => {
@@ -461,13 +513,37 @@ export default function ManpowerDashboard({
     showToast("สลับกรอบอัตรา (OC Type) เรียบร้อย");
   };
 
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setPositions(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      if (newStatus === "Vacant") {
+        return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
+      }
+      return {
+        ...p,
+        status: newStatus,
+        name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+      };
+    }));
+    showToast(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย`);
+  };
+
   const handleToggleStatus = (id: string) => {
     setPositions(prev => prev.map(p => {
       if (p.id !== id) return p;
-      if (p.status === "Active") {
+      let nextStatus = "Active";
+      if (p.status === "Active") nextStatus = "Resigned";
+      else if (p.status === "Resigned") nextStatus = "Vacant";
+      else nextStatus = "Active";
+
+      if (nextStatus === "Vacant") {
         return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
       }
-      return { ...p, status: "Active", name: p.name === "Vacant" ? "พนักงานใหม่" : p.name };
+      return {
+        ...p,
+        status: nextStatus,
+        name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+      };
     }));
     showToast("สลับสถานะตำแหน่งเรียบร้อย");
   };
@@ -480,10 +556,10 @@ export default function ManpowerDashboard({
     setFormEmpId(pos.empId || "");
     setFormName(pos.name);
     setFormRole(pos.role);
-    setFormUnit(pos.unit);
-    setFormStatus(pos.status);
-    setFormOcType(pos.ocType || "OLD");
-    setFormLevel(pos.isMgr ? "mgr" : (pos.isEng ? "eng" : "staff"));
+    setFormUnit(pos.unit || STANDARD_UNITS[0]);
+    setFormStatus((pos.status as any) || "Active");
+    setFormOcType((pos.ocType as any) || "OLD");
+    setFormLevel(resolvePositionLevel(pos));
     setIsEditModalOpen(true);
   };
 
@@ -497,10 +573,10 @@ export default function ManpowerDashboard({
     setFormEmpId("");
     setFormName("");
     setFormRole("ช่างขับจักรกลหนัก");
-    setFormUnit(availableUnits[0] || "INTER 2");
+    setFormUnit(STANDARD_UNITS[0]);
     setFormStatus("Active");
     setFormOcType("OLD");
-    setFormLevel("staff");
+    setFormLevel("Staff");
     setIsEditModalOpen(true);
   };
 
@@ -512,16 +588,20 @@ export default function ManpowerDashboard({
     const finalEmpId = isVacant ? "" : formEmpId.trim();
     const finalImg = isVacant ? null : getEmpPhotoUrl(finalEmpId);
 
+    const isMgr = ["Director", "Department Manager", "Section Manager"].includes(formLevel);
+    const isEng = formLevel === "Engineer";
+
     const record: ManpowerPosition = {
       id: formId,
       empId: finalEmpId,
       name: finalName,
       role: formRole.trim(),
       unit: formUnit.trim(),
-      status: isVacant ? "Vacant" : "Active",
+      level: formLevel,
+      status: formStatus,
       ocType: formOcType,
-      isMgr: formLevel === "mgr",
-      isEng: formLevel === "eng",
+      isMgr,
+      isEng,
       img: finalImg
     };
 
@@ -537,7 +617,7 @@ export default function ManpowerDashboard({
     if (onSyncEmployees && employees) {
       let updatedEmployees = [...employees];
       const mappedDept = normalizeUnitToDeptId(formUnit);
-      if (!isVacant) {
+      if (!isVacant && formStatus === "Active") {
         const empId = finalEmpId || `EMP-${formId.replace(/\D/g, "") || Date.now().toString().slice(-4)}`;
         const existingIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === finalName);
         if (existingIdx !== -1) {
@@ -571,7 +651,15 @@ export default function ManpowerDashboard({
           };
           updatedEmployees.push(newEmp);
         }
-      } else if (finalEmpId) {
+      } else if (formStatus === "Resigned" && finalEmpId) {
+        const existingIdx = updatedEmployees.findIndex(e => e.id === finalEmpId || e.name === finalName);
+        if (existingIdx !== -1) {
+          updatedEmployees[existingIdx] = {
+            ...updatedEmployees[existingIdx],
+            employmentStatus: "Resigned"
+          };
+        }
+      } else if (isVacant && finalEmpId) {
         const existingIdx = updatedEmployees.findIndex(e => e.id === finalEmpId);
         if (existingIdx !== -1) {
           updatedEmployees[existingIdx] = {
@@ -618,16 +706,16 @@ export default function ManpowerDashboard({
 
   // Export CSV
   const handleExportCsv = () => {
-    const headers = ["No", "Employee ID", "Name", "Role", "Unit", "OC Type", "Status", "Level"];
+    const headers = ["No", "Employee ID", "Name", "Role", "Unit", "Level", "OC Type", "Status"];
     const rows = positions.map((p, idx) => [
       idx + 1,
       p.status === "Vacant" ? "" : (p.empId || ""),
       `"${(p.name || "").replace(/"/g, '""')}"`,
       `"${(p.role || "").replace(/"/g, '""')}"`,
       `"${(p.unit || "").replace(/"/g, '""')}"`,
+      `"${resolvePositionLevel(p)}"`,
       p.ocType || "OLD",
-      p.status,
-      p.isMgr ? "Manager" : (p.isEng ? "Engineer" : "Staff")
+      p.status || "Active"
     ]);
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
@@ -645,10 +733,12 @@ export default function ManpowerDashboard({
 
   // Download Template
   const handleDownloadTemplate = () => {
-    const headers = ["Employee ID", "Name", "Role", "Unit", "OC Type", "Status", "Level"];
+    const headers = ["Employee ID", "Name", "Role", "Unit", "Level", "OC Type", "Status"];
     const samples = [
-      ["688172", "คุณสมชาย สายตรวจ", "พนักงานขับเครน", "INTER 2", "OLD", "Active", "Staff"],
-      ["", "Vacant", "ช่างขับจักรกลหนัก", "INTER 3", "NEW", "Vacant", "Staff"]
+      ["688172", "คุณสมชาย สายตรวจ", "พนักงานขับเครน", "INTER 2", "Worker - Skill", "OLD", "Active"],
+      ["688173", "คุณวิศวะ นวัตกรรม", "Improvement Engineer", "Improvemnet Engineering", "Engineer", "NEW", "Active"],
+      ["688174", "คุณผู้การ ควบคุม", "ผู้จัดการศูนย์ควบคุม", "Control Center", "Section Manager", "OLD", "Active"],
+      ["", "Vacant", "ช่างขับจักรกลหนัก", "Heavy Machine", "Worker - Skill", "NEW", "Vacant"]
     ];
     const csvContent = "\uFEFF" + [headers.join(","), ...samples.map(r => r.join(","))].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -692,9 +782,9 @@ export default function ManpowerDashboard({
         const nameIdx = findIndex(["name", "ชื่อ", "fullname"]);
         const roleIdx = findIndex(["role", "ตำแหน่ง", "position"]);
         const unitIdx = findIndex(["unit", "ทุ่น", "ฝ่าย", "สังกัด", "department"]);
+        const levelIdx = findIndex(["level", "ระดับ", "ตำแหน่งระดับ"]);
         const ocTypeIdx = findIndex(["oc type", "octype", "type", "กรอบ"]);
         const statusIdx = findIndex(["status", "สถานะ"]);
-        const levelIdx = findIndex(["level", "ระดับ"]);
 
         let nextIdx = 1;
         const imported: ManpowerPosition[] = [];
@@ -705,27 +795,42 @@ export default function ManpowerDashboard({
           const role = roleIdx >= 0 ? cols[roleIdx] : "พนักงานปฏิบัติการ";
           const unitRaw = unitIdx >= 0 ? cols[unitIdx] : "INTER 2";
           const empId = idIdx >= 0 ? cols[idIdx] : "";
-          const statusRaw = statusIdx >= 0 ? cols[statusIdx] : "";
+          const levelRaw = levelIdx >= 0 ? cols[levelIdx] : "";
+          const statusRaw = statusIdx >= 0 ? cols[statusIdx] : "Active";
           const ocTypeRaw = ocTypeIdx >= 0 ? cols[ocTypeIdx].toUpperCase() : "OLD";
-          const levelRaw = levelIdx >= 0 ? cols[levelIdx].toLowerCase() : "";
 
           if (!name && !role) continue;
 
           let unit = unitRaw;
-          if (/inter\s*2/i.test(unitRaw)) unit = "INTER 2";
-          else if (/inter\s*3/i.test(unitRaw)) unit = "INTER 3";
-          else if (/inter\s*5/i.test(unitRaw)) unit = "INTER 5";
-          else if (/inter\s*7/i.test(unitRaw)) unit = "INTER 7";
-          else if (/heavy|จักรกล/i.test(unitRaw)) unit = "Heavy Machine";
-          else if (/improve|ปรับปรุง/i.test(unitRaw)) unit = "Improvement";
-          else if (/control|ศูนย์/i.test(unitRaw)) unit = "CONTROL";
-          else if (/manage|ฝ่ายปฏิบัติการ/i.test(unitRaw)) unit = "Management";
+          const uNorm = unitRaw.toLowerCase().replace(/\s+/g, "");
+          if (uNorm.includes("inter2")) unit = "INTER 2";
+          else if (uNorm.includes("inter3")) unit = "INTER 3";
+          else if (uNorm.includes("inter5")) unit = "INTER 5";
+          else if (uNorm.includes("inter7")) unit = "INTER 7";
+          else if (uNorm.includes("control") || uNorm.includes("ศูนย์ควบคุม")) unit = "Control Center";
+          else if (uNorm.includes("improve")) unit = "Improvemnet Engineering";
+          else if (uNorm.includes("heavy") || uNorm.includes("จักรกล")) unit = "Heavy Machine";
 
-          const isVacant = statusRaw.toLowerCase() === "vacant" || name.toLowerCase().includes("vacant") || name.includes("ว่าง") || !name;
-          const status = isVacant ? "Vacant" : "Active";
+          // Status: Active, Resigned, Vacant
+          let status = "Active";
+          if (statusRaw.toLowerCase() === "vacant" || name.toLowerCase().includes("vacant") || name.includes("ว่าง") || !name) {
+            status = "Vacant";
+          } else if (statusRaw.toLowerCase().includes("resign") || statusRaw.includes("ลาออก")) {
+            status = "Resigned";
+          } else {
+            status = "Active";
+          }
+
+          // Level matching
+          let level = STANDARD_LEVELS.find(l => l.toLowerCase() === levelRaw.toLowerCase()) || "";
+          if (!level) {
+            level = resolvePositionLevel({ role, level: levelRaw });
+          }
+
+          const isVacant = status === "Vacant";
           const ocType = ocTypeRaw.includes("NEW") || ocTypeRaw.includes("ใหม่") || ocTypeRaw.includes("3") ? "NEW" : "OLD";
-          const isMgr = levelRaw.includes("mgr") || levelRaw.includes("manager") || role.includes("ผู้จัดการ");
-          const isEng = levelRaw.includes("eng") || role.toLowerCase().includes("engineer") || role.includes("วิศวกร");
+          const isMgr = ["Director", "Department Manager", "Section Manager"].includes(level);
+          const isEng = level === "Engineer";
 
           const posId = `POS-${String(nextIdx++).padStart(3, '0')}`;
           const finalEmpId = isVacant ? "" : empId;
@@ -736,6 +841,7 @@ export default function ManpowerDashboard({
             name: name || (isVacant ? "Vacant" : "Unassigned"),
             role,
             unit,
+            level,
             status,
             ocType,
             isMgr,
@@ -1233,9 +1339,9 @@ export default function ManpowerDashboard({
               className="px-2.5 py-1 text-xs border border-[#DCE4EA] rounded-md text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none focus:border-[#2E90CB]"
             >
               <option value="ALL">All Levels (ทุกระดับ)</option>
-              <option value="mgr">Manager (ผู้จัดการ)</option>
-              <option value="eng">Engineer (วิศวกร)</option>
-              <option value="staff">Staff (ปฏิบัติการ)</option>
+              {STANDARD_LEVELS.map(lvl => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
             </select>
           </div>
 
@@ -1270,7 +1376,13 @@ export default function ManpowerDashboard({
                     <td className={`py-2 px-1.5 text-center font-mono font-bold ${r.vacant > 0 ? "text-[#F43F5E]" : "text-[#94A3B8]"}`}>
                       {r.vacant}
                     </td>
-                    <td className="py-2 px-1.5 text-center font-mono font-bold text-[#0E3A66]">{r.fill}%</td>
+                    <td className="py-2 px-1.5 text-center">
+                      <span className={`font-mono font-semibold ${
+                        r.fill >= 100 ? "text-[#1E9C6E]" : r.fill >= 80 ? "text-[#D99B14]" : "text-[#F43F5E]"
+                      }`}>
+                        {r.fill}%
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1281,22 +1393,14 @@ export default function ManpowerDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: ACTION TOOLBAR (Upload / Export / Template / Add) */}
+      {/* SECTION 5: PERSONNEL ACTIONS (Add Position & Export Controls) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
-        {/* Upload Excel / CSV */}
-        <label className="bg-white border-2 border-dashed border-[#DCE4EA] hover:border-[#2E90CB] rounded-xl p-5 flex flex-col items-center justify-center text-center transition cursor-pointer group">
-          <input ref={fileInputRef} type="file" accept=".csv, .txt, .xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-          <Upload className="w-6 h-6 text-[#6A7B87] group-hover:text-[#2E90CB] transition-colors mb-1.5" />
-          <span className="text-xs font-bold text-[#0E3A66]">Upload Headcount (CSV / Excel)</span>
-          <span className="text-[11px] text-[#6A7B87] mt-0.5">คลิกเพื่ออัปโหลดไฟล์โครงสร้างอัตรากำลัง</span>
-        </label>
-
-        {/* Export & Template */}
+        {/* Export & Templates */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Export & Template</span>
+            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Export &amp; Template</span>
             <p className="text-[11px] text-[#6A7B87]">ส่งออกข้อมูลพนักงานและดาวน์โหลดแบบฟอร์ม</p>
           </div>
           <div className="flex items-center gap-2 pt-3">
@@ -1316,7 +1420,7 @@ export default function ManpowerDashboard({
           </div>
         </div>
 
-        {/* Add Person & Clear All */}
+        {/* Add Position & Clear All */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
             <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Add Position / Clear</span>
@@ -1353,7 +1457,7 @@ export default function ManpowerDashboard({
               Personnel Roster ({filteredRoster.length} รายการ)
             </span>
             <span className="text-[11px] text-[#6A7B87]">
-              * แก้ไขชื่อ ตำแหน่ง ทุ่น หรือคลิกสลับ OLD/NEW และ Active/Vacant ได้ทันที
+              * แก้ไขชื่อ ตำแหน่ง ทุ่น หรือคลิกสลับ OLD/NEW และ Active/Resigned/Vacant ได้ทันที
             </span>
           </div>
 
@@ -1364,21 +1468,21 @@ export default function ManpowerDashboard({
               onChange={(e) => setLevelFilter(e.target.value)}
               className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none"
             >
-              <option value="ALL">All Levels</option>
-              <option value="mgr">Manager</option>
-              <option value="eng">Engineer</option>
-              <option value="staff">Staff</option>
+              <option value="ALL">All Levels ({positions.length})</option>
+              {STANDARD_LEVELS.map(lvl => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
             </select>
 
             {/* OC Type Filter */}
             <select
               value={ocTypeFilter}
               onChange={(e) => setOcTypeFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none"
+              className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none font-mono"
             >
               <option value="ALL">All OC Types</option>
-              <option value="OLD">OLD (2T Base)</option>
-              <option value="NEW">NEW (+3T Expansion)</option>
+              <option value="OLD">OLD</option>
+              <option value="NEW">NEW</option>
             </select>
 
             {/* Status Filter */}
@@ -1389,6 +1493,7 @@ export default function ManpowerDashboard({
             >
               <option value="ALL">All Status</option>
               <option value="Active">Active</option>
+              <option value="Resigned">Resigned</option>
               <option value="Vacant">Vacant</option>
             </select>
 
@@ -1426,12 +1531,12 @@ export default function ManpowerDashboard({
                 <th className="py-2 px-1.5 w-[4%] text-center font-semibold">No.</th>
                 <th className="py-2 px-1.5 w-[5%] text-center font-semibold">Photo</th>
                 <th className="py-2 px-2 w-[11%] font-semibold">Employee ID</th>
-                <th className="py-2 px-2 w-[20%] font-semibold">ชื่อ - นามสกุล</th>
+                <th className="py-2 px-2 w-[18%] font-semibold">ชื่อ - นามสกุล</th>
                 <th className="py-2 px-2 w-[18%] font-semibold">ตำแหน่งงาน (Role)</th>
-                <th className="py-2 px-2 w-[12%] font-semibold">ทุ่น / ฝ่าย (Unit)</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">Level</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">OC Type</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">Status</th>
+                <th className="py-2 px-2 w-[14%] font-semibold">ทุ่น / ฝ่าย (Unit)</th>
+                <th className="py-2 px-1.5 w-[12%] text-center font-semibold">Level</th>
+                <th className="py-2 px-1.5 w-[7%] text-center font-semibold">OC Type</th>
+                <th className="py-2 px-1.5 w-[9%] text-center font-semibold">Status</th>
                 <th className="py-2 px-1.5 w-[6%] text-center font-semibold">Action</th>
               </tr>
             </thead>
@@ -1439,7 +1544,7 @@ export default function ManpowerDashboard({
               {filteredRoster.map((p, idx) => {
                 const isVacant = p.status === "Vacant";
                 const isNew = p.ocType === "NEW";
-                const pLevel = getRoleLevel(p.role, p.isMgr, p.isEng);
+                const pLevel = resolvePositionLevel(p);
                 const photoUrl = isVacant ? null : (p.img || getEmpPhotoUrl(p.empId));
 
                 return (
@@ -1503,33 +1608,46 @@ export default function ManpowerDashboard({
                       />
                     </td>
 
-                    {/* Unit (Inline Edit with Datalist) */}
+                    {/* Unit (Inline Dropdown with Standard Units) */}
                     <td className="py-2 px-2">
-                      <input
-                        type="text"
-                        list="manpower-unit-datalist"
-                        defaultValue={p.unit}
-                        onBlur={(e) => {
-                          if (e.target.value !== p.unit) handleSyncUnit(p.id, e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                        className="w-full px-1.5 py-1 text-[11px] font-mono font-semibold border border-transparent hover:border-[#DCE4EA] focus:border-[#2E90CB] focus:bg-white rounded transition bg-transparent text-[#0E3A66] truncate"
-                      />
+                      <select
+                        value={p.unit}
+                        onChange={(e) => handleSyncUnit(p.id, e.target.value)}
+                        className="w-full px-1.5 py-1 text-[11px] font-medium border border-transparent hover:border-[#DCE4EA] focus:border-[#2E90CB] focus:bg-white rounded transition bg-transparent text-[#0E3A66] truncate cursor-pointer"
+                      >
+                        {availableUnits.map(u => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
                     </td>
 
-                    {/* Level Badge */}
+                    {/* Level Selector */}
                     <td className="py-2 px-1.5 text-center">
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        pLevel === "mgr"
-                          ? "bg-[#0E3A66] text-white"
-                          : pLevel === "eng"
-                          ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]"
-                          : "bg-[#F3F6F8] text-[#6A7B87]"
-                      }`}>
-                        {pLevel === "mgr" ? "Manager" : (pLevel === "eng" ? "Engineer" : "Staff")}
-                      </span>
+                      <select
+                        value={pLevel}
+                        onChange={(e) => handleSyncLevel(p.id, e.target.value)}
+                        className={`inline-block w-full px-1 py-0.5 rounded text-[10px] font-semibold border cursor-pointer transition ${
+                          pLevel === "Director"
+                            ? "bg-purple-900 text-purple-100 border-purple-800"
+                            : pLevel === "Department Manager"
+                            ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                            : pLevel === "Section Manager"
+                            ? "bg-[#17538F] text-white border-[#17538F]"
+                            : pLevel === "Engineer"
+                            ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]"
+                            : pLevel === "Officer"
+                            ? "bg-sky-50 text-sky-800 border-sky-300"
+                            : pLevel === "Worker - Skill"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                            : pLevel === "Worker - Worker"
+                            ? "bg-amber-50 text-amber-800 border-amber-300"
+                            : "bg-[#F3F6F8] text-[#59656D] border-[#DCE4EA]"
+                        }`}
+                      >
+                        {STANDARD_LEVELS.map(lvl => (
+                          <option key={lvl} value={lvl}>{lvl}</option>
+                        ))}
+                      </select>
                     </td>
 
                     {/* OC Type (1-Click Toggle Button) */}
@@ -1537,7 +1655,7 @@ export default function ManpowerDashboard({
                       <button
                         type="button"
                         onClick={() => handleToggleOcType(p.id)}
-                        title="คลิกเพื่อสลับระหว่าง OLD (2T) กับ NEW (+3T)"
+                        title="คลิกเพื่อสลับระหว่าง OLD กับ NEW"
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition ${
                           isNew
                             ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] hover:bg-[#9FCEE8]/40"
@@ -1548,20 +1666,23 @@ export default function ManpowerDashboard({
                       </button>
                     </td>
 
-                    {/* Status (1-Click Toggle Button) */}
+                    {/* Status (Dropdown Selector supporting Active, Resigned, Vacant) */}
                     <td className="py-2 px-1.5 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(p.id)}
-                        title="คลิกเพื่อสลับสถานะ Active ↔ Vacant"
-                        className={`inline-block px-2.5 py-0.5 rounded text-[10.5px] font-semibold cursor-pointer transition ${
-                          isVacant
-                            ? "bg-[#F3F6F8] text-[#F43F5E] border border-[#F43F5E]/30 hover:bg-[#F43F5E]/10"
-                            : "bg-[#0E3A66] text-white hover:bg-[#17538F]"
+                      <select
+                        value={p.status || "Active"}
+                        onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition border ${
+                          p.status === "Active"
+                            ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#1E9C6E]/40"
+                            : p.status === "Resigned"
+                            ? "bg-[#FEF3C7] text-[#D97706] border-[#F59E0B]/50"
+                            : "bg-[#FDF2F4] text-[#F43F5E] border-[#F43F5E]/40"
                         }`}
                       >
-                        {p.status}
-                      </button>
+                        <option value="Active">Active</option>
+                        <option value="Resigned">Resigned</option>
+                        <option value="Vacant">Vacant</option>
+                      </select>
                     </td>
 
                     {/* Action */}
@@ -1666,14 +1787,16 @@ export default function ManpowerDashboard({
 
                 <div>
                   <label className="block text-[#6A7B87] font-semibold mb-1">ทุ่น / ฝ่าย (Unit)</label>
-                  <input
-                    type="text"
-                    list="manpower-unit-datalist"
+                  <select
                     value={formUnit}
                     onChange={(e) => setFormUnit(e.target.value)}
                     required
-                    className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
-                  />
+                    className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
+                  >
+                    {availableUnits.map(u => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1685,17 +1808,17 @@ export default function ManpowerDashboard({
                     onChange={(e) => setFormOcType(e.target.value as "OLD" | "NEW")}
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md font-mono"
                   >
-                    <option value="OLD">OLD (2T Base)</option>
-                    <option value="NEW">NEW (+3T Expansion)</option>
+                    <option value="OLD">OLD</option>
+                    <option value="NEW">NEW</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6A7B87] font-semibold mb-1">สถานะ</label>
+                  <label className="block text-[#6A7B87] font-semibold mb-1">สถานะ (Status)</label>
                   <select
                     value={formStatus}
                     onChange={(e) => {
-                      const next = e.target.value as "Active" | "Vacant";
+                      const next = e.target.value as "Active" | "Resigned" | "Vacant";
                       setFormStatus(next);
                       if (next === "Vacant") {
                         setFormEmpId("");
@@ -1705,20 +1828,21 @@ export default function ManpowerDashboard({
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md"
                   >
                     <option value="Active">Active</option>
+                    <option value="Resigned">Resigned</option>
                     <option value="Vacant">Vacant</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6A7B87] font-semibold mb-1">ระดับตำแหน่ง</label>
+                  <label className="block text-[#6A7B87] font-semibold mb-1">ระดับตำแหน่ง (Level)</label>
                   <select
                     value={formLevel}
-                    onChange={(e) => setFormLevel(e.target.value as "staff" | "mgr" | "eng")}
+                    onChange={(e) => setFormLevel(e.target.value as StandardLevel)}
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md"
                   >
-                    <option value="staff">Staff (ปฏิบัติการ)</option>
-                    <option value="mgr">Manager (ผู้จัดการ)</option>
-                    <option value="eng">Engineer (วิศวกร)</option>
+                    {STANDARD_LEVELS.map(lvl => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
+                    ))}
                   </select>
                 </div>
               </div>

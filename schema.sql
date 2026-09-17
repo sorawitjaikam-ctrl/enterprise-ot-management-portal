@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS manpower_positions (
   name TEXT NOT NULL,
   role TEXT NOT NULL,
   unit TEXT NOT NULL,
+  level TEXT DEFAULT '',
   isMgr INTEGER DEFAULT 0,
   isEng INTEGER DEFAULT 0,
   status TEXT DEFAULT 'Active',

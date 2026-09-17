@@ -184,10 +184,11 @@ export interface ManpowerPosition {
   name: string;
   role: string;
   unit: string;
+  level?: string;
   isMgr: boolean;
   isEng: boolean;
-  status: "Active" | "Vacant";
-  ocType: "OLD" | "NEW";
+  status: "Active" | "Resigned" | "Vacant" | string;
+  ocType: "OLD" | "NEW" | string;
   img?: string | null;
 }
 

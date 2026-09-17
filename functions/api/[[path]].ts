@@ -1088,6 +1088,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             name TEXT NOT NULL,
             role TEXT NOT NULL,
             unit TEXT NOT NULL,
+            level TEXT DEFAULT '',
             isMgr INTEGER DEFAULT 0,
             isEng INTEGER DEFAULT 0,
             status TEXT DEFAULT 'Active',
@@ -1096,6 +1097,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             createdAt TEXT DEFAULT '',
             updatedAt TEXT DEFAULT ''
           )`).run();
+          try { await db.prepare("ALTER TABLE manpower_positions ADD COLUMN level TEXT DEFAULT ''").run(); } catch (_) {}
           positionsRes = await db.prepare("SELECT * FROM manpower_positions ORDER BY id ASC").all();
         } catch (e) {
           console.error("D1 Get Manpower Positions Error:", e);
@@ -1107,6 +1109,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         name: r.name,
         role: r.role,
         unit: r.unit,
+        level: r.level || "",
         isMgr: Boolean(r.isMgr),
         isEng: Boolean(r.isEng),
         status: r.status || "Active",
@@ -1122,13 +1125,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const pos = body.position || body;
       if (db && pos && pos.id) {
         try {
-          await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+          await db.prepare(`CREATE TABLE IF NOT EXISTS manpower_positions (
+            id TEXT PRIMARY KEY,
+            empId TEXT DEFAULT '',
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            level TEXT DEFAULT '',
+            isMgr INTEGER DEFAULT 0,
+            isEng INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Active',
+            ocType TEXT DEFAULT 'OLD',
+            img TEXT DEFAULT '',
+            createdAt TEXT DEFAULT '',
+            updatedAt TEXT DEFAULT ''
+          )`).run();
+          try { await db.prepare("ALTER TABLE manpower_positions ADD COLUMN level TEXT DEFAULT ''").run(); } catch (_) {}
+          await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, level, isMgr, isEng, status, ocType, img, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
               pos.id,
               pos.empId || "",
               pos.name || "",
               pos.role || "",
               pos.unit || "",
+              pos.level || "",
               pos.isMgr ? 1 : 0,
               pos.isEng ? 1 : 0,
               pos.status || "Active",
@@ -1140,7 +1160,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           // Sync to employees
           const rawName = (pos.name || "").trim();
           const isVacant = !rawName || rawName.toLowerCase().includes("vacant") || rawName === "ว่าง" || pos.status === "Vacant";
-          if (!isVacant) {
+          const isResigned = pos.status === "Resigned";
+          if (!isVacant && !isResigned) {
             const empId = (pos.empId && pos.empId.trim()) ? pos.empId.trim() : `EMP-${String(pos.id).replace(/\D/g, "")}`;
             const fullName = rawName;
             const finalRole = pos.role || "พนักงานขับเครน";
@@ -1151,8 +1172,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             else if (uLower.includes("inter3")) finalDeptId = "inter3";
             else if (uLower.includes("inter5")) finalDeptId = "inter5";
             else if (uLower.includes("inter7")) finalDeptId = "inter7";
-            else if (uLower.includes("heavy")) finalDeptId = "heavy";
+            else if (uLower.includes("control")) finalDeptId = "ecc";
             else if (uLower.includes("ecc")) finalDeptId = "ecc";
+            else if (uLower.includes("heavy")) finalDeptId = "heavy";
+            else if (uLower.includes("improve")) finalDeptId = "inter2";
             else finalDeptId = rawUnit;
 
             const existingEmp: any = await db.prepare("SELECT id FROM employees WHERE id = ? OR name = ? LIMIT 1").bind(empId, fullName).first();
@@ -1189,6 +1212,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                   "Active"
                 ).run();
             }
+          } else if (isResigned && pos.empId) {
+            await db.prepare("UPDATE employees SET employmentStatus = 'Resigned' WHERE id = ?").bind(pos.empId.trim()).run();
+          } else if (isVacant && pos.empId) {
+            await db.prepare("UPDATE employees SET employmentStatus = 'Vacant' WHERE id = ?").bind(pos.empId.trim()).run();
           }
         } catch (e) {
           console.error("D1 Upsert Manpower Position Error:", e);
@@ -1209,6 +1236,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             name TEXT NOT NULL,
             role TEXT NOT NULL,
             unit TEXT NOT NULL,
+            level TEXT DEFAULT '',
             isMgr INTEGER DEFAULT 0,
             isEng INTEGER DEFAULT 0,
             status TEXT DEFAULT 'Active',
@@ -1217,15 +1245,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             createdAt TEXT DEFAULT '',
             updatedAt TEXT DEFAULT ''
           )`).run();
+          try { await db.prepare("ALTER TABLE manpower_positions ADD COLUMN level TEXT DEFAULT ''").run(); } catch (_) {}
           await db.prepare("DELETE FROM manpower_positions").run();
           for (const pos of positions) {
-            await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+            await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, level, isMgr, isEng, status, ocType, img, updatedAt)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
                 pos.id,
                 pos.empId || "",
                 pos.name || "",
                 pos.role || "",
                 pos.unit || "",
+                pos.level || "",
                 pos.isMgr ? 1 : 0,
                 pos.isEng ? 1 : 0,
                 pos.status || "Active",
@@ -1237,7 +1267,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             // 100% Two-Way Automatic Sync with employees table
             const rawName = (pos.name || "").trim();
             const isVacant = !rawName || rawName.toLowerCase().includes("vacant") || rawName === "ว่าง" || pos.status === "Vacant";
-            if (!isVacant) {
+            const isResigned = pos.status === "Resigned";
+            if (!isVacant && !isResigned) {
               const empId = (pos.empId && pos.empId.trim()) ? pos.empId.trim() : `EMP-${String(pos.id).replace(/\D/g, "")}`;
               const fullName = rawName;
               const finalRole = pos.role || "พนักงานขับเครน";
@@ -1248,8 +1279,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               else if (uLower.includes("inter3")) finalDeptId = "inter3";
               else if (uLower.includes("inter5")) finalDeptId = "inter5";
               else if (uLower.includes("inter7")) finalDeptId = "inter7";
-              else if (uLower.includes("heavy")) finalDeptId = "heavy";
+              else if (uLower.includes("control")) finalDeptId = "ecc";
               else if (uLower.includes("ecc")) finalDeptId = "ecc";
+              else if (uLower.includes("heavy")) finalDeptId = "heavy";
+              else if (uLower.includes("improve")) finalDeptId = "inter2";
               else finalDeptId = rawUnit;
 
               // Check if employee already exists by id or full name
