@@ -2419,6 +2419,47 @@ export default function App() {
     }
   };
 
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: "edit" | "add") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const src = evt.target?.result as string;
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 256;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          if (mode === "edit") {
+            setEditAccountAvatar(dataUrl);
+          } else {
+            setNewAccountAvatar(dataUrl);
+          }
+        }
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch("/api/portal-state");
@@ -13311,12 +13352,35 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAddAccountSubmit} className="p-6 space-y-4">
-              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
-                <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
-                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
-                  <p className="text-[9px] text-slate-500">ระบบจะดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+              <div className="flex items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
+                    <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>อัปโหลดรูป</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => handleAvatarFileUpload(e, "add")} 
+                    />
+                  </label>
+                  {newAccountAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setNewAccountAvatar("")}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                      title="ลบรูปภาพ / ใช้ป้ายตัวย่อ"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -13365,7 +13429,7 @@ export default function App() {
                   type="text"
                   value={newAccountAvatar}
                   onChange={(e) => setNewAccountAvatar(e.target.value)}
-                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${newAccountUsername || "พนักงาน"} อัตโนมัติ`}
+                  placeholder="ป้อน URL รูปภาพ หรือกดปุ่มอัปโหลดรูปภาพด้านบน"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -13462,19 +13526,42 @@ export default function App() {
             </div>
 
             <form onSubmit={handleEditAccountSubmit} className="p-6 space-y-4">
-              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
-                <EmployeeAvatar empId={editAccountUsername} empName={editAccountName} avatarUrl={editAccountAvatar} className="w-12 h-12 flex-shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{editAccountName || "ชื่อพนักงาน"}</h4>
-                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {editAccountUsername || "-"}</p>
-                  <p className="text-[9px] text-slate-500">ระบบดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+              <div className="flex items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <EmployeeAvatar empId={editAccountUsername} empName={editAccountName} avatarUrl={editAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">{editAccountName || "ชื่อพนักงาน"}</h4>
+                    <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {editAccountUsername || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>อัปโหลดรูป</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => handleAvatarFileUpload(e, "edit")} 
+                    />
+                  </label>
+                  {editAccountAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAccountAvatar("")}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                      title="ลบรูปภาพ / ใช้ป้ายตัวย่อ"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={editAccountUsername}
                   onChange={(e) => {
                     setEditAccountUsername(e.target.value);
@@ -13489,7 +13576,7 @@ export default function App() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={editAccountName}
                   onChange={(e) => setEditAccountName(e.target.value)}
                   placeholder="ป้อนชื่อและนามสกุลจริง"
@@ -13501,10 +13588,10 @@ export default function App() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={editAccountAvatar}
                   onChange={(e) => setEditAccountAvatar(e.target.value)}
-                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${editAccountUsername || "พนักงาน"} อัตโนมัติ`}
+                  placeholder="ป้อน URL รูปภาพ หรือกดปุ่มอัปโหลดรูปภาพด้านบน"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
