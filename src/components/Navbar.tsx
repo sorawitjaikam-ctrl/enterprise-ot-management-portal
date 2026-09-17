@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Search, 
   AlertTriangle, 
@@ -17,7 +17,10 @@ import {
   ShieldCheck,
   FileText,
   Settings,
-  Building2
+  Building2,
+  Pin,
+  PinOff,
+  ChevronDown
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -46,6 +49,8 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   onLogout,
+  isNavbarCollapsed,
+  setIsNavbarCollapsed,
   complianceNotifications = [],
   onOpenComplianceModal
 }: NavbarProps) {
@@ -54,6 +59,93 @@ export default function Navbar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // Auto-hide mode state (default: true)
+  const [isAutoHideEnabled, setIsAutoHideEnabled] = useState<boolean>(() => {
+    const stored = localStorage.getItem("navbar_autohide_enabled");
+    return stored === null ? true : stored === "true";
+  });
+  const [isScrollVisible, setIsScrollVisible] = useState<boolean>(true);
+  const [isHeaderHovered, setIsHeaderHovered] = useState<boolean>(false);
+  const hoverTimeoutRef = useRef<number | null>(null);
+
+  // Save preference
+  useEffect(() => {
+    localStorage.setItem("navbar_autohide_enabled", String(isAutoHideEnabled));
+  }, [isAutoHideEnabled]);
+
+  // Scroll listener on window and #main-content
+  useEffect(() => {
+    if (!isAutoHideEnabled) {
+      setIsScrollVisible(true);
+      return;
+    }
+
+    let lastScroll = 0;
+    let ticking = false;
+
+    const getScrollTop = () => {
+      const winScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const mainEl = document.getElementById("main-content");
+      const mainScroll = mainEl ? mainEl.scrollTop : 0;
+      return Math.max(winScroll, mainScroll);
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScroll = getScrollTop();
+
+          if (currentScroll <= 30) {
+            setIsScrollVisible(true);
+          } else if (currentScroll > lastScroll + 15 && currentScroll > 60) {
+            setIsScrollVisible(false);
+          } else if (currentScroll < lastScroll - 15) {
+            setIsScrollVisible(true);
+          }
+
+          lastScroll = currentScroll;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    const mainEl = document.getElementById("main-content");
+    if (mainEl) {
+      mainEl.addEventListener("scroll", handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (mainEl) {
+        mainEl.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [isAutoHideEnabled]);
+
+  // Tabs visibility determination
+  const isTabsVisible = !isAutoHideEnabled || isScrollVisible || isHeaderHovered;
+
+  // Propagate to parent if setIsNavbarCollapsed is provided
+  useEffect(() => {
+    if (setIsNavbarCollapsed) {
+      setIsNavbarCollapsed(!isTabsVisible);
+    }
+  }, [isTabsVisible, setIsNavbarCollapsed]);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHeaderHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setIsHeaderHovered(false);
+    }, 400);
+  };
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -105,7 +197,11 @@ export default function Navbar({
   return (
     <>
       {/* Editorial Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans">
+      <header 
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans transition-all duration-300 shadow-2xs"
+      >
         
         {/* Top Header Bar */}
         <div className="w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
@@ -154,6 +250,40 @@ export default function Navbar({
               <PWAOfflineBadge />
               <PWAInstallButton />
 
+              {/* Auto-hide / Pin Tabs Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isAutoHideEnabled;
+                  setIsAutoHideEnabled(next);
+                  if (!next) {
+                    setIsScrollVisible(true);
+                  }
+                }}
+                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer active:scale-95 btn-press focus-ring ${
+                  isAutoHideEnabled
+                    ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8] hover:bg-[#D5EAF7]"
+                    : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
+                }`}
+                title={
+                  isAutoHideEnabled
+                    ? "สถานะ: Auto-hide เปิดใช้งาน (เลื่อนลงเพื่อซ่อนแถบเมนู / นำเมาส์มาชี้เพื่อแสดง)"
+                    : "สถานะ: ตรึงแถบเมนู (แสดงตลอดเวลา)"
+                }
+              >
+                {isAutoHideEnabled ? (
+                  <>
+                    <PinOff className="w-3.5 h-3.5 text-[#17538F]" />
+                    <span className="text-[11px] font-medium hidden xl:inline">Auto-hide</span>
+                  </>
+                ) : (
+                  <>
+                    <Pin className="w-3.5 h-3.5 text-[#6A7B87]" />
+                    <span className="text-[11px] font-medium hidden xl:inline">Pinned</span>
+                  </>
+                )}
+              </button>
+
               {/* Notification Bell */}
               <div className="relative">
                 <button
@@ -199,27 +329,23 @@ export default function Navbar({
                         ) : (
                           complianceNotifications.map((item, idx) => (
                             <div 
-                              key={item.emp?.id || idx}
+                              key={idx}
                               onClick={() => {
                                 setIsNotificationsOpen(false);
-                                if (onOpenComplianceModal) onOpenComplianceModal(item);
+                                onOpenComplianceModal?.(item);
                               }}
-                              className="p-2.5 hover:bg-[#E8F3FA] rounded-lg transition-colors cursor-pointer group"
+                              className="p-3 hover:bg-[#F3F6F8] transition-colors cursor-pointer flex items-start gap-2.5 group"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-[#0E3A66]">
-                                  {item.emp?.name}
-                                </span>
-                                <span className="tag t-r">
-                                  {item.alerts?.length || 0} ข้อระวัง
-                                </span>
+                              <div className="p-1.5 rounded-lg bg-[#FCF3DE] text-[#D99B14] shrink-0 mt-0.5">
+                                <AlertTriangle className="w-4 h-4" />
                               </div>
-                              <div className="text-[11px] text-[#59656D] mt-1 space-y-0.5">
-                                {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
-                                  <p key={ai} className="truncate text-[#B3352C]">
-                                    • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
-                                  </p>
-                                ))}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-[#0E3A66] group-hover:text-[#17538F]">
+                                  {item.emp?.name}
+                                </p>
+                                <p className="text-[11px] text-[#6A7B87]">
+                                  {item.emp?.deptId} · {item.alerts?.[0]?.message || "มีข้อควรระวังในการจัดกะ"}
+                                </p>
                               </div>
                             </div>
                           ))
@@ -258,7 +384,13 @@ export default function Navbar({
         </div>
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
-        <div className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
+        <div 
+          className={`hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x transition-all duration-300 ease-in-out origin-top ${
+            isTabsVisible 
+              ? "max-h-16 opacity-100 translate-y-0" 
+              : "max-h-0 opacity-0 -translate-y-2 pointer-events-none pb-0"
+          }`}
+        >
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
@@ -281,6 +413,20 @@ export default function Navbar({
             })}
           </nav>
         </div>
+
+        {/* Collapsed Tab Bar Quick Hint Strip */}
+        {!isTabsVisible && (
+          <div 
+            onClick={() => setIsScrollVisible(true)}
+            className="hidden md:flex items-center justify-center w-full py-0.5 bg-[#F8FAFC] text-[#17538F] text-[10px] font-medium cursor-pointer hover:bg-[#E8F3FA] transition-colors border-t border-[#DCE4EA]/40 select-none"
+            title="คลิกหรือเลื่อนเมาส์มาชี้เพื่อแสดงแถบเมนูนำทาง"
+          >
+            <div className="flex items-center gap-1 opacity-80 hover:opacity-100">
+              <ChevronDown className="w-3 h-3 text-[#2E90CB] animate-bounce" />
+              <span>แสดงแถบเมนู (Tabs)</span>
+            </div>
+          </div>
+        )}
 
       </header>
 

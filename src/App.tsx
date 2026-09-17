@@ -2699,7 +2699,7 @@ export default function App() {
   }, []);
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem("isNavbarCollapsed");
-    return stored === null ? true : stored === "true";
+    return stored === "true";
   });
   useEffect(() => {
     localStorage.setItem("isNavbarCollapsed", String(isNavbarCollapsed));
@@ -5983,7 +5983,7 @@ export default function App() {
       {/* Main container area */}
       <div className="flex-1 flex flex-col min-h-screen min-h-[100dvh]">
         {/* Dynamic page container */}
-        <main id="main-content" className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
+        <main id="main-content" className={`flex-1 overflow-y-auto w-full max-w-full min-w-0 transition-all duration-300 ${isFullScreen ? "mt-0 p-2 sm:p-4" : isNavbarCollapsed ? "mt-16 sm:mt-16 lg:mt-18 p-3 sm:p-4 lg:p-8" : "mt-16 sm:mt-20 lg:mt-28 p-3 sm:p-4 lg:p-8"}`}>
           
           {/* ======================================= */}
           {/* VIEW: DASHBOARD */}
