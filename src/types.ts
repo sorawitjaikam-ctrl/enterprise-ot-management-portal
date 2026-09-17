@@ -49,6 +49,24 @@ export interface Employee {
   sickLeaveUsed?: number;
   personalLeaveUsed?: number;
   vacationLeaveUsed?: number;
+
+  // Consolidated Manpower & Organization fields (Single Source of Truth)
+  positionId?: string;
+  unit?: string;
+  level?: string;
+  ocType?: "OLD" | "NEW" | string;
+  isMgr?: boolean;
+  isEng?: boolean;
+
+  // Consolidated Job Value fields
+  avgRevenue?: number;
+  avgCost?: number;
+  profit2026?: number;
+  profit2025?: number;
+  monthlyRevenue?: number[] | string;
+  monthlyCost?: number[] | string;
+  monthlyProfit?: number[] | string;
+  updatedAt?: string;
 }
 
 export interface ShiftConfig {

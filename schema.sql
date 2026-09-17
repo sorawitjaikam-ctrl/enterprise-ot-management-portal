@@ -6,38 +6,58 @@ CREATE TABLE IF NOT EXISTS departments (
   manager TEXT DEFAULT '-',
   managerRole TEXT DEFAULT 'Section Manager',
   managerImg TEXT DEFAULT '',
-  icon TEXT DEFAULT 'precision_manufacturing'
+  icon TEXT DEFAULT 'precision_manufacturing',
+  pattern TEXT DEFAULT ''
 );
 
--- Create employees table
+-- Create employees table (Central Master Entity - Keyed by employee ID)
 CREATE TABLE IF NOT EXISTS employees (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  deptId TEXT NOT NULL,
-  role TEXT DEFAULT 'Operator',
-  targetOt REAL DEFAULT 48,
-  actualOt REAL DEFAULT 0,
-  otPct REAL DEFAULT 0,
-  status TEXT DEFAULT 'On Track',
-  groupName TEXT DEFAULT 'Group A',
-  shifts TEXT DEFAULT '[]',
-  planShifts TEXT DEFAULT '[]',
+  id TEXT PRIMARY KEY,                 -- รหัสพนักงาน (เช่น 688172, EMP-101)
+  positionId TEXT DEFAULT '',          -- รหัสกรอบตำแหน่ง (เช่น POS-001)
+  name TEXT NOT NULL,                  -- ชื่อ-นามสกุล
   prefix TEXT DEFAULT '',
   firstName TEXT DEFAULT '',
   lastName TEXT DEFAULT '',
   nickname TEXT DEFAULT '',
-  division TEXT DEFAULT '',
+  avatar TEXT DEFAULT '',
+  deptId TEXT NOT NULL,                -- รหัสแผนก
+  division TEXT DEFAULT 'ฝ่ายปฏิบัติการท่าเรือ',
+  unit TEXT NOT NULL DEFAULT 'INTER 2',-- ทุ่น/ฝ่าย (INTER 2, INTER 3, INTER 5, INTER 7, Control Center, Improvement Engineering, Heavy Machine)
+  role TEXT NOT NULL DEFAULT 'Operator',
+  level TEXT NOT NULL DEFAULT 'Staff', -- ระดับตำแหน่ง (Worker - Worker, Worker - Skill, Staff, Officer, Engineer, Section Manager, Department Manager, Director)
+  ocType TEXT NOT NULL DEFAULT 'OLD',  -- ประเภท OC (OLD / NEW)
+  status TEXT NOT NULL DEFAULT 'Active',-- สถานะ (Active / Resigned / Vacant)
+  employmentStatus TEXT DEFAULT 'Active',
+  isMgr INTEGER DEFAULT 0,
+  isEng INTEGER DEFAULT 0,
+  
   salary REAL DEFAULT 0,
-  birthday TEXT DEFAULT '',
-  age INTEGER DEFAULT 0,
-  calculatedAge INTEGER DEFAULT 0,
   startDate TEXT DEFAULT '',
   tenure TEXT DEFAULT '',
   probationDate TEXT DEFAULT '',
-  calendarType TEXT DEFAULT ''
+  birthday TEXT DEFAULT '',
+  age INTEGER DEFAULT 0,
+  calculatedAge INTEGER DEFAULT 0,
+  calendarType TEXT DEFAULT 'ปฏิทินกะ 4-on-2-off',
+  groupName TEXT DEFAULT 'Group A',
+  shifts TEXT DEFAULT '[]',
+  planShifts TEXT DEFAULT '[]',
+  targetOt REAL DEFAULT 48,
+  actualOt REAL DEFAULT 0,
+  otPct REAL DEFAULT 0,
+  
+  -- Job Value metrics (Merged from job_value_records)
+  avgRevenue REAL DEFAULT 0,
+  avgCost REAL DEFAULT 0,
+  profit2026 REAL DEFAULT 0,
+  profit2025 REAL DEFAULT 0,
+  monthlyRevenue TEXT DEFAULT '[]',
+  monthlyCost TEXT DEFAULT '[]',
+  monthlyProfit TEXT DEFAULT '[]',
+  updatedAt TEXT DEFAULT ''
 );
 
--- Create ot_daily_records table
+-- Create ot_daily_records table (Linked to employees via employeeId)
 CREATE TABLE IF NOT EXISTS ot_daily_records (
   id TEXT PRIMARY KEY,
   year INTEGER NOT NULL,
@@ -48,10 +68,25 @@ CREATE TABLE IF NOT EXISTS ot_daily_records (
   deptId TEXT NOT NULL,
   shiftCode TEXT NOT NULL,
   otHours REAL NOT NULL,
-  note TEXT DEFAULT ''
+  note TEXT DEFAULT '',
+  FOREIGN KEY (employeeId) REFERENCES employees(id)
 );
 
--- Create leave_records table
+-- Create ot_requests table (Linked to employees via employeeId)
+CREATE TABLE IF NOT EXISTS ot_requests (
+  id TEXT PRIMARY KEY,
+  employeeId TEXT NOT NULL,
+  employeeName TEXT NOT NULL,
+  deptId TEXT NOT NULL,
+  date TEXT NOT NULL,
+  hours REAL NOT NULL,
+  reason TEXT DEFAULT '',
+  status TEXT DEFAULT 'pending',
+  requestedAt TEXT DEFAULT '',
+  FOREIGN KEY (employeeId) REFERENCES employees(id)
+);
+
+-- Create leave_records table (Linked to employees via employeeId)
 CREATE TABLE IF NOT EXISTS leave_records (
   id TEXT PRIMARY KEY,
   employeeId TEXT NOT NULL,
@@ -59,21 +94,35 @@ CREATE TABLE IF NOT EXISTS leave_records (
   deptId TEXT NOT NULL,
   date TEXT NOT NULL,
   leaveType TEXT NOT NULL,
-  note TEXT DEFAULT ''
+  note TEXT DEFAULT '',
+  FOREIGN KEY (employeeId) REFERENCES employees(id)
 );
 
--- Create app_accounts table
-CREATE TABLE IF NOT EXISTS app_accounts (
+-- Create accounts table (Linked to employees via employeeId)
+CREATE TABLE IF NOT EXISTS accounts (
   username TEXT PRIMARY KEY,
   password TEXT NOT NULL,
   name TEXT NOT NULL,
   role TEXT NOT NULL,
   deptId TEXT NOT NULL,
+  employeeId TEXT DEFAULT '',
   avatar TEXT DEFAULT '',
   canBackup INTEGER DEFAULT 0
 );
 
--- Create audit_logs table
+-- Create vessel_schedules table (Operational schedule)
+CREATE TABLE IF NOT EXISTS vessel_schedules (
+  id TEXT PRIMARY KEY,
+  type TEXT DEFAULT 'vessel',
+  planType TEXT DEFAULT 'actual',
+  name TEXT NOT NULL,
+  startDate TEXT NOT NULL,
+  endDate TEXT NOT NULL,
+  deptId TEXT NOT NULL,
+  tonnage REAL DEFAULT 0
+);
+
+-- Create audit_logs table (System audit trail)
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   timestamp TEXT NOT NULL,
@@ -94,68 +143,28 @@ INSERT OR IGNORE INTO departments (id, name, nameTh, manager, managerRole, icon)
 ('ecc', 'ECC', 'แผนก ECC', 'คุณประสิทธิ์', 'Section Manager', 'electrical_services');
 
 -- Insert initial employees
-INSERT OR IGNORE INTO employees (id, name, deptId, role, targetOt, actualOt, otPct, status, groupName, shifts) VALUES
-('EMP-101', 'นายสมชาย ใจดี', 'inter2', 'Operator', 48, 24, 50, 'On Track', 'Group A', '["M12","M12","O","O","A12","A12","N12","N12","O","O"]'),
-('EMP-102', 'นายวิชัย สุขใจ', 'inter2', 'Technician', 48, 40, 83, 'On Track', 'Group A', '["M8","M12","O","O","A8","A12","N8","N12","O","O"]'),
-('EMP-103', 'นางสาววิภา รักงาน', 'inter3', 'Operator', 48, 52, 108, 'Warning', 'Group B', '["M16","M12","O","O","A12","A16","N12","N12","O","O"]'),
-('EMP-104', 'นายสมศักดิ์ มั่นคง', 'inter5', 'Senior Operator', 48, 58, 120, 'Warning', 'Group C', '["M16","M16","O","O","A16","A12","N16","N12","O","O"]'),
-('EMP-105', 'นายอนันต์ ขยันยิ่ง', 'heavy', 'Mechanic', 48, 32, 67, 'On Track', 'Group A', '["M12","M8","O","O","A12","A8","N12","N8","O","O"]'),
-('EMP-106', 'นายประสิทธิ์ ดีเลิศ', 'ecc', 'Electrician', 48, 18, 38, 'On Track', 'Group B', '["M8","M8","O","O","A8","A8","N8","N8","O","O"]');
-
--- Create job_value_records table
-CREATE TABLE IF NOT EXISTS job_value_records (
-  id TEXT PRIMARY KEY,
-  empId TEXT NOT NULL,
-  empName TEXT NOT NULL,
-  department TEXT NOT NULL,
-  position TEXT DEFAULT '',
-  status TEXT DEFAULT '',
-  avgRevenue REAL DEFAULT 0,
-  avgCost REAL DEFAULT 0,
-  profit2026 REAL DEFAULT 0,
-  profit2025 REAL DEFAULT 0,
-  monthlyRevenue TEXT DEFAULT '[]',
-  monthlyCost TEXT DEFAULT '[]',
-  monthlyProfit TEXT DEFAULT '[]',
-  updatedAt TEXT NOT NULL
-);
+INSERT OR IGNORE INTO employees (
+  id, positionId, name, deptId, unit, role, level, ocType, status,
+  targetOt, actualOt, otPct, groupName, shifts, avgRevenue, avgCost, profit2026, profit2025
+) VALUES
+('EMP-101', 'POS-001', 'นายสมชาย ใจดี', 'inter2', 'INTER 2', 'Operator', 'Staff', 'OLD', 'Active', 48, 24, 50, 'Group A', '["M12","M12","O","O","A12","A12","N12","N12","O","O"]', 185000, 110000, 900000, 820000),
+('EMP-102', 'POS-002', 'นายวิชัย สุขใจ', 'inter2', 'INTER 2', 'Technician', 'Worker - Skill', 'OLD', 'Active', 48, 40, 83, 'Group A', '["M8","M12","O","O","A8","A12","N8","N12","O","O"]', 210000, 125000, 1020000, 940000),
+('EMP-103', 'POS-003', 'นางสาววิภา รักงาน', 'inter3', 'INTER 3', 'Operator', 'Staff', 'OLD', 'Active', 48, 52, 108, 'Group B', '["M16","M12","O","O","A12","A16","N12","N12","O","O"]', 175000, 105000, 840000, 780000),
+('EMP-104', 'POS-004', 'นายสมศักดิ์ มั่นคง', 'inter5', 'INTER 5', 'Senior Operator', 'Worker - Skill', 'OLD', 'Active', 48, 58, 120, 'Group C', '["M16","M16","O","O","A16","A12","N16","N12","O","O"]', 240000, 140000, 1200000, 1100000),
+('EMP-105', 'POS-005', 'นายอนันต์ ขยันยิ่ง', 'heavy', 'Heavy Machine', 'Mechanic', 'Worker - Skill', 'OLD', 'Active', 48, 32, 67, 'Group A', '["M12","M8","O","O","A12","A8","N12","N8","O","O"]', 220000, 130000, 1080000, 1000000),
+('EMP-106', 'POS-006', 'นายประสิทธิ์ ดีเลิศ', 'ecc', 'Control Center', 'Electrician', 'Worker - Skill', 'OLD', 'Active', 48, 18, 38, 'Group B', '["M8","M8","O","O","A8","A8","N8","N8","O","O"]', 195000, 115000, 960000, 890000);
 
 -- Insert initial accounts
-INSERT OR IGNORE INTO app_accounts (username, password, name, role, deptId, canBackup) VALUES
-('admin', 'admin123', 'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'all', 1),
-('hr', 'hr1234', 'HR Manager', 'HR', 'all', 1),
-('hr_sec', 'hrsec1234', 'HR Section Manager', 'HR Section Manager', 'all', 1),
-('op_dir', 'opdir1234', 'Operation Director', 'Operation Dir', 'all', 0),
-('op_dept', 'opdept1234', 'Operation Department', 'Operation Depart', 'all', 0),
-('inter2_mgr', 'i2mgr1234', 'Section Manager INTER2', 'Section Manager', 'inter2', 0),
-('inter3_mgr', 'i3mgr1234', 'Section Manager INTER3', 'Section Manager', 'inter3', 0),
-('inter5_mgr', 'i5mgr1234', 'Section Manager INTER5', 'Section Manager', 'inter5', 0),
-('inter7_mgr', 'i7mgr1234', 'Section Manager INTER7', 'Section Manager', 'inter7', 0),
-('heavy_mgr', 'hvmgr1234', 'Section Manager Heavy', 'Section Manager', 'heavy', 0),
-('ecc_mgr', 'eccmgr1234', 'Section Manager ECC', 'Section Manager', 'ecc', 0);
+INSERT OR IGNORE INTO accounts (username, password, name, role, deptId, employeeId, canBackup) VALUES
+('admin', 'admin123', 'ผู้ดูแลระบบ', 'ผู้ดูแลระบบ', 'all', '', 1),
+('hr', 'hr1234', 'HR Manager', 'HR', 'all', '', 1),
+('hr_sec', 'hrsec1234', 'HR Section Manager', 'HR Section Manager', 'all', '', 1),
+('op_dir', 'opdir1234', 'Operation Director', 'Operation Dir', 'all', '', 0),
+('op_dept', 'opdept1234', 'Operation Department', 'Operation Depart', 'all', '', 0),
+('inter2_mgr', 'i2mgr1234', 'Section Manager INTER2', 'Section Manager', 'inter2', 'EMP-101', 0),
+('inter3_mgr', 'i3mgr1234', 'Section Manager INTER3', 'Section Manager', 'inter3', 'EMP-103', 0),
+('inter5_mgr', 'i5mgr1234', 'Section Manager INTER5', 'Section Manager', 'inter5', 'EMP-104', 0),
+('inter7_mgr', 'i7mgr1234', 'Section Manager INTER7', 'Section Manager', 'inter7', '', 0),
+('heavy_mgr', 'hvmgr1234', 'Section Manager Heavy', 'Section Manager', 'heavy', 'EMP-105', 0),
+('ecc_mgr', 'eccmgr1234', 'Section Manager ECC', 'Section Manager', 'ecc', 'EMP-106', 0);
 
--- Insert initial job value records linked by empId
-INSERT OR IGNORE INTO job_value_records (id, empId, empName, department, position, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt) VALUES
-('JV-EMP-101', 'EMP-101', 'นายสมชาย ใจดี', 'INTER 2', 'Operator', 'Active', 185000, 110000, 900000, 820000, '[180000,182000,185000,188000,190000,185000,187000,186000,184000,189000,191000,188000]', '[108000,109000,110000,112000,111000,110000,112000,110000,109000,111000,113000,110000]', '[72000,73000,75000,76000,79000,75000,75000,76000,75000,78000,78000,78000]', '2026-08-04T17:00:00.000Z'),
-('JV-EMP-102', 'EMP-102', 'นายวิชัย สุขใจ', 'INTER 2', 'Technician', 'Active', 210000, 125000, 1020000, 940000, '[205000,208000,210000,215000,212000,210000,214000,211000,209000,216000,218000,213000]', '[123000,124000,125000,128000,126000,125000,127000,125000,124000,127000,129000,126000]', '[82000,84000,85000,87000,86000,85000,87000,86000,85000,89000,89000,87000]', '2026-08-04T17:00:00.000Z'),
-('JV-EMP-103', 'EMP-103', 'นางสาววิภา รักงาน', 'INTER 3', 'Operator', 'Active', 175000, 105000, 840000, 780000, '[170000,172000,175000,178000,176000,175000,177000,174000,173000,179000,180000,176000]', '[103000,104000,105000,107000,106000,105000,106000,104000,103000,107000,108000,105000]', '[67000,68000,70000,71000,70000,70000,71000,70000,70000,72000,72000,71000]', '2026-08-04T17:00:00.000Z'),
-('JV-EMP-104', 'EMP-104', 'นายสมศักดิ์ มั่นคง', 'INTER 5', 'Senior Operator', 'Active', 240000, 140000, 1200000, 1100000, '[235000,238000,240000,245000,242000,240000,244000,241000,239000,246000,248000,243000]', '[138000,139000,140000,143000,141000,140000,142000,140000,139000,143000,145000,142000]', '[97000,99000,100000,102000,101000,100000,102000,101000,100000,103000,103000,101000]', '2026-08-04T17:00:00.000Z'),
-('JV-EMP-105', 'EMP-105', 'นายอนันต์ ขยันยิ่ง', 'Heavy Machine', 'Mechanic', 'Active', 220000, 130000, 1080000, 1000000, '[215000,218000,220000,225000,222000,220000,224000,221000,219000,226000,228000,223000]', '[128000,129000,130000,133000,131000,130000,132000,130000,129000,133000,135000,132000]', '[87000,89000,90000,92000,91000,90000,92000,91000,90000,93000,93000,91000]', '2026-08-04T17:00:00.000Z'),
-('JV-EMP-106', 'EMP-106', 'นายประสิทธิ์ ดีเลิศ', 'ECC', 'Electrician', 'Active', 195000, 115000, 960000, 890000, '[190000,192000,195000,198000,196000,195000,197000,194000,193000,199000,200000,196000]', '[113000,114000,115000,117000,116000,115000,116000,114000,113000,117000,118000,115000]', '[77000,78000,80000,81000,80000,80000,81000,80000,80000,82000,82000,81000]', '2026-08-04T17:00:00.000Z');
-
--- Create manpower_positions table for Manpower & OC Analytics
-CREATE TABLE IF NOT EXISTS manpower_positions (
-  id TEXT PRIMARY KEY,
-  empId TEXT DEFAULT '',
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  unit TEXT NOT NULL,
-  level TEXT DEFAULT '',
-  isMgr INTEGER DEFAULT 0,
-  isEng INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'Active',
-  ocType TEXT DEFAULT 'OLD',
-  img TEXT DEFAULT '',
-  createdAt TEXT DEFAULT '',
-  updatedAt TEXT DEFAULT ''
-);
