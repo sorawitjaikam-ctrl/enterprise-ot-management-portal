@@ -876,6 +876,137 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ success: true, message: "อัปเดตสถานะใบคำขอเรียบร้อยแล้ว" }, { headers: corsHeaders });
     }
 
+    // 16. GET /api/manpower (Fetch all positions)
+    if (path === "/api/manpower" && request.method === "GET") {
+      let positionsRes: any = { results: [] };
+      if (db) {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS manpower_positions (
+            id TEXT PRIMARY KEY,
+            empId TEXT DEFAULT '',
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            isMgr INTEGER DEFAULT 0,
+            isEng INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Active',
+            ocType TEXT DEFAULT 'OLD',
+            img TEXT DEFAULT '',
+            createdAt TEXT DEFAULT '',
+            updatedAt TEXT DEFAULT ''
+          )`).run();
+          positionsRes = await db.prepare("SELECT * FROM manpower_positions ORDER BY id ASC").all();
+        } catch (e) {
+          console.error("D1 Get Manpower Positions Error:", e);
+        }
+      }
+      const positions = (positionsRes.results || []).map((r: any) => ({
+        id: r.id,
+        empId: r.empId || "",
+        name: r.name,
+        role: r.role,
+        unit: r.unit,
+        isMgr: Boolean(r.isMgr),
+        isEng: Boolean(r.isEng),
+        status: r.status || "Active",
+        ocType: r.ocType || "OLD",
+        img: r.img || null
+      }));
+      return Response.json({ success: true, positions }, { headers: corsHeaders });
+    }
+
+    // 17. POST /api/manpower (Upsert single position)
+    if (path === "/api/manpower" && request.method === "POST") {
+      const body = await getBody();
+      const pos = body.position || body;
+      if (db && pos && pos.id) {
+        try {
+          await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+              pos.id,
+              pos.empId || "",
+              pos.name || "",
+              pos.role || "",
+              pos.unit || "",
+              pos.isMgr ? 1 : 0,
+              pos.isEng ? 1 : 0,
+              pos.status || "Active",
+              pos.ocType || "OLD",
+              pos.img || "",
+              new Date().toISOString()
+            ).run();
+        } catch (e) {
+          console.error("D1 Upsert Manpower Position Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "บันทึกตำแหน่งงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 18. POST /api/manpower/bulk (Bulk save / replace all positions)
+    if (path === "/api/manpower/bulk" && request.method === "POST") {
+      const body = await getBody();
+      const positions = body.positions || [];
+      if (db) {
+        try {
+          await db.prepare(`CREATE TABLE IF NOT EXISTS manpower_positions (
+            id TEXT PRIMARY KEY,
+            empId TEXT DEFAULT '',
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            isMgr INTEGER DEFAULT 0,
+            isEng INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'Active',
+            ocType TEXT DEFAULT 'OLD',
+            img TEXT DEFAULT '',
+            createdAt TEXT DEFAULT '',
+            updatedAt TEXT DEFAULT ''
+          )`).run();
+          await db.prepare("DELETE FROM manpower_positions").run();
+          for (const pos of positions) {
+            await db.prepare(`INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+                pos.id,
+                pos.empId || "",
+                pos.name || "",
+                pos.role || "",
+                pos.unit || "",
+                pos.isMgr ? 1 : 0,
+                pos.isEng ? 1 : 0,
+                pos.status || "Active",
+                pos.ocType || "OLD",
+                pos.img || "",
+                new Date().toISOString()
+              ).run();
+          }
+        } catch (e) {
+          console.error("D1 Bulk Save Manpower Error:", e);
+        }
+      }
+      return Response.json({ success: true, count: positions.length, message: "บันทึกโครงสร้างอัตรากำลังเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 19. DELETE /api/manpower (Delete position by id or clear all)
+    if (path.startsWith("/api/manpower") && request.method === "DELETE") {
+      const urlObj = new URL(request.url);
+      const isClearAll = urlObj.searchParams.get("clearAll") === "true" || urlObj.searchParams.get("clear_all") === "true";
+      const idFromQuery = urlObj.searchParams.get("id");
+      const idFromPath = path.replace(/^\/api\/manpower\/?/, "");
+      const targetId = idFromQuery || idFromPath;
+      if (db) {
+        try {
+          if (isClearAll || targetId === "all" || targetId === "clear-all" || targetId === "clearAll") {
+            await db.prepare("DELETE FROM manpower_positions").run();
+          } else if (targetId) {
+            await db.prepare("DELETE FROM manpower_positions WHERE id = ?").bind(targetId).run();
+          }
+        } catch (e) {
+          console.error("D1 Delete Manpower Position Error:", e);
+        }
+      }
+      return Response.json({ success: true, message: "ลบตำแหน่งงานเรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
     // Default 404 response for unhandled API paths
     return Response.json({ error: "Endpoint not found" }, { status: 404, headers: corsHeaders });
 

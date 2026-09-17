@@ -19,7 +19,11 @@ import {
   Layers,
   ArrowUpDown,
   ShieldCheck,
-  Info
+  Info,
+  Loader2,
+  CheckCircle2,
+  Cloud,
+  Database
 } from "lucide-react";
 import { ManpowerPosition } from "../types";
 
@@ -65,141 +69,44 @@ function getEmpPhotoUrl(empId?: string): string | null {
   return null;
 }
 
-// Generate default 137 master positions (102 OLD + 35 NEW)
-function generateDefaultPositions(): ManpowerPosition[] {
-  let curIdx = 1;
-  const list: ManpowerPosition[] = [];
-
-  const add = (role: string, name: string, unit: string, isMgr = false, isEng = false, status: "Active" | "Vacant" = "Active", empId?: string, ocType: "OLD" | "NEW" = "OLD") => {
-    const isVacant = status === "Vacant";
-    const posId = `POS-${String(curIdx++).padStart(3, '0')}`;
-    const actualEmpId = isVacant ? "" : (empId || String(688000 + curIdx));
-    list.push({
-      id: posId,
-      empId: actualEmpId,
-      role,
-      name,
-      unit,
-      isMgr,
-      isEng,
-      status,
-      ocType,
-      img: isVacant ? null : getEmpPhotoUrl(actualEmpId)
-    });
-  };
-
-  // Management (1 OLD)
-  add("ผู้จัดการฝ่ายปฏิบัติการ", "คุณพนม ศรีอำ (Incharged)", "Management", true, false, "Active", "688172", "OLD");
-
-  // INTER 2 (29 = 22 OLD + 7 NEW)
-  add("ผู้จัดการแผนก", "คุณสมคิด ขำฉ่ำ", "INTER 2", true, false, "Active", "688173", "OLD");
-  add("Operation Engineer", "คุณสุดหล่อ สามารถ", "INTER 2", false, true, "Active", "688174", "OLD");
-  add("O&M Specialist", "คุณสุดหล่อ สามารถ (1)", "INTER 2", false, false, "Active", "688175", "OLD");
-  add("O&M Specialist", "คุณสุดหล่อ สามารถ (2)", "INTER 2", false, false, "Active", "688176", "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Generator", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("O&M Generator", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Mechanical", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("O&M Mechanical", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Electrical", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("O&M Electrical", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานขนถ่ายสินค้า", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("ผู้ควบคุมงานขนถ่ายสินค้า", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ช่างปากเรือ", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("ช่างปากเรือ", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("พนักงานขับเครน", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  add("พนักงานขับเครน", "คุณสุดหล่อ สามารถ (3)", "INTER 2", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานจักรกลหนัก", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 6; i++) add("ช่างขับจักรกลหนัก", `คุณสุดหล่อ สามารถ (${i})`, "INTER 2", false, false, "Active", undefined, "OLD");
-
-  // INTER 3 (38 = 29 OLD + 9 NEW)
-  add("ผู้จัดการแผนก", "Vacant", "INTER 3", true, false, "Vacant", undefined, "OLD");
-  add("Operation Engineer", "คุณกรวิชญ์ ดำรงศิลป์", "INTER 3", false, true, "Active", undefined, "OLD");
-  add("O&M Specialist", "นายเชี่ยวชาญ ระบบ", "INTER 3", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 2; i++) add("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("O&M Generator", "ช่างเยนเนอเรเตอร์ (3)", "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 3; i++) add("O&M Mechanical", `ช่างกลโรงงาน (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("O&M Mechanical", "ช่างกลโรงงาน (4)", "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Electrical", `ช่างไฟฟ้า (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("O&M Electrical", "ช่างไฟฟ้า (3)", "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("ผู้ควบคุมงานขนถ่ายสินค้า", "จนท.ขนถ่าย (3)", "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("ช่างปากเรือ", "ปากเรือ (3)", "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 6; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 3", false, false, "Active", undefined, "OLD");
-  for (let i = 7; i <= 9; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 3", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 3", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 8; i++) add("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 3", false, false, "Active", undefined, "OLD");
-  add("ช่างขับจักรกลหนัก", "ช่างขับจักรกลคนที่ 9", "INTER 3", false, false, "Active", undefined, "NEW");
-
-  // INTER 5 (31 = 22 OLD + 9 NEW)
-  add("ผู้จัดการแผนก", "คุณสมเกียรติ กลิ่นกิ่งทอง", "INTER 5", true, false, "Active", undefined, "OLD");
-  add("Operation Engineer", "Vacant", "INTER 5", false, true, "Vacant", undefined, "OLD");
-  add("O&M Specialist", "นายประสิทธิ์ ช่างทุ่น 5", "INTER 5", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 2; i++) add("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("O&M Generator", "ช่างเยนเนอเรเตอร์ (3)", "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Mechanical", `ช่างกล (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("O&M Mechanical", "ช่างกล (3)", "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Electrical", `ช่างไฟ (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("O&M Electrical", "ช่างไฟ (3)", "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("ผู้ควบคุมงานขนถ่ายสินค้า", "จนท.ขนถ่าย (3)", "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("ช่างปากเรือ", "ปากเรือ (3)", "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 4; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 5", false, false, "Active", undefined, "OLD");
-  for (let i = 5; i <= 6; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 5", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 5", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 5; i++) add("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 5", false, false, "Active", undefined, "OLD");
-  add("ช่างขับจักรกลหนัก", "ช่างขับจักรกลคนที่ 6", "INTER 5", false, false, "Active", undefined, "NEW");
-
-  // INTER 7 (31 = 22 OLD + 9 NEW)
-  add("ผู้จัดการแผนก", "คุณปิยะศักดิ์ วิทิยสะอาด", "INTER 7", true, false, "Active", undefined, "OLD");
-  add("Operation Engineer", "คุณตันตพงษ์ จันทประภาส", "INTER 7", false, true, "Active", undefined, "OLD");
-  add("O&M Specialist", "นายธนาวุฒิ ทุ่น 7", "INTER 7", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 2; i++) add("O&M Generator", `ช่างเยนเนอเรเตอร์ (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("O&M Generator", "ช่างเยนเนอเรเตอร์ (3)", "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Mechanical", `ช่างกล (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("O&M Mechanical", "ช่างกล (3)", "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("O&M Electrical", `ช่างไฟ (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("O&M Electrical", "ช่างไฟ (3)", "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานขนถ่ายสินค้า", `จนท.ขนถ่าย (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("ผู้ควบคุมงานขนถ่ายสินค้า", "จนท.ขนถ่าย (3)", "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ช่างปากเรือ", `ปากเรือ (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("ช่างปากเรือ", "ปากเรือ (3)", "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 4; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 7", false, false, "Active", undefined, "OLD");
-  for (let i = 5; i <= 6; i++) add("พนักงานขับเครน", `พนักงานขับเครนคนที่ ${i}`, "INTER 7", false, false, "Active", undefined, "NEW");
-  for (let i = 1; i <= 2; i++) add("ผู้ควบคุมงานจักรกลหนัก", `ผู้ควบคุมจักรกล (${i})`, "INTER 7", false, false, "Active", undefined, "OLD");
-  for (let i = 1; i <= 5; i++) add("ช่างขับจักรกลหนัก", `ช่างขับจักรกลคนที่ ${i}`, "INTER 7", false, false, "Active", undefined, "OLD");
-  add("ช่างขับจักรกลหนัก", "ช่างขับจักรกลคนที่ 6", "INTER 7", false, false, "Active", undefined, "NEW");
-
-  // Improvement (2 OLD)
-  add("Maintenance Improvement", "วิศวกรรมส่วนกลาง", "Improvement", true, false, "Active", undefined, "OLD");
-  add("Improvement Engineer", "คุณณภัทรชญ์ เจริญศรี", "Improvement", false, true, "Active", undefined, "OLD");
-
-  // Heavy Machine Leaders (2 OLD)
-  add("ผู้จัดการแผนก", "คุณสมคิด ขำฉ่ำ (Incharge)", "Heavy Machine", true, false, "Active", undefined, "OLD");
-  add("Operation Engineer", "คุณเมธา วงศ์ชอบ", "Heavy Machine", false, true, "Active", undefined, "OLD");
-
-  // CONTROL (8 = 7 OLD + 1 NEW)
-  for (let i = 1; i <= 7; i++) add("เจ้าหน้าที่ศูนย์ควบคุม", `เจ้าหน้าที่ควบคุมระบบ (${i})`, "CONTROL", false, false, "Active", undefined, "OLD");
-  add("เจ้าหน้าที่ศูนย์ควบคุม", "เจ้าหน้าที่ควบคุมระบบ (8)", "CONTROL", false, false, "Vacant", undefined, "NEW");
-
-  return list;
+// Safe loader from local storage with mock-data purge
+function getInitialPositions(): ManpowerPosition[] {
+  const saved = localStorage.getItem("port_ops_manpower_masterList");
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        // Purge obsolete dummy mock data (e.g. สุดหล่อ, placeholder workers)
+        const hasMockData = parsed.some(p =>
+          p && p.name && (
+            p.name.includes("สุดหล่อ") ||
+            p.name.includes("พนักงานขับเครนคนที่") ||
+            p.name.includes("ช่างขับจักรกลคนที่") ||
+            p.name.includes("ช่างเยนเนอเรเตอร์") ||
+            p.name.includes("ช่างกลโรงงาน") ||
+            p.name.includes("จนท.ขนถ่าย") ||
+            p.name.includes("นายเชี่ยวชาญ ระบบ") ||
+            p.name.includes("นายประสิทธิ์ ช่างทุ่น")
+          )
+        );
+        if (hasMockData) {
+          localStorage.removeItem("port_ops_manpower_masterList");
+          return [];
+        }
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to load saved positions:", e);
+    }
+  }
+  return [];
 }
 
 export default function ManpowerDashboard() {
   const [shiftMode, setShiftMode] = useState<"3T" | "2T">("3T");
-  const [positions, setPositions] = useState<ManpowerPosition[]>(() => {
-    const saved = localStorage.getItem("port_ops_manpower_masterList");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.error("Failed to load saved positions:", e);
-      }
-    }
-    return generateDefaultPositions();
-  });
+  const [positions, setPositions] = useState<ManpowerPosition[]>(getInitialPositions);
+  const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
+  const isFirstSync = useRef(true);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,6 +131,9 @@ export default function ManpowerDashboard() {
   const [formOcType, setFormOcType] = useState<"OLD" | "NEW">("OLD");
   const [formLevel, setFormLevel] = useState<"staff" | "mgr" | "eng">("staff");
 
+  // File input ref for trigger from empty state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -234,9 +144,76 @@ export default function ManpowerDashboard() {
     toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Save to LocalStorage whenever positions change
+  // Load data from Cloudflare D1 Backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPositions = async () => {
+      try {
+        setSyncStatus("syncing");
+        const res = await fetch("/api/manpower");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.success && Array.isArray(data.positions)) {
+            if (data.positions.length > 0) {
+              setPositions(data.positions);
+              localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(data.positions));
+            } else {
+              // If remote D1 is empty but localStorage has non-mock items, push them up
+              const local = getInitialPositions();
+              if (local.length > 0) {
+                await fetch("/api/manpower/bulk", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ positions: local })
+                });
+              }
+            }
+            setSyncStatus("synced");
+            return;
+          }
+        }
+        if (isMounted) setSyncStatus("offline");
+      } catch (err) {
+        console.warn("Could not sync with /api/manpower:", err);
+        if (isMounted) setSyncStatus("offline");
+      }
+    };
+
+    fetchPositions();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Save to LocalStorage and debounced sync to Cloudflare D1
   useEffect(() => {
     localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(positions));
+
+    if (isFirstSync.current) {
+      isFirstSync.current = false;
+      return;
+    }
+
+    setSyncStatus("syncing");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/manpower/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ positions })
+        });
+        if (res.ok) {
+          setSyncStatus("synced");
+        } else {
+          setSyncStatus("offline");
+        }
+      } catch (err) {
+        console.warn("Auto-sync to /api/manpower/bulk failed:", err);
+        setSyncStatus("offline");
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
   }, [positions]);
 
   // Dynamic unit list derived directly from data
@@ -545,12 +522,19 @@ export default function ManpowerDashboard() {
     }
   };
 
-  // Reset to default
-  const handleResetData = () => {
-    if (window.confirm("คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าตั้งต้น 137 อัตรา ใช่หรือไม่?")) {
-      const defaultData = generateDefaultPositions();
-      setPositions(defaultData);
-      showToast("รีเซ็ตข้อมูลตั้งต้นเรียบร้อย");
+  // Clear all data (local & remote Cloudflare D1)
+  const handleClearAllData = async () => {
+    if (window.confirm("คุณต้องการล้างข้อมูลตำแหน่งงานทั้งหมดในระบบ ใช่หรือไม่?\n(การดำเนินการนี้จะลบข้อมูลทั้งในเครื่องและ Cloudflare D1)")) {
+      try {
+        setSyncStatus("syncing");
+        await fetch("/api/manpower?clearAll=true", { method: "DELETE" });
+      } catch (err) {
+        console.warn("Failed to clear backend data:", err);
+      }
+      setPositions([]);
+      localStorage.removeItem("port_ops_manpower_masterList");
+      setSyncStatus("synced");
+      showToast("ล้างข้อมูลตำแหน่งงานทั้งหมดเรียบร้อยแล้ว");
     }
   };
 
@@ -707,13 +691,35 @@ export default function ManpowerDashboard() {
       {/* ========================================================================= */}
       <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]/50 uppercase tracking-wider">
               Workforce Intelligence
             </span>
             <span className="text-xs text-[#6A7B87]">· Double A Terminal Stevedoring</span>
+
+            {/* Cloudflare D1 Sync Badge */}
+            <div className="inline-flex items-center ml-1">
+              {syncStatus === "syncing" && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-[#2E90CB] bg-[#E8F3FA] border border-[#9FCEE8]/70 px-2.5 py-0.5 rounded-full font-medium shadow-2xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>กำลังบันทึกไปยัง Cloudflare D1...</span>
+                </span>
+              )}
+              {syncStatus === "synced" && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-[#1F6E43] bg-[#E8F8EE] border border-[#89D4A6]/70 px-2.5 py-0.5 rounded-full font-medium shadow-2xs" title="เชื่อมต่อฐานข้อมูล Cloudflare D1 เรียลไทม์">
+                  <CheckCircle2 className="w-3 h-3 text-[#1F6E43]" />
+                  <span>Cloudflare D1 ซิงค์แล้ว</span>
+                </span>
+              )}
+              {syncStatus === "offline" && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-[#9E6A00] bg-[#FFF8E6] border border-[#F2C96D]/70 px-2.5 py-0.5 rounded-full font-medium shadow-2xs" title="ทำงานแบบ Local Cache ในเบราว์เซอร์">
+                  <Database className="w-3 h-3 text-[#9E6A00]" />
+                  <span>Local Storage (ออฟไลน์)</span>
+                </span>
+              )}
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-[#0E3A66] tracking-tight mt-1 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-[#0E3A66] tracking-tight mt-1.5 flex items-center gap-2">
             <span>โครงสร้างอัตรากำลังและกรอบตำแหน่ง (Manpower & OC Analytics)</span>
           </h2>
           <p className="text-xs text-[#6A7B87] mt-0.5">
@@ -745,6 +751,44 @@ export default function ManpowerDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Empty State Hero Banner when no positions exist */}
+      {positions.length === 0 && (
+        <div className="bg-gradient-to-br from-[#F8FAFC] via-white to-[#E8F3FA]/40 border-2 border-dashed border-[#9FCEE8] rounded-2xl p-8 text-center shadow-xs">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8F3FA] border border-[#9FCEE8]/60 flex items-center justify-center text-[#17538F] mb-4 shadow-xs">
+            <Database className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-bold text-[#0E3A66]">
+            ยังไม่มีข้อมูลโครงสร้างอัตรากำลังในระบบ (Database Empty)
+          </h3>
+          <p className="text-xs text-[#6A7B87] max-w-md mx-auto mt-1.5 leading-relaxed">
+            ระบบเชื่อมต่อฐานข้อมูล Cloudflare D1 เรียบร้อยแล้ว (Mock Data ถูกล้างออกแล้ว) คุณสามารถเริ่มต้นใช้งานได้ทันทีโดยการนำเข้าไฟล์ CSV หรือกดเพิ่มตำแหน่งงานแรก
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 bg-[#17538F] text-white rounded-lg text-xs font-bold hover:bg-[#0E3A66] flex items-center gap-2 transition cursor-pointer shadow-xs"
+            >
+              <Upload className="w-4 h-4" />
+              <span>นำเข้าไฟล์ CSV (Import CSV)</span>
+            </button>
+            <button
+              onClick={handleDownloadTemplate}
+              className="px-4 py-2 border border-[#DCE4EA] bg-white text-[#0E3A66] rounded-lg text-xs font-bold hover:bg-[#F3F6F8] flex items-center gap-2 transition cursor-pointer shadow-xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#17538F]" />
+              <span>ดาวน์โหลดแม่แบบ CSV (Template)</span>
+            </button>
+            <button
+              onClick={handleOpenAddModal}
+              className="px-4 py-2 border border-[#2E90CB] bg-[#E8F3FA] text-[#0E3A66] rounded-lg text-xs font-bold hover:bg-[#D5EAF7] flex items-center gap-2 transition cursor-pointer shadow-xs"
+            >
+              <Plus className="w-4 h-4 text-[#17538F]" />
+              <span>+ เพิ่มตำแหน่งงานแรก</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* SECTION 2: LIVE KPI OVERVIEW CARDS */}
@@ -1122,7 +1166,7 @@ export default function ManpowerDashboard() {
         
         {/* Upload Excel / CSV */}
         <label className="bg-white border-2 border-dashed border-[#DCE4EA] hover:border-[#2E90CB] rounded-xl p-5 flex flex-col items-center justify-center text-center transition cursor-pointer group">
-          <input type="file" accept=".csv, .txt, .xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+          <input ref={fileInputRef} type="file" accept=".csv, .txt, .xlsx, .xls" onChange={handleFileUpload} className="hidden" />
           <Upload className="w-6 h-6 text-[#6A7B87] group-hover:text-[#2E90CB] transition-colors mb-1.5" />
           <span className="text-xs font-bold text-[#0E3A66]">Upload Headcount (CSV / Excel)</span>
           <span className="text-[11px] text-[#6A7B87] mt-0.5">คลิกเพื่ออัปโหลดไฟล์โครงสร้างอัตรากำลัง</span>
@@ -1151,11 +1195,11 @@ export default function ManpowerDashboard() {
           </div>
         </div>
 
-        {/* Add Person & Reset */}
+        {/* Add Person & Clear All */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Add Position / Reset</span>
-            <p className="text-[11px] text-[#6A7B87]">เพิ่มกรอบตำแหน่งหรือรีเซ็ตกลับชุดข้อมูล 137 อัตรา</p>
+            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Add Position / Clear</span>
+            <p className="text-[11px] text-[#6A7B87]">เพิ่มตำแหน่งงานใหม่ หรือล้างข้อมูลทั้งหมดในระบบ</p>
           </div>
           <div className="flex items-center gap-2 pt-3">
             <button
@@ -1166,11 +1210,12 @@ export default function ManpowerDashboard() {
               <span>+ Add Position</span>
             </button>
             <button
-              onClick={handleResetData}
-              className="px-3 py-1.5 border border-[#DCE4EA] text-[#6A7B87] rounded-lg text-xs font-medium hover:bg-[#F3F6F8] hover:text-[#0E3A66] transition cursor-pointer"
-              title="รีเซ็ตกลับเป็นค่าตั้งต้น 137 อัตรา"
+              onClick={handleClearAllData}
+              className="px-3 py-1.5 border border-[#E9A8A8] text-[#A61C1C] rounded-lg text-xs font-medium hover:bg-[#FDF3F3] transition cursor-pointer flex items-center gap-1"
+              title="ล้างข้อมูลทั้งหมดในระบบ (Cloudflare D1 & Local Cache)"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px]">Clear</span>
             </button>
           </div>
         </div>
