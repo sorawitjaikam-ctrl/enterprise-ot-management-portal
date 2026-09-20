@@ -3969,9 +3969,9 @@ export default function App() {
   });
 
   // Fetch initial portal state
-  const fetchPortalState = async (monthOverride?: string) => {
+  const fetchPortalState = async (monthOverride?: string, silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
@@ -4022,7 +4022,7 @@ export default function App() {
       setTempEmployees(def.employees);
       setAccounts([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -7947,7 +7947,7 @@ export default function App() {
                 setState((prev: any) => prev ? { ...prev, employees: updatedEmps } : prev);
                 setTempEmployees(updatedEmps);
               }}
-              onRefreshPortalState={fetchPortalState}
+              onRefreshPortalState={() => fetchPortalState(undefined, true)}
             />
           )}
 

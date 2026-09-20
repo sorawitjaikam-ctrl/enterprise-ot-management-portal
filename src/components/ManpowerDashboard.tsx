@@ -143,10 +143,54 @@ function normalizeUnitToDeptId(unit?: string): string {
   return clean;
 }
 
+function mapEmployeesToPositions(emps: any[]): ManpowerPosition[] {
+  return emps.map((emp, idx) => {
+    const isVacant = emp.employmentStatus === "Vacant" || emp.name === "Vacant" || !emp.name;
+    const posId = emp.positionId || `POS-${String(idx + 1).padStart(3, '0')}`;
+    return {
+      id: posId,
+      empId: isVacant ? "" : (emp.id || ""),
+      name: emp.name || (isVacant ? "Vacant" : "Unassigned"),
+      role: emp.role || "พนักงานปฏิบัติการ",
+      unit: emp.department || emp.unit || "INTER 2",
+      level: emp.level || resolvePositionLevel({ role: emp.role, level: emp.level }),
+      status: isVacant ? "Vacant" : (emp.employmentStatus === "Resigned" ? "Resigned" : "Active"),
+      ocType: emp.ocType || "OLD",
+      isMgr: Boolean(emp.isMgr),
+      isEng: Boolean(emp.isEng),
+      img: emp.avatar || null
+    };
+  });
+}
+
+function mapPositionsToEmployees(positionsList: ManpowerPosition[]): any[] {
+  return positionsList
+    .filter(p => p.status !== "Vacant" && p.name && p.name !== "Vacant")
+    .map(p => ({
+      id: p.empId || `EMP-${p.id.replace(/\D/g, "")}`,
+      name: p.name,
+      deptId: normalizeUnitToDeptId(p.unit),
+      department: p.unit,
+      role: p.role,
+      positionId: p.id,
+      targetOt: 48,
+      actualOt: 0,
+      otPct: 0,
+      status: "On Track",
+      groupName: "Group A",
+      shifts: Array(31).fill("D"),
+      planShifts: Array(31).fill("D"),
+      salary: 20000,
+      division: "ฝ่ายปฏิบัติการท่าเรือ",
+      calendarType: "ปฏิทินกะ 4-on-2-off",
+      employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+    }));
+}
+
 export interface ManpowerDashboardProps {
   employees?: any[];
   onSyncEmployees?: (updatedEmployees: any[]) => void;
-  onRefreshPortalState?: () => Promise<void>;
+  onRefreshPortalState?: (silent?: boolean) => Promise<void>;
 }
 
 export default function ManpowerDashboard({
@@ -155,9 +199,23 @@ export default function ManpowerDashboard({
   onRefreshPortalState
 }: ManpowerDashboardProps = {}) {
   const [shiftMode, setShiftMode] = useState<"3T" | "2T">("3T");
-  const [positions, setPositions] = useState<ManpowerPosition[]>(getInitialPositions);
+  const [positions, setPositions] = useState<ManpowerPosition[]>(() => {
+    const local = getInitialPositions();
+    if (local.length > 0) return local;
+    if (employees && employees.length > 0) return mapEmployeesToPositions(employees);
+    return [];
+  });
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
   const isFirstSync = useRef(true);
+
+  // Auto-connect with parent employees roster if positions is empty
+  useEffect(() => {
+    if (positions.length === 0 && employees && employees.length > 0) {
+      const mapped = mapEmployeesToPositions(employees);
+      setPositions(mapped);
+      localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(mapped));
+    }
+  }, [employees, positions.length]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -208,14 +266,28 @@ export default function ManpowerDashboard({
             if (data.positions.length > 0) {
               setPositions(data.positions);
               localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(data.positions));
+              if (onSyncEmployees && (!employees || employees.length === 0)) {
+                const empsFromD1 = mapPositionsToEmployees(data.positions);
+                if (empsFromD1.length > 0) onSyncEmployees(empsFromD1);
+              }
             } else {
-              // If remote D1 is empty but localStorage has non-mock items, push them up
+              // If remote D1 is empty:
               const local = getInitialPositions();
               if (local.length > 0) {
+                setPositions(local);
                 await fetch("/api/manpower/bulk", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ positions: local })
+                });
+              } else if (employees && employees.length > 0) {
+                const fromEmps = mapEmployeesToPositions(employees);
+                setPositions(fromEmps);
+                localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(fromEmps));
+                await fetch("/api/manpower/bulk", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ positions: fromEmps })
                 });
               }
             }
@@ -255,7 +327,7 @@ export default function ManpowerDashboard({
         });
         if (res.ok) {
           setSyncStatus("synced");
-          onRefreshPortalState?.();
+          onRefreshPortalState?.(true);
         } else {
           setSyncStatus("offline");
         }
@@ -453,98 +525,173 @@ export default function ManpowerDashboard({
     });
   }, [positions, searchQuery, unitFilter, statusFilter, ocTypeFilter, levelFilter]);
 
+  // Helper to immediately push updated positions to parent employees state
+  const syncToEmployees = (updatedPositions: ManpowerPosition[]) => {
+    if (!onSyncEmployees) return;
+    const existingMap = new Map((employees || []).map(e => [e.id, e]));
+    const nameMap = new Map((employees || []).map(e => [e.name, e]));
+
+    const merged = updatedPositions
+      .filter(p => p.status !== "Vacant" && p.name && p.name !== "Vacant")
+      .map(p => {
+        const empId = p.empId || `EMP-${p.id.replace(/\D/g, "")}`;
+        const ex = (p.empId && existingMap.get(p.empId)) || nameMap.get(p.name);
+        if (ex) {
+          return {
+            ...ex,
+            id: empId,
+            name: p.name,
+            role: p.role,
+            deptId: normalizeUnitToDeptId(p.unit),
+            department: p.unit,
+            positionId: p.id,
+            employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+          };
+        }
+        return {
+          id: empId,
+          name: p.name,
+          deptId: normalizeUnitToDeptId(p.unit),
+          department: p.unit,
+          role: p.role,
+          positionId: p.id,
+          targetOt: 48,
+          actualOt: 0,
+          otPct: 0,
+          status: "On Track",
+          groupName: "Group A",
+          shifts: Array(31).fill("D"),
+          planShifts: Array(31).fill("D"),
+          salary: 20000,
+          division: "ฝ่ายปฏิบัติการท่าเรือ",
+          calendarType: "ปฏิทินกะ 4-on-2-off",
+          employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+        };
+      });
+
+    onSyncEmployees(merged);
+  };
+
   // Inline sync handlers
   const handleSyncName = (id: string, newName: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const trimmed = newName.trim();
-      if (trimmed.toLowerCase().includes("vacant") || trimmed === "ว่าง" || !trimmed) {
-        return { ...p, name: trimmed || "Vacant", status: "Vacant", empId: "", img: null };
-      }
-      return {
-        ...p,
-        name: trimmed,
-        status: p.status === "Vacant" ? "Active" : p.status,
-        img: p.empId ? getEmpPhotoUrl(p.empId) : p.img
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const trimmed = newName.trim();
+        if (trimmed.toLowerCase().includes("vacant") || trimmed === "ว่าง" || !trimmed) {
+          return { ...p, name: trimmed || "Vacant", status: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          name: trimmed,
+          status: p.status === "Vacant" ? "Active" : p.status,
+          img: p.empId ? getEmpPhotoUrl(p.empId) : p.img
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกชื่อพนักงานเรียบร้อย");
   };
 
   const handleSyncRole = (id: string, newRole: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const inferredLevel = resolvePositionLevel({ ...p, role: newRole });
-      return {
-        ...p,
-        role: newRole.trim(),
-        level: p.level || inferredLevel,
-        isMgr: ["Director", "Department Manager", "Section Manager"].includes(p.level || inferredLevel),
-        isEng: (p.level || inferredLevel) === "Engineer"
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const inferredLevel = resolvePositionLevel({ ...p, role: newRole });
+        return {
+          ...p,
+          role: newRole.trim(),
+          level: p.level || inferredLevel,
+          isMgr: ["Director", "Department Manager", "Section Manager"].includes(p.level || inferredLevel),
+          isEng: (p.level || inferredLevel) === "Engineer"
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกตำแหน่งงานเรียบร้อย");
   };
 
   const handleSyncLevel = (id: string, newLevel: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      return {
-        ...p,
-        level: newLevel,
-        isMgr: ["Director", "Department Manager", "Section Manager"].includes(newLevel),
-        isEng: newLevel === "Engineer"
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        return {
+          ...p,
+          level: newLevel,
+          isMgr: ["Director", "Department Manager", "Section Manager"].includes(newLevel),
+          isEng: newLevel === "Engineer"
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกระดับตำแหน่งเรียบร้อย");
   };
 
   const handleSyncUnit = (id: string, newUnit: string) => {
-    setPositions(prev => prev.map(p => (p.id === id ? { ...p, unit: newUnit.trim() } : p)));
+    setPositions(prev => {
+      const next = prev.map(p => (p.id === id ? { ...p, unit: newUnit.trim() } : p));
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกทุ่น/ฝ่ายเรียบร้อย");
   };
 
   const handleToggleOcType = (id: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const nextType = p.ocType === "NEW" ? "OLD" : "NEW";
-      return { ...p, ocType: nextType };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const nextType = p.ocType === "NEW" ? "OLD" : "NEW";
+        return { ...p, ocType: nextType };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("สลับกรอบอัตรา (OC Type) เรียบร้อย");
   };
 
   const handleStatusChange = (id: string, newStatus: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      if (newStatus === "Vacant") {
-        return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
-      }
-      return {
-        ...p,
-        status: newStatus,
-        name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        if (newStatus === "Vacant") {
+          return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          status: newStatus,
+          name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย`);
   };
 
   const handleToggleStatus = (id: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      let nextStatus = "Active";
-      if (p.status === "Active") nextStatus = "Resigned";
-      else if (p.status === "Resigned") nextStatus = "Vacant";
-      else nextStatus = "Active";
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        let nextStatus = "Active";
+        if (p.status === "Active") nextStatus = "Resigned";
+        else if (p.status === "Resigned") nextStatus = "Vacant";
+        else nextStatus = "Active";
 
-      if (nextStatus === "Vacant") {
-        return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
-      }
-      return {
-        ...p,
-        status: nextStatus,
-        name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
-      };
-    }));
+        if (nextStatus === "Vacant") {
+          return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          status: nextStatus,
+          name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("สลับสถานะตำแหน่งเรียบร้อย");
   };
 

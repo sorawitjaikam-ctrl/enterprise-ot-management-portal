@@ -83,6 +83,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           try { await db.prepare("ALTER TABLE employees ADD COLUMN monthlyCost TEXT DEFAULT '[]'").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN monthlyProfit TEXT DEFAULT '[]'").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN updatedAt TEXT DEFAULT ''").run(); } catch (e) {}
+          try { await db.prepare("ALTER TABLE employees ADD COLUMN avatar TEXT DEFAULT ''").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE accounts ADD COLUMN employeeId TEXT DEFAULT ''").run(); } catch (e) {}
 
           // Safe Auto-Migration: Migrate legacy manpower_positions into employees table if table exists
