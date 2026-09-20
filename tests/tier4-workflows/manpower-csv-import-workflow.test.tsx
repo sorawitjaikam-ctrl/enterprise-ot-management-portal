@@ -76,4 +76,24 @@ describe("Tier 4: Manpower Dashboard CSV Import Workflow", () => {
       expect(screen.getByDisplayValue("กมล สายตรวจ")).toBeInTheDocument();
     });
   });
+
+  it("T4.MP.5: Clicking Clear button opens sleek custom confirmation modal, and confirming completely clears data", async () => {
+    render(<ManpowerDashboard />);
+
+    const clearButton = screen.getByTitle(/ล้างข้อมูลทั้งหมดในระบบ/);
+    expect(clearButton).toBeInTheDocument();
+
+    fireEvent.click(clearButton);
+
+    // Custom sleek modal appears with title and buttons (not window.confirm!)
+    expect(screen.getByText("ยืนยันการล้างข้อมูลตำแหน่งงานทั้งหมด")).toBeInTheDocument();
+    expect(screen.getByText("ล้างข้อมูลทั้งหมด")).toBeInTheDocument();
+
+    const confirmClearBtn = screen.getByRole("button", { name: /ล้างข้อมูลทั้งหมด/ });
+    fireEvent.click(confirmClearBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/ยังไม่มีข้อมูลโครงสร้างอัตรากำลังในระบบ/)).toBeInTheDocument();
+    });
+  });
 });

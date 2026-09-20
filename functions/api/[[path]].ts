@@ -1210,14 +1210,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (db) {
         try {
           if (isClearAll || targetId === "all" || targetId === "clear-all" || targetId === "clearAll") {
-            await db.prepare("DELETE FROM employees WHERE status = 'Vacant' OR name = 'Vacant'").run();
+            await db.prepare("DELETE FROM employees").run();
           } else if (targetId) {
-            const emp: any = await db.prepare("SELECT id, status, name FROM employees WHERE id = ? OR positionId = ?").bind(targetId, targetId).first();
-            if (emp && (emp.status === "Vacant" || (emp.name || "").toLowerCase().includes("vacant"))) {
-              await db.prepare("DELETE FROM employees WHERE id = ?").bind(emp.id).run();
-            } else if (emp) {
-              await db.prepare("UPDATE employees SET status = 'Vacant', employmentStatus = 'Inactive' WHERE id = ?").bind(emp.id).run();
-            }
+            await db.prepare("DELETE FROM employees WHERE id = ? OR positionId = ?").bind(targetId, targetId).run();
           }
         } catch (e) {
           console.error("D1 Delete Manpower Position Error:", e);

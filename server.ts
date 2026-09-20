@@ -1892,17 +1892,9 @@ app.delete("/api/manpower/:id?", async (req, res) => {
     const clearAll = req.query.clearAll === 'true' || req.query.clear_all === 'true' || id === "all" || id === "clear-all";
     if (isD1Enabled()) {
       if (clearAll) {
-        await queryD1("DELETE FROM employees WHERE status = 'Vacant' OR name = 'Vacant'");
+        await queryD1("DELETE FROM employees");
       } else if (id) {
-        const emps = await queryD1("SELECT id, status, name FROM employees WHERE id = ? OR positionId = ?", [id, id]);
-        if (emps && emps.length > 0) {
-          const emp = emps[0];
-          if (emp.status === "Vacant" || (emp.name || "").toLowerCase().includes("vacant")) {
-            await queryD1("DELETE FROM employees WHERE id = ?", [emp.id]);
-          } else {
-            await queryD1("UPDATE employees SET status = 'Vacant', employmentStatus = 'Inactive' WHERE id = ?", [emp.id]);
-          }
-        }
+        await queryD1("DELETE FROM employees WHERE id = ? OR positionId = ?", [id, id]);
       }
     } else {
       if (clearAll) {
