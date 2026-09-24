@@ -39,73 +39,128 @@ export interface CustomShiftType {
   isCustom?: boolean;
 }
 
-// Built-in shift presets matching the user's screenshot & terminal shift codes
+// Built-in shift presets matching the company's official shift matrix & legend
 export const DEFAULT_SHIFT_PRESETS: CustomShiftType[] = [
   {
-    code: "NRMD",
-    name: "กะปกติกลางวัน (Normal Day 8h)",
-    startTime: "08:00",
-    endTime: "17:00",
+    code: "M8",
+    name: "กะเช้า 8 ชม. (07:00 - 15:00)",
+    startTime: "07:00",
+    endTime: "15:00",
     workHours: 8,
     otHours: 0,
-    bgClass: "bg-[#fef9c3]",
-    borderClass: "border-[#facc15]",
-    textClass: "text-[#854d0e]"
+    bgClass: "bg-[#CFE2F3]",
+    borderClass: "border-[#9FC5E8]",
+    textClass: "text-black font-bold"
   },
   {
-    code: "NORM",
-    name: "กะทำงานมาตรฐาน (Norm 8h)",
-    startTime: "08:00",
-    endTime: "17:00",
+    code: "A8",
+    name: "กะบ่าย 8 ชม. (15:00 - 23:00)",
+    startTime: "15:00",
+    endTime: "23:00",
     workHours: 8,
     otHours: 0,
-    bgClass: "bg-[#fef9c3]",
-    borderClass: "border-[#facc15]",
-    textClass: "text-[#854d0e]"
+    bgClass: "bg-[#FFF2CC]",
+    borderClass: "border-[#FFE599]",
+    textClass: "text-black font-bold"
   },
   {
-    code: "NRM10[x]",
-    name: "กะพิเศษวันหยุด 10 ชม. (OT 2h)",
-    startTime: "08:00",
-    endTime: "18:00",
-    workHours: 10,
-    otHours: 2,
-    bgClass: "bg-[#ede9fe]",
-    borderClass: "border-[#c4b5fd]",
-    textClass: "text-[#5b21b6]"
+    code: "N8",
+    name: "กะดึก 8 ชม. (23:00 - 07:00)",
+    startTime: "23:00",
+    endTime: "07:00",
+    workHours: 8,
+    otHours: 0,
+    bgClass: "bg-[#FCE5CD]",
+    borderClass: "border-[#F9CB9C]",
+    textClass: "text-black font-bold"
   },
   {
     code: "M12",
-    name: "กะเช้า 12 ชม. (OT 4h)",
+    name: "กะเช้า 8 OT 4 (07:00 - 19:00)",
     startTime: "07:00",
     endTime: "19:00",
     workHours: 12,
     otHours: 4,
-    bgClass: "bg-[#e0f2fe]",
-    borderClass: "border-[#7dd3fc]",
-    textClass: "text-[#0369a1]"
+    bgClass: "bg-[#CFE2F3]",
+    borderClass: "border-[#9FC5E8]",
+    textClass: "text-[#2563EB] font-black"
+  },
+  {
+    code: "A12",
+    name: "กะบ่าย 8 OT 4 (15:00 - 03:00)",
+    startTime: "15:00",
+    endTime: "03:00",
+    workHours: 12,
+    otHours: 4,
+    bgClass: "bg-[#FFE599]",
+    borderClass: "border-[#FFD966]",
+    textClass: "text-black font-bold"
   },
   {
     code: "N12",
-    name: "กะดึก 12 ชม. (OT 4h)",
+    name: "กะดึก 8 OT 4 (19:00 - 07:00)",
     startTime: "19:00",
     endTime: "07:00",
     workHours: 12,
     otHours: 4,
-    bgClass: "bg-[#e0e7ff]",
-    borderClass: "border-[#a5b4fc]",
-    textClass: "text-[#3730a3]"
+    bgClass: "bg-[#FCE5CD]",
+    borderClass: "border-[#F9CB9C]",
+    textClass: "text-[#E60000] font-black"
+  },
+  {
+    code: "M16",
+    name: "กะเช้า 8 OT 8 (07:00 - 23:00)",
+    startTime: "07:00",
+    endTime: "23:00",
+    workHours: 16,
+    otHours: 8,
+    bgClass: "bg-[#0B5394]",
+    borderClass: "border-[#073763]",
+    textClass: "text-white font-black"
+  },
+  {
+    code: "N16",
+    name: "กะดึก 8 OT 8 (19:00 - 11:00)",
+    startTime: "19:00",
+    endTime: "11:00",
+    workHours: 16,
+    otHours: 8,
+    bgClass: "bg-[#E60000]",
+    borderClass: "border-[#990000]",
+    textClass: "text-white font-black"
+  },
+  {
+    code: "D",
+    name: "กะกลางวันปกติ (08:00 - 17:00)",
+    startTime: "08:00",
+    endTime: "17:00",
+    workHours: 8,
+    otHours: 0,
+    bgClass: "bg-[#D9D9D9]",
+    borderClass: "border-[#B7B7B7]",
+    textClass: "text-[#333333] font-bold"
+  },
+  {
+    code: "OND",
+    name: "วันหยุด ON DUTY (OT 8h)",
+    startTime: "08:00",
+    endTime: "17:00",
+    workHours: 8,
+    otHours: 8,
+    bgClass: "bg-[#00FFFF]",
+    borderClass: "border-[#00D2D2]",
+    textClass: "text-black font-black"
   },
   {
     code: "OFF",
-    name: "วันหยุดประจำสัปดาห์ (Weekly Off)",
+    name: "วันหยุดประจำสัปดาห์ (Off)",
     startTime: "-",
     endTime: "-",
     workHours: 0,
     otHours: 0,
-    bgClass: "bg-[#f1f5f9]",
-    borderClass: "border-[#cbd5e1]",
-    textClass: "text-[#64748b]"
+    bgClass: "bg-white",
+    borderClass: "border-[#DCE4EA]",
+    textClass: "text-[#6A7B87] font-medium"
   },
   {
     code: "H",
@@ -116,7 +171,7 @@ export const DEFAULT_SHIFT_PRESETS: CustomShiftType[] = [
     otHours: 0,
     bgClass: "bg-[#ffe4e6]",
     borderClass: "border-[#fecdd3]",
-    textClass: "text-[#be123c]"
+    textClass: "text-[#be123c] font-bold"
   }
 ];
 
@@ -166,16 +221,16 @@ export default function EmployeeShiftCalendarModal({
   const [setupMode, setSetupMode] = useState<ShiftSetupMode>("daily");
 
   // Quick Brush Shift (for stamping on daily mode)
-  const [activeBrushShift, setActiveBrushShift] = useState<string>("NRMD");
+  const [activeBrushShift, setActiveBrushShift] = useState<string>("M8");
 
   // Weekly Setup State
   const [weeklyTemplate, setWeeklyTemplate] = useState<Record<number, string>>({
     0: "OFF",      // อาทิตย์
-    1: "NRMD",     // จันทร์
-    2: "NRMD",     // อังคาร
-    3: "NRMD",     // พุธ
-    4: "NRMD",     // พฤหัสบดี
-    5: "NORM",     // ศุกร์
+    1: "M8",       // จันทร์
+    2: "M8",       // อังคาร
+    3: "M8",       // พุธ
+    4: "M8",       // พฤหัสบดี
+    5: "M8",       // ศุกร์
     6: "OFF"       // เสาร์
   });
 
@@ -187,19 +242,22 @@ export default function EmployeeShiftCalendarModal({
   const [cycleStartDay, setCycleStartDay] = useState<number>(1);
 
   // Monthly Setup State
-  const [monthFillShift, setMonthFillShift] = useState<string>("NRMD");
+  const [monthFillShift, setMonthFillShift] = useState<string>("M8");
 
   // Yearly Setup State
-  const [yearlyPreset, setYearlyPreset] = useState<"copy_current" | "mon_fri" | "cycle_4_2">("copy_current");
+  const [yearlyPreset, setYearlyPreset] = useState<"copy_current" | "mon_fri" | "day_office" | "cycle_4_2">("copy_current");
   const [yearlyProgress, setYearlyProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Custom Shift Types Library
   const [customShifts, setCustomShifts] = useState<CustomShiftType[]>(() => {
     try {
-      const stored = localStorage.getItem("custom_shift_types_v1");
+      const stored = localStorage.getItem("custom_shift_types_v2");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter(s => s.code !== "NRMD" && s.code !== "NORM" && !s.code.includes("NRM10"));
+          if (cleaned.length > 0) return cleaned;
+        }
       }
     } catch (_) {}
     return DEFAULT_SHIFT_PRESETS;
@@ -209,6 +267,34 @@ export default function EmployeeShiftCalendarModal({
   const [showShiftPicker, setShowShiftPicker] = useState<boolean>(false);
   const [showCustomShiftManager, setShowCustomShiftManager] = useState<boolean>(false);
   const [showHolidayModal, setShowHolidayModal] = useState<boolean>(false);
+
+  // Executive Confirm & Alert Modal States
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {}
+  });
+
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onClose?: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
+  const showAlert = (title: string, message: string, onClose?: () => void) => {
+    setAlertModal({ isOpen: true, title, message, onClose });
+  };
 
   // Form states for creating custom shift
   const [newShiftCode, setNewShiftCode] = useState<string>("");
@@ -228,7 +314,7 @@ export default function EmployeeShiftCalendarModal({
 
   // Helper to extract employee shifts for this month
   const getInitialMonthlyShifts = useCallback((): string[] => {
-    if (!employee) return Array(daysInMonth).fill("O");
+    if (!employee) return Array(daysInMonth).fill("OFF");
 
     const rawShifts: any = employee.shifts;
     let monthArray: string[] = [];
@@ -239,27 +325,31 @@ export default function EmployeeShiftCalendarModal({
       monthArray = rawShifts[monthKey] || [];
     }
 
-    // Default template if empty: Sunday/Saturday = NRM10[x], Mon-Thu = NRMD, Fri = NORM
+    // Default template if empty: Sunday/Saturday = OFF, Mon-Fri = M8
     if (!monthArray || monthArray.length === 0) {
       const result: string[] = [];
       for (let d = 1; d <= daysInMonth; d++) {
         const dateObj = new Date(selectedYear, selectedMonth - 1, d);
         const dayOfWeek = dateObj.getDay(); // 0 = Sun, 6 = Sat
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-          result.push("NRM10[x]");
-        } else if (dayOfWeek === 5) {
-          result.push("NORM");
+          result.push("OFF");
         } else {
-          result.push("NRMD");
+          result.push("M8");
         }
       }
       return result;
     }
 
-    // Ensure array length matches daysInMonth
-    const normalized = [...monthArray];
+    // Ensure array length matches daysInMonth and normalize legacy codes
+    const normalized = monthArray.map(code => {
+      if (code === "NRMD" || code === "NORM") return "M8";
+      if (typeof code === "string" && (code.includes("NRM10") || code.includes("[x]"))) return "OND";
+      if (code === "O") return "OFF";
+      return code || "OFF";
+    });
+
     while (normalized.length < daysInMonth) {
-      normalized.push("O");
+      normalized.push("OFF");
     }
     return normalized.slice(0, daysInMonth);
   }, [employee, selectedYear, selectedMonth, daysInMonth, monthKey]);
@@ -277,7 +367,7 @@ export default function EmployeeShiftCalendarModal({
   // Persist custom shifts
   useEffect(() => {
     try {
-      localStorage.setItem("custom_shift_types_v1", JSON.stringify(customShifts));
+      localStorage.setItem("custom_shift_types_v2", JSON.stringify(customShifts));
     } catch (_) {}
   }, [customShifts]);
 
@@ -316,23 +406,15 @@ export default function EmployeeShiftCalendarModal({
 
   // Find shift styling
   const getShiftMeta = (shiftCode: string): CustomShiftType => {
-    const codeClean = (shiftCode || "OFF").trim();
+    let codeClean = (shiftCode || "OFF").trim();
+    if (codeClean === "NRMD" || codeClean === "NORM") codeClean = "M8";
+    if (codeClean.includes("NRM10") || codeClean.includes("[x]")) codeClean = "OND";
+
     const found = customShifts.find(s => s.code.toUpperCase() === codeClean.toUpperCase());
     if (found) return found;
 
-    if (codeClean.includes("NRM10") || codeClean.includes("10")) {
-      return {
-        code: codeClean,
-        name: "กะกำหนดเอง 10 ชม.",
-        startTime: "08:00",
-        endTime: "18:00",
-        workHours: 10,
-        otHours: 2,
-        bgClass: "bg-[#ede9fe]",
-        borderClass: "border-[#c4b5fd]",
-        textClass: "text-[#5b21b6]"
-      };
-    }
+    const defaultFound = DEFAULT_SHIFT_PRESETS.find(s => s.code.toUpperCase() === codeClean.toUpperCase());
+    if (defaultFound) return defaultFound;
 
     if (codeClean === "O" || codeClean === "OFF" || codeClean === "-") {
       return {
@@ -342,9 +424,9 @@ export default function EmployeeShiftCalendarModal({
         endTime: "-",
         workHours: 0,
         otHours: 0,
-        bgClass: "bg-[#f8fafc]",
-        borderClass: "border-[#cbd5e1]",
-        textClass: "text-[#64748b]"
+        bgClass: "bg-white",
+        borderClass: "border-[#DCE4EA]",
+        textClass: "text-[#6A7B87]"
       };
     }
 
@@ -355,9 +437,9 @@ export default function EmployeeShiftCalendarModal({
       endTime: "17:00",
       workHours: 8,
       otHours: 0,
-      bgClass: "bg-[#fef9c3]",
-      borderClass: "border-[#fde047]",
-      textClass: "text-[#854d0e]"
+      bgClass: "bg-[#F3F6F8]",
+      borderClass: "border-[#DCE4EA]",
+      textClass: "text-[#333B41]"
     };
   };
 
@@ -373,12 +455,14 @@ export default function EmployeeShiftCalendarModal({
     setHasChanges(true);
   };
 
-  const handleApplyWeeklyPreset = (preset: "standard_office" | "with_weekend_ot" | "morning_12h") => {
+  const handleApplyWeeklyPreset = (preset: "standard_office" | "day_office" | "with_weekend_ot" | "morning_12h") => {
     let nextTemplate: Record<number, string> = { ...weeklyTemplate };
     if (preset === "standard_office") {
-      nextTemplate = { 0: "OFF", 1: "NRMD", 2: "NRMD", 3: "NRMD", 4: "NRMD", 5: "NORM", 6: "OFF" };
+      nextTemplate = { 0: "OFF", 1: "M8", 2: "M8", 3: "M8", 4: "M8", 5: "M8", 6: "OFF" };
+    } else if (preset === "day_office") {
+      nextTemplate = { 0: "OFF", 1: "D", 2: "D", 3: "D", 4: "D", 5: "D", 6: "OFF" };
     } else if (preset === "with_weekend_ot") {
-      nextTemplate = { 0: "NRM10[x]", 1: "NRMD", 2: "NRMD", 3: "NRMD", 4: "NRMD", 5: "NORM", 6: "NRM10[x]" };
+      nextTemplate = { 0: "OND", 1: "M8", 2: "M8", 3: "M8", 4: "M8", 5: "M8", 6: "OND" };
     } else if (preset === "morning_12h") {
       nextTemplate = { 0: "OFF", 1: "M12", 2: "M12", 3: "M12", 4: "M12", 5: "M12", 6: "M12" };
     }
@@ -432,7 +516,7 @@ export default function EmployeeShiftCalendarModal({
     }
 
     if (!prevArray || prevArray.length === 0) {
-      alert(`ไม่พบข้อมูลกะของเดือน ${THAI_MONTH_NAMES[prevM - 1]} ${prevY}`);
+      showAlert("ไม่พบข้อมูล", `ไม่พบข้อมูลกะของเดือน ${THAI_MONTH_NAMES[prevM - 1]} ${prevY}`);
       return;
     }
 
@@ -445,13 +529,8 @@ export default function EmployeeShiftCalendarModal({
   };
 
   // Yearly Shift Application & Save Handlers
-  const handleApplyAndSaveYearly = async () => {
+  const executeYearlySave = async () => {
     if (!employee) return;
-    const confirmed = window.confirm(
-      `คุณต้องการบันทึกตารางกะตลอดทั้งปี ${selectedYear} (ครบทั้ง 12 เดือน) สำหรับ ${employee.name} หรือไม่?`
-    );
-    if (!confirmed) return;
-
     try {
       setIsSaving(true);
       setYearlyProgress({ current: 0, total: 12 });
@@ -467,13 +546,19 @@ export default function EmployeeShiftCalendarModal({
           for (let d = 1; d <= mDays; d++) {
             const dateObj = new Date(selectedYear, m - 1, d);
             const dow = dateObj.getDay();
-            mShifts.push(weeklyTemplate[dow] || (dow === 0 || dow === 6 ? "OFF" : "NRMD"));
+            mShifts.push(weeklyTemplate[dow] || (dow === 0 || dow === 6 ? "OFF" : "M8"));
           }
         } else if (yearlyPreset === "mon_fri") {
           for (let d = 1; d <= mDays; d++) {
             const dateObj = new Date(selectedYear, m - 1, d);
             const dow = dateObj.getDay();
-            mShifts.push(dow === 0 || dow === 6 ? "OFF" : (dow === 5 ? "NORM" : "NRMD"));
+            mShifts.push(dow === 0 || dow === 6 ? "OFF" : "M8");
+          }
+        } else if (yearlyPreset === "day_office") {
+          for (let d = 1; d <= mDays; d++) {
+            const dateObj = new Date(selectedYear, m - 1, d);
+            const dow = dateObj.getDay();
+            mShifts.push(dow === 0 || dow === 6 ? "OFF" : "D");
           }
         } else if (yearlyPreset === "cycle_4_2") {
           const cycleTotal = Math.max(1, cycleWorkDays + cycleOffDays);
@@ -508,15 +593,31 @@ export default function EmployeeShiftCalendarModal({
         setMonthlyShifts(yearlyMap[selectedMonth]);
       }
       setHasChanges(false);
-      alert(`บันทึกตารางกะตลอดทั้งปี ${selectedYear} (12 เดือน) ของ ${employee.name} เรียบร้อยแล้ว!`);
-      onClose();
+      showAlert(
+        "บันทึกสำเร็จ",
+        `บันทึกตารางกะตลอดทั้งปี ${selectedYear} (12 เดือน) ของ ${employee.name} เรียบร้อยแล้ว`,
+        () => onClose()
+      );
     } catch (err) {
       console.error("Yearly shift save error:", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกตารางกะรายปี กรุณาลองใหม่อีกครั้ง");
+      showAlert("เกิดข้อผิดพลาด", "เกิดข้อผิดพลาดในการบันทึกตารางกะรายปี กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSaving(false);
       setYearlyProgress(null);
     }
+  };
+
+  const handleApplyAndSaveYearly = () => {
+    if (!employee) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "ยืนยันการบันทึกตารางกะรายปี",
+      message: `คุณต้องการบันทึกตารางกะตลอดทั้งปี ${selectedYear} (ครบทั้ง 12 เดือน) สำหรับ ${employee.name} หรือไม่?`,
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        executeYearlySave();
+      }
+    });
   };
 
   // Save changes to backend
@@ -544,11 +645,14 @@ export default function EmployeeShiftCalendarModal({
         });
       }
       setHasChanges(false);
-      alert(`บันทึกตารางการทำงานของ ${employee.name} ประจำเดือน ${THAI_MONTH_NAMES[selectedMonth - 1]} ${selectedYear} เรียบร้อยแล้ว`);
-      onClose();
+      showAlert(
+        "บันทึกสำเร็จ",
+        `บันทึกตารางการทำงานของ ${employee.name} ประจำเดือน ${THAI_MONTH_NAMES[selectedMonth - 1]} ${selectedYear} เรียบร้อยแล้ว`,
+        () => onClose()
+      );
     } catch (err) {
       console.error("Save shift calendar error:", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+      showAlert("เกิดข้อผิดพลาด", "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSaving(false);
     }
@@ -559,7 +663,7 @@ export default function EmployeeShiftCalendarModal({
     e.preventDefault();
     const code = newShiftCode.trim();
     if (!code) {
-      alert("กรุณาระบุรหัสกะ เช่น NRM10[x] หรือ M12");
+      showAlert("ระบุข้อมูลไม่ครบ", "กรุณาระบุรหัสกะ เช่น M8, M12, N12 หรือ D");
       return;
     }
 
@@ -846,14 +950,21 @@ export default function EmployeeShiftCalendarModal({
                     onClick={() => handleApplyWeeklyPreset("standard_office")}
                     className="px-2 py-0.5 bg-white hover:bg-blue-50 text-[#0E3A66] border border-[#BED6FA] rounded text-[10px] font-bold cursor-pointer"
                   >
-                    จ.-ศ. ปกติ (NRMD) / ส.-อา. หยุด
+                    จ.-ศ. กะเช้า (M8) / ส.-อา. หยุด
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyWeeklyPreset("day_office")}
+                    className="px-2 py-0.5 bg-white hover:bg-blue-50 text-[#0E3A66] border border-[#BED6FA] rounded text-[10px] font-bold cursor-pointer"
+                  >
+                    จ.-ศ. กลางวัน (D) / ส.-อา. หยุด
                   </button>
                   <button
                     type="button"
                     onClick={() => handleApplyWeeklyPreset("with_weekend_ot")}
                     className="px-2 py-0.5 bg-white hover:bg-blue-50 text-[#0E3A66] border border-[#BED6FA] rounded text-[10px] font-bold cursor-pointer"
                   >
-                    จ.-ศ. (NRMD) / ส.-อา. OT (NRM10[x])
+                    จ.-ศ. (M8) / ส.-อา. OT (OND)
                   </button>
                   <button
                     type="button"
@@ -994,7 +1105,8 @@ export default function EmployeeShiftCalendarModal({
                     className="px-2.5 py-1 bg-white border border-[#BED6FA] rounded text-xs font-bold text-[#0E3A66] cursor-pointer"
                   >
                     <option value="copy_current">นำรูปแบบของเดือนปัจจุบัน ({THAI_MONTH_NAMES[selectedMonth - 1]}) ไปใช้ทุกเดือน</option>
-                    <option value="mon_fri">จันทร์-ศุกร์ กะปกติ (NRMD) / เสาร์-อาทิตย์ หยุด (OFF) ทั้งปี</option>
+                    <option value="mon_fri">จันทร์-ศุกร์ กะเช้า (M8) / เสาร์-อาทิตย์ หยุด (OFF) ทั้งปี</option>
+                    <option value="day_office">จันทร์-ศุกร์ กลางวันปกติ (D) / เสาร์-อาทิตย์ หยุด (OFF) ทั้งปี</option>
                     <option value="cycle_4_2">รันกะหมุนเวียน 4-on-2-off ต่อเนื่องตลอดทั้งปี (365 วัน)</option>
                   </select>
 
@@ -1282,7 +1394,7 @@ export default function EmployeeShiftCalendarModal({
                   type="text" 
                   value={newShiftCode} 
                   onChange={(e) => setNewShiftCode(e.target.value)}
-                  placeholder="เช่น NRM10[x], M12, SHIFT-A"
+                  placeholder="เช่น M8, M12, N12, D, OND"
                   required
                   className="w-full px-3 py-1.5 text-xs bg-[#F3F6F8] border border-[#DCE4EA] rounded focus:outline-none focus:border-[#2E90CB] font-mono font-bold"
                 />
@@ -1294,7 +1406,7 @@ export default function EmployeeShiftCalendarModal({
                   type="text" 
                   value={newShiftName} 
                   onChange={(e) => setNewShiftName(e.target.value)}
-                  placeholder="เช่น กะปกติ 10 ชม. วันหยุด"
+                  placeholder="เช่น กะกลางวันพิเศษ หรือ กะซ่อมบำรุง"
                   className="w-full px-3 py-1.5 text-xs bg-[#F3F6F8] border border-[#DCE4EA] rounded focus:outline-none focus:border-[#2E90CB]"
                 />
               </div>
@@ -1440,6 +1552,119 @@ export default function EmployeeShiftCalendarModal({
                   className="px-3 py-1.5 bg-white border border-[#DCE4EA] text-xs font-medium rounded text-[#59656D]"
                 >
                   ปิด
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* Sleek Executive Maritime Confirmation Modal                                */}
+      {/* ========================================================================= */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden transform transition-all animate-in zoom-in-95 duration-150">
+            <div className="bg-[#0E3A66] px-5 py-4 text-white flex items-center justify-between border-b border-[#17538F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300">
+                  <CalendarRange className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black tracking-wide text-white leading-tight">
+                    {confirmModal.title}
+                  </h4>
+                  <p className="text-[11px] text-sky-200/80 font-medium">Enterprise OT Confirmation</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-start gap-3.5 bg-[#E8F3FA] border border-[#BED6FA] rounded-xl p-3.5">
+                <div className="w-8 h-8 rounded-full bg-white border border-[#BED6FA] flex items-center justify-center text-[#17538F] shrink-0 mt-0.5">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div className="text-xs text-[#0E3A66] leading-relaxed font-medium">
+                  {confirmModal.message}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmModal.onConfirm}
+                  className="px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] active:scale-95 text-white rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>ยืนยันดำเนินการ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* Sleek Executive Maritime Alert Modal                                       */}
+      {/* ========================================================================= */}
+      {alertModal.isOpen && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden transform transition-all animate-in zoom-in-95 duration-150">
+            <div className="bg-[#0E3A66] px-5 py-4 text-white flex items-center justify-between border-b border-[#17538F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black tracking-wide text-white leading-tight">
+                    {alertModal.title}
+                  </h4>
+                  <p className="text-[11px] text-sky-200/80 font-medium">Enterprise OT Management</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const cb = alertModal.onClose;
+                  setAlertModal(prev => ({ ...prev, isOpen: false }));
+                  if (cb) cb();
+                }}
+                className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-slate-700 leading-relaxed font-medium bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                {alertModal.message}
+              </div>
+
+              <div className="flex items-center justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cb = alertModal.onClose;
+                    setAlertModal(prev => ({ ...prev, isOpen: false }));
+                    if (cb) cb();
+                  }}
+                  className="px-5 py-2 bg-[#0E3A66] hover:bg-[#17538F] active:scale-95 text-white rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer"
+                >
+                  ตกลง
                 </button>
               </div>
             </div>
