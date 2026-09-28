@@ -200,9 +200,9 @@ export default function ManpowerDashboard({
 }: ManpowerDashboardProps = {}) {
   const [shiftMode, setShiftMode] = useState<"3T" | "2T">("3T");
   const [positions, setPositions] = useState<ManpowerPosition[]>(() => {
+    if (employees && employees.length > 0) return mapEmployeesToPositions(employees);
     const local = getInitialPositions();
     if (local.length > 0) return local;
-    if (employees && employees.length > 0) return mapEmployeesToPositions(employees);
     return [];
   });
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
@@ -304,23 +304,13 @@ export default function ManpowerDashboard({
               }
             } else {
               // If remote D1 is empty:
-              const local = getInitialPositions();
-              if (local.length > 0) {
-                setPositions(local);
-                await fetch("/api/manpower/bulk", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ positions: local })
-                });
-              } else if (employees && employees.length > 0) {
+              if (employees && employees.length > 0) {
                 const fromEmps = mapEmployeesToPositions(employees);
                 setPositions(fromEmps);
                 localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(fromEmps));
-                await fetch("/api/manpower/bulk", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ positions: fromEmps })
-                });
+              } else {
+                setPositions([]);
+                localStorage.removeItem("port_ops_manpower_masterList");
               }
             }
             setSyncStatus("synced");

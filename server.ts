@@ -833,6 +833,47 @@ app.post("/api/delete-account", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// --- Delete employee ---
+app.post("/api/delete-employee", async (req, res) => {
+  const targetId = (req.body.id || req.body.empId || req.body.positionId || "").toString().trim();
+  const targetName = (req.body.name || "").toString().trim();
+  const targetEmpId = (req.body.empId || "").toString().trim();
+  const targetPosId = (req.body.positionId || "").toString().trim();
+
+  try {
+    if (isD1Enabled() && (targetId || targetName)) {
+      await queryD1(
+        `DELETE FROM employees WHERE 
+          id = ? OR id = ? OR id = ? OR 
+          positionId = ? OR positionId = ? OR positionId = ? OR
+          name = ?`,
+        [
+          targetId, targetEmpId || targetId, `EMP-${targetId.replace(/^EMP-/i, '')}`,
+          targetId, targetPosId || targetId, `POS-${targetId.replace(/^POS-/i, '')}`,
+          targetName || targetId
+        ]
+      );
+      const idsToClean = Array.from(new Set([targetId, targetEmpId, targetPosId, `EMP-${targetId.replace(/^EMP-/i, '')}`])).filter(Boolean);
+      for (const tid of idsToClean) {
+        try { await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [tid]); } catch (_) {}
+        try { await queryD1("DELETE FROM ot_requests WHERE employeeId = ?", [tid]); } catch (_) {}
+        try { await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [tid]); } catch (_) {}
+      }
+    } else if (appState && Array.isArray(appState.employees)) {
+      appState.employees = appState.employees.filter((e: any) =>
+        e.id !== targetId &&
+        e.empId !== targetId &&
+        e.positionId !== targetId &&
+        e.name !== targetName
+      );
+      saveLocalDb();
+    }
+    res.json({ success: true, message: "ลบพนักงานเรียบร้อยแล้ว" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Reset account password ---
 app.post("/api/reset-account-password", async (req, res) => {
   const { targetUsername, newPassword } = req.body;
@@ -1238,24 +1279,6 @@ app.post("/api/edit-employee", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post("/api/delete-employee", async (req, res) => {
-  const { id, role, username } = req.body;
-  if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
-  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
-  if (!isHrOrAdmin) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบพนักงาน" });
-  try {
-    if (isD1Enabled()) {
-      await queryD1("DELETE FROM employees WHERE id = ?", [id]);
-      await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [id]);
-      await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [id]);
-      await writeAuditLog(username || "system", "delete_employee", "employee", id, {});
-    } else {
-      appState.employees = appState.employees.filter(e => e.id !== id);
-      saveLocalDb();
-    }
-    res.json({ success: true });
-  } catch (error: any) { res.status(500).json({ error: error.message }); }
-});
 
 // --- Export employees ---
 app.post("/api/export-employees", async (req, res) => {

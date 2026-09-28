@@ -817,20 +817,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // 8.4 POST /api/delete-employee
     if (path === "/api/delete-employee" && request.method === "POST") {
       const body = await getBody();
-      const empId = body.id;
-      if (db && empId) {
+      const targetId = (body.id || body.empId || body.positionId || "").toString().trim();
+      const targetName = (body.name || "").toString().trim();
+      const targetEmpId = (body.empId || "").toString().trim();
+      const targetPosId = (body.positionId || "").toString().trim();
+
+      if (db && (targetId || targetName)) {
         try {
-          await db.prepare("DELETE FROM employees WHERE id = ?").bind(empId).run();
-          // Clean up daily OT records
-          try {
-            await db.prepare("DELETE FROM ot_daily_records WHERE employeeId = ?").bind(empId).run();
-          } catch (_) {}
-          try {
-            await db.prepare("DELETE FROM ot_requests WHERE employeeId = ?").bind(empId).run();
-          } catch (_) {}
-          try {
-            await db.prepare("DELETE FROM leave_records WHERE employeeId = ?").bind(empId).run();
-          } catch (_) {}
+          await db.prepare(`DELETE FROM employees WHERE 
+            id = ? OR id = ? OR id = ? OR 
+            positionId = ? OR positionId = ? OR positionId = ? OR
+            name = ?
+          `).bind(
+            targetId, targetEmpId || targetId, `EMP-${targetId.replace(/^EMP-/i, '')}`,
+            targetId, targetPosId || targetId, `POS-${targetId.replace(/^POS-/i, '')}`,
+            targetName || targetId
+          ).run();
+
+          // Clean up daily OT records, requests, and leaves
+          const idsToClean = Array.from(new Set([targetId, targetEmpId, targetPosId, `EMP-${targetId.replace(/^EMP-/i, '')}`])).filter(Boolean);
+          for (const tid of idsToClean) {
+            try { await db.prepare("DELETE FROM ot_daily_records WHERE employeeId = ?").bind(tid).run(); } catch (_) {}
+            try { await db.prepare("DELETE FROM ot_requests WHERE employeeId = ?").bind(tid).run(); } catch (_) {}
+            try { await db.prepare("DELETE FROM leave_records WHERE employeeId = ?").bind(tid).run(); } catch (_) {}
+          }
         } catch (e) {
           console.error("D1 Delete Employee Error:", e);
         }

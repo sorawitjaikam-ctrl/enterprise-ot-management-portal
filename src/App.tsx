@@ -2899,6 +2899,33 @@ export default function App() {
 
   const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
 
+  // Executive Maritime Confirmation & Alert Modals for Employee Management
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    employee: Employee | null;
+  }>({
+    isOpen: false,
+    employee: null
+  });
+
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
+
+  const [portalAlertModal, setPortalAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  });
+
+  const showPortalAlert = (title: string, message: string, variant: "success" | "error" | "info" = "info") => {
+    setPortalAlertModal({ isOpen: true, title, message, variant });
+  };
+
   const updatePlannerMonth = (newMonthStr: string) => {
     setState((prev: any) => prev ? ({
       ...prev,
@@ -5178,38 +5205,135 @@ export default function App() {
         setShowEditEmployeeModal(false);
         setEditingEmployee(null);
         await fetchPortalState();
-        alert("แก้ไขข้อมูลพนักงานสำเร็จ!");
+        showPortalAlert("แก้ไขข้อมูลสำเร็จ", "บันทึกการแก้ไขข้อมูลพนักงานเรียบร้อยแล้ว", "success");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDeleteEmployee = async (employeeId: string) => {
-    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบพนักงานรายนี้ออกจากระบบ? ข้อมูลประวัติ OT ของพนักงานรายนี้จะถูกลบออกทั้งหมดด้วย")) {
-      return;
+  const handleDeleteEmployee = (empOrId: Employee | string) => {
+    let emp: Employee | null = null;
+    if (typeof empOrId === "object" && empOrId !== null) {
+      emp = empOrId;
+    } else if (typeof empOrId === "string") {
+      emp = (state?.employees || []).find((e: Employee) => e.id === empOrId || e.positionId === empOrId || e.name === empOrId) || null;
+      if (!emp) {
+        emp = {
+          id: empOrId,
+          name: empOrId,
+          deptId: "UNKNOWN",
+          role: "พนักงาน",
+          targetOt: 0,
+          actualOt: 0,
+          otPct: 0,
+          status: "Active",
+          groupName: "กลุ่มทั่วไป",
+          shifts: {}
+        };
+      }
     }
+    if (emp) {
+      setDeleteConfirmModal({
+        isOpen: true,
+        employee: emp
+      });
+    }
+  };
+
+  const executeDeleteEmployee = async (emp: Employee) => {
+    setIsDeletingEmployee(true);
     try {
+      const targetId = emp.id;
+      const targetName = emp.name;
+      const targetPosId = emp.positionId;
+
+      // 1. Optimistic local removal
+      setState((prev: any) => {
+        if (!prev) return prev;
+        const remaining = (prev.employees || []).filter((e: Employee) =>
+          e.id !== targetId &&
+          e.name !== targetName &&
+          (!targetPosId || e.positionId !== targetPosId)
+        );
+        return {
+          ...prev,
+          employees: remaining
+        };
+      });
+
+      setTempEmployees((prev: Employee[]) =>
+        (prev || []).filter((e: Employee) =>
+          e.id !== targetId &&
+          e.name !== targetName &&
+          (!targetPosId || e.positionId !== targetPosId)
+        )
+      );
+
+      // 2. Clean up cached manpower roster if present in localStorage
+      try {
+        const cached = localStorage.getItem("port_ops_manpower_masterList");
+        if (cached) {
+          const list = JSON.parse(cached);
+          if (Array.isArray(list)) {
+            const filtered = list.filter((p: any) =>
+              p.id !== targetId &&
+              p.positionId !== targetId &&
+              (!targetPosId || p.positionId !== targetPosId) &&
+              p.name !== targetName
+            );
+            localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(filtered));
+          }
+        }
+      } catch (_) {}
+
+      // 3. Close edit modal if open
+      setShowEditEmployeeModal(false);
+      setEditingEmployee(null);
+
+      // 4. Send delete request to server
       const res = await fetch("/api/delete-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: employeeId,
-          role: currentUser?.role
+          id: targetId,
+          empId: targetId,
+          positionId: targetPosId || targetId,
+          name: targetName,
+          role: currentUser?.role,
+          username: currentUser?.name || currentUser?.username
         })
       });
+
+      // 5. Re-fetch portal state to synchronize
+      await fetchPortalState(undefined, true);
+
+      // 6. Close confirm modal
+      setDeleteConfirmModal({ isOpen: false, employee: null });
+
       if (res.ok) {
-        setShowEditEmployeeModal(false);
-        setEditingEmployee(null);
-        await fetchPortalState();
-        alert("ลบข้อมูลพนักงานสำเร็จเรียบร้อยแล้ว!");
+        showPortalAlert(
+          "ลบข้อมูลพนักงานสำเร็จ",
+          `ระบบได้ลบข้อมูลของ "${targetName}" (${targetPosId || targetId}) และประวัติ OT ทั้งหมดออกจากฐานข้อมูลเรียบร้อยแล้ว`,
+          "success"
+        );
       } else {
-        const errData = await res.json();
-        alert(errData.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+        const errData = await res.json().catch(() => ({}));
+        showPortalAlert(
+          "เกิดข้อผิดพลาดในการลบข้อมูล",
+          errData.error || "ไม่สามารถลบข้อมูลจากฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+          "error"
+        );
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      showPortalAlert(
+        "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        err.message || "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        "error"
+      );
+    } finally {
+      setIsDeletingEmployee(false);
     }
   };
 
@@ -9425,10 +9549,10 @@ export default function App() {
                                   </button>
                                 )}
                                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
-                                  <button
-                                    type="button"
-                          onClick={() => handleDeleteEmployee(emp.id)}
-                                    className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteEmployee(emp)}
+                                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                     title="ลบพนักงาน"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -12489,7 +12613,7 @@ export default function App() {
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                   <button
                     type="button"
-                    onClick={() => handleDeleteEmployee(editingEmployee.id)}
+                    onClick={() => editingEmployee && handleDeleteEmployee(editingEmployee)}
                     className="px-3.5 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 hover:text-red-700 transition-colors mr-auto"
                     title="ลบพนักงานออกจากระบบ"
                   >
@@ -14754,7 +14878,7 @@ export default function App() {
                                 {/* Delete Button */}
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                  onClick={() => handleDeleteEmployee(emp)}
                                   className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                   title="ลบข้อมูลพนักงานถาวร"
                                 >
@@ -14888,6 +15012,152 @@ export default function App() {
                 className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 รับทราบและปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Executive Maritime Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.employee && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-employee-modal-title"
+          >
+            {/* Maritime Blue Header */}
+            <div className="bg-[#0E3A66] px-6 py-4 flex items-center justify-between text-white border-b border-[#17538F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center text-red-300">
+                  <ShieldAlert className="w-4 h-4 text-red-300" />
+                </div>
+                <div>
+                  <h3 id="delete-employee-modal-title" className="text-sm font-bold tracking-tight text-white">
+                    ยืนยันการลบข้อมูลพนักงานถาวร
+                  </h3>
+                  <p className="text-[11px] text-blue-200 font-medium">Permanent Record Deletion</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => setDeleteConfirmModal({ isOpen: false, employee: null })}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-blue-200 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Employee Summary Card */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-[#0E3A66]/10 border border-[#0E3A66]/20 flex items-center justify-center text-[#0E3A66] font-bold text-sm shrink-0">
+                  {deleteConfirmModal.employee.name ? deleteConfirmModal.employee.name.slice(0, 2) : "EM"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 text-sm truncate">
+                    {deleteConfirmModal.employee.name}
+                  </div>
+                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 font-mono">
+                    <span>ID: {deleteConfirmModal.employee.positionId || deleteConfirmModal.employee.id}</span>
+                    <span>•</span>
+                    <span className="font-sans font-medium text-slate-600">
+                      {deleteConfirmModal.employee.deptId} ({deleteConfirmModal.employee.role})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Danger Notice Box */}
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-red-800 leading-relaxed">
+                  <span className="font-bold">คำเตือน:</span> การดำเนินการนี้จะลบข้อมูลของพนักงานรายนี้ออกจากระบบ Cloudflare D1 ฐานข้อมูลกลาง ตารางกะทำงาน และประวัติ OT ทั้งหมดอย่างถาวร โดยไม่สามารถกู้คืนข้อมูลได้
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => setDeleteConfirmModal({ isOpen: false, employee: null })}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => executeDeleteEmployee(deleteConfirmModal.employee!)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#B3352C] hover:bg-red-700 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingEmployee ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังลบข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>ยืนยันลบข้อมูลถาวร</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Executive Maritime Alert / Feedback Modal */}
+      {portalAlertModal.isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            role="alertdialog"
+          >
+            <div className={`p-5 flex items-start gap-3.5 ${
+              portalAlertModal.variant === "success"
+                ? "bg-emerald-50/50"
+                : portalAlertModal.variant === "error"
+                ? "bg-red-50/50"
+                : "bg-blue-50/50"
+            }`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                portalAlertModal.variant === "success"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : portalAlertModal.variant === "error"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}>
+                {portalAlertModal.variant === "success" ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : portalAlertModal.variant === "error" ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : (
+                  <Info className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                  {portalAlertModal.title}
+                </h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
+                  {portalAlertModal.message}
+                </p>
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPortalAlertModal({ isOpen: false, title: "", message: "", variant: "info" })}
+                className="px-4 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                ตกลง
               </button>
             </div>
           </div>
