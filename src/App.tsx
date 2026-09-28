@@ -4679,6 +4679,7 @@ export default function App() {
 
     const newEmpObj: Employee = {
       id: finalEmpId,
+      empId: finalEmpId,
       name: fullName,
       deptId: newEmpDept || "inter2",
       role: newEmpRole || "Operator",
@@ -5051,7 +5052,7 @@ export default function App() {
           }
 
           parsedEmployees.push({
-            id, name, deptId, role, targetOt, groupName, shifts,
+            id, empId: id, name, deptId, role, targetOt, groupName, shifts,
             prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
           });
         }

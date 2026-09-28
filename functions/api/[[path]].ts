@@ -182,7 +182,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             if (otSumRes && otSumRes.results) {
               for (const row of otSumRes.results as any[]) {
                 if (row.employeeId) {
-                  otSummaryMap[row.employeeId] = Number(row.total) || 0;
+                  const eid = String(row.employeeId).trim();
+                  const stripped = eid.replace(/^EMP-/i, '');
+                  const hrs = Number(row.total) || 0;
+                  otSummaryMap[eid] = hrs;
+                  otSummaryMap[stripped] = hrs;
+                  otSummaryMap[`EMP-${stripped}`] = hrs;
                 }
               }
             }
@@ -232,7 +237,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         if (shifts.length === 0) { shifts = Array(31).fill("O"); }
         if (planShifts.length === 0) { planShifts = [...shifts]; }
 
-        let actualOt = otSummaryMap[emp.id] || 0;
+        const canonicalId = (emp.id || "").toString().trim();
+        const strippedId = canonicalId.replace(/^EMP-/i, '');
+        let actualOt = otSummaryMap[canonicalId] ?? otSummaryMap[strippedId] ?? otSummaryMap[`EMP-${strippedId}`] ?? 0;
 
         if (actualOt === 0 && shifts && shifts.length > 0) {
           actualOt = Math.round(shifts.reduce((s: number, code: string) => s + getShiftOt(code), 0) * 10) / 10;
@@ -244,7 +251,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
         enrichedEmployees.push({
           ...emp,
-          positionId: emp.positionId || `POS-${emp.id}`,
+          id: canonicalId,
+          empId: canonicalId, // Always guarantee canonical Employee ID
+          positionId: emp.positionId || `POS-${canonicalId}`,
           unit: emp.unit || emp.deptId || "INTER 2",
           level: emp.level || "Staff",
           ocType: emp.ocType || "OLD",
@@ -539,10 +548,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           const shifts: string[] = emp.shifts || [];
           const planShifts: string[] = emp.planShifts || shifts;
 
-          // Delete existing OT daily records for this month to prevent orphans
+          const canonicalId = (emp.id || emp.empId || "").toString().trim();
+          const strippedId = canonicalId.replace(/^EMP-/i, '');
+
+          // Delete existing OT daily records for this month to prevent orphans across ID variants
           try {
-            await db.prepare("DELETE FROM ot_daily_records WHERE employeeId = ? AND year = ? AND month = ?")
-              .bind(emp.id, recordYear, recordMonth).run();
+            await db.prepare("DELETE FROM ot_daily_records WHERE (employeeId = ? OR employeeId = ? OR employeeId = ?) AND year = ? AND month = ?")
+              .bind(canonicalId, strippedId, `EMP-${strippedId}`, recordYear, recordMonth).run();
           } catch (e) {
             console.error("D1 Delete OT Records Error:", e);
           }
@@ -554,11 +566,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             if (otHrs > 0) {
               const dayNum = dayIdx + 1;
               const dateStr = `${recordYear}-${String(recordMonth).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              const recId = `OTD-${emp.id}-${recordYear}-${String(recordMonth).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+              const recId = `OTD-${canonicalId}-${recordYear}-${String(recordMonth).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               try {
                 await db.prepare(`INSERT OR REPLACE INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note)
                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '')`)
-                  .bind(recId, recordYear, recordMonth, dateStr, emp.id, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
+                  .bind(recId, recordYear, recordMonth, dateStr, canonicalId, emp.name, emp.deptId || "inter2", shiftCode, otHrs).run();
               } catch (e) {
                 console.error("D1 Insert OT Record Error:", e);
               }
@@ -566,8 +578,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           }
 
           try {
-            await db.prepare("UPDATE employees SET shifts = ?, planShifts = ? WHERE id = ?")
-              .bind(JSON.stringify(shifts), JSON.stringify(planShifts), emp.id).run();
+            await db.prepare("UPDATE employees SET shifts = ?, planShifts = ? WHERE id = ? OR id = ? OR id = ?")
+              .bind(JSON.stringify(shifts), JSON.stringify(planShifts), canonicalId, strippedId, `EMP-${strippedId}`).run();
           } catch (e) {
             console.error("D1 Update Shifts Error:", e);
           }
@@ -1127,10 +1139,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
           let existing: any = null;
           if (pEmpId) {
-            existing = await db.prepare("SELECT id FROM employees WHERE id = ?").bind(pEmpId).first();
+            existing = await db.prepare("SELECT id FROM employees WHERE id = ? OR id = ?").bind(pEmpId, `EMP-${pEmpId.replace(/^EMP-/i, '')}`).first();
           }
           if (!existing && pPosId) {
-            existing = await db.prepare("SELECT id FROM employees WHERE positionId = ? OR id = ?").bind(pPosId, pPosId).first();
+            existing = await db.prepare("SELECT id FROM employees WHERE positionId = ?").bind(pPosId).first();
           }
           if (!existing && pName && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
             existing = await db.prepare("SELECT id FROM employees WHERE name = ?").bind(pName).first();
@@ -1139,17 +1151,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           if (existing && existing.id) {
             await db.prepare(`UPDATE employees SET positionId = ?, name = ?, role = ?, unit = ?, level = ?, ocType = ?, status = ?, isMgr = ?, isEng = ?, avatar = COALESCE(?, avatar) WHERE id = ?`)
               .bind(pPosId, pName, pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng, pos.img || null, existing.id).run();
-          } else {
-            const empId = pEmpId || pPosId;
+          } else if (pEmpId && pStatus !== "Vacant" && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
+            const canonicalEmpId = pEmpId;
             await db.prepare(`INSERT OR REPLACE INTO employees (
               id, positionId, name, deptId, role, unit, level, ocType, status, isMgr, isEng,
               targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName,
               nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
               resignationDate, employmentStatus, avatar
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'Group A', '[]', '[]', 20000, 'ฝ่ายปฏิบัติการท่าเรือ', 'นาย', ?, '', '', '', 30, 30, ?, '1 ปี', '', 'ปฏิทินกะ 4-on-2-off', '', ?, ?)`).bind(
-              empId, pPosId, pName || "Vacant", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
-              pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), pStatus === "Vacant" ? "Inactive" : "Active", pos.img || ""
+              canonicalEmpId, pPosId, pName || "พนักงาน", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
+              pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), "Active", pos.img || ""
             ).run();
+          } else if (pStatus === "Vacant" || !pEmpId || pName.toLowerCase().includes("vacant") || pName === "ว่าง") {
+            // Unlink position from any employee who was previously assigned to this slot
+            try {
+              await db.prepare("UPDATE employees SET positionId = '' WHERE positionId = ?").bind(pPosId).run();
+            } catch (_) {}
           }
         } catch (e) {
           console.error("D1 Upsert Manpower Position Error:", e);
@@ -1178,10 +1195,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
             let existing: any = null;
             if (pEmpId) {
-              existing = await db.prepare("SELECT id FROM employees WHERE id = ?").bind(pEmpId).first();
+              existing = await db.prepare("SELECT id FROM employees WHERE id = ? OR id = ?").bind(pEmpId, `EMP-${pEmpId.replace(/^EMP-/i, '')}`).first();
             }
             if (!existing && pPosId) {
-              existing = await db.prepare("SELECT id FROM employees WHERE positionId = ? OR id = ?").bind(pPosId, pPosId).first();
+              existing = await db.prepare("SELECT id FROM employees WHERE positionId = ?").bind(pPosId).first();
             }
             if (!existing && pName && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
               existing = await db.prepare("SELECT id FROM employees WHERE name = ?").bind(pName).first();
@@ -1190,17 +1207,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             if (existing && existing.id) {
               await db.prepare(`UPDATE employees SET positionId = ?, name = ?, role = ?, unit = ?, level = ?, ocType = ?, status = ?, isMgr = ?, isEng = ?, avatar = COALESCE(?, avatar) WHERE id = ?`)
                 .bind(pPosId, pName, pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng, pos.img || null, existing.id).run();
-            } else {
-              const empId = pEmpId || pPosId;
+            } else if (pEmpId && pStatus !== "Vacant" && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
+              const canonicalEmpId = pEmpId;
               await db.prepare(`INSERT OR REPLACE INTO employees (
                 id, positionId, name, deptId, role, unit, level, ocType, status, isMgr, isEng,
                 targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName,
                 nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
                 resignationDate, employmentStatus, avatar
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'Group A', '[]', '[]', 20000, 'ฝ่ายปฏิบัติการท่าเรือ', 'นาย', ?, '', '', '', 30, 30, ?, '1 ปี', '', 'ปฏิทินกะ 4-on-2-off', '', ?, ?)`).bind(
-                empId, pPosId, pName || "Vacant", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
-                pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), pStatus === "Vacant" ? "Inactive" : "Active", pos.img || ""
+                canonicalEmpId, pPosId, pName || "พนักงาน", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
+                pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), "Active", pos.img || ""
               ).run();
+            } else if (pStatus === "Vacant" || !pEmpId || pName.toLowerCase().includes("vacant") || pName === "ว่าง") {
+              try {
+                await db.prepare("UPDATE employees SET positionId = '' WHERE positionId = ?").bind(pPosId).run();
+              } catch (_) {}
             }
           }
         } catch (e) {

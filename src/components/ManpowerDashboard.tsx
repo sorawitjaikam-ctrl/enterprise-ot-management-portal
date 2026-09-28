@@ -550,18 +550,21 @@ export default function ManpowerDashboard({
   // Helper to immediately push updated positions to parent employees state
   const syncToEmployees = (updatedPositions: ManpowerPosition[]) => {
     if (!onSyncEmployees) return;
-    const existingMap = new Map((employees || []).map(e => [e.id, e]));
+    const existingMap = new Map((employees || []).map(e => [String(e.id).trim(), e]));
+    const strippedMap = new Map((employees || []).map(e => [String(e.id).trim().replace(/^EMP-/i, ''), e]));
     const nameMap = new Map((employees || []).map(e => [e.name, e]));
 
     const merged = updatedPositions
       .filter(p => p.status !== "Vacant" && p.name && p.name !== "Vacant")
       .map(p => {
-        const empId = p.empId || `EMP-${p.id.replace(/\D/g, "")}`;
-        const ex = (p.empId && existingMap.get(p.empId)) || nameMap.get(p.name);
+        const pEid = (p.empId || "").trim();
+        const ex = (pEid && (existingMap.get(pEid) || strippedMap.get(pEid.replace(/^EMP-/i, '')))) || nameMap.get(p.name);
+        const finalEmpId = ex ? ex.id : (pEid || `EMP-${p.id.replace(/\D/g, "")}`);
         if (ex) {
           return {
             ...ex,
-            id: empId,
+            id: finalEmpId,
+            empId: finalEmpId,
             name: p.name,
             role: p.role,
             deptId: normalizeUnitToDeptId(p.unit),
@@ -571,7 +574,8 @@ export default function ManpowerDashboard({
           };
         }
         return {
-          id: empId,
+          id: finalEmpId,
+          empId: finalEmpId,
           name: p.name,
           deptId: normalizeUnitToDeptId(p.unit),
           department: p.unit,
@@ -2018,7 +2022,27 @@ export default function ManpowerDashboard({
                     type="text"
                     value={formEmpId}
                     disabled={formStatus === "Vacant"}
-                    onChange={(e) => setFormEmpId(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormEmpId(val);
+                      const trimmed = val.trim();
+                      if (trimmed && employees) {
+                        const matched = employees.find((em: any) => 
+                          String(em.id).trim() === trimmed || 
+                          String(em.empId).trim() === trimmed ||
+                          String(em.id).trim().replace(/^EMP-/i, '') === trimmed.replace(/^EMP-/i, '')
+                        );
+                        if (matched) {
+                          if (matched.name) setFormName(matched.name);
+                          if (matched.role) setFormRole(matched.role);
+                          if (matched.department || matched.unit) {
+                            const u = (matched.department || matched.unit || "").trim();
+                            const std = STANDARD_UNITS.find(su => su.toLowerCase() === u.toLowerCase());
+                            if (std) setFormUnit(std);
+                          }
+                        }
+                      }
+                    }}
                     placeholder={formStatus === "Vacant" ? "ตำแหน่งว่าง" : "เช่น 688172"}
                     className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB] font-mono"
                   />

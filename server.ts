@@ -229,10 +229,11 @@ const writeAuditLog = async (username: string, action: string, targetType: strin
 // ============================================================
 // Helper: compute employee OT from ot_daily_records (D1)
 // ============================================================
-// Helper: compute employee OT from ot_daily_records (D1)
 const computeEmployeeOtStats = async (employeeId: string, targetOt: number, reqYear?: number, reqMonth?: number) => {
-  let sql = "SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE employeeId = ?";
-  const params: any[] = [employeeId];
+  const eid = (employeeId || "").toString().trim();
+  const stripped = eid.replace(/^EMP-/i, '');
+  let sql = "SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE (employeeId = ? OR employeeId = ? OR employeeId = ?)";
+  const params: any[] = [eid, stripped, `EMP-${stripped}`];
   if (reqYear && reqMonth) {
     sql += " AND year = ? AND month = ?";
     params.push(reqYear, reqMonth);
@@ -368,9 +369,18 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
     const actualOt = Math.max(dbOt, otFromShifts);
     const targetOt = e.targetOt || 48;
     const otPct = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
-    const status = actualOt > targetOt ? "Warning" : "On Track";
-
-    return { ...e, shifts, planShifts, actualOt, otPct, status };
+    const canonicalId = (e.id || "").toString().trim();
+    return {
+      ...e,
+      id: canonicalId,
+      empId: canonicalId,
+      positionId: e.positionId || `POS-${canonicalId}`,
+      shifts,
+      planShifts,
+      actualOt,
+      otPct,
+      status
+    };
   }));
 };
 
