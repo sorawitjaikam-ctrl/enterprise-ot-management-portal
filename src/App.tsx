@@ -5711,14 +5711,66 @@ export default function App() {
     };
   };
 
+  // Helper to parse month count from filter string (supports 1, 2, 3, 6, and 12 months)
+  const getFilterMonthCount = (filter: string): number => {
+    if (filter.includes("2 เดือน")) return 2;
+    if (filter.includes("3 เดือน")) return 3;
+    if (filter.includes("6 เดือน")) return 6;
+    if (filter.includes("1 ปี") || filter.includes("12 เดือน")) return 12;
+    return 1;
+  };
+
+  // Function to get the EXACT array of month keys corresponding to the user filter
+  const getTargetMonths = (filter: string, baseMonth: string): string[] => {
+    const [yStr, mStr] = (baseMonth || "2026-08").split("-");
+    let y = parseInt(yStr, 10) || 2026;
+    let m = parseInt(mStr, 10) || 8;
+    const count = getFilterMonthCount(filter);
+    const result: string[] = [];
+    
+    for (let i = 0; i < count; i++) {
+      let curM = m - i;
+      let curY = y;
+      while (curM <= 0) {
+        curY -= 1;
+        curM += 12;
+      }
+      const padM = String(curM).padStart(2, "0");
+      result.push(`${curY}-${padM}`);
+    }
+    return result;
+  };
+
+  // Comparison with the exact equivalent prior period
+  const getPriorPeriodMonths = (filter: string, baseMonth: string): string[] => {
+    const count = getFilterMonthCount(filter);
+    const [yStr, mStr] = (baseMonth || "2026-08").split("-");
+    let y = parseInt(yStr, 10) || 2026;
+    let m = (parseInt(mStr, 10) || 8) - count;
+    while (m <= 0) {
+      y -= 1;
+      m += 12;
+    }
+    const priorStartMonth = `${y}-${String(m).padStart(2, "0")}`;
+    return getTargetMonths(filter, priorStartMonth);
+  };
+
   const getDynamicEmployeeOt = (empId: string, monthFilter: string) => {
-    const emp = state.employees.find(e => e.id === empId);
-    return emp ? emp.actualOt : 0;
+    const emp = state.employees.find(e => e.id === empId || e.empId === empId);
+    if (!emp) return 0;
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const targetMonths = getTargetMonths(monthFilter, currentMonthKey);
+    return Math.round(targetMonths.reduce((sum, mKey) => sum + getEmpCalculatedOt(emp, mKey), 0) * 10) / 10;
   };
 
   const getDynamicDeptOt = (deptId: string, monthFilter: string) => {
-    const dept = state.departments.find(d => d.id === deptId);
-    return dept ? dept.otHours : 0;
+    const normDept = normalizeDeptId(deptId);
+    const deptEmps = (state.employees || []).filter(e => normalizeDeptId(e.deptId) === normDept);
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const targetMonths = getTargetMonths(monthFilter, currentMonthKey);
+    return Math.round(deptEmps.reduce((deptSum, emp) => {
+      return deptSum + targetMonths.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(emp, mKey), 0);
+    }, 0) * 10) / 10;
   };
 
   const getDeptManagerInfo = (deptId: string) => {
@@ -6251,9 +6303,11 @@ export default function App() {
                           onChange={(e) => setSelectedMonthFilter(e.target.value)}
                           className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
                         >
-                          <option>เดือนปัจจุบัน</option>
-                          <option>3 เดือนที่ผ่านมา</option>
+                          <option>1 เดือน (เดือนปัจจุบัน)</option>
+                          <option>2 เดือนย้อนหลัง</option>
+                          <option>3 เดือนย้อนหลัง</option>
                           <option>6 เดือนย้อนหลัง</option>
+                          <option>1 ปี (12 เดือนย้อนหลัง)</option>
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
                       </div>
@@ -6280,9 +6334,11 @@ export default function App() {
                           onChange={(e) => setSelectedMonthFilter(e.target.value)}
                           className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
                         >
-                          <option>เดือนปัจจุบัน</option>
-                          <option>3 เดือนที่ผ่านมา</option>
+                          <option>1 เดือน (เดือนปัจจุบัน)</option>
+                          <option>2 เดือนย้อนหลัง</option>
+                          <option>3 เดือนย้อนหลัง</option>
                           <option>6 เดือนย้อนหลัง</option>
+                          <option>1 ปี (12 เดือนย้อนหลัง)</option>
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
                       </div>
@@ -6392,28 +6448,6 @@ export default function App() {
                 (() => {
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
 
-                // Function to get the EXACT array of month keys corresponding to the user filter
-                const getTargetMonths = (filter: string, baseMonth: string) => {
-                  const [yStr, mStr] = baseMonth.split("-");
-                  let y = parseInt(yStr, 10);
-                  let m = parseInt(mStr, 10);
-                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                  const result: string[] = [];
-                  
-                  for (let i = 0; i < count; i++) {
-                    const curM = m - i;
-                    let curY = y;
-                    let actualM = curM;
-                    if (curM <= 0) {
-                      curY -= 1;
-                      actualM = 12 + curM;
-                    }
-                    const padM = String(actualM).padStart(2, "0");
-                    result.push(`${curY}-${padM}`);
-                  }
-                  return result;
-                };
-
                 const activeMonthsList = getTargetMonths(selectedMonthFilter, currentMonthKey);
 
                 // 100% Exact Multi-Month Database Query from emp.shifts[mKey]
@@ -6441,20 +6475,6 @@ export default function App() {
                 const periodTotalSalary = singleMonthBaseSalary * activeMonthsList.length;
                 const otSalaryPct = periodTotalSalary > 0 && totalSpent > 0 ? Math.min(100, Math.round((totalSpent / periodTotalSalary) * 100)) : 0;
 
-                // Comparison with the exact equivalent prior period
-                const getPriorPeriodMonths = (filter: string, baseMonth: string) => {
-                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                  const [yStr, mStr] = baseMonth.split("-");
-                  let y = parseInt(yStr, 10);
-                  let m = parseInt(mStr, 10) - count;
-                  if (m <= 0) {
-                    y -= 1;
-                    m = 12 + m;
-                  }
-                  const priorStartMonth = `${y}-${String(m).padStart(2, "0")}`;
-                  return getTargetMonths(filter, priorStartMonth);
-                };
-
                 const priorMonthsList = getPriorPeriodMonths(selectedMonthFilter, currentMonthKey);
                 const prevTotalSpent = Math.round(
                   dashboardEmployees.reduce((sum, emp) => {
@@ -6466,13 +6486,18 @@ export default function App() {
                   ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
                   : (totalSpent > 0 ? 100 : 0);
 
-                const periodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
-                  ? "สะสม 3 เดือนที่ผ่านมา" 
-                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "สะสม 6 เดือนย้อนหลัง" : "ประจำเดือนนี้");
+                const filterMonthCount = getFilterMonthCount(selectedMonthFilter);
+                const periodLabel = filterMonthCount === 1
+                  ? "ประจำเดือนนี้"
+                  : filterMonthCount === 12
+                  ? "สะสม 1 ปี (12 เดือนย้อนหลัง)"
+                  : `สะสม ${filterMonthCount} เดือนย้อนหลัง`;
 
-                const comparePeriodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
-                  ? "เทียบกับ 3 เดือนก่อนหน้า" 
-                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "เทียบกับ 6 เดือนก่อนหน้า" : "เทียบกับเดือนก่อนหน้า");
+                const comparePeriodLabel = filterMonthCount === 1
+                  ? "เทียบกับเดือนก่อนหน้า"
+                  : filterMonthCount === 12
+                  ? "เทียบกับ 1 ปีก่อนหน้า"
+                  : `เทียบกับ ${filterMonthCount} เดือนก่อนหน้า`;
 
                 // 10-Month Dynamic Calculation Array (Jan - Oct 2026)
                 const monthKeys = ["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
