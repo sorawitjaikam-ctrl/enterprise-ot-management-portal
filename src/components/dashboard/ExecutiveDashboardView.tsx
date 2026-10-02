@@ -138,7 +138,7 @@ export default function ExecutiveDashboardView({
         <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
           <div className="flex justify-between items-start">
             <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">
-              ค่าล่วงเวลาสะสมจริง (MTD)
+              ค่าล่วงเวลาสะสมเดือนปัจจุบัน
             </h3>
             <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs font-mono">
               ฿
@@ -234,9 +234,9 @@ export default function ExecutiveDashboardView({
         {/* Cause-and-Effect Driver Tree */}
         <div className="lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col justify-between">
           <div>
-            <span className="eyebrow">โครงสร้างต้นทุนเชิงสาเหตุ</span>
+            <span className="eyebrow">โครงสร้างต้นทุน</span>
             <h3 className="text-sm font-bold text-[#0E3A66] tracking-tight mb-2">
-              แผนผังเชื่อมโยงการจัดกะสู่ค่าใช้จ่าย (Shift-to-Cost Driver Tree)
+              โครงสร้างต้นทุนและปัจจัยขับเคลื่อนค่าล่วงเวลา
             </h3>
             <p className="text-xs text-[#59656D] leading-relaxed mb-3">
               แสดงการกระจายของประเภทกะทำงาน จำนวนชั่วโมง OT และผลคูณตามกฎหมายที่แปลงเป็นต้นทุนค่าล่วงเวลาสะสม
@@ -262,7 +262,7 @@ export default function ExecutiveDashboardView({
                 </div>
               </div>
               <div className="bg-[#F3F6F8] p-2.5 rounded border border-[#DCE4EA]">
-                <div className="text-[10px] text-[#59656D] font-bold uppercase">ค่าใช้จ่ายรวม (THB)</div>
+                <div className="text-[10px] text-[#59656D] font-bold uppercase">ค่าใช้จ่ายรวม</div>
                 <div className="text-base font-bold text-[#0E3A66] font-mono mt-1">
                   ฿{forecastSummary.totalActualSpendToDateThb.toLocaleString()}
                 </div>

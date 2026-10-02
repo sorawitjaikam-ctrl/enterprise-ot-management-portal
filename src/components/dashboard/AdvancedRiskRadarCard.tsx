@@ -54,7 +54,7 @@ export default function AdvancedRiskRadarCard({ summary }: AdvancedRiskRadarCard
         <div>
           <span className="eyebrow">ระบบเรดาร์เตือนภัยความเสี่ยงเชิงรุก</span>
           <h2 className="text-base sm:text-lg font-bold text-[#0E3A66] tracking-tight">
-            เรดาร์ประเมินความเสี่ยงและความล้าสะสม (Risk Radar)
+            เรดาร์ประเมินความเสี่ยงและความล้าสะสม
           </h2>
         </div>
 
@@ -80,7 +80,7 @@ export default function AdvancedRiskRadarCard({ summary }: AdvancedRiskRadarCard
         {/* Radar SVG Panel (lg:col-span-5) */}
         <div className="lg:col-span-5 bg-[#F3F6F8] border border-[#DCE4EA] rounded p-4 flex flex-col items-center justify-between">
           <div className="text-xs font-bold text-[#0E3A66] w-full text-left mb-1">
-            แผนผังเรดาร์ 5 มิติ (Proactive 5-Axis Spider Chart)
+            แผนผังประเมินความเสี่ยง 5 มิติ
           </div>
           <div className="text-[11px] text-[#59656D] w-full text-left mb-2">
             ดัชนีชี้วัดความพร้อมของกำลังพลและความสอดคล้องตามกฎหมาย (1.0 = ปลอดภัยสูงสุด)
@@ -175,7 +175,7 @@ export default function AdvancedRiskRadarCard({ summary }: AdvancedRiskRadarCard
         <div className="lg:col-span-7 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="text-xs font-bold text-[#0E3A66] uppercase tracking-wider">
-              เมทริกซ์ความเสี่ยงตำแหน่งและแผนก (Risk Matrix)
+              เมทริกซ์ความเสี่ยงตำแหน่งและแผนก
             </div>
 
             {/* Level Filter Buttons */}

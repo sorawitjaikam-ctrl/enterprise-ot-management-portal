@@ -6220,7 +6220,7 @@ export default function App() {
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
             activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
             activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
-            activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
+            activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน" :
             activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
             "การตั้งค่าระบบและกฎเกณฑ์"
           }
@@ -6705,7 +6705,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-8 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <div>
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">แนวโน้มค่าล่วงเวลารายเดือน (Jan - Oct 2026)</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">แนวโน้มค่าล่วงเวลารายเดือน</h3>
                           <p className="text-xs text-[#59656D] mt-0.5">การเปรียบเทียบงบประมาณและการเติบโตเทียบเดือนก่อนหน้า</p>
                         </div>
                         
@@ -6834,7 +6834,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วน OT แยกตามแผนก</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วนค่าล่วงเวลารายแผนก</h3>
                           <span className="tag t-b">ข้อมูลเรียลไทม์</span>
                         </div>
                         <p className="text-xs text-[#59656D] mb-4">ปริมาณชั่วโมงสะสมรายแผนกท่าเรือ</p>
@@ -6889,7 +6889,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การกระจาย OT 10 ตำแหน่งปฏิบัติการ</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วนค่าล่วงเวลาตามกลุ่มตำแหน่งงาน</h3>
                           <span className="tag t-n">10 ตำแหน่งหลัก</span>
                         </div>
                         <p className="text-xs text-[#59656D] mb-4">การจัดสรรชั่วโมงการทำงานล่วงเวลาตามกลุ่มงานท่าเรือ</p>
@@ -6929,7 +6929,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">รายชื่อ OT สูงสุด (Watchlist)</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">รายชื่อพนักงานที่มีชั่วโมง OT สูงสุด</h3>
                           <button 
                             type="button"
                             onClick={handleNavigateToEmployees}
@@ -7060,11 +7060,11 @@ export default function App() {
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="tag t-b font-mono">F3.1 DRIVER TREE</span>
-                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ผังเชื่อมโยงเหตุและผลต้นทุน (Shift-to-Cost Driver Tree)</h3>
+                                <span className="tag t-b font-mono">โครงสร้างต้นทุน</span>
+                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">โครงสร้างต้นทุนและปัจจัยขับเคลื่อนค่าล่วงเวลา</h3>
                               </div>
                               <p className="text-xs text-[#59656D] mt-0.5">
-                                วิเคราะห์การส่งผลต่อเนื่อง: ประเภทการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ภาระงบประมาณจ่ายจริง (THB)
+                                วิเคราะห์ปัจจัยขับเคลื่อน: รูปแบบการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ยอดเบิกจ่ายจริง
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -7086,15 +7086,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะปกติ (8h):</span>
+                                    <span>กะปกติ 8 ชั่วโมง:</span>
                                     <span className="font-mono font-bold">{totalStandardShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalStandardShifts / totalWorkingShifts) * 100) : 0}%)</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะ OT (12h/16h/24h):</span>
+                                    <span>กะล่วงเวลา 12-24 ชั่วโมง:</span>
                                     <span className="font-mono">{totalOtShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}%)</span>
                                   </div>
                                   <div className="flex justify-between text-[#6A7B87]">
-                                    <span>วันหยุดพัก (O/OFF):</span>
+                                    <span>วันหยุดประจำสัปดาห์:</span>
                                     <span className="font-mono">{offDays.toLocaleString()} วัน</span>
                                   </div>
                                 </div>
@@ -7114,15 +7114,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะ M12 / N12 (+4h):</span>
+                                    <span>กะ 12 ชั่วโมง (+4 ชม.):</span>
                                     <span className="font-mono font-bold">{((otM12 + otN12) * 4).toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะยาว M16 / M24:</span>
+                                    <span>กะยาว 16-24 ชั่วโมง:</span>
                                     <span className="font-mono font-bold">{(otM16 * 8 + otM24 * 16).toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะวันหยุด OND (+8h):</span>
+                                    <span>กะวันหยุด (+8 ชม.):</span>
                                     <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                 </div>
@@ -7142,15 +7142,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>OT วันทำงาน (1.5x):</span>
+                                    <span>OT วันทำงานปกติ 1.5 เท่า:</span>
                                     <span className="font-mono font-bold">{totalNormalOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>OT วันหยุด (3.0x):</span>
+                                    <span>OT วันหยุด 3.0 เท่า:</span>
                                     <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#1E9C6E]">
-                                    <span>ทำงานวันหยุด (1.0x):</span>
+                                    <span>ทำงานวันหยุด 1.0 เท่า:</span>
                                     <span className="font-mono font-bold">{(otOND * 8).toLocaleString()} ชม.</span>
                                   </div>
                                 </div>
@@ -7238,13 +7238,13 @@ export default function App() {
                             <div>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">F3.2 RANKING</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การจัดอันดับตัวขับเคลื่อนต้นทุนรายแผนก</h3>
+                                  <span className="tag t-b font-mono">จัดอันดับแผนก</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">อันดับแผนกที่มีค่าล่วงเวลาสูงสุด</h3>
                                 </div>
                                 <span className="text-[10px] text-[#6A7B87] font-mono">เรียงตามยอดใช้จ่ายสูงสุด</span>
                               </div>
                               <p className="text-xs text-[#59656D] mb-4">
-                                เปรียบเทียบแผนจัดกะ vs ผลการปฏิบัติงานจริง และส่วนต่างงบประมาณ (&Delta;THB, &Delta;%)
+                                เปรียบเทียบแผนจัดกะกับผลการทำงานจริง และส่วนต่างงบประมาณ
                               </p>
 
                               <div className="space-y-2.5">
@@ -7305,13 +7305,13 @@ export default function App() {
                             <div>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">F3.3 SENSITIVITY</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ความไวช่องว่างกำลังพลและความล้าสะสม</h3>
+                                  <span className="tag t-b font-mono">วิเคราะห์ความเสี่ยง</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การวิเคราะห์ความเสี่ยงด้านอัตรากำลังและความล้าสะสม</h3>
                                 </div>
-                                <span className="tag t-y font-mono">LABOR SAFETY</span>
+                                <span className="tag t-y font-mono">ความปลอดภัยแรงงาน</span>
                               </div>
                               <p className="text-xs text-[#59656D] mb-4">
-                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานต้องทำงานเกินขีดจำกัดความล้า (&gt;36 ชม./สัปดาห์)
+                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานทำงานเกินเกณฑ์ความล้าสะสมมากกว่า 36 ชั่วโมงต่อสัปดาห์
                               </p>
 
                               <div className="space-y-3">
@@ -7426,14 +7426,14 @@ export default function App() {
                         <span className="eyebrow block">JOB VALUE &amp; COMPENSATION ENGINE</span>
                       </div>
                       <div className="flex items-center gap-2.5 mt-0.5">
-                        <h3 className="text-base sm:text-lg font-bold text-[#0E3A66]">โครงสร้างคุณค่าตำแหน่งงาน (Job Value)</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-[#0E3A66]">โครงสร้างคุณค่าตำแหน่งงาน</h3>
                         <span className="px-2.5 py-0.5 rounded-full bg-[#E8F6F0] border border-[#A5DCC5] text-[#1E9C6E] text-xs font-bold flex items-center gap-1">
                           <TrendingUp className="w-3.5 h-3.5" />
                           <span>ปี 2026</span>
                         </span>
                       </div>
                       <p className="text-xs text-[#59656D] mt-1 leading-relaxed max-w-2xl">
-                        ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ (Revenue) ต้นทุน (Cost) กำไร (Profit) รายบุคคลและแผนก พร้อมแม่แบบ Checklist สำหรับ Google Calendar
+                        ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ ต้นทุน และกำไรรายบุคคลและแผนก
                       </p>
                     </div>
 
@@ -7459,7 +7459,7 @@ export default function App() {
                             title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
                           >
                             <Download className="w-3.5 h-3.5 text-[#17538F]" />
-                            <span>ส่งออกข้อมูล (Export CSV)</span>
+                            <span>ส่งออกข้อมูล CSV</span>
                           </button>
 
                           {/* Import CSV */}
@@ -7468,7 +7468,7 @@ export default function App() {
                             title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
                           >
                             <Upload className="w-3.5 h-3.5 text-[#9FCEE8]" />
-                            <span>{importJvLoading ? "กำลังอัพโหลด..." : "อัพโหลดข้อมูล (Import CSV)"}</span>
+                            <span>{importJvLoading ? "กำลังนำเข้า..." : "นำเข้าข้อมูล CSV"}</span>
                             <input
                               type="file"
                               accept=".csv"
@@ -7488,7 +7488,7 @@ export default function App() {
                               disabled={importJvLoading}
                             >
                               <Trash2 className="w-3.5 h-3.5 text-[#B3352C]" />
-                              <span>ล้างข้อมูลใน D1 (Clear All)</span>
+                              <span>ล้างข้อมูลทั้งหมด</span>
                             </button>
                           )}
                         </>
@@ -7539,7 +7539,7 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
                       <div className="bezel-shell">
                         <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">รายได้ประเมินรวม (Total Revenue)</span>
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">รายได้ประเมินรวม</span>
                           <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalRevenue.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
                           <span className="sub text-[11px] text-[#59656D] mt-1">ประมาณการจาก {scopedEmpList.length} บุคลากร (เฉลี่ย {scopedEmpList.length > 0 ? Math.round(totalRevenue / scopedEmpList.length).toLocaleString() : 0} /คน)</span>
                         </div>
@@ -7553,7 +7553,7 @@ export default function App() {
                       </div>
                       <div className="bezel-shell">
                         <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">คุณค่าเพิ่มจากการดำเนินงาน (Value-Add)</span>
+                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">คุณค่าเพิ่มจากการดำเนินงาน</span>
                           <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalValueAdd.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
                           <span className="sub text-[11px] text-[#59656D] mt-1">อัตรากำไรจากการดำเนินงาน {profitMarginPct}%</span>
                         </div>
@@ -8439,21 +8439,21 @@ export default function App() {
                         })}
                       </svg>
                       {/* Labels */}
-                      <span className="absolute top-1 text-[8px] font-bold text-[#59656D] text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
-                      <span className="absolute top-16 right-0 text-[8px] font-bold text-[#59656D]">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
-                      <span className="absolute bottom-1 right-2 text-[8px] font-bold text-[#59656D]">ความคุ้มค่า ({Math.round(costEfficiencyPct * 100)}%)</span>
-                      <span className="absolute bottom-1 left-2 text-[8px] font-bold text-[#59656D]">ความปลอดภัย ({Math.round(safetyPct * 100)}%)</span>
-                      <span className="absolute top-16 left-0 text-[8px] font-bold text-[#59656D]">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
+                      <span className="absolute top-1 text-[8px] font-bold text-[#59656D] text-center w-full">จัดกะ {Math.round(coveragePct * 100)}%</span>
+                      <span className="absolute top-16 right-0 text-[8px] font-bold text-[#59656D]">ผลผลิต {Math.round(productivityPct * 100)}%</span>
+                      <span className="absolute bottom-1 right-2 text-[8px] font-bold text-[#59656D]">ความคุ้มค่า {Math.round(costEfficiencyPct * 100)}%</span>
+                      <span className="absolute bottom-1 left-2 text-[8px] font-bold text-[#59656D]">ความปลอดภัย {Math.round(safetyPct * 100)}%</span>
+                      <span className="absolute top-16 left-0 text-[8px] font-bold text-[#59656D]">กำลังพล {Math.round(attendancePct * 100)}%</span>
                     </div>
 
                     <div className="flex gap-4 justify-center text-[9px] font-bold text-[#59656D] mt-2">
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 bg-[#0E3A66] rounded-xs"></span>
-                        <span>ดัชนี (Current)</span>
+                        <span>รอบปัจจุบัน</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 border border-dashed border-[#D99B14] bg-[#FCF3DE] rounded-xs"></span>
-                        <span>เกณฑ์ (Baseline)</span>
+                        <span>เกณฑ์อ้างอิง</span>
                       </div>
                     </div>
                   </div>
@@ -8463,8 +8463,8 @@ export default function App() {
                 <div className="lg:col-span-3 bezel-shell">
                   <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
                     <div>
-                      <h4 className="text-sm font-bold text-[#0E3A66]">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
-                      <p className="text-[10px] text-[#59656D] mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">สัดส่วน OT แยกตามตำแหน่งงาน</h4>
+                      <p className="text-[10px] text-[#59656D] mb-4">สัดส่วนชั่วโมง OT รวมของ 10 ตำแหน่งงานหลัก</p>
                     </div>
 
                     <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
@@ -8491,7 +8491,7 @@ export default function App() {
                     
                     <div className="pt-2.5 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[9px] font-bold text-[#6A7B87]">
                       <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
-                      <span className="text-[#0E3A66]">วิเคราะห์เอนเอียง</span>
+                      <span className="text-[#0E3A66]">10 อันดับตำแหน่งงาน</span>
                     </div>
                   </div>
                 </div>
@@ -8506,14 +8506,14 @@ export default function App() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FCF3DE] text-[#D99B14] border border-[#D99B14]/30">
                           <Ship className="w-3.5 h-3.5 text-[#D99B14] inline" />
-                          <span>Maritime Operations Telemetry</span>
+                          <span>ปริมาณงานสินค้าและชั่วโมง OT</span>
                         </span>
                       </div>
                       <h4 className="text-sm sm:text-base font-black text-[#333B41] tracking-tight">
-                        การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)
+                        ปริมาณงานยกตู้สินค้าและชั่วโมงค่าล่วงเวลา
                       </h4>
                       <p className="text-xs text-[#59656D] mt-0.5">
-                        วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
+                        วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ต่อปริมาณการจัดการตู้สินค้า
                       </p>
                     </div>
                     
@@ -11439,7 +11439,7 @@ export default function App() {
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                   <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded p-6 shadow-sm space-y-4">
                     <div>
-                      <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
+                      <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูลระบบ</h4>
                       <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
                     </div>
                     <button 
@@ -11462,7 +11462,7 @@ export default function App() {
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ระบบจัดการบัญชีและสิทธิการเข้าถึง</h3>
                   <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
@@ -11757,7 +11757,7 @@ export default function App() {
                   <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold font-sans">ตารางเทียบเรือ เครน และงานบำรุงรักษา (PM / CM)</h3>
+                  <h3 className="text-base font-extrabold font-sans">แผนงานเทียบเรือและงานบำรุงรักษาอุปกรณ์</h3>
                   <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
                 </div>
               </div>
@@ -13272,7 +13272,7 @@ export default function App() {
                   <Sparkles className="w-5 h-5 animate-spin" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-indigo-950">รายงานวิเคราะห์และตรวจสอบความปลอดภัยอัจฉริยะ (Gemini Live Audit)</h3>
+                  <h3 className="text-sm font-extrabold text-indigo-950">รายงานตรวจสอบความปลอดภัยและกฎหมายแรงงาน</h3>
                   <p className="text-[11px] text-indigo-600">วิเคราะห์ตามกฎหมายแรงงานไทยจำกัดชั่วโมงโอทีพนักงาน</p>
                 </div>
               </div>
@@ -13689,7 +13689,7 @@ export default function App() {
               <div className="flex items-center gap-2.5">
                 <Zap className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม (Bulk Shift Setter)</h3>
+                  <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม</h3>
                   <p className="text-[10px] text-indigo-300">กำหนดกะงานให้พนักงานทั้งกลุ่มพร้อมกันในคลิกเดียว</p>
                 </div>
               </div>
@@ -13770,7 +13770,7 @@ export default function App() {
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">รายการใบคำขอทำล่วงเวลา (OT Request & Approval Pipeline)</h3>
+                  <h3 className="text-base font-extrabold">รายการคำขออนุมัติทำงานล่วงเวลา</h3>
                   <p className="text-[10px] text-slate-400">ยื่นขอทำ OT และอนุมัติใบคำขอออนไลน์ก่อนการปฏิบัติงานจริง</p>
                 </div>
               </div>
@@ -13948,15 +13948,15 @@ export default function App() {
               {/* Monthly Breakdown Table */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
                 <div className="p-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-slate-800">ตารางรายได้-ต้นทุน-กำไร รายเดือน 12 เดือน (Jan - Dec)</h4>
+                  <h4 className="text-xs font-bold text-slate-800">ตารางรายได้ ต้นทุน และกำไรรายเดือน</h4>
                 </div>
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-white border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase">
                       <th className="px-3 py-2">เดือน</th>
-                      <th className="px-3 py-2 text-right text-emerald-700">Revenue (รายได้)</th>
-                      <th className="px-3 py-2 text-right text-rose-700">Cost (ต้นทุน)</th>
-                      <th className="px-3 py-2 text-right text-blue-700">Profit (กำไร)</th>
+                      <th className="px-3 py-2 text-right text-emerald-700">รายได้</th>
+                      <th className="px-3 py-2 text-right text-rose-700">ต้นทุน</th>
+                      <th className="px-3 py-2 text-right text-blue-700">กำไร</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#DCE4EA]/60 font-mono">

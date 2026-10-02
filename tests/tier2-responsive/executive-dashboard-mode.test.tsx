@@ -119,7 +119,7 @@ describe("Tier 2: Executive Dashboard Mode & Strategic Controls (R1 - R4)", () =
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText("เรดาร์ประเมินความเสี่ยงและความล้าสะสม (Risk Radar)")).toBeInTheDocument();
+        expect(screen.getByText("เรดาร์ประเมินความเสี่ยงและความล้าสะสม")).toBeInTheDocument();
       });
 
       // 5-axis metrics labels
@@ -130,7 +130,7 @@ describe("Tier 2: Executive Dashboard Mode & Strategic Controls (R1 - R4)", () =
       expect(screen.getByText("ความยืดหยุ่นกำลังพลสำรอง")).toBeInTheDocument();
 
       // Risk matrix table
-      expect(screen.getByText("เมทริกซ์ความเสี่ยงตำแหน่งและแผนก (Risk Matrix)")).toBeInTheDocument();
+      expect(screen.getByText("เมทริกซ์ความเสี่ยงตำแหน่งและแผนก")).toBeInTheDocument();
       expect(screen.getByText("กำลังพล (จริง/ต่ำสุด)")).toBeInTheDocument();
       expect(screen.getByText("สัญญาณเตือนเชิงรุก")).toBeInTheDocument();
       expect(screen.getByText("คำแนะนำแก้ไข")).toBeInTheDocument();

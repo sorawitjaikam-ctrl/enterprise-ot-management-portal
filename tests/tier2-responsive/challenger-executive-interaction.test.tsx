@@ -50,7 +50,7 @@ describe("Challenger Exec 2: Adversarial Interaction, URL Sync, Batch Actions & 
       // Executive-specific sections should be rendered
       expect(screen.getByText("คำสั่งปฏิบัติการผู้บริหาร")).toBeInTheDocument();
       expect(screen.getByText("การคาดการณ์งบประมาณสิ้นเดือนและ Burn Rate")).toBeInTheDocument();
-      expect(screen.getByText("เรดาร์ประเมินความเสี่ยงและความล้าสะสม (Risk Radar)")).toBeInTheDocument();
+      expect(screen.getByText("เรดาร์ประเมินความเสี่ยงและความล้าสะสม")).toBeInTheDocument();
 
       // Operational-only controls should NOT be visible
       expect(screen.queryByText("ตัวกรองแดชบอร์ด")).not.toBeInTheDocument();
