@@ -195,7 +195,7 @@ function parseOtMessage(text: string): ParsedOt | null {
   const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
 
   return {
-    vesselName: vesselName || "ทั่วไป",
+    vesselName: vesselName || "",
     department: department || "ไม่ระบุแผนก",
     employeeName: employeeName || "พนักงาน",
     employeeId: employeeId || "ไม่ระบุรหัส",
@@ -286,7 +286,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
       const parsed = parseOtMessage(text);
 
-      if (!parsed || parsed.shifts.length === 0) {
+      if (!parsed) {
         // Helpful message with template
         await replyLineMessage(replyToken, [{
           type: "text",
@@ -307,15 +307,61 @@ M.V."PEDHOULAS TRADER"
         }], channelAccessToken);
         continue;
       }
+
       // ============================================================
-      // 1. Employee & Department Validation in D1
+      // 1. Vessel Requirement Check
+      // ============================================================
+      const hasVessel = parsed.vesselName && parsed.vesselName !== "ทั่วไป" && parsed.vesselName !== "-";
+      if (!hasVessel) {
+        const missingVesselMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุชื่อเรือ!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ระบบจำเป็นต้องทราบชื่อเรือสำหรับบันทึก OT",
+          "ตัวอย่าง: M.V.\"PEDHOULAS TRADER\""
+        ].join("\n");
+        await replyLineMessage(replyToken, [{ type: "text", text: missingVesselMsg }], channelAccessToken);
+        continue;
+      }
+
+      // ============================================================
+      // 2. OT Hours / Shifts Requirement Check
+      // ============================================================
+      if (parsed.shifts.length === 0) {
+        const missingShiftsMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุช่วงเวลาทำงาน OT!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ไม่พบช่วงเวลาทำงานและชั่วโมง OT ในข้อความ",
+          "ตัวอย่าง:",
+          "เวลา 00:00-08:00=8×1",
+          "เวลา 08:00-16:00=8×3"
+        ].join("\n");
+        await replyLineMessage(replyToken, [{ type: "text", text: missingShiftsMsg }], channelAccessToken);
+        continue;
+      }
+
+      // ============================================================
+      // 3. Employee ID Check
+      // ============================================================
+      if (!parsed.employeeId || parsed.employeeId === "ไม่ระบุรหัส") {
+        const missingEmpIdMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุรหัสพนักงาน!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ระบบต้องการรหัสพนักงานในการบันทึกข้อมูล",
+          "ตัวอย่าง: รหัสพนักงาน 668126"
+        ].join("\n");
+        await replyLineMessage(replyToken, [{ type: "text", text: missingEmpIdMsg }], channelAccessToken);
+        continue;
+      }
+
+      // ============================================================
+      // 4. Employee ID & Name Validation in D1
       // ============================================================
       let verifiedEmp: any = null;
       let verifiedDept: any = null;
 
       if (db) {
         try {
-          // 1.1 Check Employee in D1
+          // 4.1 Check Employee in D1
           verifiedEmp = await db.prepare(
             "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
           ).bind(parsed.employeeId, parsed.employeeId.padStart(7, "0")).first();
@@ -344,70 +390,58 @@ M.V."PEDHOULAS TRADER"
             continue;
           }
 
-          // 1.2 Get Department Info from D1
+          // 4.2 Check Employee Name matches
+          const normalizeThaiName = (str: string) => (str || "")
+            .replace(/^(?:นาย|นางสาว|นาง|คุณ|\s)+/g, "")
+            .replace(/\s+/g, "")
+            .toLowerCase();
+
+          const hasInputName = parsed.employeeName && parsed.employeeName !== "พนักงาน" && parsed.employeeName !== "-";
+          if (!hasInputName) {
+            const missingNameMsg = [
+              "⚠️ แจ้งเตือน: กรุณาระบุชื่อ-นามสกุล!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              "ระบบต้องการชื่อ-นามสกุลเพื่อยืนยันตัวตนคู่กับรหัสพนักงานครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: missingNameMsg }], channelAccessToken);
+            continue;
+          }
+
+          const inputNameNorm = normalizeThaiName(parsed.employeeName);
+          const sysNameNorm = normalizeThaiName(verifiedEmp.name);
+          const isNameMatch = inputNameNorm.length >= 2 && (
+            inputNameNorm === sysNameNorm ||
+            sysNameNorm.includes(inputNameNorm) ||
+            inputNameNorm.includes(sysNameNorm)
+          );
+
+          if (!isNameMatch) {
+            const nameMismatchMsg = [
+              "⚠️ แจ้งเตือน: รหัสพนักงานกับชื่อไม่ตรงกัน!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              "",
+              `❌ ชื่อที่คุณระบุ: ${parsed.employeeName}`,
+              `✅ ชื่อที่ถูกต้องในระบบ: ${verifiedEmp.name}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบปฏิเสธการบันทึก กรุณาตรวจสอบรหัสพนักงานและชื่อ-นามสกุลให้ถูกต้อง แล้วส่งใหม่อีกครั้งครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: nameMismatchMsg }], channelAccessToken);
+            continue;
+          }
+
+          // 4.3 Auto-pull Department & Role from System (ignoring any input dept/position typos)
           if (verifiedEmp.deptId) {
             verifiedDept = await db.prepare(
               "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?"
             ).bind(verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId).first();
           }
 
-          // 1.3 Validate Position & Department
-          const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
-          const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
-
-          // Position matching
-          const hasInputPos = parsed.position && parsed.position !== '-' && parsed.position !== 'ไม่ระบุตำแหน่ง';
-          const inputPosNorm = normalizeText(parsed.position);
-          const sysPosNorm = normalizeText(verifiedEmp.role);
-          const isPosMatch = hasInputPos && (
-            inputPosNorm === sysPosNorm ||
-            inputPosNorm.includes(sysPosNorm) ||
-            sysPosNorm.includes(inputPosNorm)
-          );
-
-          // Department matching
-          const hasInputDept = parsed.department && parsed.department !== '-' && parsed.department !== 'ไม่ระบุแผนก';
-          const inputDeptNorm = normalizeDept(parsed.department);
-          const deptCandidates = [
-            verifiedEmp.deptId,
-            verifiedDept?.id,
-            verifiedDept?.name,
-            verifiedDept?.nameTh
-          ].filter(Boolean);
-
-          const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
-            const candNorm = normalizeDept(cand);
-            return (
-              candNorm === inputDeptNorm ||
-              candNorm.includes(inputDeptNorm) ||
-              inputDeptNorm.includes(candNorm)
-            );
-          });
-
-          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
-          const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
-
-          if (!isPosMatch || !isDeptMatch) {
-            const mismatchMsg = [
-              "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
-              "━━━━━━━━━━━━━━━━━━━━",
-              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
-              `👤 พนักงาน: ${verifiedEmp.name}`,
-              "",
-              "❌ ข้อมูลที่คุณระบุ:",
-              `  • ตำแหน่ง: ${hasInputPos ? parsed.position : "ไม่ได้ระบุ"}`,
-              `  • แผนก: ${hasInputDept ? parsed.department : "ไม่ได้ระบุ"}`,
-              "",
-              "✅ ข้อมูลที่ถูกต้องในระบบ:",
-              `  • ตำแหน่ง: ${displaySysRole}`,
-              `  • แผนก: ${displaySysDept}`,
-              "━━━━━━━━━━━━━━━━━━━━",
-              "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
-            ].join("\n");
-
-            await replyLineMessage(replyToken, [{ type: "text", text: mismatchMsg }], channelAccessToken);
-            continue;
-          }
+          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุแผนก";
+          const displaySysRole = verifiedEmp.role || "-";
 
           // Use verified official data from system
           parsed.employeeName = verifiedEmp.name || parsed.employeeName;
