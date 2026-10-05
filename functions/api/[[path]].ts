@@ -1,5 +1,7 @@
 interface Env {
   DB: any;
+  LINE_CHANNEL_ACCESS_TOKEN?: string;
+  LINE_CHANNEL_SECRET?: string;
 }
 
 type PagesFunction<T = any> = (context: { request: Request; env: T; [key: string]: any }) => Promise<Response>;
