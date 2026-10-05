@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "enterprise-ot-management-portal",
+  "name": "its-ot-management",
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-07-24",
   "compatibility_flags": [
