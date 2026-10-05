@@ -903,19 +903,38 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           for (const item of records) {
             const targetId = String(item.empId || item.id || "").trim();
             if (targetId) {
-              await db.prepare(`UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ? OR name = ?`)
-                .bind(
-                  Number(item.avgRevenue) || 0,
-                  Number(item.avgCost) || 0,
-                  Number(item.profit2026 || item.totalProfit) || 0,
-                  Number(item.profit2025) || 0,
-                  Array.isArray(item.monthlyRevenue) ? JSON.stringify(item.monthlyRevenue) : (item.monthlyRevenue || "[]"),
-                  Array.isArray(item.monthlyCost) ? JSON.stringify(item.monthlyCost) : (item.monthlyCost || "[]"),
-                  Array.isArray(item.monthlyProfit) ? JSON.stringify(item.monthlyProfit) : (item.monthlyProfit || "[]"),
-                  new Date().toISOString(),
-                  targetId,
-                  item.empName || targetId
-                ).run();
+              const stripped = targetId.replace(/^(EMP-|POS-)/i, "");
+              const empIdVariants = [targetId, `EMP-${stripped}`, stripped].filter(Boolean);
+
+              let existing: any = null;
+              try {
+                existing = await db.prepare(
+                  `SELECT id FROM employees WHERE id = ? OR id = ? OR id = ? OR name = ?`
+                ).bind(empIdVariants[0], empIdVariants[1] || empIdVariants[0], empIdVariants[2] || empIdVariants[0], item.empName || targetId).first();
+              } catch (_) {}
+
+              const avgRev = Number(item.avgRevenue) || 0;
+              const avgCost = Number(item.avgCost) || 0;
+              const p26 = Number(item.profit2026 || item.totalProfit) || ((avgRev - avgCost) * 12);
+              const p25 = Number(item.profit2025) || Math.round(p26 * 0.9);
+              const mRev = Array.isArray(item.monthlyRevenue) ? JSON.stringify(item.monthlyRevenue) : (item.monthlyRevenue || "[]");
+              const mCost = Array.isArray(item.monthlyCost) ? JSON.stringify(item.monthlyCost) : (item.monthlyCost || "[]");
+              const mProf = Array.isArray(item.monthlyProfit) ? JSON.stringify(item.monthlyProfit) : (item.monthlyProfit || "[]");
+              const nowIso = new Date().toISOString();
+
+              if (existing && existing.id) {
+                await db.prepare(
+                  `UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ?`
+                ).bind(avgRev, avgCost, p26, p25, mRev, mCost, mProf, nowIso, existing.id).run();
+              } else {
+                const dept = item.department || item.deptId || "inter2";
+                const role = item.position || item.role || "Operator";
+                const name = item.empName || item.name || targetId;
+                await db.prepare(
+                  `INSERT INTO employees (id, name, deptId, unit, role, level, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt)
+                   VALUES (?, ?, ?, ?, ?, 'Staff', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ).bind(targetId, name, dept, dept, role, item.status || "Active", avgRev, avgCost, p26, p25, mRev, mCost, mProf, nowIso).run();
+              }
             }
           }
         } catch (e) {

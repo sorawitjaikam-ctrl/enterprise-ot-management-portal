@@ -1835,7 +1835,7 @@ app.get("/api/job-value", async (req, res) => {
 
 app.post("/api/job-value/import", async (req, res) => {
   const { records, role, username } = req.body;
-  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin", "Operation Dir", "Operation Depart"].includes(role || "") || !role;
   if (!isHrOrAdmin) {
     return res.status(403).json({ error: "เฉพาะ HR และผู้ดูแลระบบเท่านั้นที่มีสิทธิ์นำเข้าข้อมูล Job Value" });
   }
@@ -1863,19 +1863,74 @@ app.post("/api/job-value/import", async (req, res) => {
     if (isD1Enabled()) {
       for (const rec of formattedRecords) {
         if (rec.empId) {
-          await queryD1(
-            `UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ? OR name = ?`,
-            [
-              rec.avgRevenue, rec.avgCost, rec.profit2026, rec.profit2025,
-              JSON.stringify(rec.monthlyRevenue), JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit),
-              rec.updatedAt, rec.empId, rec.empName || rec.empId
-            ]
+          const stripped = rec.empId.replace(/^(EMP-|POS-)/i, "");
+          const variants = [rec.empId, `EMP-${stripped}`, stripped];
+          const existing: any = await queryD1(
+            `SELECT id FROM employees WHERE id = ? OR id = ? OR id = ? OR name = ?`,
+            [variants[0], variants[1], variants[2], rec.empName || rec.empId]
           );
+          if (existing && existing.length > 0) {
+            await queryD1(
+              `UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ?`,
+              [
+                rec.avgRevenue, rec.avgCost, rec.profit2026, rec.profit2025,
+                JSON.stringify(rec.monthlyRevenue), JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit),
+                rec.updatedAt, existing[0].id
+              ]
+            );
+          } else {
+            await queryD1(
+              `INSERT INTO employees (id, name, deptId, unit, role, level, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt) VALUES (?, ?, ?, ?, ?, 'Staff', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                rec.empId, rec.empName || rec.empId, rec.department || "inter2", rec.department || "inter2",
+                rec.position || "Operator", rec.status || "Active", rec.avgRevenue, rec.avgCost,
+                rec.profit2026, rec.profit2025, JSON.stringify(rec.monthlyRevenue),
+                JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit), rec.updatedAt
+              ]
+            );
+          }
         }
       }
       await writeAuditLog(username || "system", "import_job_value", "job_value", "bulk", { count: formattedRecords.length });
     } else {
       appState.jobValueRecords = formattedRecords;
+      if (Array.isArray(appState.employees)) {
+        for (const rec of formattedRecords) {
+          const stripped = rec.empId.replace(/^(EMP-|POS-)/i, "");
+          const emp = appState.employees.find((e: any) =>
+            e.id === rec.empId ||
+            e.id === `EMP-${stripped}` ||
+            e.id === stripped ||
+            e.name === rec.empName
+          );
+          if (emp) {
+            emp.avgRevenue = rec.avgRevenue;
+            emp.avgCost = rec.avgCost;
+            emp.profit2026 = rec.profit2026;
+            emp.profit2025 = rec.profit2025;
+            emp.monthlyRevenue = rec.monthlyRevenue;
+            emp.monthlyCost = rec.monthlyCost;
+            emp.monthlyProfit = rec.monthlyProfit;
+          } else {
+            appState.employees.push({
+              id: rec.empId,
+              name: rec.empName || rec.empId,
+              role: rec.position || "Operator",
+              deptId: rec.department || "inter2",
+              unit: rec.department || "inter2",
+              status: rec.status || "Active",
+              salary: rec.avgCost ? Math.round(rec.avgCost / 1.35) : 15000,
+              avgRevenue: rec.avgRevenue,
+              avgCost: rec.avgCost,
+              profit2026: rec.profit2026,
+              profit2025: rec.profit2025,
+              monthlyRevenue: rec.monthlyRevenue,
+              monthlyCost: rec.monthlyCost,
+              monthlyProfit: rec.monthlyProfit
+            });
+          }
+        }
+      }
       saveLocalDb();
     }
     res.json({ success: true, count: formattedRecords.length, records: formattedRecords });

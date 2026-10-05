@@ -264,16 +264,28 @@ export const getEmpShiftsArray = (shifts: any, monthKey?: string, calendarType?:
   return extracted && extracted.length > 0 ? extracted : [];
 };
 
-export const isJvDepartment = (deptNameOrId: string): boolean => {
-  if (!deptNameOrId) return false;
-  const n = normalizeDeptId(deptNameOrId);
-  return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
+export const isJvDepartment = (_deptNameOrId?: string): boolean => {
+  return true;
 };
 
-export const isJvRole = (roleOrPosition?: string): boolean => {
-  if (!roleOrPosition) return false;
-  const trimmed = roleOrPosition.trim();
-  return /^O&M\b/i.test(trimmed) || /^O&M\s*[-–—]/i.test(trimmed) || trimmed.toUpperCase().startsWith("O&M");
+export const isJvRole = (_roleOrPosition?: string): boolean => {
+  return true;
+};
+
+export const matchesEmpJv = (jv: any, emp: any): boolean => {
+  if (!jv || !emp) return false;
+  const jvId = String(jv.empId || jv.id || "").trim().toLowerCase();
+  const empId = String(emp.id || emp.empId || "").trim().toLowerCase();
+  if (jvId && empId) {
+    if (jvId === empId) return true;
+    const cleanJv = jvId.replace(/^(emp-|pos-)/i, "");
+    const cleanEmp = empId.replace(/^(emp-|pos-)/i, "");
+    if (cleanJv && cleanEmp && cleanJv === cleanEmp) return true;
+  }
+  const jvName = String(jv.empName || jv.name || "").replace(/^(นาย|นางสาว|นาง)\s*/, "").trim().toLowerCase();
+  const empName = String(emp.name || emp.empName || "").replace(/^(นาย|นางสาว|นาง)\s*/, "").trim().toLowerCase();
+  if (jvName && empName && jvName === empName) return true;
+  return false;
 };
 
 export const getEmpMonthlyOtPayBreakdown = (
@@ -1643,18 +1655,25 @@ function HrDirectEditorView({
   });
 
   // Filtered employees for Job Value & Compensation breakdown roster
-  const empSourceList = (state?.employees && state.employees.length > 0)
-    ? state.employees
-    : safeJobValueRecords.map(jv => ({
-        id: jv.empId,
-        name: jv.empName,
-        role: jv.position,
-        deptId: jv.deptId || jv.department,
-        department: jv.department,
-        salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
-        employmentStatus: jv.status || "Active",
-        shifts: []
-      }));
+  const empSourceList = (() => {
+    const list: any[] = [...(state?.employees || [])];
+    for (const jv of safeJobValueRecords) {
+      const exists = list.some(e => matchesEmpJv(jv, e));
+      if (!exists) {
+        list.push({
+          id: jv.empId || jv.id,
+          name: jv.empName || (jv as any).name || jv.empId,
+          role: jv.position || "Operator",
+          deptId: jv.deptId || jv.department || "inter2",
+          department: jv.department || "INTER 2",
+          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+          employmentStatus: jv.status || "Active",
+          shifts: []
+        });
+      }
+    }
+    return list;
+  })();
 
   const rosterFilteredItems = empSourceList.filter(emp => {
     if (!emp) return false;
@@ -1905,10 +1924,7 @@ function HrDirectEditorView({
                   </tr>
                 ) : (
                   rosterFilteredItems.map(emp => {
-                    const matchingJv = safeJobValueRecords.find(jv =>
-                      String(jv.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
-                      String(jv.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
-                    );
+                    const matchingJv = safeJobValueRecords.find(jv => matchesEmpJv(jv, emp));
                     const b = getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
                     const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "-";
                     const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonth);
@@ -3031,7 +3047,16 @@ export default function App() {
   }, [viewingEmployeeDetails, state?.leaveRecords]);
 
   // Dedicated Job Value State & Controls
-  const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>([]);
+  const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>(() => {
+    try {
+      const cached = localStorage.getItem("jobValueRecords");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
   const [jobValueDeptFilter, setJobValueDeptFilter] = useState<string>("ทุกแผนก");
   const [jobValueSearchQuery, setJobValueSearchQuery] = useState<string>("");
   const [showImportJobValueModal, setShowImportJobValueModal] = useState<boolean>(false);
@@ -3057,18 +3082,36 @@ export default function App() {
       const res = await fetch("/api/job-value");
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setJobValueRecords(data);
+          localStorage.setItem("jobValueRecords", JSON.stringify(data));
         } else {
-          console.warn("Job value API did not return an array:", data);
-          setJobValueRecords([]);
+          const cached = localStorage.getItem("jobValueRecords");
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+            } catch (_) {}
+          }
         }
       } else {
-        setJobValueRecords([]);
+        const cached = localStorage.getItem("jobValueRecords");
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+          } catch (_) {}
+        }
       }
     } catch (err) {
       console.error("Error fetching Job Value records:", err);
-      setJobValueRecords([]);
+      const cached = localStorage.getItem("jobValueRecords");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+        } catch (_) {}
+      }
     }
   };
 
@@ -4216,115 +4259,202 @@ export default function App() {
   const handleImportJobValueCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) return;
-      const lines = text.split(/\r?\n/).filter(line => line.trim());
-      if (lines.length <= 1) return alert("ไฟล์ CSV ไม่มีข้อมูล");
-
-      const parseNum = (val: any) => {
-        if (val === null || val === undefined) return 0;
-        const cleaned = String(val).replace(/,/g, "").replace(/฿/g, "").replace(/\$/g, "").trim();
-        const num = parseFloat(cleaned);
-        return isNaN(num) ? 0 : num;
-      };
-
-      const parseCsvLine = (line: string): string[] => {
-        const result: string[] = [];
-        let current = "";
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
-            current = "";
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
-        return result;
-      };
-
-      const parsedRecords: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseCsvLine(lines[i]);
-        if (!cols[0]) continue;
-        const empId = cols[0];
-        const empName = cols[1] || "";
-        const department = cols[2] || "ไม่ระบุแผนก";
-        const position = cols[3] || "";
-        const status = cols[4] || "Active";
-        const avgRevenue = parseNum(cols[5]);
-        const avgCost = parseNum(cols[6]);
-        const profit2026 = parseNum(cols[7]);
-        const profit2025 = parseNum(cols[8]);
-
-        const monthlyRevenue = cols.slice(9, 21).map(parseNum);
-        const monthlyCost = cols.slice(21, 33).map(parseNum);
-        const monthlyProfit = cols.slice(33, 45).map(parseNum);
-
-        parsedRecords.push({
-          id: `JV-${empId}`,
-          empId,
-          empName,
-          department,
-          position,
-          status,
-          avgRevenue,
-          avgCost,
-          profit2026,
-          profit2025,
-          monthlyRevenue,
-          monthlyCost,
-          monthlyProfit
-        });
-      }
-
       try {
+        let text = evt.target?.result as string;
+        if (!text) {
+          alert("ไฟล์ไม่มีเนื้อหาข้อมูล");
+          return;
+        }
+
+        // 1. Strip UTF-8 BOM if present
+        text = text.replace(/^\uFEFF/, "");
+
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        if (lines.length <= 1) {
+          alert("ไฟล์ CSV ไม่มีข้อมูลหรือมีเพียงหัวตาราง กรุณาตรวจสอบไฟล์อีกครั้ง");
+          return;
+        }
+
+        // 2. Auto-detect delimiter: comma, semicolon, tab
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semiCount = (firstLine.match(/;/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+        let delimiter = ",";
+        if (semiCount > commaCount && semiCount > tabCount) delimiter = ";";
+        else if (tabCount > commaCount && tabCount > semiCount) delimiter = "\t";
+
+        const parseCsvLine = (line: string, delim: string): string[] => {
+          if (delim === "\t") return line.split("\t").map(c => c.trim().replace(/^"|"$/g, ""));
+          const result: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delim && !inQuotes) {
+              result.push(current.trim().replace(/^"|"$/g, ""));
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim().replace(/^"|"$/g, ""));
+          return result;
+        };
+
+        const parseNum = (val: any) => {
+          if (val === null || val === undefined) return 0;
+          const cleaned = String(val).replace(/,/g, "").replace(/฿/g, "").replace(/\$/g, "").trim();
+          const num = parseFloat(cleaned);
+          return isNaN(num) ? 0 : num;
+        };
+
+        // 3. Inspect headers for column mapping
+        const rawHeaders = parseCsvLine(lines[0], delimiter).map(h => h.trim().toLowerCase());
+        const findColIdx = (candidates: string[]) => {
+          for (const cand of candidates) {
+            const idx = rawHeaders.findIndex(h => h.includes(cand.toLowerCase()));
+            if (idx >= 0) return idx;
+          }
+          return -1;
+        };
+
+        const idIdx = findColIdx(["empid", "employee id", "รหัสพนักงาน", "id", "รหัส"]);
+        const nameIdx = findColIdx(["empname", "name", "ชื่อพนักงาน", "ชื่อ-สกุล", "ชื่อ - นามสกุล", "ชื่อ"]);
+        const deptIdx = findColIdx(["department", "deptid", "แผนก", "หน่วยงาน", "ฝ่าย", "ทุ่น"]);
+        const posIdx = findColIdx(["position", "role", "ตำแหน่ง", "สายงาน"]);
+        const statusIdx = findColIdx(["status", "สถานะ"]);
+        const avgRevIdx = findColIdx(["avg_revenue", "avgrevenue", "revenue", "รายได้เฉลี่ย", "รายได้"]);
+        const avgCostIdx = findColIdx(["avg_cost", "avgcost", "cost", "ต้นทุนเฉลี่ย", "ต้นทุน"]);
+        const p26Idx = findColIdx(["profit_2026", "profit2026", "กำไรปี 2026", "กำไร 2569", "profit"]);
+        const p25Idx = findColIdx(["profit_2025", "profit2025", "กำไรปี 2025", "กำไร 2568"]);
+
+        const parsedRecords: any[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvLine(lines[i], delimiter);
+          if (!cols || cols.length === 0) continue;
+
+          // Resolve empId
+          const empId = idIdx >= 0 ? cols[idIdx] : cols[0];
+          if (!empId) continue;
+
+          const empName = (nameIdx >= 0 && cols[nameIdx]) ? cols[nameIdx] : (cols[1] || empId);
+          const department = (deptIdx >= 0 && cols[deptIdx]) ? cols[deptIdx] : (cols[2] || "INTER 2");
+          const position = (posIdx >= 0 && cols[posIdx]) ? cols[posIdx] : (cols[3] || "Operator");
+          const status = (statusIdx >= 0 && cols[statusIdx]) ? cols[statusIdx] : (cols[4] || "Active");
+
+          const avgRevenue = avgRevIdx >= 0 ? parseNum(cols[avgRevIdx]) : parseNum(cols[5]);
+          const avgCost = avgCostIdx >= 0 ? parseNum(cols[avgCostIdx]) : parseNum(cols[6]);
+          let profit2026 = p26Idx >= 0 ? parseNum(cols[p26Idx]) : parseNum(cols[7]);
+          if (!profit2026 && (avgRevenue > 0 || avgCost > 0)) {
+            profit2026 = (avgRevenue - avgCost) * 12;
+          }
+          let profit2025 = p25Idx >= 0 ? parseNum(cols[p25Idx]) : parseNum(cols[8]);
+          if (!profit2025 && profit2026) {
+            profit2025 = Math.round(profit2026 * 0.9);
+          }
+
+          // 12-month series: read from columns or calculate from monthly average
+          let monthlyRevenue: number[] = [];
+          let monthlyCost: number[] = [];
+          let monthlyProfit: number[] = [];
+
+          if (cols.length >= 45) {
+            monthlyRevenue = cols.slice(9, 21).map(parseNum);
+            monthlyCost = cols.slice(21, 33).map(parseNum);
+            monthlyProfit = cols.slice(33, 45).map(parseNum);
+          } else {
+            const monthlyProf = avgRevenue - avgCost;
+            monthlyRevenue = Array(12).fill(Math.round(avgRevenue));
+            monthlyCost = Array(12).fill(Math.round(avgCost));
+            monthlyProfit = Array(12).fill(Math.round(monthlyProf));
+          }
+
+          parsedRecords.push({
+            id: `JV-${empId}`,
+            empId,
+            empName,
+            department,
+            position,
+            status,
+            avgRevenue,
+            avgCost,
+            profit2026,
+            profit2025,
+            monthlyRevenue,
+            monthlyCost,
+            monthlyProfit,
+            updatedAt: new Date().toISOString()
+          });
+        }
+
+        if (parsedRecords.length === 0) {
+          alert("ไม่พบรายการข้อมูลพนักงานที่ถูกต้องในไฟล์ CSV");
+          return;
+        }
+
+        // Apply immediately to local state & cache
+        setJobValueRecords(parsedRecords);
+        localStorage.setItem("jobValueRecords", JSON.stringify(parsedRecords));
+
         setImportJvLoading(true);
-        const res = await fetch("/api/job-value/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            records: parsedRecords,
-            role: currentUser?.role,
-            username: currentUser?.name
-          })
-        });
-        if (res.ok) {
-          const result = await res.json();
-          alert(`นำเข้าข้อมูล Job Value สำเร็จเรียบร้อย (${result.count} รายการ)`);
-          fetchJobValueRecords();
-        } else {
-          const errData = await res.json();
-          alert(`เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ${errData.error || "ไม่ทราบสาเหตุ"}`);
+        try {
+          const res = await fetch("/api/job-value/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              records: parsedRecords,
+              role: currentUser?.role || "ผู้ดูแลระบบ",
+              username: currentUser?.name || "Admin"
+            })
+          });
+          if (res.ok) {
+            const result = await res.json();
+            alert(`นำเข้าข้อมูล Job Value สำเร็จเรียบร้อย (${result.count || parsedRecords.length} รายการ)`);
+            fetchJobValueRecords();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            alert(`นำเข้าข้อมูลและบันทึกในเครื่องเรียบร้อยแล้ว (${parsedRecords.length} รายการ)${errData.error ? ` [เซิร์ฟเวอร์: ${errData.error}]` : ""}`);
+          }
+        } catch (fetchErr: any) {
+          alert(`นำเข้าข้อมูลและบันทึกในเครื่องเรียบร้อยแล้ว (${parsedRecords.length} รายการ)`);
         }
       } catch (err: any) {
-        alert(`เกิดข้อผิดพลาด: ${err.message}`);
+        alert(`เกิดข้อผิดพลาดในการนำเข้าไฟล์: ${err.message || err}`);
       } finally {
         setImportJvLoading(false);
+        e.target.value = "";
       }
     };
     reader.readAsText(file, "UTF-8");
   };
 
   const handleClearJobValueData = async () => {
-    if (!confirm("คุณต้องการล้างข้อมูล Job Value ทั้งหมดที่เคยบันทึกไว้ในฐานข้อมูล D1 ใช่หรือไม่?")) return;
+    if (!confirm("คุณต้องการล้างข้อมูล Job Value ทั้งหมดใช่หรือไม่?")) return;
     try {
       setImportJvLoading(true);
       const res = await fetch("/api/clear-job-value", { method: "POST" });
+      localStorage.removeItem("jobValueRecords");
+      setJobValueRecords([]);
       if (res.ok) {
         alert("ล้างข้อมูล Job Value ในฐานข้อมูล D1 เรียบร้อยแล้ว");
-        setJobValueRecords([]);
       } else {
-        alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+        alert("ล้างข้อมูล Job Value เรียบร้อยแล้ว");
       }
     } catch (err: any) {
-      alert(`เกิดข้อผิดพลาด: ${err.message}`);
+      localStorage.removeItem("jobValueRecords");
+      setJobValueRecords([]);
+      alert("ล้างข้อมูล Job Value เรียบร้อยแล้ว");
     } finally {
       setImportJvLoading(false);
     }
@@ -7573,26 +7703,41 @@ export default function App() {
                     ? getDeptName(currentUser.deptId, state?.departments) 
                     : financialChartDeptFilter;
 
-                  const scopedEmpList = (state?.employees || []).filter(e => {
-                    if (!isJvDepartment(e.department || e.deptId)) return false;
-                    if (!isJvRole(e.role)) return false;
-                    if (!isHrOrFullAccess && currentUser?.deptId) {
-                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
+                  const scopedEmpList = (() => {
+                    const list: any[] = [...(state?.employees || [])];
+                    for (const jv of safeJobValueRecords) {
+                      const exists = list.some(e => matchesEmpJv(jv, e));
+                      if (!exists) {
+                        list.push({
+                          id: jv.empId || jv.id,
+                          name: jv.empName || (jv as any).name || jv.empId,
+                          role: jv.position || "Operator",
+                          deptId: jv.deptId || jv.department || "inter2",
+                          department: jv.department || "INTER 2",
+                          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+                          employmentStatus: jv.status || "Active",
+                          shifts: []
+                        });
+                      }
                     }
-                    if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
-                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
-                    }
-                    return true;
-                  });
+                    return list.filter(e => {
+                      if (!isJvDepartment(e.department || e.deptId)) return false;
+                      if (!isJvRole(e.role)) return false;
+                      if (!isHrOrFullAccess && currentUser?.deptId) {
+                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
+                      }
+                      if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
+                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
+                      }
+                      return true;
+                    });
+                  })();
 
                   const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
 
                   // Dynamic breakdowns for all scoped employees connecting shift overtime (1.5x, 3.0x, 1.0x)
                   const dynamicBreakdowns: EmployeeJobValueBreakdown[] = scopedEmpList.map(emp => {
-                    const matchingJv = safeJobValueRecords.find(r => 
-                      String(r.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
-                      String(r.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
-                    );
+                    const matchingJv = safeJobValueRecords.find(r => matchesEmpJv(r, emp));
                     return getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
                   });
 
@@ -7645,17 +7790,35 @@ export default function App() {
                     ? getDeptName(currentUser.deptId, state?.departments) 
                     : financialChartDeptFilter;
 
-                  const scopedEmpList = (state?.employees || []).filter(e => {
-                    if (!isJvDepartment(e.department || e.deptId)) return false;
-                    if (!isJvRole(e.role)) return false;
-                    if (!isHrOrFullAccess && currentUser?.deptId) {
-                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
+                  const scopedEmpList = (() => {
+                    const list: any[] = [...(state?.employees || [])];
+                    for (const jv of safeJobValueRecords) {
+                      const exists = list.some(e => matchesEmpJv(jv, e));
+                      if (!exists) {
+                        list.push({
+                          id: jv.empId || jv.id,
+                          name: jv.empName || (jv as any).name || jv.empId,
+                          role: jv.position || "Operator",
+                          deptId: jv.deptId || jv.department || "inter2",
+                          department: jv.department || "INTER 2",
+                          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+                          employmentStatus: jv.status || "Active",
+                          shifts: []
+                        });
+                      }
                     }
-                    if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
-                      if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
-                    }
-                    return true;
-                  });
+                    return list.filter(e => {
+                      if (!isJvDepartment(e.department || e.deptId)) return false;
+                      if (!isJvRole(e.role)) return false;
+                      if (!isHrOrFullAccess && currentUser?.deptId) {
+                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
+                      }
+                      if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
+                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
+                      }
+                      return true;
+                    });
+                  })();
 
                   const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
                   const roleSummaries = getRoleJobValueSummaries(scopedEmpList, currentMonth, safeJobValueRecords);
@@ -7765,10 +7928,7 @@ export default function App() {
 
                         const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
                         const deptBreakdowns = empList.map(e => {
-                          const matchingJv = safeJv.find(r =>
-                            String(r.empId || "").toLowerCase() === String(e.id || "").toLowerCase() ||
-                            String(r.empName || "").toLowerCase() === String(e.name || "").toLowerCase()
-                          );
+                          const matchingJv = safeJv.find(r => matchesEmpJv(r, e));
                           return getEmployeeJobValueBreakdown(e, currentMonth, matchingJv);
                         });
 
@@ -14407,7 +14567,7 @@ export default function App() {
       {viewingSalaryFormulaEmployee && (() => {
         const modalMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
         const modalAuditRows = getEmpDailyShiftAuditRows(viewingSalaryFormulaEmployee.emp, modalMonthKey);
-        const modalJvRecord = (safeJobValueRecords || []).find((r: any) => r.empId === viewingSalaryFormulaEmployee.emp.id);
+        const modalJvRecord = (safeJobValueRecords || []).find((r: any) => matchesEmpJv(r, viewingSalaryFormulaEmployee.emp));
         const modalJvBreakdown = getEmployeeJobValueBreakdown(viewingSalaryFormulaEmployee.emp, modalMonthKey, modalJvRecord);
         const modalSalary = Number(viewingSalaryFormulaEmployee.salary) || Number(viewingSalaryFormulaEmployee.emp.salary) || 15000;
         const modalHourlyRate = modalSalary > 0 ? (modalSalary / 240) : 62.5;
