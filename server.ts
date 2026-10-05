@@ -981,26 +981,6 @@ app.delete("/api/delete-ot-record/:id", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete("/api/ot-records/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    if (isD1Enabled()) {
-      await queryD1("DELETE FROM ot_daily_records WHERE id = ?", [id]);
-    }
-    res.json({ success: true });
-  } catch (error: any) { res.status(500).json({ error: error.message }); }
-});
-
-app.post("/api/delete-ot-record", async (req, res) => {
-  const { id } = req.body || {};
-  try {
-    if (isD1Enabled() && id) {
-      await queryD1("DELETE FROM ot_daily_records WHERE id = ?", [id]);
-    }
-    res.json({ success: true });
-  } catch (error: any) { res.status(500).json({ error: error.message }); }
-});
-
 // ============================================================
 // LINE OA Webhook (/api/line-webhook)
 // ============================================================
@@ -1028,13 +1008,11 @@ app.post("/api/line-webhook", async (req, res) => {
       while ((match = shiftRegex.exec(text)) !== null) {
         const hours = parseFloat(match[3]);
         const multiplier = parseFloat(match[4]);
-        const startHour = parseInt(match[1].split(":")[0], 10);
-        const shiftCode = (startHour >= 6 && startHour < 14) ? "M" : (startHour >= 14 && startHour < 22) ? "A" : "N";
         shifts.push({
           timeRange: match[1] + "-" + match[2],
           hours,
           multiplier,
-          shiftCode
+          shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
         });
       }
 
@@ -1120,7 +1098,70 @@ app.post("/api/line-webhook", async (req, res) => {
 
       const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
       // ============================================================
-      // 1. Employee & Department Validation in D1
+      // 1. Vessel Requirement Check
+      // ============================================================
+      const hasVessel = vesselName && vesselName !== "ทั่วไป" && vesselName !== "-";
+      if (!hasVessel) {
+        const missingVesselMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุชื่อเรือ!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ระบบจำเป็นต้องทราบชื่อเรือสำหรับบันทึก OT",
+          "ตัวอย่าง: M.V.\"PEDHOULAS TRADER\""
+        ].join("\n");
+        if (replyToken) {
+          fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+            body: JSON.stringify({ replyToken, messages: [{ type: "text", text: missingVesselMsg }] })
+          }).catch(() => {});
+        }
+        continue;
+      }
+
+      // ============================================================
+      // 2. OT Hours / Shifts Requirement Check
+      // ============================================================
+      if (shifts.length === 0) {
+        const missingShiftsMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุช่วงเวลาทำงาน OT!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ไม่พบช่วงเวลาทำงานและชั่วโมง OT ในข้อความ",
+          "ตัวอย่าง:",
+          "เวลา 00:00-08:00=8×1",
+          "เวลา 08:00-16:00=8×3"
+        ].join("\n");
+        if (replyToken) {
+          fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+            body: JSON.stringify({ replyToken, messages: [{ type: "text", text: missingShiftsMsg }] })
+          }).catch(() => {});
+        }
+        continue;
+      }
+
+      // ============================================================
+      // 3. Employee ID Check
+      // ============================================================
+      if (!employeeId || employeeId === "ไม่ระบุรหัส") {
+        const missingEmpIdMsg = [
+          "⚠️ แจ้งเตือน: กรุณาระบุรหัสพนักงาน!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "ระบบต้องการรหัสพนักงานในการบันทึกข้อมูล",
+          "ตัวอย่าง: รหัสพนักงาน 668126"
+        ].join("\n");
+        if (replyToken) {
+          fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+            body: JSON.stringify({ replyToken, messages: [{ type: "text", text: missingEmpIdMsg }] })
+          }).catch(() => {});
+        }
+        continue;
+      }
+
+      // ============================================================
+      // 4. Employee ID & Name Validation in D1
       // ============================================================
       let verifiedEmp: any = null;
       let verifiedDept: any = null;
@@ -1153,7 +1194,7 @@ app.post("/api/line-webhook", async (req, res) => {
             ].join("\n");
 
             if (replyToken) {
-              await fetch("https://api.line.me/v2/bot/message/reply", {
+              fetch("https://api.line.me/v2/bot/message/reply", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
                 body: JSON.stringify({ replyToken, messages: [{ type: "text", text: notFoundMsg }] })
@@ -1162,6 +1203,61 @@ app.post("/api/line-webhook", async (req, res) => {
             continue;
           }
 
+          // 4.2 Check Employee Name matches
+          const normalizeThaiName = (str: string) => (str || "")
+            .replace(/^(?:นาย|นางสาว|นาง|คุณ|\s)+/g, "")
+            .replace(/\s+/g, "")
+            .toLowerCase();
+
+          const hasInputName = employeeName && employeeName !== "พนักงาน" && employeeName !== "-";
+          if (!hasInputName) {
+            const missingNameMsg = [
+              "⚠️ แจ้งเตือน: กรุณาระบุชื่อ-นามสกุล!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              "ระบบต้องการชื่อ-นามสกุลเพื่อยืนยันตัวตนคู่กับรหัสพนักงานครับ"
+            ].join("\n");
+            if (replyToken) {
+              fetch("https://api.line.me/v2/bot/message/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+                body: JSON.stringify({ replyToken, messages: [{ type: "text", text: missingNameMsg }] })
+              }).catch(() => {});
+            }
+            continue;
+          }
+
+          const inputNameNorm = normalizeThaiName(employeeName);
+          const sysNameNorm = normalizeThaiName(verifiedEmp.name);
+          const isNameMatch = inputNameNorm.length >= 2 && (
+            inputNameNorm === sysNameNorm ||
+            sysNameNorm.includes(inputNameNorm) ||
+            inputNameNorm.includes(sysNameNorm)
+          );
+
+          if (!isNameMatch) {
+            const nameMismatchMsg = [
+              "⚠️ แจ้งเตือน: รหัสพนักงานกับชื่อไม่ตรงกัน!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              "",
+              `❌ ชื่อที่คุณระบุ: ${employeeName}`,
+              `✅ ชื่อที่ถูกต้องในระบบ: ${verifiedEmp.name}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบปฏิเสธการบันทึก กรุณาตรวจสอบรหัสพนักงานและชื่อ-นามสกุลให้ถูกต้อง แล้วส่งใหม่อีกครั้งครับ"
+            ].join("\n");
+
+            if (replyToken) {
+              fetch("https://api.line.me/v2/bot/message/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+                body: JSON.stringify({ replyToken, messages: [{ type: "text", text: nameMismatchMsg }] })
+              }).catch(() => {});
+            }
+            continue;
+          }
+
+          // 4.3 Auto-pull Department & Role from System (ignoring any input dept/position typos)
           if (verifiedEmp.deptId) {
             verifiedDept = await queryD1(
               "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?",
@@ -1169,66 +1265,8 @@ app.post("/api/line-webhook", async (req, res) => {
             ).then(r => r?.[0]);
           }
 
-          const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
-          const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
-
-          const hasInputPos = position && position !== '-' && position !== 'ไม่ระบุตำแหน่ง';
-          const inputPosNorm = normalizeText(position);
-          const sysPosNorm = normalizeText(verifiedEmp.role);
-          const isPosMatch = hasInputPos && (
-            inputPosNorm === sysPosNorm ||
-            inputPosNorm.includes(sysPosNorm) ||
-            sysPosNorm.includes(inputPosNorm)
-          );
-
-          const hasInputDept = department && department !== '-' && department !== 'ไม่ระบุแผนก';
-          const inputDeptNorm = normalizeDept(department);
-          const deptCandidates = [
-            verifiedEmp.deptId,
-            verifiedDept?.id,
-            verifiedDept?.name,
-            verifiedDept?.nameTh
-          ].filter(Boolean);
-
-          const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
-            const candNorm = normalizeDept(cand);
-            return (
-              candNorm === inputDeptNorm ||
-              candNorm.includes(inputDeptNorm) ||
-              inputDeptNorm.includes(candNorm)
-            );
-          });
-
-          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
-          const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
-
-          if (!isPosMatch || !isDeptMatch) {
-            const mismatchMsg = [
-              "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
-              "━━━━━━━━━━━━━━━━━━━━",
-              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
-              `👤 พนักงาน: ${verifiedEmp.name}`,
-              "",
-              "❌ ข้อมูลที่คุณระบุ:",
-              `  • ตำแหน่ง: ${hasInputPos ? position : "ไม่ได้ระบุ"}`,
-              `  • แผนก: ${hasInputDept ? department : "ไม่ได้ระบุ"}`,
-              "",
-              "✅ ข้อมูลที่ถูกต้องในระบบ:",
-              `  • ตำแหน่ง: ${displaySysRole}`,
-              `  • แผนก: ${displaySysDept}`,
-              "━━━━━━━━━━━━━━━━━━━━",
-              "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
-            ].join("\n");
-
-            if (replyToken) {
-              await fetch("https://api.line.me/v2/bot/message/reply", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
-                body: JSON.stringify({ replyToken, messages: [{ type: "text", text: mismatchMsg }] })
-              }).catch(() => {});
-            }
-            continue;
-          }
+          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุแผนก";
+          const displaySysRole = verifiedEmp.role || "-";
 
           employeeName = verifiedEmp.name || employeeName;
           position = displaySysRole;
