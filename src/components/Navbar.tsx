@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Search, 
   AlertTriangle, 
   Bell, 
   LogOut,
   Menu,
+  Monitor,
   X,
   User,
   CheckCircle2,
@@ -16,10 +17,7 @@ import {
   BarChart3,
   ShieldCheck,
   FileText,
-  Settings,
-  Building2,
-  Pin,
-  PinOff
+  Settings
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -48,8 +46,6 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   onLogout,
-  isNavbarCollapsed,
-  setIsNavbarCollapsed,
   complianceNotifications = [],
   onOpenComplianceModal
 }: NavbarProps) {
@@ -58,26 +54,6 @@ export default function Navbar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  // Tab titles Auto-Hide state (default: true -> hide inactive titles, keep active tab full with title)
-  const [isAutoHideTitles, setIsAutoHideTitles] = useState<boolean>(() => {
-    const stored = localStorage.getItem("navbar_autohide_tab_titles");
-    if (stored !== null) return stored === "true";
-    if (typeof isNavbarCollapsed === "boolean") return isNavbarCollapsed;
-    return true;
-  });
-  const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem("navbar_autohide_tab_titles", String(isAutoHideTitles));
-    setIsNavbarCollapsed?.(isAutoHideTitles);
-  }, [isAutoHideTitles, setIsNavbarCollapsed]);
-
-  useEffect(() => {
-    if (typeof isNavbarCollapsed === "boolean" && isNavbarCollapsed !== isAutoHideTitles) {
-      setIsAutoHideTitles(isNavbarCollapsed);
-    }
-  }, [isNavbarCollapsed]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -116,10 +92,10 @@ export default function Navbar({
     { id: "shifts", num: "03", label: "ตารางจัดกะพนักงาน", icon: Calendar },
     { id: "employees", num: "04", label: "รายชื่อพนักงาน", icon: Users },
     { id: "job_value", num: "05", label: "โครงสร้าง Job Value", icon: TrendingUp },
-    { id: "manpower", num: "06", label: "โครงสร้างอัตรากำลัง", icon: Building2 },
-    { id: "leave-records", num: "07", label: "บันทึกวันลา", icon: ClipboardList },
-    { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ", icon: Calendar },
+    { id: "leave-records", num: "06", label: "บันทึกวันลา", icon: ClipboardList },
+    { id: "ot-records", num: "07", label: "ประวัติ OT จากกะ", icon: Calendar },
     ...(isHrOrFullAccess ? [
+      { id: "hr-editor", num: "08", label: "ข้อมูล & รายได้", icon: FileText },
       { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
       { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
@@ -128,9 +104,7 @@ export default function Navbar({
   return (
     <>
       {/* Editorial Fixed Header */}
-      <header 
-        className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans transition-all duration-300 shadow-2xs"
-      >
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans">
         
         {/* Top Header Bar */}
         <div className="w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
@@ -179,49 +153,21 @@ export default function Navbar({
               <PWAOfflineBadge />
               <PWAInstallButton />
 
-              {/* Auto-hide / Toggle Tab Titles Button */}
-              <button
-                type="button"
-                onClick={() => setIsAutoHideTitles(!isAutoHideTitles)}
-                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer active:scale-95 btn-press focus-ring ${
-                  isAutoHideTitles
-                    ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8] hover:bg-[#D5EAF7]"
-                    : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
-                }`}
-                title={
-                  isAutoHideTitles
-                    ? "สถานะ: ย่อหัวข้อเหลือเฉพาะแท็บที่เปิด (คลิกเพื่อแสดงหัวข้อเต็มทุกแท็บ)"
-                    : "สถานะ: แสดงหัวข้อเต็มทุกแท็บ (คลิกเพื่อย่อเหลือเฉพาะแท็บที่เปิด)"
-                }
-              >
-                {isAutoHideTitles ? (
-                  <>
-                    <PinOff className="w-3.5 h-3.5 text-[#17538F]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">ซ่อนหัวข้อ (โลโก้)</span>
-                  </>
-                ) : (
-                  <>
-                    <Pin className="w-3.5 h-3.5 text-[#6A7B87]" />
-                    <span className="text-[11px] font-medium hidden xl:inline">แสดงหัวข้อเต็ม</span>
-                  </>
-                )}
-              </button>
-
               {/* Notification Bell */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
+                  className={`w-8 h-8 rounded border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
                     complianceNotifications.length > 0
-                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F] shadow-xs"
-                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
+                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]"
+                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA]"
                   }`}
                   title="การแจ้งเตือนข้อควรระวัง"
                 >
                   <Bell className="w-4 h-4" />
                   {complianceNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums shadow-xs">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums">
                       {complianceNotifications.length}
                     </span>
                   )}
@@ -234,11 +180,11 @@ export default function Navbar({
                       className="fixed inset-0 z-40" 
                       onClick={() => setIsNotificationsOpen(false)} 
                     />
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
-                      <div className="p-3.5 bg-[#0E3A66] text-white flex items-center justify-between border-b border-[#17538F]">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
+                      <div className="p-3 bg-[#0E3A66] text-white flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-[#F3D98F]" />
-                          <span className="text-xs font-bold tracking-wide">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
+                          <span className="text-xs font-bold">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
                         </div>
                       </div>
 
@@ -252,23 +198,27 @@ export default function Navbar({
                         ) : (
                           complianceNotifications.map((item, idx) => (
                             <div 
-                              key={idx}
+                              key={item.emp?.id || idx}
                               onClick={() => {
                                 setIsNotificationsOpen(false);
-                                onOpenComplianceModal?.(item);
+                                if (onOpenComplianceModal) onOpenComplianceModal(item);
                               }}
-                              className="p-3 hover:bg-[#F3F6F8] transition-colors cursor-pointer flex items-start gap-2.5 group"
+                              className="p-2.5 hover:bg-[#E8F3FA] rounded transition-colors cursor-pointer group"
                             >
-                              <div className="p-1.5 rounded-lg bg-[#FCF3DE] text-[#D99B14] shrink-0 mt-0.5">
-                                <AlertTriangle className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-[#0E3A66] group-hover:text-[#17538F]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-[#0E3A66]">
                                   {item.emp?.name}
-                                </p>
-                                <p className="text-[11px] text-[#6A7B87]">
-                                  {item.emp?.deptId} · {item.alerts?.[0]?.message || "มีข้อควรระวังในการจัดกะ"}
-                                </p>
+                                </span>
+                                <span className="tag t-r">
+                                  {item.alerts?.length || 0} ข้อระวัง
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-[#59656D] mt-1 space-y-0.5">
+                                {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
+                                  <p key={ai} className="truncate text-[#B3352C]">
+                                    • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
+                                  </p>
+                                ))}
                               </div>
                             </div>
                           ))
@@ -279,13 +229,30 @@ export default function Navbar({
                 )}
               </div>
 
+              <button
+                onClick={() => {
+                  const isDark = document.documentElement.classList.contains("dark");
+                  if (isDark) {
+                    document.documentElement.classList.remove("dark");
+                    localStorage.setItem("theme", "light");
+                  } else {
+                    document.documentElement.classList.add("dark");
+                    localStorage.setItem("theme", "dark");
+                  }
+                }}
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 text-[#6A7B87] hover:text-[#0E3A66] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
+                title="สลับธีม (Dark/Light)"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </button>
+
               {/* Profile button */}
               <button 
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 px-2.5 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] hover:border-[#9FCEE8] rounded-lg transition-all text-left cursor-pointer btn-press focus-ring"
+                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] rounded transition-all text-left cursor-pointer btn-press focus-ring"
                 title="ดูโปรไฟล์ของคุณ"
               >
-                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
+                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold">
                   {(currentUser?.name || "U")[0]}
                 </div>
                 <div className="text-left hidden lg:block pr-1">
@@ -296,7 +263,7 @@ export default function Navbar({
               {/* Logout button */}
               <button
                 onClick={onLogout}
-                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] hover:border-[#F4B8B4] rounded-lg transition-all cursor-pointer btn-press focus-ring"
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -307,40 +274,23 @@ export default function Navbar({
         </div>
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
-        <div 
-          className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x"
-        >
+        <div className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const isHovered = hoveredTabId === tab.id;
-              // Active tab always has full title. Inactive tabs collapse when isAutoHideTitles is on unless hovered
-              const isExpanded = !isAutoHideTitles || isActive || isHovered;
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
-                  title={`${tab.num} · ${tab.label}`}
-                  onMouseEnter={() => setHoveredTabId(tab.id)}
-                  onMouseLeave={() => setHoveredTabId(null)}
-                  style={{ flex: isAutoHideTitles ? "0 0 auto" : "1 1 0" }}
-                  className={`btn-press focus-ring transition-all duration-200 ${
-                    isActive ? "active px-3.5" : isHovered ? "px-3" : isAutoHideTitles ? "px-2.5" : "px-2.5"
-                  }`}
+                  className={`btn-press focus-ring ${isActive ? "active" : ""}`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
-                  <Icon className="w-3.5 h-3.5 opacity-85 shrink-0" />
-                  <span 
-                    className={`transition-all duration-200 ease-out whitespace-nowrap overflow-hidden inline-block ${
-                      isExpanded 
-                        ? "max-w-[180px] opacity-100 ml-1" 
-                        : "max-w-0 opacity-0 w-0 m-0 pointer-events-none"
-                    }`}
-                  >
-                    {tab.label}
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap ml-1">
+                    <Icon className="w-3.5 h-3.5 opacity-80" />
+                    <span className={isActive ? "" : "sr-only"}>{tab.label}</span>
                   </span>
                 </button>
               );

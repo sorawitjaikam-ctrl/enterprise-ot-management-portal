@@ -1077,8 +1077,8 @@ app.post("/api/line-webhook", async (req, res) => {
       }
       employeeName = (employeeName || "พนักงาน").replace(/^นาย\s+นาย\s+/g, "นาย ");
 
-      const position = extractField("ตำแหน่ง|Position") || "-";
-      const department = extractField("แผนก|Department") || "ไม่ระบุแผนก";
+      let position = extractField("ตำแหน่ง|Position") || "-";
+      let department = extractField("แผนก|Department") || "ไม่ระบุแผนก";
 
       let date = new Date().toISOString().substring(0, 10);
       let dateDisplayTh = "";
@@ -1097,6 +1097,124 @@ app.post("/api/line-webhook", async (req, res) => {
       }
 
       const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
+      // ============================================================
+      // 1. Employee & Department Validation in D1
+      // ============================================================
+      let verifiedEmp: any = null;
+      let verifiedDept: any = null;
+
+      if (isD1Enabled()) {
+        try {
+          verifiedEmp = await queryD1(
+            "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?",
+            [employeeId, employeeId.padStart(7, "0")]
+          ).then(r => r?.[0]);
+
+          if (!verifiedEmp) {
+            const unpaddedId = employeeId.replace(/^0+/, "");
+            if (unpaddedId && unpaddedId !== employeeId) {
+              verifiedEmp = await queryD1(
+                "SELECT id, name, deptId, role FROM employees WHERE id = ?",
+                [unpaddedId]
+              ).then(r => r?.[0]);
+            }
+          }
+
+          if (!verifiedEmp) {
+            const notFoundMsg = [
+              "⚠️ แจ้งเตือน: ไม่พบรหัสพนักงานในระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${employeeId}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบไม่พบข้อมูลรหัสพนักงานนี้ในฐานข้อมูลพนักงาน",
+              "กรุณาตรวจสอบความถูกต้อง หรือติดต่อฝ่ายบุคคล (HR) ครับ"
+            ].join("\n");
+
+            if (replyToken) {
+              await fetch("https://api.line.me/v2/bot/message/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+                body: JSON.stringify({ replyToken, messages: [{ type: "text", text: notFoundMsg }] })
+              }).catch(() => {});
+            }
+            continue;
+          }
+
+          if (verifiedEmp.deptId) {
+            verifiedDept = await queryD1(
+              "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?",
+              [verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId]
+            ).then(r => r?.[0]);
+          }
+
+          const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
+          const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
+
+          const hasInputPos = position && position !== '-' && position !== 'ไม่ระบุตำแหน่ง';
+          const inputPosNorm = normalizeText(position);
+          const sysPosNorm = normalizeText(verifiedEmp.role);
+          const isPosMatch = hasInputPos && (
+            inputPosNorm === sysPosNorm ||
+            inputPosNorm.includes(sysPosNorm) ||
+            sysPosNorm.includes(inputPosNorm)
+          );
+
+          const hasInputDept = department && department !== '-' && department !== 'ไม่ระบุแผนก';
+          const inputDeptNorm = normalizeDept(department);
+          const deptCandidates = [
+            verifiedEmp.deptId,
+            verifiedDept?.id,
+            verifiedDept?.name,
+            verifiedDept?.nameTh
+          ].filter(Boolean);
+
+          const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
+            const candNorm = normalizeDept(cand);
+            return (
+              candNorm === inputDeptNorm ||
+              candNorm.includes(inputDeptNorm) ||
+              inputDeptNorm.includes(candNorm)
+            );
+          });
+
+          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
+          const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
+
+          if (!isPosMatch || !isDeptMatch) {
+            const mismatchMsg = [
+              "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              `👤 พนักงาน: ${verifiedEmp.name}`,
+              "",
+              "❌ ข้อมูลที่คุณระบุ:",
+              `  • ตำแหน่ง: ${hasInputPos ? position : "ไม่ได้ระบุ"}`,
+              `  • แผนก: ${hasInputDept ? department : "ไม่ได้ระบุ"}`,
+              "",
+              "✅ ข้อมูลที่ถูกต้องในระบบ:",
+              `  • ตำแหน่ง: ${displaySysRole}`,
+              `  • แผนก: ${displaySysDept}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
+            ].join("\n");
+
+            if (replyToken) {
+              await fetch("https://api.line.me/v2/bot/message/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+                body: JSON.stringify({ replyToken, messages: [{ type: "text", text: mismatchMsg }] })
+              }).catch(() => {});
+            }
+            continue;
+          }
+
+          employeeName = verifiedEmp.name || employeeName;
+          position = displaySysRole;
+          department = displaySysDept;
+        } catch (e) {
+          console.error("Employee validation error in D1:", e);
+        }
+      }
       const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
       const [yearStr, monthStr] = date.split("-");
       const recordYear = parseInt(yearStr, 10);
@@ -1149,8 +1267,8 @@ app.post("/api/line-webhook", async (req, res) => {
           const note = customNote && customNote !== '-' ? vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ") - " + customNote : vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ")";
           try {
             await queryD1(
-              "INSERT INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA')",
-              [recordId, recordYear, recordMonth, date, employeeId, employeeName, department, s.shiftCode, s.hours, note, vesselName, s.timeRange, s.multiplier]
+              "INSERT INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA', ?)",
+              [recordId, recordYear, recordMonth, date, employeeId, employeeName, department, s.shiftCode, s.hours, note, vesselName, s.timeRange, s.multiplier, position]
             );
           } catch (e) {
             console.error("D1 Insert Error:", e);
@@ -1162,17 +1280,18 @@ app.post("/api/line-webhook", async (req, res) => {
         const successMsg = [
           "✅ บันทึกขออนุมัติ OT เรียบร้อยแล้ว!",
           "━━━━━━━━━━━━━━━━━━━━",
-          "🚢 เรือ/หน้างาน: " + vesselName,
-          "🏢 แผนก: " + department,
-          "👤 พนักงาน: " + employeeName,
-          "🆔 รหัส: " + employeeId,
-          "📅 วันที่ปฏิบัติงาน: " + dateDisplayTh,
+          `🚢 ${vesselName}`,
+          `🆔 รหัสพนักงาน: ${employeeId}`,
+          `👤 ชื่อนามสกุล: ${employeeName}`,
+          `💼 ตำแหน่ง: ${position}`,
+          `🏢 แผนก: ${department}`,
+          `📅 วันที่: ${dateDisplayTh}`,
+          "⏰ เวลา:",
+          ...shifts.map(s => `  • ${s.timeRange} = ${s.hours} ชม. (เรท x${s.multiplier})`),
+          `⏱️ รวมชั่วโมง OT: ${totalHours} ชม.`,
+          `📝 หมายเหตุ: ${customNote}`,
           "━━━━━━━━━━━━━━━━━━━━",
-          "⏰ รายการเวลาทำงาน:",
-          ...shifts.map(s => "  • " + s.timeRange + " = " + s.hours + " ชม. (เรท x" + s.multiplier + ")"),
-          "━━━━━━━━━━━━━━━━━━━━",
-          "⏱️ รวมชั่วโมง OT: " + totalHours + " ชม.",
-          "🌐 ข้อมูลเข้าสู่ Cloudflare D1 และแสดงบน Dashboard เรียบร้อยแล้ว"
+          "🌐 ข้อมูลอัปเดตขึ้น Dashboard 'ประวัติ OT จากกะทำงาน' ทันที"
         ].join("\n");
 
         fetch("https://api.line.me/v2/bot/message/reply", {

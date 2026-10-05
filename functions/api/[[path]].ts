@@ -940,6 +940,34 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json([], { headers: corsHeaders });
     }
 
+    // DELETE /api/ot-records/:id or /api/delete-ot-record/:id or POST /api/delete-ot-record
+    if ((path.startsWith("/api/ot-records/") || path.startsWith("/api/delete-ot-record/")) && (request.method === "DELETE" || request.method === "POST")) {
+      const recordId = path.split("/").pop();
+      if (db && recordId) {
+        try {
+          await db.prepare("DELETE FROM ot_daily_records WHERE id = ?").bind(recordId).run();
+          return Response.json({ success: true, message: "ลบรายการ OT สำเร็จ" }, { headers: corsHeaders });
+        } catch (e: any) {
+          return Response.json({ error: e.message || "ลบรายการไม่สำเร็จ" }, { status: 500, headers: corsHeaders });
+        }
+      }
+      return Response.json({ success: true }, { headers: corsHeaders });
+    }
+
+    if ((path === "/api/delete-ot-record" || path === "/api/ot-records/delete") && request.method === "POST") {
+      const body = await getBody();
+      const recordId = body?.id;
+      if (db && recordId) {
+        try {
+          await db.prepare("DELETE FROM ot_daily_records WHERE id = ?").bind(recordId).run();
+          return Response.json({ success: true, message: "ลบรายการ OT สำเร็จ" }, { headers: corsHeaders });
+        } catch (e: any) {
+          return Response.json({ error: e.message || "ลบรายการไม่สำเร็จ" }, { status: 500, headers: corsHeaders });
+        }
+      }
+      return Response.json({ success: true }, { headers: corsHeaders });
+    }
+
     // 10. POST /api/clear-mock-data
     if (path === "/api/clear-mock-data" && request.method === "POST") {
       if (db) {
@@ -1375,11 +1403,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             while ((match = shiftRegex.exec(text)) !== null) {
               const hours = parseFloat(match[3]);
               const multiplier = parseFloat(match[4]);
+              const startHour = parseInt(match[1].split(":")[0], 10);
+              const shiftCode = (startHour >= 6 && startHour < 14) ? "M" : (startHour >= 14 && startHour < 22) ? "A" : "N";
               shifts.push({
                 timeRange: `${match[1]}-${match[2]}`,
                 hours,
                 multiplier,
-                shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
+                shiftCode
               });
             }
 
@@ -1465,6 +1495,119 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             }
 
             const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
+            // ============================================================
+            // 1. Employee & Department Validation in D1
+            // ============================================================
+            let verifiedEmp: any = null;
+            let verifiedDept: any = null;
+
+            if (db) {
+              try {
+                verifiedEmp = await db.prepare(
+                  "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
+                ).bind(employeeId, employeeId.padStart(7, "0")).first();
+
+                if (!verifiedEmp) {
+                  const unpaddedId = employeeId.replace(/^0+/, "");
+                  if (unpaddedId && unpaddedId !== employeeId) {
+                    verifiedEmp = await db.prepare(
+                      "SELECT id, name, deptId, role FROM employees WHERE id = ?"
+                    ).bind(unpaddedId).first();
+                  }
+                }
+
+                if (!verifiedEmp) {
+                  const notFoundMsg = [
+                    "⚠️ แจ้งเตือน: ไม่พบรหัสพนักงานในระบบ!",
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    `🆔 รหัสพนักงาน: ${employeeId}`,
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    "ระบบไม่พบข้อมูลรหัสพนักงานนี้ในฐานข้อมูลพนักงาน",
+                    "กรุณาตรวจสอบความถูกต้อง หรือติดต่อฝ่ายบุคคล (HR) ครับ"
+                  ].join("\n");
+
+                  if (replyToken) {
+                    await fetch("https://api.line.me/v2/bot/message/reply", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${channelAccessToken}` },
+                      body: JSON.stringify({ replyToken, messages: [{ type: "text", text: notFoundMsg }] })
+                    }).catch(() => {});
+                  }
+                  continue;
+                }
+
+                if (verifiedEmp.deptId) {
+                  verifiedDept = await db.prepare(
+                    "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?"
+                  ).bind(verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId).first();
+                }
+
+                const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
+                const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
+
+                const hasInputPos = position && position !== '-' && position !== 'ไม่ระบุตำแหน่ง';
+                const inputPosNorm = normalizeText(position);
+                const sysPosNorm = normalizeText(verifiedEmp.role);
+                const isPosMatch = hasInputPos && (
+                  inputPosNorm === sysPosNorm ||
+                  inputPosNorm.includes(sysPosNorm) ||
+                  sysPosNorm.includes(inputPosNorm)
+                );
+
+                const hasInputDept = department && department !== '-' && department !== 'ไม่ระบุแผนก';
+                const inputDeptNorm = normalizeDept(department);
+                const deptCandidates = [
+                  verifiedEmp.deptId,
+                  verifiedDept?.id,
+                  verifiedDept?.name,
+                  verifiedDept?.nameTh
+                ].filter(Boolean);
+
+                const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
+                  const candNorm = normalizeDept(cand);
+                  return (
+                    candNorm === inputDeptNorm ||
+                    candNorm.includes(inputDeptNorm) ||
+                    inputDeptNorm.includes(candNorm)
+                  );
+                });
+
+                const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
+                const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
+
+                if (!isPosMatch || !isDeptMatch) {
+                  const mismatchMsg = [
+                    "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+                    `👤 พนักงาน: ${verifiedEmp.name}`,
+                    "",
+                    "❌ ข้อมูลที่คุณระบุ:",
+                    `  • ตำแหน่ง: ${hasInputPos ? position : "ไม่ได้ระบุ"}`,
+                    `  • แผนก: ${hasInputDept ? department : "ไม่ได้ระบุ"}`,
+                    "",
+                    "✅ ข้อมูลที่ถูกต้องในระบบ:",
+                    `  • ตำแหน่ง: ${displaySysRole}`,
+                    `  • แผนก: ${displaySysDept}`,
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
+                  ].join("\n");
+
+                  if (replyToken) {
+                    await fetch("https://api.line.me/v2/bot/message/reply", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${channelAccessToken}` },
+                      body: JSON.stringify({ replyToken, messages: [{ type: "text", text: mismatchMsg }] })
+                    }).catch(() => {});
+                  }
+                  continue;
+                }
+
+                employeeName = verifiedEmp.name || employeeName;
+              } catch (e) {
+                console.error("Employee validation error in D1:", e);
+              }
+            }
             const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
             const [yearStr, monthStr] = date.split("-");
             const recordYear = parseInt(yearStr, 10);
