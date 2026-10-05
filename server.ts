@@ -66,6 +66,22 @@ const REAL_DEPARTMENTS = [
   { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "-", managerRole: "Section Manager", managerImg: "", icon: "electrical_services" },
 ];
 
+const MASTER_ROLES = [
+  "O&M Electrical",
+  "O&M Mechanical",
+  "O&M Generator",
+  "O&M Specialist",
+  "ผู้ควบคุมงานขนถ่ายสินค้า",
+  "ผู้ควบคุมงานจักรกลหนัก",
+  "Operation Engineer",
+  "พนักงานขับจักรกลหนัก",
+  "พนักงานขับเครน",
+  "พนักงานขับเครน ชำนาญการ",
+  "ปากเรือ",
+  "ปากเรือ ชำนาญการ",
+  "ผู้จัดการแผนก"
+];
+
 const FULL_ACCESS_ROLES = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ"];
 const hasFullAccess = (role: string) => FULL_ACCESS_ROLES.includes(role);
 
@@ -728,9 +744,18 @@ app.get("/api/portal-state", async (req, res) => {
     const lastYear  = thisYear - 1;
 
     if (isD1Enabled()) {
-      const departments    = await queryD1("SELECT * FROM departments");
+      const departmentsRaw = await queryD1("SELECT * FROM departments");
+      const departments    = (departmentsRaw || []).filter((d: any) => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK");
       const employeesRaw   = await queryD1("SELECT * FROM employees");
       const shiftConfigRaw = await queryD1("SELECT * FROM shift_config LIMIT 1");
+
+      let roles = MASTER_ROLES;
+      try {
+        const rolesRaw = await queryD1("SELECT name FROM roles ORDER BY rowid ASC");
+        if (rolesRaw && rolesRaw.length > 0) {
+          roles = rolesRaw.map((r: any) => r.name);
+        }
+      } catch (_) {}
 
       // Compute OT stats for each employee from ot_daily_records
       const employees = await enrichEmployeesWithOt(employeesRaw, thisYear, thisMonth);
@@ -792,7 +817,7 @@ app.get("/api/portal-state", async (req, res) => {
       };
 
       const shiftConfig = shiftConfigRaw[0] || appState.shiftConfig;
-      res.json({ departments: enrichedDepartments, employees, shiftConfig, otTrendData, requests: [], d1Connected: true });
+      res.json({ departments: enrichedDepartments, roles, employees, shiftConfig, otTrendData, requests: [], d1Connected: true });
 
     } else {
       // Offline mode — compute from local appState
@@ -804,7 +829,9 @@ app.get("/api/portal-state", async (req, res) => {
         return { ...emp, actualOt, otPct, status };
       });
 
-      const enrichedDepts = appState.departments.map(dept => {
+      const enrichedDepts = appState.departments
+        .filter((d: any) => d.id !== "deck" && d.id !== "DECK")
+        .map(dept => {
         const deptEmp        = enrichedEmps.filter(e => e.deptId === dept.id);
         const employeesCount = deptEmp.length;
         const otHours        = Math.round(deptEmp.reduce((s, e) => s + (e.actualOt || 0), 0) * 10) / 10;
@@ -816,6 +843,7 @@ app.get("/api/portal-state", async (req, res) => {
 
       res.json({
         departments: enrichedDepts,
+        roles: MASTER_ROLES,
         employees: enrichedEmps,
         shiftConfig: appState.shiftConfig,
         otTrendData: appState.otTrendData || { months: [], lastYear: [], currentYear: [] },

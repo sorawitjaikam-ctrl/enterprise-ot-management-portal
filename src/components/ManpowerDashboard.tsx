@@ -29,19 +29,19 @@ import { ManpowerPosition } from "../types";
 
 // Standard canonical categories for level classification
 const STANDARD_ROLE_CATEGORIES = [
-  { id: 'crane', label: 'พนักงานขับเครน', level: 'staff' as const, patterns: [/เครน/i, /crane/i] },
-  { id: 'heavy_op', label: 'ช่างขับจักรกลหนัก', level: 'staff' as const, patterns: [/ช่างขับจักรกล/i, /ขับจักรกล/i, /heavy machine operator/i, /operator/i, /คนขับจักรกล/i] },
-  { id: 'heavy_sup', label: 'ผู้ควบคุมงานจักรกลหนัก', level: 'staff' as const, patterns: [/ควบคุมงานจักรกล/i, /ควบคุมจักรกล/i, /คุมจักรกล/i, /heavy supervisor/i] },
-  { id: 'cargo_sup', label: 'ผู้ควบคุมงานขนถ่ายสินค้า', level: 'staff' as const, patterns: [/ขนถ่ายสินค้า/i, /ขนถ่าย/i, /cargo/i] },
-  { id: 'deck', label: 'ช่างปากเรือ', level: 'staff' as const, patterns: [/ปากเรือ/i, /deck/i] },
-  { id: 'om_spec', label: 'O&M Specialist', level: 'staff' as const, patterns: [/o&m spec/i, /specialist/i, /ช่างทุ่น/i] },
-  { id: 'om_gen', label: 'O&M Generator', level: 'staff' as const, patterns: [/o&m gen/i, /generator/i, /เยนเนอเรเตอร์/i] },
-  { id: 'om_mech', label: 'O&M Mechanical', level: 'staff' as const, patterns: [/o&m mech/i, /mechanical/i, /เครื่องกล/i, /ช่างกล/i] },
   { id: 'om_elec', label: 'O&M Electrical', level: 'staff' as const, patterns: [/o&m elec/i, /electrical/i, /ไฟฟ้า/i, /ช่างไฟ/i] },
-  { id: 'control', label: 'เจ้าหน้าที่ศูนย์ควบคุม', level: 'staff' as const, patterns: [/ศูนย์ควบคุม/i, /control/i, /ควบคุมระบบ/i] },
-  { id: 'eng', label: 'วิศวกร (Operation & Improvement)', level: 'eng' as const, patterns: [/engineer/i, /วิศวกร/i, /วิศว/i] },
-  { id: 'mgr', label: 'ผู้จัดการ (Managers)', level: 'mgr' as const, patterns: [/ผู้จัดการ/i, /manager/i, /incharge/i, /incharged/i, /ฝ่ายปฏิบัติการ/i] },
-  { id: 'maint_imp', label: 'Maintenance Improvement', level: 'mgr' as const, patterns: [/improvement/i, /ปรับปรุง/i, /maintenance/i] }
+  { id: 'om_mech', label: 'O&M Mechanical', level: 'staff' as const, patterns: [/o&m mech/i, /mechanical/i, /เครื่องกล/i, /ช่างกล/i] },
+  { id: 'om_gen', label: 'O&M Generator', level: 'staff' as const, patterns: [/o&m gen/i, /generator/i, /เยนเนอเรเตอร์/i] },
+  { id: 'om_spec', label: 'O&M Specialist', level: 'staff' as const, patterns: [/o&m spec/i, /specialist/i, /ช่างทุ่น/i] },
+  { id: 'cargo_sup', label: 'ผู้ควบคุมงานขนถ่ายสินค้า', level: 'staff' as const, patterns: [/ขนถ่ายสินค้า/i, /ขนถ่าย/i, /cargo/i] },
+  { id: 'heavy_sup', label: 'ผู้ควบคุมงานจักรกลหนัก', level: 'staff' as const, patterns: [/ควบคุมงานจักรกล/i, /ควบคุมจักรกล/i, /คุมจักรกล/i, /heavy supervisor/i] },
+  { id: 'eng', label: 'Operation Engineer', level: 'eng' as const, patterns: [/operation engineer/i, /engineer/i, /วิศวกร/i] },
+  { id: 'heavy_op', label: 'พนักงานขับจักรกลหนัก', level: 'staff' as const, patterns: [/พนักงานขับจักรกล/i, /ช่างขับจักรกล/i, /ขับจักรกล/i, /heavy machine operator/i, /คนขับจักรกล/i] },
+  { id: 'crane', label: 'พนักงานขับเครน', level: 'staff' as const, patterns: [/พนักงานขับเครน$/i, /เครน$/i, /crane operator/i] },
+  { id: 'senior_crane', label: 'พนักงานขับเครน ชำนาญการ', level: 'staff' as const, patterns: [/เครน\s*ชำนาญการ/i, /senior crane/i] },
+  { id: 'deck', label: 'ปากเรือ', level: 'staff' as const, patterns: [/^ปากเรือ$/i, /ช่างปากเรือ$/i, /deck/i] },
+  { id: 'senior_deck', label: 'ปากเรือ ชำนาญการ', level: 'staff' as const, patterns: [/ปากเรือ\s*ชำนาญการ/i] },
+  { id: 'mgr', label: 'ผู้จัดการแผนก', level: 'mgr' as const, patterns: [/ผู้จัดการ/i, /manager/i, /incharge/i] }
 ];
 
 // Helper: Categorize role into level
@@ -251,21 +251,19 @@ export default function ManpowerDashboard({
   const standardRoleNames = useMemo(() => {
     const rolesInMaster = Array.from(new Set(positions.map(p => (p.role || "").trim()).filter(Boolean)));
     const defaultSuggestions = [
-      "พนักงานขับเครน",
-      "ช่างขับจักรกลหนัก",
-      "ผู้ควบคุมงานจักรกลหนัก",
-      "ผู้ควบคุมงานขนถ่ายสินค้า",
-      "ช่างปากเรือ",
-      "O&M Specialist",
-      "O&M Generator",
-      "O&M Mechanical",
       "O&M Electrical",
-      "เจ้าหน้าที่ศูนย์ควบคุม",
+      "O&M Mechanical",
+      "O&M Generator",
+      "O&M Specialist",
+      "ผู้ควบคุมงานขนถ่ายสินค้า",
+      "ผู้ควบคุมงานจักรกลหนัก",
       "Operation Engineer",
-      "Improvement Engineer",
-      "ผู้จัดการฝ่ายปฏิบัติการ",
-      "ผู้จัดการแผนก",
-      "Maintenance Improvement"
+      "พนักงานขับจักรกลหนัก",
+      "พนักงานขับเครน",
+      "พนักงานขับเครน ชำนาญการ",
+      "ปากเรือ",
+      "ปากเรือ ชำนาญการ",
+      "ผู้จัดการแผนก"
     ];
     return Array.from(new Set([...rolesInMaster, ...defaultSuggestions]));
   }, [positions]);

@@ -17,6 +17,22 @@ const getShiftOt = (shiftCode: string): number => {
   return map[shiftCode] ?? 0;
 };
 
+export const MASTER_ROLES = [
+  "O&M Electrical",
+  "O&M Mechanical",
+  "O&M Generator",
+  "O&M Specialist",
+  "ผู้ควบคุมงานขนถ่ายสินค้า",
+  "ผู้ควบคุมงานจักรกลหนัก",
+  "Operation Engineer",
+  "พนักงานขับจักรกลหนัก",
+  "พนักงานขับเครน",
+  "พนักงานขับเครน ชำนาญการ",
+  "ปากเรือ",
+  "ปากเรือ ชำนาญการ",
+  "ผู้จัดการแผนก"
+];
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -63,14 +79,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       let otRequestsRes: any = { results: [] };
       let otSummaryMap: Record<string, number> = {};
 
+      let rolesRes: any = { results: [] };
+
       if (db) {
         try {
+          try { await db.prepare("DELETE FROM departments WHERE id = 'deck' OR id = 'DECK' OR name = 'DECK'").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE departments ADD COLUMN pattern TEXT DEFAULT '4-on-2-off'").run(); } catch (e) {}
           deptsRes = await db.prepare("SELECT * FROM departments").all();
           try { await db.prepare("ALTER TABLE employees ADD COLUMN resignationDate TEXT DEFAULT ''").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN employmentStatus TEXT DEFAULT 'Active'").run(); } catch (e) {}
           try { await db.prepare("ALTER TABLE employees ADD COLUMN planShifts TEXT DEFAULT '[]'").run(); } catch (e) {}
           empsRes = await db.prepare("SELECT * FROM employees").all();
+          try {
+            await db.prepare("CREATE TABLE IF NOT EXISTS roles (id TEXT PRIMARY KEY, name TEXT NOT NULL)").run();
+            rolesRes = await db.prepare("SELECT name FROM roles ORDER BY rowid ASC").all();
+          } catch (e) {}
 
           // Auto-reconcile any active manpower positions missing from employees
           try {
@@ -292,7 +315,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         return clean;
       };
 
-      const departments = (deptsRes.results || []).map((d: any) => {
+      const departments = (deptsRes.results || [])
+        .filter((d: any) => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK")
+        .map((d: any) => {
         const deptEmps = enrichedEmployees.filter(e => normalizeDeptId(e.deptId) === normalizeDeptId(d.id));
         const totalOt = deptEmps.reduce((s, e) => s + e.actualOt, 0);
         const budgetUsed = Math.round(deptEmps.reduce((s, e) => {
@@ -313,8 +338,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         };
       });
 
+      const roles = (rolesRes.results && rolesRes.results.length > 0)
+        ? rolesRes.results.map((r: any) => r.name)
+        : MASTER_ROLES;
+
       return Response.json({
         departments,
+        roles,
         employees: enrichedEmployees,
         accounts: accountsRes.results || [],
         vesselSchedules: vesselSchedulesRes.results || [],
@@ -920,6 +950,19 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         }
       }
       return Response.json({ success: true, message: "ล้างข้อมูล Job Value ทั้งหมดใน D1 Database เรียบร้อยแล้ว" }, { headers: corsHeaders });
+    }
+
+    // 8.9 GET /api/roles
+    if (path === "/api/roles" && request.method === "GET") {
+      if (db) {
+        try {
+          const res = await db.prepare("SELECT name FROM roles ORDER BY rowid ASC").all();
+          if (res.results && res.results.length > 0) {
+            return Response.json(res.results.map((r: any) => r.name), { headers: corsHeaders });
+          }
+        } catch (_) {}
+      }
+      return Response.json(MASTER_ROLES, { headers: corsHeaders });
     }
 
     // 9. GET /api/ot-records

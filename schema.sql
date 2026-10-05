@@ -9,6 +9,27 @@ CREATE TABLE IF NOT EXISTS departments (
   icon TEXT DEFAULT 'precision_manufacturing'
 );
 
+-- Create roles table
+CREATE TABLE IF NOT EXISTS roles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL
+);
+
+INSERT OR REPLACE INTO roles (id, name) VALUES
+('om_electrical', 'O&M Electrical'),
+('om_mechanical', 'O&M Mechanical'),
+('om_generator', 'O&M Generator'),
+('om_specialist', 'O&M Specialist'),
+('cargo_supervisor', 'ผู้ควบคุมงานขนถ่ายสินค้า'),
+('heavy_machine_supervisor', 'ผู้ควบคุมงานจักรกลหนัก'),
+('operation_engineer', 'Operation Engineer'),
+('heavy_machine_operator', 'พนักงานขับจักรกลหนัก'),
+('crane_operator', 'พนักงานขับเครน'),
+('senior_crane_operator', 'พนักงานขับเครน ชำนาญการ'),
+('deck_worker', 'ปากเรือ'),
+('senior_deck_worker', 'ปากเรือ ชำนาญการ'),
+('dept_manager', 'ผู้จัดการแผนก');
+
 -- Create employees table
 CREATE TABLE IF NOT EXISTS employees (
   id TEXT PRIMARY KEY,

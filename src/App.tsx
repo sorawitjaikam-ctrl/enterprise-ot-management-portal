@@ -104,6 +104,22 @@ import {
   ComplianceAlert
 } from "./utils/shiftRecommendation";
 
+export const MASTER_ROLES: string[] = [
+  "O&M Electrical",
+  "O&M Mechanical",
+  "O&M Generator",
+  "O&M Specialist",
+  "ผู้ควบคุมงานขนถ่ายสินค้า",
+  "ผู้ควบคุมงานจักรกลหนัก",
+  "Operation Engineer",
+  "พนักงานขับจักรกลหนัก",
+  "พนักงานขับเครน",
+  "พนักงานขับเครน ชำนาญการ",
+  "ปากเรือ",
+  "ปากเรือ ชำนาญการ",
+  "ผู้จัดการแผนก"
+];
+
 export const LEAVE_CODES = ["ป", "ก", "ข", "ปง", "ณ", "คม", "พ", "ลย", "ลบ", "ตง"] as const;
 export const isLeaveCode = (code: string) => LEAVE_CODES.includes(code as any);
 
@@ -4130,23 +4146,7 @@ export default function App() {
       { id: "improvement",    name: "Improvement",           nameTh: "แผนก Improvement",           manager: "คุณจิราภรณ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "trending_up" },
       { id: "management",    name: "Management",           nameTh: "แผนก Management",           manager: "คุณสมบูรณ์", managerRole: "Director", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "business_center" }
     ],
-    roles: [
-      "พนักงานขับเครน",
-      "ช่างขับจักรกลหนัก",
-      "ผู้ควบคุมงานจักรกลหนัก",
-      "ผู้ควบคุมงานขนถ่ายสินค้า",
-      "ช่างปากเรือ",
-      "O&M Specialist",
-      "O&M Generator",
-      "O&M Mechanical",
-      "O&M Electrical",
-      "เจ้าหน้าที่ศูนย์ควบคุม",
-      "Operation Engineer",
-      "Improvement Engineer",
-      "ผู้จัดการฝ่ายปฏิบัติการ",
-      "ผู้จัดการแผนก",
-      "Maintenance Improvement"
-    ],
+    roles: [...MASTER_ROLES],
     employees: [],
     shiftConfig: {
       pattern: "4-on-2-off",
@@ -4169,6 +4169,8 @@ export default function App() {
         const targetMonth = monthOverride || state?.shiftConfig?.currentMonth || data?.shiftConfig?.currentMonth || "2026-08";
         const updatedData: AppState = {
           ...data,
+          departments: (data.departments || []).filter((d: any) => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK"),
+          roles: (data?.roles && Array.isArray(data.roles) && data.roles.length > 0) ? data.roles : MASTER_ROLES,
           shiftConfig: {
             pattern: data?.shiftConfig?.pattern || "4-on-2-off",
             currentDept: data?.shiftConfig?.currentDept || "inter2",
@@ -12237,10 +12239,9 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
-                      <><option value="Operation Engineer">Operation Engineer</option>
-                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
-                    )}
+                      {(state?.roles && state.roles.length > 0 ? state.roles : MASTER_ROLES).map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -12250,7 +12251,9 @@ export default function App() {
                       onChange={(e) => setNewEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      {state?.departments?.filter(d => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK").map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -12561,10 +12564,9 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
-                      <><option value="Operation Engineer">Operation Engineer</option>
-                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
-                    )}
+                      {(state?.roles && state.roles.length > 0 ? state.roles : MASTER_ROLES).map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -12574,7 +12576,9 @@ export default function App() {
                       onChange={(e) => setEditEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      {state?.departments?.filter(d => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK").map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
