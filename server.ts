@@ -87,7 +87,6 @@ let appState = {
   otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] },
   leaveRecords: [] as any[],
   vesselSchedules: [] as any[],
-  manpowerPositions: [] as any[],
   jobValueRecords: [
     {
       id: "JV-EMP-101", empId: "EMP-101", empName: "นายสมชาย ใจดี", department: "INTER 2", position: "Operator", status: "Active",
@@ -229,11 +228,10 @@ const writeAuditLog = async (username: string, action: string, targetType: strin
 // ============================================================
 // Helper: compute employee OT from ot_daily_records (D1)
 // ============================================================
+// Helper: compute employee OT from ot_daily_records (D1)
 const computeEmployeeOtStats = async (employeeId: string, targetOt: number, reqYear?: number, reqMonth?: number) => {
-  const eid = (employeeId || "").toString().trim();
-  const stripped = eid.replace(/^EMP-/i, '');
-  let sql = "SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE (employeeId = ? OR employeeId = ? OR employeeId = ?)";
-  const params: any[] = [eid, stripped, `EMP-${stripped}`];
+  let sql = "SELECT COALESCE(SUM(otHours), 0) as total FROM ot_daily_records WHERE employeeId = ?";
+  const params: any[] = [employeeId];
   if (reqYear && reqMonth) {
     sql += " AND year = ? AND month = ?";
     params.push(reqYear, reqMonth);
@@ -369,18 +367,9 @@ const enrichEmployeesWithOt = async (employees: any[], customYear?: number, cust
     const actualOt = Math.max(dbOt, otFromShifts);
     const targetOt = e.targetOt || 48;
     const otPct = targetOt > 0 ? Math.round((actualOt / targetOt) * 100) : 0;
-    const canonicalId = (e.id || "").toString().trim();
-    return {
-      ...e,
-      id: canonicalId,
-      empId: canonicalId,
-      positionId: e.positionId || `POS-${canonicalId}`,
-      shifts,
-      planShifts,
-      actualOt,
-      otPct,
-      status
-    };
+    const status = actualOt > targetOt ? "Warning" : "On Track";
+
+    return { ...e, shifts, planShifts, actualOt, otPct, status };
   }));
 };
 
@@ -401,82 +390,35 @@ const initD1Database = async () => {
       manager TEXT, managerRole TEXT, managerImg TEXT, icon TEXT
     )`);
 
-    // Employees (Central Master Entity - Keyed by employee ID)
+    // Employees (expanded schema for employee details)
     await queryD1(`CREATE TABLE IF NOT EXISTS employees (
-      id TEXT PRIMARY KEY,
-      positionId TEXT DEFAULT '',
-      name TEXT NOT NULL,
-      prefix TEXT DEFAULT '',
-      firstName TEXT DEFAULT '',
-      lastName TEXT DEFAULT '',
-      nickname TEXT DEFAULT '',
-      avatar TEXT DEFAULT '',
-      deptId TEXT NOT NULL,
-      division TEXT DEFAULT 'ฝ่ายปฏิบัติการท่าเรือ',
-      unit TEXT NOT NULL DEFAULT 'INTER 2',
-      role TEXT NOT NULL DEFAULT 'Operator',
-      level TEXT NOT NULL DEFAULT 'Staff',
-      ocType TEXT NOT NULL DEFAULT 'OLD',
-      status TEXT NOT NULL DEFAULT 'Active',
-      employmentStatus TEXT DEFAULT 'Active',
-      isMgr INTEGER DEFAULT 0,
-      isEng INTEGER DEFAULT 0,
-      salary REAL DEFAULT 0,
-      startDate TEXT DEFAULT '',
-      tenure TEXT DEFAULT '',
-      probationDate TEXT DEFAULT '',
-      birthday TEXT DEFAULT '',
-      age INTEGER DEFAULT 0,
-      calculatedAge INTEGER DEFAULT 0,
-      calendarType TEXT DEFAULT 'ปฏิทินกะ 4-on-2-off',
-      groupName TEXT DEFAULT 'Group A',
-      shifts TEXT DEFAULT '[]',
+      id TEXT PRIMARY KEY, name TEXT, deptId TEXT, role TEXT,
+      targetOt REAL DEFAULT 48, groupName TEXT, shifts TEXT DEFAULT '[]',
       planShifts TEXT DEFAULT '[]',
-      targetOt REAL DEFAULT 48,
-      avgRevenue REAL DEFAULT 0,
-      avgCost REAL DEFAULT 0,
-      profit2026 REAL DEFAULT 0,
-      profit2025 REAL DEFAULT 0,
-      monthlyRevenue TEXT DEFAULT '[]',
-      monthlyCost TEXT DEFAULT '[]',
-      monthlyProfit TEXT DEFAULT '[]',
-      updatedAt TEXT DEFAULT ''
+      prefix TEXT, firstName TEXT, lastName TEXT, nickname TEXT,
+      division TEXT, salary REAL DEFAULT 0, birthday TEXT,
+      age INTEGER DEFAULT 0, calculatedAge INTEGER DEFAULT 0,
+      startDate TEXT, tenure TEXT, probationDate TEXT, calendarType TEXT
     )`);
 
     // Migration: add new columns if they do not exist
     const newEmpCols = [
-      { name: "prefix", type: "TEXT DEFAULT ''" },
-      { name: "firstName", type: "TEXT DEFAULT ''" },
-      { name: "lastName", type: "TEXT DEFAULT ''" },
-      { name: "nickname", type: "TEXT DEFAULT ''" },
-      { name: "avatar", type: "TEXT DEFAULT ''" },
-      { name: "division", type: "TEXT DEFAULT 'ฝ่ายปฏิบัติการท่าเรือ'" },
+      { name: "prefix", type: "TEXT" },
+      { name: "firstName", type: "TEXT" },
+      { name: "lastName", type: "TEXT" },
+      { name: "nickname", type: "TEXT" },
+      { name: "division", type: "TEXT" },
       { name: "salary", type: "REAL DEFAULT 0" },
-      { name: "birthday", type: "TEXT DEFAULT ''" },
+      { name: "birthday", type: "TEXT" },
       { name: "age", type: "INTEGER DEFAULT 0" },
       { name: "calculatedAge", type: "INTEGER DEFAULT 0" },
-      { name: "startDate", type: "TEXT DEFAULT ''" },
-      { name: "tenure", type: "TEXT DEFAULT ''" },
-      { name: "probationDate", type: "TEXT DEFAULT ''" },
-      { name: "calendarType", type: "TEXT DEFAULT 'ปฏิทินกะ 4-on-2-off'" },
+      { name: "startDate", type: "TEXT" },
+      { name: "tenure", type: "TEXT" },
+      { name: "probationDate", type: "TEXT" },
+      { name: "calendarType", type: "TEXT" },
       { name: "planShifts", type: "TEXT DEFAULT '[]'" },
-      { name: "resignationDate", type: "TEXT DEFAULT ''" },
-      { name: "employmentStatus", type: "TEXT DEFAULT 'Active'" },
-      { name: "positionId", type: "TEXT DEFAULT ''" },
-      { name: "unit", type: "TEXT DEFAULT 'INTER 2'" },
-      { name: "level", type: "TEXT DEFAULT 'Staff'" },
-      { name: "ocType", type: "TEXT DEFAULT 'OLD'" },
-      { name: "status", type: "TEXT DEFAULT 'Active'" },
-      { name: "isMgr", type: "INTEGER DEFAULT 0" },
-      { name: "isEng", type: "INTEGER DEFAULT 0" },
-      { name: "avgRevenue", type: "REAL DEFAULT 0" },
-      { name: "avgCost", type: "REAL DEFAULT 0" },
-      { name: "profit2026", type: "REAL DEFAULT 0" },
-      { name: "profit2025", type: "REAL DEFAULT 0" },
-      { name: "monthlyRevenue", type: "TEXT DEFAULT '[]'" },
-      { name: "monthlyCost", type: "TEXT DEFAULT '[]'" },
-      { name: "monthlyProfit", type: "TEXT DEFAULT '[]'" },
-      { name: "updatedAt", type: "TEXT DEFAULT ''" }
+      { name: "resignationDate", type: "TEXT" },
+      { name: "employmentStatus", type: "TEXT DEFAULT 'Active'" }
     ];
     for (const col of newEmpCols) {
       try {
@@ -567,101 +509,16 @@ const initD1Database = async () => {
     )`);
 
     // Accounts
-    // Accounts (Linked to employees via employeeId)
     await queryD1(`CREATE TABLE IF NOT EXISTS accounts (
       username TEXT PRIMARY KEY, password TEXT, name TEXT,
-      role TEXT, deptId TEXT, avatar TEXT, canBackup INTEGER DEFAULT 0,
-      employeeId TEXT DEFAULT ''
+      role TEXT, deptId TEXT, avatar TEXT, canBackup INTEGER DEFAULT 0
     )`);
-    try { await queryD1("ALTER TABLE accounts ADD COLUMN employeeId TEXT DEFAULT ''"); } catch (_) {}
-    try { await queryD1("ALTER TABLE accounts ADD COLUMN canBackup INTEGER DEFAULT 0"); } catch (_) {}
 
-    // Safe Auto-Migration: Migrate legacy manpower_positions into employees table if table exists
-    try {
-      const mpRows: any = await queryD1("SELECT * FROM manpower_positions");
-      if (Array.isArray(mpRows) && mpRows.length > 0) {
-        for (const pos of mpRows) {
-          const pEmpId = (pos.empId || "").trim();
-          const pName = (pos.name || "").trim();
-          const pUnit = (pos.unit || "INTER 2").trim();
-          const pRole = (pos.role || "Operator").trim();
-          const pLevel = (pos.level || "Staff").trim();
-          const pOcType = (pos.ocType || "OLD").trim();
-          const pStatus = (pos.status || "Active").trim();
-          const pIsMgr = pos.isMgr ? 1 : 0;
-          const pIsEng = pos.isEng ? 1 : 0;
-          const posId = pos.id || `POS-${pEmpId || Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-          let existing: any = null;
-          if (pEmpId) {
-            const emps = await queryD1("SELECT id FROM employees WHERE id = ?", [pEmpId]);
-            if (emps && emps.length > 0) existing = emps[0];
-          }
-          if (!existing && pName && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
-            const emps = await queryD1("SELECT id FROM employees WHERE name = ?", [pName]);
-            if (emps && emps.length > 0) existing = emps[0];
-          }
-
-          if (existing && existing.id) {
-            await queryD1(
-              "UPDATE employees SET positionId = ?, unit = ?, role = ?, level = ?, ocType = ?, isMgr = ?, isEng = ?, status = ? WHERE id = ?",
-              [posId, pUnit, pRole, pLevel, pOcType, pIsMgr, pIsEng, pStatus, existing.id]
-            );
-          } else if (pStatus === "Vacant" || pName.toLowerCase().includes("vacant") || pName === "ว่าง") {
-            await queryD1(
-              "INSERT OR IGNORE INTO employees (id, positionId, name, deptId, role, unit, level, ocType, status, employmentStatus, isMgr, isEng, targetOt, shifts, planShifts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Vacant', 'Inactive', ?, ?, 0, '[]', '[]')",
-              [posId, posId, pName || "Vacant", "inter2", pRole, pUnit, pLevel, pOcType, pIsMgr, pIsEng]
-            );
-          } else if (pEmpId || pName) {
-            const empId = pEmpId || `EMP-${String(pos.id).replace(/\D/g, "")}`;
-            await queryD1(
-              "INSERT OR IGNORE INTO employees (id, positionId, name, deptId, role, unit, level, ocType, status, employmentStatus, isMgr, isEng, targetOt, shifts, planShifts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?, 48, '[]', '[]')",
-              [empId, posId, pName, "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng]
-            );
-          }
-        }
-        await queryD1("DROP TABLE IF EXISTS manpower_positions");
-      } else {
-        await queryD1("DROP TABLE IF EXISTS manpower_positions");
-      }
-    } catch (_) {}
-
-    // Safe Auto-Migration: Migrate legacy job_value_records into employees table if table exists
-    try {
-      const jvRows: any = await queryD1("SELECT * FROM job_value_records");
-      if (Array.isArray(jvRows) && jvRows.length > 0) {
-        for (const jv of jvRows) {
-          const empId = (jv.empId || "").trim();
-          const empName = (jv.empName || "").trim();
-          let targetId = empId;
-          if (!targetId && empName) {
-            const emps = await queryD1("SELECT id FROM employees WHERE name = ?", [empName]);
-            if (emps && emps.length > 0) targetId = emps[0].id;
-          }
-          if (targetId) {
-            await queryD1(
-              "UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ?",
-              [
-                Number(jv.avgRevenue) || 0,
-                Number(jv.avgCost) || 0,
-                Number(jv.profit2026) || 0,
-                Number(jv.profit2025) || 0,
-                typeof jv.monthlyRevenue === "string" ? jv.monthlyRevenue : JSON.stringify(jv.monthlyRevenue || []),
-                typeof jv.monthlyCost === "string" ? jv.monthlyCost : JSON.stringify(jv.monthlyCost || []),
-                typeof jv.monthlyProfit === "string" ? jv.monthlyProfit : JSON.stringify(jv.monthlyProfit || []),
-                jv.updatedAt || new Date().toISOString(),
-                targetId
-              ]
-            );
-          }
-        }
-        await queryD1("DROP TABLE IF EXISTS job_value_records");
-        await queryD1("DROP TABLE IF EXISTS job_value");
-      } else {
-        await queryD1("DROP TABLE IF EXISTS job_value_records");
-        await queryD1("DROP TABLE IF EXISTS job_value");
-      }
-    } catch (_) {}
+    // Add canBackup if missing
+    try { await queryD1("SELECT canBackup FROM accounts LIMIT 1"); }
+    catch (e) {
+      try { await queryD1("ALTER TABLE accounts ADD COLUMN canBackup INTEGER DEFAULT 0"); } catch (_) {}
+    }
 
     // Seed departments if empty
     const depts = await queryD1("SELECT id FROM departments LIMIT 1");
@@ -841,47 +698,6 @@ app.post("/api/delete-account", async (req, res) => {
     }
     res.json({ success: true });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
-});
-
-// --- Delete employee ---
-app.post("/api/delete-employee", async (req, res) => {
-  const targetId = (req.body.id || req.body.empId || req.body.positionId || "").toString().trim();
-  const targetName = (req.body.name || "").toString().trim();
-  const targetEmpId = (req.body.empId || "").toString().trim();
-  const targetPosId = (req.body.positionId || "").toString().trim();
-
-  try {
-    if (isD1Enabled() && (targetId || targetName)) {
-      await queryD1(
-        `DELETE FROM employees WHERE 
-          id = ? OR id = ? OR id = ? OR 
-          positionId = ? OR positionId = ? OR positionId = ? OR
-          name = ?`,
-        [
-          targetId, targetEmpId || targetId, `EMP-${targetId.replace(/^EMP-/i, '')}`,
-          targetId, targetPosId || targetId, `POS-${targetId.replace(/^POS-/i, '')}`,
-          targetName || targetId
-        ]
-      );
-      const idsToClean = Array.from(new Set([targetId, targetEmpId, targetPosId, `EMP-${targetId.replace(/^EMP-/i, '')}`])).filter(Boolean);
-      for (const tid of idsToClean) {
-        try { await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [tid]); } catch (_) {}
-        try { await queryD1("DELETE FROM ot_requests WHERE employeeId = ?", [tid]); } catch (_) {}
-        try { await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [tid]); } catch (_) {}
-      }
-    } else if (appState && Array.isArray(appState.employees)) {
-      appState.employees = appState.employees.filter((e: any) =>
-        e.id !== targetId &&
-        e.empId !== targetId &&
-        e.positionId !== targetId &&
-        e.name !== targetName
-      );
-      saveLocalDb();
-    }
-    res.json({ success: true, message: "ลบพนักงานเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 // --- Reset account password ---
@@ -1210,7 +1026,7 @@ app.post("/api/line-webhook", async (req, res) => {
               replyToken,
               messages: [{
                 type: "text",
-                text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่าง:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nแผนก ปากเรือ\nนาย สุทัศน์ พุทธเสน\nรหัส 668126\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3"
+                text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nรหัสพนักงาน 668126\nชื่อนามสกุล นาย สุทัศน์ พุทธเสน\nตำแหน่ง ช่างเครื่อง\nแผนก ปากเรือ\nวันที่ 04/10/2569\nเวลา 00:00-08:00=8×1\nเวลา 08:00-16:00=8×3\nหมายเหตุ งานเทียบเรือ"
               }]
             })
           }).catch(() => {});
@@ -1218,35 +1034,56 @@ app.post("/api/line-webhook", async (req, res) => {
         continue;
       }
 
-      let vesselName = "ทั่วไป";
-      const vesselMatch = text.match(/(?:M\.?V\.?|เรือ|MV)\s*[:"']?\s*([^"'\r\n]+)["']?/i);
+      const textLines = text.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
+      const extractField = (pattern: string): string => {
+        const singleLineRegex = new RegExp(`(?:${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, "i");
+        const m = text.match(singleLineRegex);
+        if (m && m[1].trim()) return m[1].trim();
+        for (let i = 0; i < textLines.length; i++) {
+          if (new RegExp(`^(?:${pattern})\\s*[:]?$`, "i").test(textLines[i])) {
+            if (i + 1 < textLines.length && !/^(?:ขออนุมัติ|M\.V\.|รหัส|ชื่อ|ตำแหน่ง|แผนก|วันที่|เวลา|หมายเหตุ)/i.test(textLines[i + 1])) {
+              return textLines[i + 1].trim();
+            }
+          }
+        }
+        return "";
+      };
+
+      let vesselName = "";
+      const vesselMatch = text.match(/(?:M\.?V\.?|เรือ|MV)\s*[:"\']?\s*([^"\'\r\n]+)["\']?/i);
       if (vesselMatch) {
-        const raw = vesselMatch[1].trim().replace(/^["']|["']$/g, "");
+        const raw = vesselMatch[1].trim().replace(/^["\']|["\']$/g, "");
         vesselName = raw.toUpperCase().startsWith("M.V.") ? raw : "M.V. " + raw;
-      }
-
-      let department = "ไม่ระบุแผนก";
-      const deptMatch = text.match(/แผนก\s*[:\s]?\s*([^\r\n]+)/i);
-      if (deptMatch) department = deptMatch[1].trim();
-
-      let employeeName = "พนักงาน";
-      const nameMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^\r\n]+)/);
-      if (nameMatch) {
-        employeeName = nameMatch[0].trim().replace(/^นาย\s+นาย\s+/g, "นาย ");
-      }
-
-      let employeeId = "ไม่ระบุรหัส";
-      const idMatch = text.match(/(?:รหัส|ID|Emp ID)\s*[:\s]?\s*([A-Za-z0-9\-]+)/i);
-      if (idMatch) {
-        employeeId = idMatch[1].trim();
       } else {
+        const vLine = textLines.find((l: string) => /^M\.?V\.?/i.test(l));
+        if (vLine) {
+          const raw = vLine.replace(/^M\.?V\.?\s*["\']?|["\']$/gi, "").trim();
+          vesselName = "M.V. " + raw;
+        }
+      }
+      vesselName = vesselName || "ทั่วไป";
+
+      let employeeId = extractField("รหัสพนักงาน|รหัส|ID|Emp ID");
+      if (!employeeId) {
         const numMatch = text.match(/\b\d{5,7}\b/);
         if (numMatch) employeeId = numMatch[0];
       }
+      employeeId = employeeId || "ไม่ระบุรหัส";
+
+      let employeeName = extractField("ชื่อนามสกุล|ชื่อ-นามสกุล|ชื่อ");
+      if (!employeeName) {
+        const titleMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^:\r\n]+)/);
+        if (titleMatch) employeeName = titleMatch[0].trim();
+      }
+      employeeName = (employeeName || "พนักงาน").replace(/^นาย\s+นาย\s+/g, "นาย ");
+
+      const position = extractField("ตำแหน่ง|Position") || "-";
+      const department = extractField("แผนก|Department") || "ไม่ระบุแผนก";
 
       let date = new Date().toISOString().substring(0, 10);
       let dateDisplayTh = "";
-      const dateMatch = text.match(/(?:วันที่|Date)\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
+      const rawDateStr = extractField("วันที่|Date");
+      const dateMatch = (rawDateStr ? rawDateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/) : null) || text.match(/(?:วันที่|Date)?\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
       if (dateMatch) {
         const day = dateMatch[1].padStart(2, "0");
         const month = dateMatch[2].padStart(2, "0");
@@ -1259,6 +1096,120 @@ app.post("/api/line-webhook", async (req, res) => {
         dateDisplayTh = String(today.getDate()).padStart(2, "0") + "/" + String(today.getMonth() + 1).padStart(2, "0") + "/" + (today.getFullYear() + 543);
       }
 
+      const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
+            // ============================================================
+            // 1. Employee & Department Validation in D1
+            // ============================================================
+            let verifiedEmp: any = null;
+            let verifiedDept: any = null;
+
+            if (isD1Enabled()) {
+              try {
+                verifiedEmp = await db.prepare(
+                  "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
+                ).bind(employeeId, employeeId.padStart(7, "0")).first();
+
+                if (!verifiedEmp) {
+                  const unpaddedId = employeeId.replace(/^0+/, "");
+                  if (unpaddedId && unpaddedId !== employeeId) {
+                    verifiedEmp = await queryD1(
+                      "SELECT id, name, deptId, role FROM employees WHERE id = ?"
+                    , [unpaddedId]).then(r => r?.[0]);
+                  }
+                }
+
+                if (!verifiedEmp) {
+                  const notFoundMsg = [
+                    "⚠️ แจ้งเตือน: ไม่พบรหัสพนักงานในระบบ!",
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    `🆔 รหัสพนักงาน: ${employeeId}`,
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    "ระบบไม่พบข้อมูลรหัสพนักงานนี้ในฐานข้อมูลพนักงาน",
+                    "กรุณาตรวจสอบความถูกต้อง หรือติดต่อฝ่ายบุคคล (HR) ครับ"
+                  ].join("\n");
+
+                  if (replyToken) {
+                    await fetch("https://api.line.me/v2/bot/message/reply", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${channelAccessToken}` },
+                      body: JSON.stringify({ replyToken, messages: [{ type: "text", text: notFoundMsg }] })
+                    }).catch(() => {});
+                  }
+                  continue;
+                }
+
+                if (verifiedEmp.deptId) {
+                  verifiedDept = await queryD1(
+                    "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?"
+                  , [verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId]).then(r => r?.[0]);
+                }
+
+                const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
+                const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
+
+                const hasInputPos = position && position !== '-' && position !== 'ไม่ระบุตำแหน่ง';
+                const inputPosNorm = normalizeText(position);
+                const sysPosNorm = normalizeText(verifiedEmp.role);
+                const isPosMatch = hasInputPos && (
+                  inputPosNorm === sysPosNorm ||
+                  inputPosNorm.includes(sysPosNorm) ||
+                  sysPosNorm.includes(inputPosNorm)
+                );
+
+                const hasInputDept = department && department !== '-' && department !== 'ไม่ระบุแผนก';
+                const inputDeptNorm = normalizeDept(department);
+                const deptCandidates = [
+                  verifiedEmp.deptId,
+                  verifiedDept?.id,
+                  verifiedDept?.name,
+                  verifiedDept?.nameTh
+                ].filter(Boolean);
+
+                const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
+                  const candNorm = normalizeDept(cand);
+                  return (
+                    candNorm === inputDeptNorm ||
+                    candNorm.includes(inputDeptNorm) ||
+                    inputDeptNorm.includes(candNorm)
+                  );
+                });
+
+                const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
+                const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
+
+                if (!isPosMatch || !isDeptMatch) {
+                  const mismatchMsg = [
+                    "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+                    `👤 พนักงาน: ${verifiedEmp.name}`,
+                    "",
+                    "❌ ข้อมูลที่คุณระบุ:",
+                    `  • ตำแหน่ง: ${hasInputPos ? position : "ไม่ได้ระบุ"}`,
+                    `  • แผนก: ${hasInputDept ? department : "ไม่ได้ระบุ"}`,
+                    "",
+                    "✅ ข้อมูลที่ถูกต้องในระบบ:",
+                    `  • ตำแหน่ง: ${displaySysRole}`,
+                    `  • แผนก: ${displaySysDept}`,
+                    "━━━━━━━━━━━━━━━━━━━━",
+                    "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
+                  ].join("\n");
+
+                  if (replyToken) {
+                    await fetch("https://api.line.me/v2/bot/message/reply", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${channelAccessToken}` },
+                      body: JSON.stringify({ replyToken, messages: [{ type: "text", text: mismatchMsg }] })
+                    }).catch(() => {});
+                  }
+                  continue;
+                }
+
+                employeeName = verifiedEmp.name || employeeName;
+              } catch (e) {
+                console.error("Employee validation error in D1:", e);
+              }
+            }
       const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
       const [yearStr, monthStr] = date.split("-");
       const recordYear = parseInt(yearStr, 10);
@@ -1308,7 +1259,7 @@ app.post("/api/line-webhook", async (req, res) => {
         for (let i = 0; i < shifts.length; i++) {
           const s = shifts[i];
           const recordId = "LINE-" + Date.now() + "-" + (i + 1);
-          const note = vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ")";
+          const note = customNote && customNote !== '-' ? vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ") - " + customNote : vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ")";
           try {
             await queryD1(
               "INSERT INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA')",
@@ -1473,6 +1424,24 @@ app.post("/api/edit-employee", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+app.post("/api/delete-employee", async (req, res) => {
+  const { id, role, username } = req.body;
+  if (!id) return res.status(400).json({ error: "ไม่ระบุรหัสพนักงาน" });
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
+  if (!isHrOrAdmin) return res.status(403).json({ error: "ไม่มีสิทธิ์ในการลบพนักงาน" });
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM employees WHERE id = ?", [id]);
+      await queryD1("DELETE FROM ot_daily_records WHERE employeeId = ?", [id]);
+      await queryD1("DELETE FROM leave_records WHERE employeeId = ?", [id]);
+      await writeAuditLog(username || "system", "delete_employee", "employee", id, {});
+    } else {
+      appState.employees = appState.employees.filter(e => e.id !== id);
+      saveLocalDb();
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
 
 // --- Export employees ---
 app.post("/api/export-employees", async (req, res) => {
@@ -1806,23 +1775,12 @@ app.delete("/api/delete-vessel-schedule/:id", async (req, res) => {
 app.get("/api/job-value", async (req, res) => {
   try {
     if (isD1Enabled()) {
-      const rows = await queryD1("SELECT id, name, deptId, role, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt FROM employees ORDER BY id ASC");
-      const parsed = (rows || []).map((r: any) => ({
-        id: r.id,
-        empId: r.id,
-        empName: r.name,
-        deptId: r.deptId,
-        department: r.deptId,
-        position: r.role,
-        status: r.status || "Active",
-        avgRevenue: Number(r.avgRevenue) || 0,
-        avgCost: Number(r.avgCost) || 0,
-        profit2026: Number(r.profit2026) || 0,
-        profit2025: Number(r.profit2025) || 0,
+      const rows = await queryD1("SELECT * FROM job_value_records ORDER BY empId ASC");
+      const parsed = rows.map((r: any) => ({
+        ...r,
         monthlyRevenue: typeof r.monthlyRevenue === "string" ? JSON.parse(r.monthlyRevenue || "[]") : (r.monthlyRevenue || []),
         monthlyCost: typeof r.monthlyCost === "string" ? JSON.parse(r.monthlyCost || "[]") : (r.monthlyCost || []),
-        monthlyProfit: typeof r.monthlyProfit === "string" ? JSON.parse(r.monthlyProfit || "[]") : (r.monthlyProfit || []),
-        updatedAt: r.updatedAt || ""
+        monthlyProfit: typeof r.monthlyProfit === "string" ? JSON.parse(r.monthlyProfit || "[]") : (r.monthlyProfit || [])
       }));
       res.json(parsed);
     } else {
@@ -1835,7 +1793,7 @@ app.get("/api/job-value", async (req, res) => {
 
 app.post("/api/job-value/import", async (req, res) => {
   const { records, role, username } = req.body;
-  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin", "Operation Dir", "Operation Depart"].includes(role || "") || !role;
+  const isHrOrAdmin = ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(role || "");
   if (!isHrOrAdmin) {
     return res.status(403).json({ error: "เฉพาะ HR และผู้ดูแลระบบเท่านั้นที่มีสิทธิ์นำเข้าข้อมูล Job Value" });
   }
@@ -1862,75 +1820,19 @@ app.post("/api/job-value/import", async (req, res) => {
 
     if (isD1Enabled()) {
       for (const rec of formattedRecords) {
-        if (rec.empId) {
-          const stripped = rec.empId.replace(/^(EMP-|POS-)/i, "");
-          const variants = [rec.empId, `EMP-${stripped}`, stripped];
-          const existing: any = await queryD1(
-            `SELECT id FROM employees WHERE id = ? OR id = ? OR id = ? OR name = ?`,
-            [variants[0], variants[1], variants[2], rec.empName || rec.empId]
-          );
-          if (existing && existing.length > 0) {
-            await queryD1(
-              `UPDATE employees SET avgRevenue = ?, avgCost = ?, profit2026 = ?, profit2025 = ?, monthlyRevenue = ?, monthlyCost = ?, monthlyProfit = ?, updatedAt = ? WHERE id = ?`,
-              [
-                rec.avgRevenue, rec.avgCost, rec.profit2026, rec.profit2025,
-                JSON.stringify(rec.monthlyRevenue), JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit),
-                rec.updatedAt, existing[0].id
-              ]
-            );
-          } else {
-            await queryD1(
-              `INSERT INTO employees (id, name, deptId, unit, role, level, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt) VALUES (?, ?, ?, ?, ?, 'Staff', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                rec.empId, rec.empName || rec.empId, rec.department || "inter2", rec.department || "inter2",
-                rec.position || "Operator", rec.status || "Active", rec.avgRevenue, rec.avgCost,
-                rec.profit2026, rec.profit2025, JSON.stringify(rec.monthlyRevenue),
-                JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit), rec.updatedAt
-              ]
-            );
-          }
-        }
+        await queryD1(
+          `INSERT OR REPLACE INTO job_value_records (id, empId, empName, department, position, status, avgRevenue, avgCost, profit2026, profit2025, monthlyRevenue, monthlyCost, monthlyProfit, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            rec.id, rec.empId, rec.empName, rec.department, rec.position, rec.status,
+            rec.avgRevenue, rec.avgCost, rec.profit2026, rec.profit2025,
+            JSON.stringify(rec.monthlyRevenue), JSON.stringify(rec.monthlyCost), JSON.stringify(rec.monthlyProfit),
+            rec.updatedAt
+          ]
+        );
       }
       await writeAuditLog(username || "system", "import_job_value", "job_value", "bulk", { count: formattedRecords.length });
     } else {
       appState.jobValueRecords = formattedRecords;
-      if (Array.isArray(appState.employees)) {
-        for (const rec of formattedRecords) {
-          const stripped = rec.empId.replace(/^(EMP-|POS-)/i, "");
-          const emp = appState.employees.find((e: any) =>
-            e.id === rec.empId ||
-            e.id === `EMP-${stripped}` ||
-            e.id === stripped ||
-            e.name === rec.empName
-          );
-          if (emp) {
-            emp.avgRevenue = rec.avgRevenue;
-            emp.avgCost = rec.avgCost;
-            emp.profit2026 = rec.profit2026;
-            emp.profit2025 = rec.profit2025;
-            emp.monthlyRevenue = rec.monthlyRevenue;
-            emp.monthlyCost = rec.monthlyCost;
-            emp.monthlyProfit = rec.monthlyProfit;
-          } else {
-            appState.employees.push({
-              id: rec.empId,
-              name: rec.empName || rec.empId,
-              role: rec.position || "Operator",
-              deptId: rec.department || "inter2",
-              unit: rec.department || "inter2",
-              status: rec.status || "Active",
-              salary: rec.avgCost ? Math.round(rec.avgCost / 1.35) : 15000,
-              avgRevenue: rec.avgRevenue,
-              avgCost: rec.avgCost,
-              profit2026: rec.profit2026,
-              profit2025: rec.profit2025,
-              monthlyRevenue: rec.monthlyRevenue,
-              monthlyCost: rec.monthlyCost,
-              monthlyProfit: rec.monthlyProfit
-            });
-          }
-        }
-      }
       saveLocalDb();
     }
     res.json({ success: true, count: formattedRecords.length, records: formattedRecords });
@@ -2001,185 +1903,8 @@ app.post("/api/clear-mock-data", async (req, res) => {
       ];
       saveLocalDb();
     }
-    res.json({ success: true, message: "ล้างข้อมูล Mock Data ทั้งหมดเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================================
-// Manpower & OC Analytics Positions (Unified with employees)
-// ============================================================
-app.get("/api/manpower", async (req, res) => {
-  try {
-    if (isD1Enabled()) {
-      const rows = await queryD1("SELECT id, positionId, name, role, deptId, unit, level, ocType, status, isMgr, isEng, avatar, employmentStatus FROM employees ORDER BY id ASC");
-      const positions = (rows || []).map((r: any) => ({
-        id: r.positionId || `POS-${r.id}`,
-        empId: r.status === "Vacant" ? "" : r.id,
-        name: r.name,
-        role: r.role,
-        unit: r.unit || r.deptId || "INTER 2",
-        level: r.level || "Staff",
-        isMgr: Boolean(r.isMgr),
-        isEng: Boolean(r.isEng),
-        status: r.status || (r.employmentStatus === "Resigned" ? "Resigned" : "Active"),
-        ocType: r.ocType || "OLD",
-        img: r.avatar || null
-      }));
-      return res.json({ success: true, positions });
-    }
-    return res.json({ success: true, positions: appState.manpowerPositions || [] });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/manpower", async (req, res) => {
-  try {
-    const pos = req.body.position || req.body;
-    if (!pos || !pos.id) return res.status(400).json({ error: "Missing position id" });
-
-    if (isD1Enabled()) {
-      const pEmpId = (pos.empId || "").trim();
-      const pPosId = pos.id || `POS-${pEmpId || Date.now()}`;
-      const pName = (pos.name || "").trim();
-      const pRole = pos.role || "Operator";
-      const pUnit = pos.unit || "INTER 2";
-      const pLevel = pos.level || "Staff";
-      const pOcType = pos.ocType || "OLD";
-      const pStatus = pos.status || "Active";
-      const pIsMgr = pos.isMgr ? 1 : 0;
-      const pIsEng = pos.isEng ? 1 : 0;
-
-      let existing: any = null;
-      if (pEmpId) {
-        const emps = await queryD1("SELECT id FROM employees WHERE id = ?", [pEmpId]);
-        if (emps && emps.length > 0) existing = emps[0];
-      }
-      if (!existing && pPosId) {
-        const emps = await queryD1("SELECT id FROM employees WHERE positionId = ? OR id = ?", [pPosId, pPosId]);
-        if (emps && emps.length > 0) existing = emps[0];
-      }
-      if (!existing && pName && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
-        const emps = await queryD1("SELECT id FROM employees WHERE name = ?", [pName]);
-        if (emps && emps.length > 0) existing = emps[0];
-      }
-
-      if (existing && existing.id) {
-        await queryD1(
-          `UPDATE employees SET positionId = ?, name = ?, role = ?, unit = ?, level = ?, ocType = ?, status = ?, isMgr = ?, isEng = ?, avatar = COALESCE(?, avatar) WHERE id = ?`,
-          [pPosId, pName, pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng, pos.img || null, existing.id]
-        );
-      } else {
-        const empId = pEmpId || pPosId;
-        await queryD1(
-          `INSERT OR REPLACE INTO employees (
-            id, positionId, name, deptId, role, unit, level, ocType, status, isMgr, isEng,
-            targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName,
-            nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
-            resignationDate, employmentStatus, avatar
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'Group A', '[]', '[]', 20000, 'ฝ่ายปฏิบัติการท่าเรือ', 'นาย', ?, '', '', '', 30, 30, ?, '1 ปี', '', 'ปฏิทินกะ 4-on-2-off', '', ?, ?)`,
-          [empId, pPosId, pName || "Vacant", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
-           pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), pStatus === "Vacant" ? "Inactive" : "Active", pos.img || ""]
-        );
-      }
-    } else {
-      const idx = appState.manpowerPositions.findIndex((p: any) => p.id === pos.id);
-      if (idx >= 0) {
-        appState.manpowerPositions[idx] = { ...appState.manpowerPositions[idx], ...pos };
-      } else {
-        appState.manpowerPositions.push(pos);
-      }
-      saveLocalDb();
-    }
-    res.json({ success: true, message: "บันทึกตำแหน่งงานเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/manpower/bulk", async (req, res) => {
-  try {
-    const positions = req.body.positions || [];
-    if (isD1Enabled()) {
-      for (const pos of positions) {
-        const pEmpId = (pos.empId || "").trim();
-        const pPosId = pos.id || `POS-${pEmpId || Date.now()}`;
-        const pName = (pos.name || "").trim();
-        const pRole = pos.role || "Operator";
-        const pUnit = pos.unit || "INTER 2";
-        const pLevel = pos.level || "Staff";
-        const pOcType = pos.ocType || "OLD";
-        const pStatus = pos.status || "Active";
-        const pIsMgr = pos.isMgr ? 1 : 0;
-        const pIsEng = pos.isEng ? 1 : 0;
-
-        let existing: any = null;
-        if (pEmpId) {
-          const emps = await queryD1("SELECT id FROM employees WHERE id = ?", [pEmpId]);
-          if (emps && emps.length > 0) existing = emps[0];
-        }
-        if (!existing && pPosId) {
-          const emps = await queryD1("SELECT id FROM employees WHERE positionId = ? OR id = ?", [pPosId, pPosId]);
-          if (emps && emps.length > 0) existing = emps[0];
-        }
-        if (!existing && pName && !pName.toLowerCase().includes("vacant") && pName !== "ว่าง") {
-          const emps = await queryD1("SELECT id FROM employees WHERE name = ?", [pName]);
-          if (emps && emps.length > 0) existing = emps[0];
-        }
-
-        if (existing && existing.id) {
-          await queryD1(
-            `UPDATE employees SET positionId = ?, name = ?, role = ?, unit = ?, level = ?, ocType = ?, status = ?, isMgr = ?, isEng = ?, avatar = COALESCE(?, avatar) WHERE id = ?`,
-            [pPosId, pName, pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng, pos.img || null, existing.id]
-          );
-        } else {
-          const empId = pEmpId || pPosId;
-          await queryD1(
-            `INSERT OR REPLACE INTO employees (
-              id, positionId, name, deptId, role, unit, level, ocType, status, isMgr, isEng,
-              targetOt, groupName, shifts, planShifts, salary, division, prefix, firstName, lastName,
-              nickname, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
-              resignationDate, employmentStatus, avatar
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'Group A', '[]', '[]', 20000, 'ฝ่ายปฏิบัติการท่าเรือ', 'นาย', ?, '', '', '', 30, 30, ?, '1 ปี', '', 'ปฏิทินกะ 4-on-2-off', '', ?, ?)`,
-            [empId, pPosId, pName || "Vacant", "inter2", pRole, pUnit, pLevel, pOcType, pStatus, pIsMgr, pIsEng,
-             pName.split(" ")[0] || pName, new Date().toISOString().slice(0, 10), pStatus === "Vacant" ? "Inactive" : "Active", pos.img || ""]
-          );
-        }
-      }
-    } else {
-      appState.manpowerPositions = [...positions];
-      saveLocalDb();
-    }
-    res.json({ success: true, count: positions.length, message: "บันทึกโครงสร้างอัตรากำลังเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete("/api/manpower/:id?", async (req, res) => {
-  try {
-    const id = req.params.id || (req.query.id as string);
-    const clearAll = req.query.clearAll === 'true' || req.query.clear_all === 'true' || id === "all" || id === "clear-all";
-    if (isD1Enabled()) {
-      if (clearAll) {
-        await queryD1("DELETE FROM employees");
-      } else if (id) {
-        await queryD1("DELETE FROM employees WHERE id = ? OR positionId = ?", [id, id]);
-      }
-    } else {
-      if (clearAll) {
-        appState.manpowerPositions = [];
-      } else if (id) {
-        appState.manpowerPositions = appState.manpowerPositions.filter((p: any) => p.id !== id);
-      }
-      saveLocalDb();
-    }
-    res.json({ success: true, message: "ลบตำแหน่งงานเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+    res.json({ success: true, message: "รีเซ็ตฐานข้อมูลเรียบร้อย" });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============================================================

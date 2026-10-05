@@ -974,6 +974,34 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json([], { headers: corsHeaders });
     }
 
+    // DELETE /api/ot-records/:id or /api/delete-ot-record/:id or POST /api/delete-ot-record
+    if ((path.startsWith("/api/ot-records/") || path.startsWith("/api/delete-ot-record/")) && (request.method === "DELETE" || request.method === "POST")) {
+      const recordId = path.split("/").pop();
+      if (db && recordId) {
+        try {
+          await db.prepare("DELETE FROM ot_daily_records WHERE id = ?").bind(recordId).run();
+          return Response.json({ success: true, message: "ลบรายการ OT สำเร็จ" }, { headers: corsHeaders });
+        } catch (e: any) {
+          return Response.json({ error: e.message || "ลบรายการไม่สำเร็จ" }, { status: 500, headers: corsHeaders });
+        }
+      }
+      return Response.json({ success: true }, { headers: corsHeaders });
+    }
+
+    if ((path === "/api/delete-ot-record" || path === "/api/ot-records/delete") && request.method === "POST") {
+      const body = await getBody();
+      const recordId = body?.id;
+      if (db && recordId) {
+        try {
+          await db.prepare("DELETE FROM ot_daily_records WHERE id = ?").bind(recordId).run();
+          return Response.json({ success: true, message: "ลบรายการ OT สำเร็จ" }, { headers: corsHeaders });
+        } catch (e: any) {
+          return Response.json({ error: e.message || "ลบรายการไม่สำเร็จ" }, { status: 500, headers: corsHeaders });
+        }
+      }
+      return Response.json({ success: true }, { headers: corsHeaders });
+    }
+
     // 10. POST /api/clear-mock-data
     if (path === "/api/clear-mock-data" && request.method === "POST") {
       if (db) {
@@ -1342,11 +1370,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             while ((match = shiftRegex.exec(text)) !== null) {
               const hours = parseFloat(match[3]);
               const multiplier = parseFloat(match[4]);
+              const startHour = parseInt(match[1].split(":")[0], 10);
+              const shiftCode = (startHour >= 6 && startHour < 14) ? "M" : (startHour >= 14 && startHour < 22) ? "A" : "N";
               shifts.push({
                 timeRange: `${match[1]}-${match[2]}`,
                 hours,
                 multiplier,
-                shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
+                shiftCode
               });
             }
 
@@ -1486,7 +1516,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                 `📅 วันที่: ${dateDisplayTh}`,
                 "━━━━━━━━━━━━━━━━━━━━",
                 "⏰ รายการเวลาทำงาน:",
-                ...shifts.map(s => `  • ${s.timeRange} = ${s.hours} ชม. (เรท x${s.multiplier})`),
+                ...shifts.map(s => `  • กะ ${s.shiftCode} (${s.timeRange}) = ${s.hours} ชม. (เรท x${s.multiplier})`),
                 "━━━━━━━━━━━━━━━━━━━━",
                 `⏱️ รวมชั่วโมง OT: ${totalHours} ชม.`,
                 "🌐 ข้อมูลเข้าสู่ Cloudflare D1 และแสดงบน Dashboard เรียบร้อยแล้ว"

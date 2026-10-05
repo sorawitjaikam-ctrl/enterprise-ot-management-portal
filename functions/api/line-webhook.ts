@@ -26,6 +26,8 @@ interface ParsedOt {
   department: string;
   employeeName: string;
   employeeId: string;
+  position: string;
+  customNote: string;
   date: string; // YYYY-MM-DD
   dateDisplayTh: string; // DD/MM/YYYY (พ.ศ.)
   shifts: OtShiftItem[];
@@ -80,16 +82,42 @@ async function replyLineMessage(replyToken: string, messages: any[], token: stri
   }
 }
 
+function extractField(lines: string[], text: string, pattern: string): string {
+  // 1. Try single line match with value after label
+  const singleLineRegex = new RegExp(`(?:\${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, 'i');
+  const m = text.match(singleLineRegex);
+  if (m && m[1].trim()) return m[1].trim();
+
+  // 2. Try label on its own line, value on next line
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    const labelOnlyRegex = new RegExp(`^(?:\${pattern})\\s*[:]?$`, 'i');
+    if (labelOnlyRegex.test(l)) {
+      if (i + 1 < lines.length && !new RegExp(`^(?:ขออนุมัติ|M\\.V\\.|รหัส|ชื่อ|ตำแหน่ง|แผนก|วันที่|เวลา|หมายเหตุ)`, 'i').test(lines[i + 1])) {
+        return lines[i + 1].trim();
+      }
+    }
+  }
+  return "";
+}
+
 function parseOtMessage(text: string): ParsedOt | null {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-  // 1. Check for shift intervals pattern: e.g. 00:00-08:00=8x1 or 08:00-16:00=8*3
-  const shiftRegex = /(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})\s*=\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/gi;
+  // 1. Check for shift intervals pattern: e.g. 00:00-08:00=8x1 or 08:00-16:00=8*3 or 00:00-08:00
+  const shiftRegex = /(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})(?:\s*=\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?))?/gi;
   const shifts: OtShiftItem[] = [];
   let match: RegExpExecArray | null;
   while ((match = shiftRegex.exec(text)) !== null) {
-    const hours = parseFloat(match[3]);
-    const multiplier = parseFloat(match[4]);
+    let hours = match[3] ? parseFloat(match[3]) : 0;
+    const multiplier = match[4] ? parseFloat(match[4]) : 1;
+    if (!hours) {
+      const [h1, m1] = match[1].split(":").map(Number);
+      const [h2, m2] = match[2].split(":").map(Number);
+      let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diffMinutes <= 0) diffMinutes += 24 * 60;
+      hours = Math.round((diffMinutes / 60) * 10) / 10;
+    }
     shifts.push({
       timeRange: `${match[1]}-${match[2]}`,
       hours,
@@ -117,36 +145,34 @@ function parseOtMessage(text: string): ParsedOt | null {
     }
   }
 
-  // 3. Extract Department
-  let department = "";
-  const deptMatch = text.match(/แผนก\s*[:\s]?\s*([^\r\n]+)/i);
-  if (deptMatch) {
-    department = deptMatch[1].trim();
-  }
-
-  // 4. Extract Employee Name
-  let employeeName = "";
-  const nameMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^\r\n]+)/);
-  if (nameMatch) {
-    let cleanName = nameMatch[0].trim();
-    cleanName = cleanName.replace(/^นาย\s+นาย\s+/g, "นาย ");
-    employeeName = cleanName;
-  }
-
-  // 5. Extract Employee ID
-  let employeeId = "";
-  const idMatch = text.match(/(?:รหัส|ID|Emp ID)\s*[:\s]?\s*([A-Za-z0-9\-]+)/i);
-  if (idMatch) {
-    employeeId = idMatch[1].trim();
-  } else {
+  // 3. Extract Employee ID (รหัสพนักงาน)
+  let employeeId = extractField(lines, text, "รหัสพนักงาน|รหัส|ID|Emp ID");
+  if (!employeeId) {
     const numMatch = text.match(/\b\d{5,7}\b/);
     if (numMatch) employeeId = numMatch[0];
   }
 
-  // 6. Extract Date
+  // 4. Extract Employee Name (ชื่อนามสกุล)
+  let employeeName = extractField(lines, text, "ชื่อนามสกุล|ชื่อ-นามสกุล|ชื่อ");
+  if (!employeeName) {
+    const titleMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^:\r\n]+)/);
+    if (titleMatch) {
+      employeeName = titleMatch[0].trim();
+    }
+  }
+  employeeName = employeeName.replace(/^นาย\s+นาย\s+/g, "นาย ");
+
+  // 5. Extract Position (ตำแหน่ง)
+  let position = extractField(lines, text, "ตำแหน่ง|Position");
+
+  // 6. Extract Department (แผนก)
+  let department = extractField(lines, text, "แผนก|Department");
+
+  // 7. Extract Date (วันที่)
   let date = "";
   let dateDisplayTh = "";
-  const dateMatch = text.match(/(?:วันที่|Date)\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
+  const rawDateStr = extractField(lines, text, "วันที่|Date");
+  const dateMatch = (rawDateStr ? rawDateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/) : null) || text.match(/(?:วันที่|Date)?\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
   if (dateMatch) {
     const day = dateMatch[1].padStart(2, "0");
     const month = dateMatch[2].padStart(2, "0");
@@ -163,6 +189,9 @@ function parseOtMessage(text: string): ParsedOt | null {
     dateDisplayTh = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear() + 543}`;
   }
 
+  // 8. Extract Note (หมายเหตุ)
+  let customNote = extractField(lines, text, "หมายเหตุ|Note|เหตุผล");
+
   const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
 
   return {
@@ -170,6 +199,8 @@ function parseOtMessage(text: string): ParsedOt | null {
     department: department || "ไม่ระบุแผนก",
     employeeName: employeeName || "พนักงาน",
     employeeId: employeeId || "ไม่ระบุรหัส",
+    position: position || "-",
+    customNote: customNote || "-",
     date,
     dateDisplayTh,
     shifts,
@@ -242,6 +273,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN timeRange TEXT DEFAULT ''").run();
       await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN multiplier REAL DEFAULT 1.0").run();
       await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN source TEXT DEFAULT 'SYSTEM'").run();
+      await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN position TEXT DEFAULT ''").run();
     } catch (e) {
       // Columns may already exist
     }
@@ -258,9 +290,132 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         // Helpful message with template
         await replyLineMessage(replyToken, [{
           type: "text",
-          text: `สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V."PEDHOULAS TRADER"\nแผนก ปากเรือ\nนาย สุทัศน์ พุทธเสน\nรหัส 668126\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3`
+          text: `สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ
+
+หากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:
+
+ขออนุมัติทำงานล่วงเวลา
+M.V."PEDHOULAS TRADER"
+รหัสพนักงาน 668126
+ชื่อนามสกุล นาย สุทัศน์ พุทธเสน
+ตำแหน่ง ช่างเครื่อง
+แผนก ปากเรือ
+วันที่ 04/10/2569
+เวลา 00:00-08:00=8×1
+เวลา 08:00-16:00=8×3
+หมายเหตุ งานเทียบเรือ`
         }], channelAccessToken);
         continue;
+      }
+      // ============================================================
+      // 1. Employee & Department Validation in D1
+      // ============================================================
+      let verifiedEmp: any = null;
+      let verifiedDept: any = null;
+
+      if (db) {
+        try {
+          // 1.1 Check Employee in D1
+          verifiedEmp = await db.prepare(
+            "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
+          ).bind(parsed.employeeId, parsed.employeeId.padStart(7, "0")).first();
+
+          if (!verifiedEmp) {
+            // Check without leading zeros
+            const unpaddedId = parsed.employeeId.replace(/^0+/, "");
+            if (unpaddedId && unpaddedId !== parsed.employeeId) {
+              verifiedEmp = await db.prepare(
+                "SELECT id, name, deptId, role FROM employees WHERE id = ?"
+              ).bind(unpaddedId).first();
+            }
+          }
+
+          if (!verifiedEmp) {
+            const notFoundMsg = [
+              "⚠️ แจ้งเตือน: ไม่พบรหัสพนักงานในระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${parsed.employeeId}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบไม่พบข้อมูลรหัสพนักงานนี้ในฐานข้อมูลพนักงาน",
+              "กรุณาตรวจสอบความถูกต้อง หรือติดต่อฝ่ายบุคคล (HR) ครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: notFoundMsg }], channelAccessToken);
+            continue;
+          }
+
+          // 1.2 Get Department Info from D1
+          if (verifiedEmp.deptId) {
+            verifiedDept = await db.prepare(
+              "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?"
+            ).bind(verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId).first();
+          }
+
+          // 1.3 Validate Position & Department
+          const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
+          const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
+
+          // Position matching
+          const hasInputPos = parsed.position && parsed.position !== '-' && parsed.position !== 'ไม่ระบุตำแหน่ง';
+          const inputPosNorm = normalizeText(parsed.position);
+          const sysPosNorm = normalizeText(verifiedEmp.role);
+          const isPosMatch = hasInputPos && (
+            inputPosNorm === sysPosNorm ||
+            inputPosNorm.includes(sysPosNorm) ||
+            sysPosNorm.includes(inputPosNorm)
+          );
+
+          // Department matching
+          const hasInputDept = parsed.department && parsed.department !== '-' && parsed.department !== 'ไม่ระบุแผนก';
+          const inputDeptNorm = normalizeDept(parsed.department);
+          const deptCandidates = [
+            verifiedEmp.deptId,
+            verifiedDept?.id,
+            verifiedDept?.name,
+            verifiedDept?.nameTh
+          ].filter(Boolean);
+
+          const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
+            const candNorm = normalizeDept(cand);
+            return (
+              candNorm === inputDeptNorm ||
+              candNorm.includes(inputDeptNorm) ||
+              inputDeptNorm.includes(candNorm)
+            );
+          });
+
+          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
+          const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
+
+          if (!isPosMatch || !isDeptMatch) {
+            const mismatchMsg = [
+              "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              `👤 พนักงาน: ${verifiedEmp.name}`,
+              "",
+              "❌ ข้อมูลที่คุณระบุ:",
+              `  • ตำแหน่ง: ${hasInputPos ? parsed.position : "ไม่ได้ระบุ"}`,
+              `  • แผนก: ${hasInputDept ? parsed.department : "ไม่ได้ระบุ"}`,
+              "",
+              "✅ ข้อมูลที่ถูกต้องในระบบ:",
+              `  • ตำแหน่ง: ${displaySysRole}`,
+              `  • แผนก: ${displaySysDept}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: mismatchMsg }], channelAccessToken);
+            continue;
+          }
+
+          // Use verified official data from system
+          parsed.employeeName = verifiedEmp.name || parsed.employeeName;
+          parsed.position = displaySysRole;
+          parsed.department = displaySysDept;
+        } catch (e) {
+          console.error("Employee validation error in D1:", e);
+        }
       }
 
       const [yearStr, monthStr] = parsed.date.split("-");
@@ -316,13 +471,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         for (let i = 0; i < parsed.shifts.length; i++) {
           const s = parsed.shifts[i];
           const recordId = `LINE-${Date.now()}-${i + 1}`;
-          const note = `${parsed.vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier})`;
+          const note = parsed.customNote && parsed.customNote !== '-' ? `${parsed.vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier}) - ${parsed.customNote}` : `${parsed.vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier})`;
 
           try {
             await db.prepare(`
               INSERT INTO ot_daily_records (
-                id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA')
+                id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source, position
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA', ?)
             `).bind(
               recordId,
               recordYear,
@@ -336,7 +491,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
               note,
               parsed.vesselName,
               s.timeRange,
-              s.multiplier
+              s.multiplier,
+              parsed.position
             ).run();
           } catch (e) {
             console.error("D1 Insert error:", e);
@@ -344,20 +500,21 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         }
       }
 
-      // Success confirmation message back to user
+      // Success confirmation message in requested user order
       const successMessage = [
         "✅ บันทึกขออนุมัติ OT เรียบร้อยแล้ว!",
         "━━━━━━━━━━━━━━━━━━━━",
-        `🚢 เรือ/หน้างาน: ${parsed.vesselName}`,
+        `🚢 ${parsed.vesselName}`,
+        `🆔 รหัสพนักงาน: ${parsed.employeeId}`,
+        `👤 ชื่อนามสกุล: ${parsed.employeeName}`,
+        `💼 ตำแหน่ง: ${parsed.position}`,
         `🏢 แผนก: ${parsed.department}`,
-        `👤 พนักงาน: ${parsed.employeeName}`,
-        `🆔 รหัส: ${parsed.employeeId}`,
-        `📅 วันที่ปฏิบัติงาน: ${parsed.dateDisplayTh}`,
-        "━━━━━━━━━━━━━━━━━━━━",
-        "⏰ รายการเวลาทำงาน:",
+        `📅 วันที่: ${parsed.dateDisplayTh}`,
+        "⏰ เวลา:",
         ...parsed.shifts.map(s => `  • ${s.timeRange} = ${s.hours} ชม. (เรท x${s.multiplier})`),
-        "━━━━━━━━━━━━━━━━━━━━",
         `⏱️ รวมชั่วโมง OT: ${parsed.totalHours} ชม.`,
+        `📝 หมายเหตุ: ${parsed.customNote}`,
+        "━━━━━━━━━━━━━━━━━━━━",
         "🌐 ข้อมูลอัปเดตขึ้น Dashboard 'ประวัติ OT จากกะทำงาน' ทันที"
       ].join("\n");
 
