@@ -723,6 +723,7 @@ type OtRecord = {
   employeeId: string; employeeName: string;
   deptId: string; shiftCode: string; otHours: number; note: string;
   vesselName?: string; timeRange?: string; multiplier?: number; source?: string;
+  position?: string;
 };
 
 const MONTH_TH = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -1186,16 +1187,20 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
     if (records.length === 0) { alert("ไม่มีข้อมูล OT สำหรับส่งออก"); return; }
     const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
     let csv = "\ufeff"; // BOM for Excel Thai
-    csv += "วันที่,รหัสพนักงาน,ชื่อพนักงาน,แผนก,เรือ/หน้างาน,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,ที่มา\n";
+    csv += "วันที่,เรือ/หน้างาน,รหัสพนักงาน,ชื่อพนักงาน,ตำแหน่ง,แผนก,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,หมายเหตุ,ที่มา\n";
     records.forEach(r => {
       csv += [
-        esc(r.date), esc(r.employeeId), esc(r.employeeName),
-        esc(DEPT_LABELS[r.deptId] || r.deptId),
+        esc(r.date),
         esc(r.vesselName || "-"),
+        esc(r.employeeId),
+        esc(r.employeeName),
+        esc(r.position || "-"),
+        esc(DEPT_LABELS[r.deptId] || r.deptId),
         esc(r.timeRange || "-"),
         esc(r.shiftCode),
         esc(r.multiplier ? "x" + r.multiplier : "x1"),
         r.otHours,
+        esc(r.note || "-"),
         esc(r.source || "SYSTEM")
       ].join(",") + "\n";
     });
@@ -1280,36 +1285,35 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-4 py-3 text-left font-bold text-slate-600">วันที่</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">เรือ / หน้างาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">รหัสพนักงาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">ชื่อพนักงาน</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">ตำแหน่ง</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">แผนก</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-600">เรือ / หน้างาน</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ช่วงเวลากะ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">รหัสกะ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ตัวคูณ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">หมายเหตุ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ที่มา</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
-                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+                <tr><td colSpan={12} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-16 text-center">
+                  <td colSpan={12} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
-                      <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" เพื่อให้ข้อมูลปรากฏที่นี่</p>
+                      <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" หรือส่งผ่าน LINE OA เพื่อให้ข้อมูลปรากฏที่นี่</p>
                     </div>
                   </td>
                 </tr>
               ) : records.map(r => (
                 <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-3 text-slate-700 font-mono">{r.date}</td>
-                  <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
-                  <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
                   <td className="px-4 py-3 font-medium text-slate-700">
                     {r.vesselName ? (
                       <span className="inline-flex items-center gap-1 text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
@@ -1319,6 +1323,18 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                       <span className="text-slate-400">-</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {r.position && r.position !== "-" ? (
+                      <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                        {r.position}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
                   <td className="px-4 py-3 text-center font-mono text-slate-600 font-medium">
                     {r.timeRange || "-"}
                   </td>
@@ -1338,6 +1354,9 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className="font-extrabold text-blue-700 text-sm">{r.otHours}</span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={r.note || "-"}>
+                    {r.note || "-"}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {r.source === "LINE_OA" ? (

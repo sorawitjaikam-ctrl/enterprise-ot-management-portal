@@ -982,6 +982,212 @@ app.delete("/api/delete-ot-record/:id", async (req, res) => {
 });
 
 // ============================================================
+// LINE OA Webhook (/api/line-webhook)
+// ============================================================
+app.get("/api/line-webhook", (req, res) => {
+  res.json({ status: "ok", service: "LINE OA Webhook Endpoint", ready: true });
+});
+
+app.post("/api/line-webhook", async (req, res) => {
+  const DEFAULT_LINE_ACCESS_TOKEN = "vKI+vZEU0/bfQmxJE6oNweN2slMnbZQldqa+JXUMggobaCx4v7gY5c0sYCzqfdG6OBiIPF1QWwxz+rQMddyZ4ue6NC6mnqBd2nvaRBMVwOmOVSBF8RktKVWWauAM4PdD76TLSX4e4EuTpy8JGL027wdB04t89/1O/w1cDnyilFU=";
+  const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || DEFAULT_LINE_ACCESS_TOKEN;
+
+  const events = req.body?.events || [];
+  if (events.length === 0) {
+    return res.status(200).json({ status: "ok", message: "Verification success" });
+  }
+
+  for (const event of events) {
+    if (event.type === "message" && event.message?.type === "text") {
+      const text = event.message.text.trim();
+      const replyToken = event.replyToken;
+
+      const shiftRegex = /(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})\s*=\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/gi;
+      const shifts = [];
+      let match;
+      while ((match = shiftRegex.exec(text)) !== null) {
+        const hours = parseFloat(match[3]);
+        const multiplier = parseFloat(match[4]);
+        shifts.push({
+          timeRange: match[1] + "-" + match[2],
+          hours,
+          multiplier,
+          shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
+        });
+      }
+
+      const hasOtKeyword = /ขออนุมัติทำงานล่วงเวลา|ทำงานล่วงเวลา|โอที|\bOT\b/i.test(text);
+      if (shifts.length === 0 && !hasOtKeyword) {
+        if (replyToken) {
+          fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+            body: JSON.stringify({
+              replyToken,
+              messages: [{
+                type: "text",
+                text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nรหัสพนักงาน 668126\nชื่อนามสกุล นาย สุทัศน์ พุทธเสน\nตำแหน่ง ช่างเครื่อง\nแผนก ปากเรือ\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3\nหมายเหตุ งานเทียบเรือ"
+              }]
+            })
+          }).catch(() => {});
+        }
+        continue;
+      }
+
+      const textLines = text.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
+      const extractField = (pattern: string): string => {
+        const singleLineRegex = new RegExp(`(?:${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, "i");
+        const m = text.match(singleLineRegex);
+        if (m && m[1].trim()) return m[1].trim();
+        for (let i = 0; i < textLines.length; i++) {
+          if (new RegExp(`^(?:${pattern})\\s*[:]?$`, "i").test(textLines[i])) {
+            if (i + 1 < textLines.length && !/^(?:ขออนุมัติ|M\.V\.|รหัส|ชื่อ|ตำแหน่ง|แผนก|วันที่|เวลา|หมายเหตุ)/i.test(textLines[i + 1])) {
+              return textLines[i + 1].trim();
+            }
+          }
+        }
+        return "";
+      };
+
+      let vesselName = "";
+      const vesselMatch = text.match(/(?:M\.?V\.?|เรือ|MV)\s*[:"\']?\s*([^"\'\r\n]+)["\']?/i);
+      if (vesselMatch) {
+        const raw = vesselMatch[1].trim().replace(/^["\']|["\']$/g, "");
+        vesselName = raw.toUpperCase().startsWith("M.V.") ? raw : "M.V. " + raw;
+      } else {
+        const vLine = textLines.find((l: string) => /^M\.?V\.?/i.test(l));
+        if (vLine) {
+          const raw = vLine.replace(/^M\.?V\.?\s*["\']?|["\']$/gi, "").trim();
+          vesselName = "M.V. " + raw;
+        }
+      }
+      vesselName = vesselName || "ทั่วไป";
+
+      let employeeId = extractField("รหัสพนักงาน|รหัส|ID|Emp ID");
+      if (!employeeId) {
+        const numMatch = text.match(/\b\d{5,7}\b/);
+        if (numMatch) employeeId = numMatch[0];
+      }
+      employeeId = employeeId || "ไม่ระบุรหัส";
+
+      let employeeName = extractField("ชื่อนามสกุล|ชื่อ-นามสกุล|ชื่อ");
+      if (!employeeName) {
+        const titleMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^:\r\n]+)/);
+        if (titleMatch) employeeName = titleMatch[0].trim();
+      }
+      employeeName = (employeeName || "พนักงาน").replace(/^นาย\s+นาย\s+/g, "นาย ");
+
+      const position = extractField("ตำแหน่ง|Position") || "-";
+      const department = extractField("แผนก|Department") || "ไม่ระบุแผนก";
+
+      let date = new Date().toISOString().substring(0, 10);
+      let dateDisplayTh = "";
+      const rawDateStr = extractField("วันที่|Date");
+      const dateMatch = (rawDateStr ? rawDateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/) : null) || text.match(/(?:วันที่|Date)?\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
+      if (dateMatch) {
+        const day = dateMatch[1].padStart(2, "0");
+        const month = dateMatch[2].padStart(2, "0");
+        const rawYear = parseInt(dateMatch[3], 10);
+        dateDisplayTh = day + "/" + month + "/" + rawYear;
+        const solarYear = rawYear > 2500 ? rawYear - 543 : rawYear;
+        date = solarYear + "-" + month + "-" + day;
+      } else {
+        const today = new Date();
+        dateDisplayTh = String(today.getDate()).padStart(2, "0") + "/" + String(today.getMonth() + 1).padStart(2, "0") + "/" + (today.getFullYear() + 543);
+      }
+
+      const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
+      const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
+      const [yearStr, monthStr] = date.split("-");
+      const recordYear = parseInt(yearStr, 10);
+      const recordMonth = parseInt(monthStr, 10);
+
+      // Duplicate Check
+      const duplicates = [];
+      if (isD1Enabled()) {
+        for (const shift of shifts) {
+          try {
+            const rows = await queryD1(
+              "SELECT id FROM ot_daily_records WHERE employeeId = ? AND date = ? AND (timeRange = ? OR note LIKE ?)",
+              [employeeId, date, shift.timeRange, "%" + shift.timeRange + "%"]
+            );
+            if (rows && rows.length > 0) {
+              duplicates.push(shift.timeRange + " (" + shift.hours + " ชม.)");
+            }
+          } catch {}
+        }
+      }
+
+      if (duplicates.length > 0) {
+        if (replyToken) {
+          const warnMsg = [
+            "⚠️ แจ้งเตือน: พบรายการขอ OT ซ้ำในระบบ!",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "👤 พนักงาน: " + employeeName,
+            "🆔 รหัส: " + employeeId,
+            "📅 วันที่: " + dateDisplayTh,
+            "❌ ช่วงเวลาที่เคยบันทึกไปแล้ว:",
+            ...duplicates.map(d => "  • " + d),
+            "━━━━━━━━━━━━━━━━━━━━",
+            "ระบบปฏิเสธการบันทึกซ้ำ เพื่อความถูกต้องของข้อมูลบน Dashboard ครับ"
+          ].join("\n");
+
+          fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+            body: JSON.stringify({ replyToken, messages: [{ type: "text", text: warnMsg }] })
+          }).catch(() => {});
+        }
+        continue;
+      }
+
+      // Insert into D1
+      if (isD1Enabled()) {
+        for (let i = 0; i < shifts.length; i++) {
+          const s = shifts[i];
+          const recordId = "LINE-" + Date.now() + "-" + (i + 1);
+          const note = customNote && customNote !== '-' ? vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ") - " + customNote : vesselName + " (" + s.timeRange + " = " + s.hours + "x" + s.multiplier + ")";
+          try {
+            await queryD1(
+              "INSERT INTO ot_daily_records (id, year, month, date, employeeId, employeeName, deptId, shiftCode, otHours, note, vesselName, timeRange, multiplier, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'LINE_OA')",
+              [recordId, recordYear, recordMonth, date, employeeId, employeeName, department, s.shiftCode, s.hours, note, vesselName, s.timeRange, s.multiplier]
+            );
+          } catch (e) {
+            console.error("D1 Insert Error:", e);
+          }
+        }
+      }
+
+      if (replyToken) {
+        const successMsg = [
+          "✅ บันทึกขออนุมัติ OT เรียบร้อยแล้ว!",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "🚢 เรือ/หน้างาน: " + vesselName,
+          "🏢 แผนก: " + department,
+          "👤 พนักงาน: " + employeeName,
+          "🆔 รหัส: " + employeeId,
+          "📅 วันที่ปฏิบัติงาน: " + dateDisplayTh,
+          "━━━━━━━━━━━━━━━━━━━━",
+          "⏰ รายการเวลาทำงาน:",
+          ...shifts.map(s => "  • " + s.timeRange + " = " + s.hours + " ชม. (เรท x" + s.multiplier + ")"),
+          "━━━━━━━━━━━━━━━━━━━━",
+          "⏱️ รวมชั่วโมง OT: " + totalHours + " ชม.",
+          "🌐 ข้อมูลเข้าสู่ Cloudflare D1 และแสดงบน Dashboard เรียบร้อยแล้ว"
+        ].join("\n");
+
+        fetch("https://api.line.me/v2/bot/message/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + channelAccessToken },
+          body: JSON.stringify({ replyToken, messages: [{ type: "text", text: successMsg }] })
+        }).catch(() => {});
+      }
+    }
+  }
+
+  res.status(200).json({ status: "ok" });
+});
+
+// ============================================================
 // Employees
 // ============================================================
 app.post("/api/add-employee", async (req, res) => {
