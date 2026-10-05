@@ -1359,6 +1359,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN timeRange TEXT DEFAULT ''").run();
             await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN multiplier REAL DEFAULT 1.0").run();
             await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN source TEXT DEFAULT 'SYSTEM'").run();
+            await db.prepare("ALTER TABLE ot_daily_records ADD COLUMN position TEXT DEFAULT ''").run();
           } catch {}
         }
 
@@ -1392,7 +1393,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
                     replyToken,
                     messages: [{
                       type: "text",
-                      text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่าง:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nแผนก ปากเรือ\nนาย สุทัศน์ พุทธเสน\nรหัส 668126\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3"
+                      text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nรหัสพนักงาน 668126\nชื่อนามสกุล นาย สุทัศน์ พุทธเสน\nตำแหน่ง ช่างเครื่อง\nแผนก ปากเรือ\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3\nหมายเหตุ งานเทียบเรือ"
                     }]
                   })
                 }).catch(() => {});
@@ -1401,39 +1402,60 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             }
 
             // Extract fields
-            let vesselName = "ทั่วไป";
-            const vesselMatch = text.match(/(?:M\.?V\.?|เรือ|MV)\s*[:"']?\s*([^"'\r\n]+)["']?/i);
+            const textLines = text.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
+            const extractField = (pattern: string): string => {
+              const singleLineRegex = new RegExp(`(?:${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, "i");
+              const m = text.match(singleLineRegex);
+              if (m && m[1].trim()) return m[1].trim();
+              for (let i = 0; i < textLines.length; i++) {
+                if (new RegExp(`^(?:${pattern})\\s*[:]?$`, "i").test(textLines[i])) {
+                  if (i + 1 < textLines.length && !/^(?:ขออนุมัติ|M\.V\.|รหัส|ชื่อ|ตำแหน่ง|แผนก|วันที่|เวลา|หมายเหตุ)/i.test(textLines[i + 1])) {
+                    return textLines[i + 1].trim();
+                  }
+                }
+              }
+              return "";
+            };
+
+            let vesselName = "";
+            const vesselMatch = text.match(/(?:M\.?V\.?|เรือ|MV)\s*[:"\']?\s*([^"\'\r\n]+)["\']?/i);
             if (vesselMatch) {
-              const raw = vesselMatch[1].trim().replace(/^["']|["']$/g, "");
+              const raw = vesselMatch[1].trim().replace(/^["\']|["\']$/g, "");
               vesselName = raw.toUpperCase().startsWith("M.V.") ? raw : `M.V. ${raw}`;
-            }
-
-            let department = "ไม่ระบุแผนก";
-            const deptMatch = text.match(/แผนก\s*[:\s]?\s*([^\r\n]+)/i);
-            if (deptMatch) department = deptMatch[1].trim();
-
-            let employeeName = "พนักงาน";
-            const nameMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^\r\n]+)/);
-            if (nameMatch) {
-              employeeName = nameMatch[0].trim().replace(/^นาย\s+นาย\s+/g, "นาย ");
-            }
-
-            let employeeId = "ไม่ระบุรหัส";
-            const idMatch = text.match(/(?:รหัส|ID|Emp ID)\s*[:\s]?\s*([A-Za-z0-9\-]+)/i);
-            if (idMatch) {
-              employeeId = idMatch[1].trim();
             } else {
+              const vLine = textLines.find((l: string) => /^M\.?V\.?/i.test(l));
+              if (vLine) {
+                const raw = vLine.replace(/^M\.?V\.?\s*["\']?|["\']$/gi, "").trim();
+                vesselName = `M.V. ${raw}`;
+              }
+            }
+            vesselName = vesselName || "ทั่วไป";
+
+            let employeeId = extractField("รหัสพนักงาน|รหัส|ID|Emp ID");
+            if (!employeeId) {
               const numMatch = text.match(/\b\d{5,7}\b/);
               if (numMatch) employeeId = numMatch[0];
             }
+            employeeId = employeeId || "ไม่ระบุรหัส";
+
+            let employeeName = extractField("ชื่อนามสกุล|ชื่อ-นามสกุล|ชื่อ");
+            if (!employeeName) {
+              const titleMatch = text.match(/(?:นาย\s+นาย|นาย|นางสาว|นาง|คุณ)\s*([^:\r\n]+)/);
+              if (titleMatch) employeeName = titleMatch[0].trim();
+            }
+            employeeName = (employeeName || "พนักงาน").replace(/^นาย\s+นาย\s+/g, "นาย ");
+
+            const position = extractField("ตำแหน่ง|Position") || "-";
+            const department = extractField("แผนก|Department") || "ไม่ระบุแผนก";
 
             let date = new Date().toISOString().substring(0, 10);
             let dateDisplayTh = "";
-            const dateMatch = text.match(/(?:วันที่|Date)\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
+            const rawDateStr = extractField("วันที่|Date");
+            const dateMatch = (rawDateStr ? rawDateStr.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/) : null) || text.match(/(?:วันที่|Date)?\s*[:\s]?\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i);
             if (dateMatch) {
               const day = dateMatch[1].padStart(2, "0");
               const month = dateMatch[2].padStart(2, "0");
-              const rawYear = parseInt(dateMatch[3], 10);
+              let rawYear = parseInt(dateMatch[3], 10);
               dateDisplayTh = `${day}/${month}/${rawYear}`;
               const solarYear = rawYear > 2500 ? rawYear - 543 : rawYear;
               date = `${solarYear}-${month}-${day}`;
@@ -1442,6 +1464,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               dateDisplayTh = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear() + 543}`;
             }
 
+            const customNote = extractField("หมายเหตุ|Note|เหตุผล") || "-";
             const totalHours = shifts.reduce((sum, s) => sum + s.hours, 0);
             const [yearStr, monthStr] = date.split("-");
             const recordYear = parseInt(yearStr, 10);
@@ -1491,7 +1514,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               for (let i = 0; i < shifts.length; i++) {
                 const s = shifts[i];
                 const recordId = `LINE-${Date.now()}-${i + 1}`;
-                const note = `${vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier})`;
+                const note = customNote && customNote !== '-' ? `${vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier}) - ${customNote}` : `${vesselName} (${s.timeRange} = ${s.hours}x${s.multiplier})`;
                 try {
                   await db.prepare(`
                     INSERT INTO ot_daily_records (
