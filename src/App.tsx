@@ -75,6 +75,7 @@ import {
 } from "lucide-react";
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
+import MasterDataSettings from "./components/MasterDataSettings";
 import Navbar from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
@@ -489,7 +490,7 @@ export const getEmployeeJobValueBreakdown = (
   return {
     employeeId: emp?.id || "",
     employeeName: emp?.name || "",
-    role: emp?.role || "Operator",
+    role: emp?.role || "Operation Engineer",
     department: emp?.department || emp?.deptId || "",
     baseSalary: salary,
     hourlyRate,
@@ -631,7 +632,7 @@ export const normalizeDeptId = (deptId?: string) => {
   if (clean.includes("inter5")) return "inter5";
   if (clean.includes("inter7")) return "inter7";
   if (clean.includes("heavy"))  return "heavy";
-  if (clean.includes("ecc"))    return "ecc";
+  if (clean.includes("control"))    return "control";
   return clean;
 };
 
@@ -658,7 +659,7 @@ export const getDeptName = (deptId?: string, departments?: Department[]) => {
   if (cleanId === "inter5") return "INTER 5";
   if (cleanId === "inter7") return "INTER 7";
   if (cleanId === "heavy")  return "Heavy Machine";
-  if (cleanId === "ecc")    return "ECC";
+  if (cleanId === "control")    return "CONTROL";
 
   return String(deptId).replace(/^แผนก\s*/i, "");
 };
@@ -714,13 +715,14 @@ const SHIFT_OT_HOURS: Record<string, number> = {
 
 const DEPT_LABELS: Record<string, string> = {
   inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
-  inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
+  inter7: "INTER 7", heavy: "Heavy Machine", ecc: "CONTROL"
 };
 
 type OtRecord = {
   id: string; year: number; month: number; date: string;
   employeeId: string; employeeName: string;
   deptId: string; shiftCode: string; otHours: number; note: string;
+  vesselName?: string; timeRange?: string; multiplier?: number; source?: string;
 };
 
 const MONTH_TH = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -1184,11 +1186,17 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
     if (records.length === 0) { alert("ไม่มีข้อมูล OT สำหรับส่งออก"); return; }
     const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
     let csv = "\ufeff"; // BOM for Excel Thai
-    csv += "วันที่,รหัสพนักงาน,ชื่อพนักงาน,แผนก,รหัสกะ,ชั่วโมง OT\n";
+    csv += "วันที่,รหัสพนักงาน,ชื่อพนักงาน,แผนก,เรือ/หน้างาน,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,ที่มา\n";
     records.forEach(r => {
       csv += [
         esc(r.date), esc(r.employeeId), esc(r.employeeName),
-        esc(DEPT_LABELS[r.deptId] || r.deptId), esc(r.shiftCode), r.otHours
+        esc(DEPT_LABELS[r.deptId] || r.deptId),
+        esc(r.vesselName || "-"),
+        esc(r.timeRange || "-"),
+        esc(r.shiftCode),
+        esc(r.multiplier ? "x" + r.multiplier : "x1"),
+        r.otHours,
+        esc(r.source || "SYSTEM")
       ].join(",") + "\n";
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -1275,16 +1283,20 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                 <th className="px-4 py-3 text-left font-bold text-slate-600">รหัสพนักงาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">ชื่อพนักงาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">แผนก</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">เรือ / หน้างาน</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">ช่วงเวลากะ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">รหัสกะ</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">ตัวคูณ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">ที่มา</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-16 text-center">
+                  <td colSpan={10} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
@@ -1298,13 +1310,44 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                   <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
                   <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
+                  <td className="px-4 py-3 font-medium text-slate-700">
+                    {r.vesselName ? (
+                      <span className="inline-flex items-center gap-1 text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
+                        {r.vesselName}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center font-mono text-slate-600 font-medium">
+                    {r.timeRange || "-"}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded-lg border font-extrabold text-xs ${getShiftStyle(r.shiftCode)}`}>
                       {r.shiftCode}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-extrabold text-blue-700">{r.otHours}</span>
+                    <span className={`inline-block px-2 py-0.5 rounded font-black text-xs ${
+                      (r.multiplier ?? 1) >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                      (r.multiplier ?? 1) > 1 ? "bg-indigo-100 text-indigo-800 border border-indigo-200" :
+                      "bg-slate-100 text-slate-700 border border-slate-200"
+                    }`}>
+                      x{r.multiplier ?? 1}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-extrabold text-blue-700 text-sm">{r.otHours}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {r.source === "LINE_OA" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        LINE OA
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">ระบบกะ</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1958,7 +2001,7 @@ function HrDirectEditorView({
                   </button>
                 )}
 
-                {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "ECC"].map(dept => {
+                {["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "CONTROL", "Improvement", "Management"].map(dept => {
                   const deptIdVal = normalizeDeptId(dept);
                   const managerDeptId = normalizeDeptId(currentUser?.deptId);
                   const isAllowed = isHrOrFullAccess || managerDeptId === deptIdVal;
@@ -2082,7 +2125,7 @@ function HrDirectEditorView({
                           <option value="INTER 5">INTER 5</option>
                           <option value="INTER 7">INTER 7</option>
                           <option value="Heavy Machine">Heavy Machine</option>
-                          <option value="ECC">ECC</option>
+                          <option value="CONTROL">ECC</option>
                         </select>
                       </td>
                       <td className="p-2 text-center">
@@ -2685,7 +2728,7 @@ export default function App() {
     { username: "inter5_mgr", password: "i5mgr1234",      name: "Section Manager INTER5", role: "Section Manager",    deptId: "inter5", avatar: "", canBackup: 0 },
     { username: "inter7_mgr", password: "i7mgr1234",      name: "Section Manager INTER7", role: "Section Manager",    deptId: "inter7", avatar: "", canBackup: 0 },
     { username: "heavy_mgr",  password: "hvmgr1234",      name: "Section Manager Heavy",  role: "Section Manager",    deptId: "heavy",  avatar: "", canBackup: 0 },
-    { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "ecc",    avatar: "", canBackup: 0 },
+    { username: "ecc_mgr",    password: "eccmgr1234",     name: "Section Manager ECC",    role: "Section Manager",    deptId: "control",    avatar: "", canBackup: 0 },
   ];
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -2864,7 +2907,7 @@ export default function App() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editEmpName, setEditEmpName] = useState<string>("");
   const [editEmpDept, setEditEmpDept] = useState<string>("inter2");
-  const [editEmpRole, setEditEmpRole] = useState<string>("Operator");
+  const [editEmpRole, setEditEmpRole] = useState<string>("Operation Engineer");
   const [editEmpGroupName, setEditEmpGroupName] = useState<string>("ทีม ก.");
   const [editEmpTargetOt, setEditEmpTargetOt] = useState<number>(48);
   const [editEmpPrefix, setEditEmpPrefix] = useState<string>("นาย");
@@ -3205,7 +3248,7 @@ export default function App() {
       const totalDays = new Date(Number(y), Number(m), 0).getDate();
 
       const empsInRole = (isEditingShifts ? tempEmployees : state.employees)
-        .filter(e => e.deptId === currentShiftsDept && (e.role || "Operator") === roleName)
+        .filter(e => e.deptId === currentShiftsDept && (e.role || "Operation Engineer") === roleName)
         .filter(e => e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
 
       if (empsInRole.length < 2) {
@@ -3217,7 +3260,7 @@ export default function App() {
       const { teamA, teamB } = generateTwoTeamPairSchedules(totalDays);
 
       const updatedEmployees = (isEditingShifts ? tempEmployees : state.employees).map(emp => {
-        const empRole = emp.role || "Operator";
+        const empRole = emp.role || "Operation Engineer";
         if (emp.deptId === currentShiftsDept && empRole === roleName && emp.employmentStatus !== "Resigned") {
           const roleIndex = empsInRole.findIndex(e => e.id === emp.id);
           const chosenSchedule = roleIndex % 2 === 0 ? teamA : teamB;
@@ -3271,7 +3314,7 @@ export default function App() {
 
       const roleGroups: Record<string, Employee[]> = {};
       deptEmps.forEach(emp => {
-        const r = emp.role || "Operator";
+        const r = emp.role || "Operation Engineer";
         if (!roleGroups[r]) roleGroups[r] = [];
         roleGroups[r].push(emp);
       });
@@ -3281,7 +3324,7 @@ export default function App() {
 
       const updatedEmployees = (isEditingShifts ? tempEmployees : state.employees).map(emp => {
         if (emp.deptId === currentShiftsDept && emp.employmentStatus !== "Resigned") {
-          const r = emp.role || "Operator";
+          const r = emp.role || "Operation Engineer";
           const empsInThisRole = roleGroups[r] || [];
           let chosenSchedule: string[];
 
@@ -3622,7 +3665,7 @@ export default function App() {
     setPremiumPickerEmp(emp);
     setPremiumPickerDay(1);
     const activeList = isEditingShifts ? tempEmployees : (state?.employees || []);
-    const peer = activeList.find((pe: Employee) => pe.deptId === emp.deptId && (pe.role || "Operator") === (emp.role || "Operator") && pe.id !== emp.id && pe.employmentStatus !== "Resigned" && pe.employmentStatus !== "ลาออก");
+    const peer = activeList.find((pe: Employee) => pe.deptId === emp.deptId && (pe.role || "Operation Engineer") === (emp.role || "Operation Engineer") && pe.id !== emp.id && pe.employmentStatus !== "Resigned" && pe.employmentStatus !== "ลาออก");
     setPremiumPickerPairedEmp(peer || null);
     setIsPremiumPickerOpen(true);
   };
@@ -3866,7 +3909,7 @@ export default function App() {
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
         const curEmp = activeList[currentEmpIdx];
-        const peerEmp = activeList.find((p: Employee) => p.id !== curEmp.id && (p.role || "Operator") === (curEmp.role || "Operator"));
+        const peerEmp = activeList.find((p: Employee) => p.id !== curEmp.id && (p.role || "Operation Engineer") === (curEmp.role || "Operation Engineer"));
 
         setPremiumPickerEmp(curEmp);
         setPremiumPickerDay(focusedCell.dayIdx + 1);
@@ -3932,7 +3975,7 @@ export default function App() {
         "O&M - Generator",
         "O&M - Mechanical",
         "O&M - Electrical",
-        "ECC"
+        "CONTROL"
       ];
       return targetRoles.includes(empRole);
     }
@@ -3982,7 +4025,26 @@ export default function App() {
       { id: "inter5", name: "INTER 5", nameTh: "แผนก INTER 5", manager: "คุณอนันต์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
       { id: "inter7", name: "INTER 7", nameTh: "แผนก INTER 7", manager: "คุณสมศักดิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "precision_manufacturing" },
       { id: "heavy",  name: "Heavy Machine", nameTh: "แผนก Heavy Machine", manager: "คุณศักดิ์ชัย", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "settings" },
-      { id: "ecc",    name: "ECC",           nameTh: "แผนก ECC",           manager: "คุณประสิทธิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "electrical_services" }
+      { id: "control",    name: "CONTROL",           nameTh: "แผนก CONTROL",           manager: "คุณประสิทธิ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "electrical_services" },
+      { id: "improvement",    name: "Improvement",           nameTh: "แผนก Improvement",           manager: "คุณจิราภรณ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "trending_up" },
+      { id: "management",    name: "Management",           nameTh: "แผนก Management",           manager: "คุณสมบูรณ์", managerRole: "Director", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "business_center" }
+    ],
+    roles: [
+      "พนักงานขับเครน",
+      "ช่างขับจักรกลหนัก",
+      "ผู้ควบคุมงานจักรกลหนัก",
+      "ผู้ควบคุมงานขนถ่ายสินค้า",
+      "ช่างปากเรือ",
+      "O&M Specialist",
+      "O&M Generator",
+      "O&M Mechanical",
+      "O&M Electrical",
+      "เจ้าหน้าที่ศูนย์ควบคุม",
+      "Operation Engineer",
+      "Improvement Engineer",
+      "ผู้จัดการฝ่ายปฏิบัติการ",
+      "ผู้จัดการแผนก",
+      "Maintenance Improvement"
     ],
     employees: [],
     shiftConfig: {
@@ -4071,7 +4133,7 @@ export default function App() {
         "inter5": "INTER 5",
         "inter7": "INTER 7",
         "heavy": "Heavy Machine",
-        "ecc": "ECC"
+        "control": "CONTROL", improvement: "Improvement", management: "Management"
       };
       const filterVal = deptMap[currentUser.deptId];
       if (filterVal) {
@@ -4470,7 +4532,9 @@ export default function App() {
         "INTER 5": "inter5",
         "INTER 7": "inter7",
         "Heavy Machine": "heavy",
-        "ECC": "ecc"
+        "CONTROL": "control",
+      "Improvement": "improvement",
+      "Management": "management"
       };
       const filterDeptId = deptMap[selectedDeptFilter];
       if (emp.deptId !== filterDeptId) return false;
@@ -4682,7 +4746,7 @@ export default function App() {
       empId: finalEmpId,
       name: fullName,
       deptId: newEmpDept || "inter2",
-      role: newEmpRole || "Operator",
+      role: newEmpRole || "Operation Engineer",
       groupName: newEmpGroupName || "Group A",
       targetOt: Number(newEmpTargetOt) || 48,
       actualOt: 0,
@@ -4757,7 +4821,7 @@ export default function App() {
         setNewEmpTenure("");
         setNewEmpProbationDate("");
         setNewEmpCalendarType("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
-        setNewEmpRole("Operator");
+        setNewEmpRole("Operation Engineer");
         setNewEmpTargetOt(48);
 
         // Clear search & sync department filter so new employee is 100% visible on screen immediately
@@ -4853,7 +4917,7 @@ export default function App() {
 
         const DEPT_LABELS: Record<string, string> = {
           inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
-          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
+          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "CONTROL"
         };
 
         let csvContent = "\ufeff"; // Add BOM for Excel Thai language support
@@ -5025,11 +5089,13 @@ export default function App() {
             "inter 5": "inter5", "inter5": "inter5",
             "inter 7": "inter7", "inter7": "inter7",
             "heavy machine": "heavy", "heavy": "heavy", "heavy_machine": "heavy",
-            "ecc": "ecc"
+            "control": "control",
+            "improvement": "improvement",
+            "management": "management"
           };
           const deptId      = deptMap[cleanedDept] || rawDept;
           
-          const role        = roleIdx !== -1 ? (values[roleIdx]?.trim() || "Operator") : "Operator";
+          const role        = roleIdx !== -1 ? (values[roleIdx]?.trim() || "Operation Engineer") : "Operation Engineer";
           const division    = divisionIdx !== -1 ? (values[divisionIdx]?.trim() || "") : "";
           const salary      = salaryIdx !== -1 ? (Number(values[salaryIdx]) || 15000) : 15000;
           const birthday    = birthdayIdx !== -1 ? (values[birthdayIdx]?.trim() || "") : "";
@@ -5843,7 +5909,9 @@ export default function App() {
       "INTER 5": "inter5",
       "INTER 7": "inter7",
       "Heavy Machine": "heavy",
-      "ECC": "ecc"
+      "CONTROL": "control",
+      "Improvement": "improvement",
+      "Management": "management"
     };
     const filterDeptId = deptMap[selectedDeptFilter];
     return dept.id === filterDeptId;
@@ -5859,7 +5927,9 @@ export default function App() {
       "INTER 5": "inter5",
       "INTER 7": "inter7",
       "Heavy Machine": "heavy",
-      "ECC": "ecc"
+      "CONTROL": "control",
+      "Improvement": "improvement",
+      "Management": "management"
     };
     const filterDeptId = deptMap[selectedDeptFilter];
     return emp.deptId === filterDeptId;
@@ -5998,7 +6068,7 @@ export default function App() {
     "O&M - Generator",
     "O&M - Mechanical",
     "O&M - Electrical",
-    "ECC"
+    "CONTROL"
   ];
 
   const roleOtData = operatingRoles.map(role => {
@@ -9745,12 +9815,7 @@ export default function App() {
                     {activeDeptId === "all" && (
                       <select value={currentShiftsDept} onChange={(e) => setShiftsDeptFilter(e.target.value)}
                         className="shrink-0 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-sans shadow-2xs hover:border-slate-300 transition-colors">
-                        <option value="inter2">INTER 2</option>
-                        <option value="inter3">INTER 3</option>
-                        <option value="inter5">INTER 5</option>
-                        <option value="inter7">INTER 7</option>
-                        <option value="heavy">Heavy Machine</option>
-                        <option value="ecc">ECC</option>
+                        {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                     )}
                     <select value={(state?.shiftConfig?.currentMonth || "2026-08").split("-")[0]} 
@@ -9820,7 +9885,7 @@ export default function App() {
 
                             <div className="h-px bg-slate-100 my-0.5" />
 
-                            {Array.from(new Set((state?.employees || []).map(e => e.role || "Operator"))).map((role) => {
+                            {Array.from(new Set((state?.employees || []).map(e => e.role || "Operation Engineer"))).map((role) => {
                               const isChecked = selectedShiftRoleFilters.includes(role);
                               return (
                                 <label
@@ -10054,7 +10119,7 @@ export default function App() {
                         
                         const roleMap: Record<string, typeof deptEmps> = {};
                         deptEmps.forEach(e => {
-                          const r = e.role || "Operator";
+                          const r = e.role || "Operation Engineer";
                           if (!roleMap[r]) roleMap[r] = [];
                           roleMap[r].push(e);
                         });
@@ -10592,7 +10657,7 @@ export default function App() {
                         const filtered = (isEditingShifts ? tempEmployees : state.employees)
                           .filter(emp => emp.deptId === currentShiftsDept)
                           .filter(emp => emp.employmentStatus !== "Resigned" && emp.employmentStatus !== "ลาออก")
-                          .filter(emp => selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง") || selectedShiftRoleFilters.includes(emp.role || "Operator"));
+                          .filter(emp => selectedShiftRoleFilters.length === 0 || selectedShiftRoleFilters.includes("ทุกตำแหน่ง") || selectedShiftRoleFilters.includes(emp.role || "Operation Engineer"));
 
                         const grouped: Record<string, typeof filtered> = {};
                         filtered.forEach(emp => {
@@ -10770,7 +10835,7 @@ export default function App() {
                                                 const activeList = isEditingShifts ? tempEmployees : state.employees;
                                                 const peerEmp = activeList.find(
                                                   (pe: Employee) => pe.deptId === emp.deptId &&
-                                                       (pe.role || "Operator") === (emp.role || "Operator") &&
+                                                       (pe.role || "Operation Engineer") === (emp.role || "Operation Engineer") &&
                                                        pe.id !== emp.id &&
                                                        pe.employmentStatus !== "Resigned" &&
                                                        pe.employmentStatus !== "ลาออก"
@@ -11538,12 +11603,7 @@ export default function App() {
                               className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
                             >
                               <option value="all">ทุกแผนก (All)</option>
-                              <option value="inter2">INTER 2</option>
-                              <option value="inter3">INTER 3</option>
-                              <option value="inter5">INTER 5</option>
-                              <option value="inter7">INTER 7</option>
-                              <option value="heavy">Heavy Machine</option>
-                              <option value="ecc">ECC</option>
+                              {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                           </td>
                           <td className="p-4 text-center">
@@ -11666,7 +11726,9 @@ export default function App() {
                        currentUser?.deptId === "inter5" ? "INTER 5" :
                        currentUser?.deptId === "inter7" ? "INTER 7" :
                        currentUser?.deptId === "heavy" ? "Heavy Machine" :
-                       currentUser?.deptId === "ecc" ? "ECC" :
+                       currentUser?.deptId === "control" ? "CONTROL" :
+                       currentUser?.deptId === "improvement" ? "Improvement" :
+                       currentUser?.deptId === "management" ? "Management" :
                        currentUser?.deptId}
                     </span>
                   </div>
@@ -12113,19 +12175,10 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      <option value="O&M Electrical">O&M Electrical</option>
-                      <option value="O&M Mechanical">O&M Mechanical</option>
-                      <option value="O&M Generator">O&M Generator</option>
-                      <option value="O&M Specialist">O&M Specialist</option>
-                      <option value="ผู้ควบคุมงานขนถ่ายสินค้า">ผู้ควบคุมงานขนถ่ายสินค้า</option>
-                      <option value="ผู้ควบคุมงานจักรกลหนัก">ผู้ควบคุมงานจักรกลหนัก</option>
-                      <option value="Engineer">Engineer</option>
-                      <option value="พนักงานขับจักรกลหนัก">พนักงานขับจักรกลหนัก</option>
-                      <option value="พนักงานขับเครน">พนักงานขับเครน</option>
-                      <option value="พนักงานขับเครน ชำนาญการ">พนักงานขับเครน ชำนาญการ</option>
-                      <option value="ปากเรือ">ปากเรือ</option>
-                      <option value="ปากเรือ ชำนาญการ">ปากเรือ ชำนาญการ</option>
-                      <option value="ผู้จัดการแผนก">ผู้จัดการแผนก</option>
+                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
+                      <><option value="Operation Engineer">Operation Engineer</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
+                    )}
                     </select>
                   </div>
                   <div>
@@ -12135,12 +12188,7 @@ export default function App() {
                       onChange={(e) => setNewEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      <option value="inter2">INTER 2</option>
-                      <option value="inter3">INTER 3</option>
-                      <option value="inter5">INTER 5</option>
-                      <option value="inter7">INTER 7</option>
-                      <option value="heavy">Heavy Machine</option>
-                      <option value="ecc">ECC</option>
+                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -12451,19 +12499,10 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      <option value="O&M Electrical">O&M Electrical</option>
-                      <option value="O&M Mechanical">O&M Mechanical</option>
-                      <option value="O&M Generator">O&M Generator</option>
-                      <option value="O&M Specialist">O&M Specialist</option>
-                      <option value="ผู้ควบคุมงานขนถ่ายสินค้า">ผู้ควบคุมงานขนถ่ายสินค้า</option>
-                      <option value="ผู้ควบคุมงานจักรกลหนัก">ผู้ควบคุมงานจักรกลหนัก</option>
-                      <option value="Engineer">Engineer</option>
-                      <option value="พนักงานขับจักรกลหนัก">พนักงานขับจักรกลหนัก</option>
-                      <option value="พนักงานขับเครน">พนักงานขับเครน</option>
-                      <option value="พนักงานขับเครน ชำนาญการ">พนักงานขับเครน ชำนาญการ</option>
-                      <option value="ปากเรือ">ปากเรือ</option>
-                      <option value="ปากเรือ ชำนาญการ">ปากเรือ ชำนาญการ</option>
-                      <option value="ผู้จัดการแผนก">ผู้จัดการแผนก</option>
+                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
+                      <><option value="Operation Engineer">Operation Engineer</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
+                    )}
                     </select>
                   </div>
                   <div>
@@ -12473,12 +12512,7 @@ export default function App() {
                       onChange={(e) => setEditEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      <option value="inter2">INTER 2</option>
-                      <option value="inter3">INTER 3</option>
-                      <option value="inter5">INTER 5</option>
-                      <option value="inter7">INTER 7</option>
-                      <option value="heavy">Heavy Machine</option>
-                      <option value="ecc">ECC</option>
+                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -13433,12 +13467,7 @@ export default function App() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-medium"
                   >
                     <option value="all">ทุกแผนก (All)</option>
-                    <option value="inter2">INTER 2</option>
-                    <option value="inter3">INTER 3</option>
-                    <option value="inter5">INTER 5</option>
-                    <option value="inter7">INTER 7</option>
-                    <option value="heavy">Heavy Machine</option>
-                    <option value="ecc">ECC</option>
+                    {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -13581,12 +13610,7 @@ export default function App() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="all">ทุกแผนก (All)</option>
-                    <option value="inter2">INTER 2</option>
-                    <option value="inter3">INTER 3</option>
-                    <option value="inter5">INTER 5</option>
-                    <option value="inter7">INTER 7</option>
-                    <option value="heavy">Heavy Machine</option>
-                    <option value="ecc">ECC</option>
+                    {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -14275,7 +14299,7 @@ export default function App() {
                   {activeCellEditor.emp.name}
                 </span>
                 <span className="text-[9px] text-slate-400 font-mono">
-                  วันที่ {activeCellEditor.dayIdx + 1} • {activeCellEditor.emp.role || "Operator"}
+                  วันที่ {activeCellEditor.dayIdx + 1} • {activeCellEditor.emp.role || "Operation Engineer"}
                 </span>
               </div>
               <button 
@@ -14291,7 +14315,7 @@ export default function App() {
               const activeList = isEditingShifts ? tempEmployees : state.employees;
               const peerEmp = activeList.find(
                 (e: Employee) => e.deptId === activeCellEditor.emp.deptId &&
-                     (e.role || "Operator") === (activeCellEditor.emp.role || "Operator") &&
+                     (e.role || "Operation Engineer") === (activeCellEditor.emp.role || "Operation Engineer") &&
                      e.id !== activeCellEditor.emp.id &&
                      e.employmentStatus !== "Resigned" &&
                      e.employmentStatus !== "ลาออก"
@@ -14409,7 +14433,7 @@ export default function App() {
                   <div>
                     <h3 className="text-sm font-black leading-tight text-white">สูตรและผลการคำนวณค่าตอบแทนและคุณค่างาน</h3>
                     <p className="text-[11px] text-[#9FCEE8] font-mono mt-0.5">
-                      {viewingSalaryFormulaEmployee.emp.name} ({viewingSalaryFormulaEmployee.emp.id}) • {viewingSalaryFormulaEmployee.emp.role || "Operator"} • {viewingSalaryFormulaEmployee.emp.department || viewingSalaryFormulaEmployee.emp.deptId || "Operations"}
+                      {viewingSalaryFormulaEmployee.emp.name} ({viewingSalaryFormulaEmployee.emp.id}) • {viewingSalaryFormulaEmployee.emp.role || "Operation Engineer"} • {viewingSalaryFormulaEmployee.emp.department || viewingSalaryFormulaEmployee.emp.deptId || "Operations"}
                     </p>
                   </div>
                 </div>
