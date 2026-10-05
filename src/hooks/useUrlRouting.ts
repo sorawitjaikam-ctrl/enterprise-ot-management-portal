@@ -78,6 +78,7 @@ export const useUrlRouting = (
     const currentTab = PATH_TO_TAB[currentPath];
     if (currentPath !== targetPath && currentTab !== activeTab) {
       window.history.pushState({ tab: activeTab }, "", targetPath);
+      localStorage.setItem("lastActiveTab", activeTab);
     }
   }, [activeTab]);
 

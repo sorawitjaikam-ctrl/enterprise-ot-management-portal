@@ -84,14 +84,14 @@ async function replyLineMessage(replyToken: string, messages: any[], token: stri
 
 function extractField(lines: string[], text: string, pattern: string): string {
   // 1. Try single line match with value after label
-  const singleLineRegex = new RegExp(`(?:\${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, 'i');
+  const singleLineRegex = new RegExp(`(?:${pattern})\\s*[:\\s]\\s*([^:\\r\\n]+)`, 'i');
   const m = text.match(singleLineRegex);
   if (m && m[1].trim()) return m[1].trim();
 
   // 2. Try label on its own line, value on next line
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    const labelOnlyRegex = new RegExp(`^(?:\${pattern})\\s*[:]?$`, 'i');
+    const labelOnlyRegex = new RegExp(`^(?:${pattern})\\s*[:]?$`, 'i');
     if (labelOnlyRegex.test(l)) {
       if (i + 1 < lines.length && !new RegExp(`^(?:ขออนุมัติ|M\\.V\\.|รหัส|ชื่อ|ตำแหน่ง|แผนก|วันที่|เวลา|หมายเหตุ)`, 'i').test(lines[i + 1])) {
         return lines[i + 1].trim();
@@ -306,6 +306,116 @@ M.V."PEDHOULAS TRADER"
 หมายเหตุ งานเทียบเรือ`
         }], channelAccessToken);
         continue;
+      }
+      // ============================================================
+      // 1. Employee & Department Validation in D1
+      // ============================================================
+      let verifiedEmp: any = null;
+      let verifiedDept: any = null;
+
+      if (db) {
+        try {
+          // 1.1 Check Employee in D1
+          verifiedEmp = await db.prepare(
+            "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
+          ).bind(parsed.employeeId, parsed.employeeId.padStart(7, "0")).first();
+
+          if (!verifiedEmp) {
+            // Check without leading zeros
+            const unpaddedId = parsed.employeeId.replace(/^0+/, "");
+            if (unpaddedId && unpaddedId !== parsed.employeeId) {
+              verifiedEmp = await db.prepare(
+                "SELECT id, name, deptId, role FROM employees WHERE id = ?"
+              ).bind(unpaddedId).first();
+            }
+          }
+
+          if (!verifiedEmp) {
+            const notFoundMsg = [
+              "⚠️ แจ้งเตือน: ไม่พบรหัสพนักงานในระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${parsed.employeeId}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบไม่พบข้อมูลรหัสพนักงานนี้ในฐานข้อมูลพนักงาน",
+              "กรุณาตรวจสอบความถูกต้อง หรือติดต่อฝ่ายบุคคล (HR) ครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: notFoundMsg }], channelAccessToken);
+            continue;
+          }
+
+          // 1.2 Get Department Info from D1
+          if (verifiedEmp.deptId) {
+            verifiedDept = await db.prepare(
+              "SELECT id, name, nameTh FROM departments WHERE id = ? OR name = ? OR nameTh = ?"
+            ).bind(verifiedEmp.deptId, verifiedEmp.deptId, verifiedEmp.deptId).first();
+          }
+
+          // 1.3 Validate Position & Department
+          const normalizeText = (s: string) => (s || "").replace(/\s+/g, "").toLowerCase();
+          const normalizeDept = (s: string) => (s || "").replace(/^(แผนก|dept\.?)/i, "").replace(/\s+/g, "").toLowerCase();
+
+          // Position matching
+          const hasInputPos = parsed.position && parsed.position !== '-' && parsed.position !== 'ไม่ระบุตำแหน่ง';
+          const inputPosNorm = normalizeText(parsed.position);
+          const sysPosNorm = normalizeText(verifiedEmp.role);
+          const isPosMatch = hasInputPos && (
+            inputPosNorm === sysPosNorm ||
+            inputPosNorm.includes(sysPosNorm) ||
+            sysPosNorm.includes(inputPosNorm)
+          );
+
+          // Department matching
+          const hasInputDept = parsed.department && parsed.department !== '-' && parsed.department !== 'ไม่ระบุแผนก';
+          const inputDeptNorm = normalizeDept(parsed.department);
+          const deptCandidates = [
+            verifiedEmp.deptId,
+            verifiedDept?.id,
+            verifiedDept?.name,
+            verifiedDept?.nameTh
+          ].filter(Boolean);
+
+          const isDeptMatch = hasInputDept && deptCandidates.some((cand: string) => {
+            const candNorm = normalizeDept(cand);
+            return (
+              candNorm === inputDeptNorm ||
+              candNorm.includes(inputDeptNorm) ||
+              inputDeptNorm.includes(candNorm)
+            );
+          });
+
+          const displaySysDept = verifiedDept?.nameTh || verifiedDept?.name || verifiedEmp.deptId || "ไม่ระบุ";
+          const displaySysRole = verifiedEmp.role || "ไม่ระบุ";
+
+          if (!isPosMatch || !isDeptMatch) {
+            const mismatchMsg = [
+              "⚠️ แจ้งเตือน: ข้อมูลไม่ตรงกับระบบ!",
+              "━━━━━━━━━━━━━━━━━━━━",
+              `🆔 รหัสพนักงาน: ${verifiedEmp.id}`,
+              `👤 พนักงาน: ${verifiedEmp.name}`,
+              "",
+              "❌ ข้อมูลที่คุณระบุ:",
+              `  • ตำแหน่ง: ${hasInputPos ? parsed.position : "ไม่ได้ระบุ"}`,
+              `  • แผนก: ${hasInputDept ? parsed.department : "ไม่ได้ระบุ"}`,
+              "",
+              "✅ ข้อมูลที่ถูกต้องในระบบ:",
+              `  • ตำแหน่ง: ${displaySysRole}`,
+              `  • แผนก: ${displaySysDept}`,
+              "━━━━━━━━━━━━━━━━━━━━",
+              "ระบบปฏิเสธการบันทึก กรุณาระบุตำแหน่งและแผนกให้ตรงกับข้อมูลในระบบ แล้วส่งใหม่อีกครั้งครับ"
+            ].join("\n");
+
+            await replyLineMessage(replyToken, [{ type: "text", text: mismatchMsg }], channelAccessToken);
+            continue;
+          }
+
+          // Use verified official data from system
+          parsed.employeeName = verifiedEmp.name || parsed.employeeName;
+          parsed.position = displaySysRole;
+          parsed.department = displaySysDept;
+        } catch (e) {
+          console.error("Employee validation error in D1:", e);
+        }
       }
 
       const [yearStr, monthStr] = parsed.date.split("-");

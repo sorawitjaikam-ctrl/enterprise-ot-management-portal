@@ -288,9 +288,9 @@ export default function Navbar({
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap ml-1">
                     <Icon className="w-3.5 h-3.5 opacity-80" />
-                    <span>{tab.label}</span>
+                    <span className={isActive ? "" : "sr-only"}>{tab.label}</span>
                   </span>
                 </button>
               );
