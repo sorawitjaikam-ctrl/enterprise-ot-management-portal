@@ -118,11 +118,13 @@ function parseOtMessage(text: string): ParsedOt | null {
       if (diffMinutes <= 0) diffMinutes += 24 * 60;
       hours = Math.round((diffMinutes / 60) * 10) / 10;
     }
+    const startHour = parseInt(match[1].split(":")[0], 10);
+    const shiftCode = (startHour >= 6 && startHour < 14) ? "M" : (startHour >= 14 && startHour < 22) ? "A" : "N";
     shifts.push({
       timeRange: `${match[1]}-${match[2]}`,
       hours,
       multiplier,
-      shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
+      shiftCode
     });
   }
 

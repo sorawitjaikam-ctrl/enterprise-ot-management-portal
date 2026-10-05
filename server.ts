@@ -981,6 +981,26 @@ app.delete("/api/delete-ot-record/:id", async (req, res) => {
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+app.delete("/api/ot-records/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (isD1Enabled()) {
+      await queryD1("DELETE FROM ot_daily_records WHERE id = ?", [id]);
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post("/api/delete-ot-record", async (req, res) => {
+  const { id } = req.body || {};
+  try {
+    if (isD1Enabled() && id) {
+      await queryD1("DELETE FROM ot_daily_records WHERE id = ?", [id]);
+    }
+    res.json({ success: true });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
 // ============================================================
 // LINE OA Webhook (/api/line-webhook)
 // ============================================================
@@ -1008,11 +1028,13 @@ app.post("/api/line-webhook", async (req, res) => {
       while ((match = shiftRegex.exec(text)) !== null) {
         const hours = parseFloat(match[3]);
         const multiplier = parseFloat(match[4]);
+        const startHour = parseInt(match[1].split(":")[0], 10);
+        const shiftCode = (startHour >= 6 && startHour < 14) ? "M" : (startHour >= 14 && startHour < 22) ? "A" : "N";
         shifts.push({
           timeRange: match[1] + "-" + match[2],
           hours,
           multiplier,
-          shiftCode: multiplier >= 3 ? "OT-3X" : (multiplier > 1 ? "OT-1.5X" : "OT-1X")
+          shiftCode
         });
       }
 

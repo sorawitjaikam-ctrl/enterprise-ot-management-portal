@@ -79,8 +79,6 @@ import MasterDataSettings from "./components/MasterDataSettings";
 import Navbar from "./components/Navbar";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
-import CommandPalette from "./components/CommandPalette";
-import { useCommandPalette } from "./hooks/useCommandPalette";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
@@ -136,10 +134,13 @@ export const SHIFT_OPTIONS = [
 
 export const getShiftStyle = (shift: string) => {
   switch (shift) {
+    case "M":
     case "M8":
       return "bg-[#CFE2F3] text-black border border-[#9FC5E8] font-bold";
+    case "A":
     case "A8":
       return "bg-[#FFF2CC] text-black border border-[#FFE599] font-bold";
+    case "N":
     case "N8":
       return "bg-[#FCE5CD] text-black border border-[#F9CB9C] font-bold";
     case "M12":
@@ -187,6 +188,21 @@ export const getShiftStyle = (shift: string) => {
   }
 };
 
+export const getCanonicalShiftCode = (timeRange?: string, rawCode?: string, hours?: number): string => {
+  if (rawCode && !rawCode.startsWith("OT-")) {
+    return rawCode;
+  }
+  const t = String(timeRange || "").trim();
+  const match = t.match(/^(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+  if (match) {
+    const startHour = parseInt(match[1], 10);
+    if (startHour >= 6 && startHour < 14) return "M";
+    if (startHour >= 14 && startHour < 22) return "A";
+    return "N";
+  }
+  return rawCode || "M";
+};
+
 export const getShiftOtHours = (shift: string) => {
   if (shift === "OND") return 8;
   const match = shift.match(/\d+$/);
@@ -200,7 +216,7 @@ export const getShiftOtHours = (shift: string) => {
 export const getShiftDurationHours = (shift: string): number => {
   if (!shift) return 0;
   const s = shift.trim().toUpperCase();
-  if (s === "OND" || s === "D") return 8;
+  if (s === "M" || s === "A" || s === "N" || s === "OND" || s === "D") return 8;
   if (s === "O" || s === "OFF" || isLeaveCode(shift)) return 0;
   const match = s.match(/\d+$/);
   if (match) {
@@ -1166,6 +1182,8 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
   const [filterDept, setFilterDept] = React.useState(fullAccess ? "all" : (currentUser?.deptId || "all"));
   const [records, setRecords] = React.useState<OtRecord[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [recordToDelete, setRecordToDelete] = React.useState<OtRecord | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -1183,12 +1201,59 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
 
   React.useEffect(() => { fetchRecords(); }, [filterYear, filterMonth, filterDept]);
 
+  const confirmDeleteRecord = async () => {
+    if (!recordToDelete) return;
+    setIsDeleting(true);
+    try {
+      let success = false;
+      try {
+        const res = await fetch(`/api/delete-ot-record/${recordToDelete.id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) success = true;
+      } catch (_) {}
+
+      if (!success) {
+        try {
+          const res = await fetch(`/api/ot-records/${recordToDelete.id}`, {
+            method: "DELETE",
+          });
+          if (res.ok) success = true;
+        } catch (_) {}
+      }
+
+      if (!success) {
+        try {
+          const resPost = await fetch("/api/delete-ot-record", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: recordToDelete.id })
+          });
+          if (resPost.ok) success = true;
+        } catch (_) {}
+      }
+
+      if (success) {
+        setRecords(prev => prev.filter(r => r.id !== recordToDelete.id));
+        setRecordToDelete(null);
+      } else {
+        alert("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+      }
+    } catch (e) {
+      console.error("Delete error:", e);
+      alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleExportOtRecordsCsv = () => {
     if (records.length === 0) { alert("ไม่มีข้อมูล OT สำหรับส่งออก"); return; }
     const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
     let csv = "\ufeff"; // BOM for Excel Thai
     csv += "วันที่,เรือ/หน้างาน,รหัสพนักงาน,ชื่อพนักงาน,ตำแหน่ง,แผนก,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,หมายเหตุ,ที่มา\n";
     records.forEach(r => {
+      const code = getCanonicalShiftCode(r.timeRange, r.shiftCode, r.otHours);
       csv += [
         esc(r.date),
         esc(r.vesselName || "-"),
@@ -1197,7 +1262,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
         esc(r.position || "-"),
         esc(DEPT_LABELS[r.deptId] || r.deptId),
         esc(r.timeRange || "-"),
-        esc(r.shiftCode),
+        esc(code),
         esc(r.multiplier ? "x" + r.multiplier : "x1"),
         r.otHours,
         esc(r.note || "-"),
@@ -1227,7 +1292,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ประวัติ OT จากกะทำงาน</h3>
-            <p className="text-xs text-slate-500 mt-0.5">ระบบบันทึก OT อัตโนมัติจากรหัสกะ — M12/A12/N12=4ชม., M16/N16/OND=8ชม.</p>
+            <p className="text-xs text-slate-500 mt-0.5">ระบบบันทึก OT อัตโนมัติจากรหัสกะ — รหัสกะ M (เช้า), A (บ่าย), N (ดึก)</p>
           </div>
         </div>
       </div>
@@ -1296,14 +1361,15 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                 <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">หมายเหตุ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ที่มา</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
-                <tr><td colSpan={12} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+                <tr><td colSpan={13} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-4 py-16 text-center">
+                  <td colSpan={13} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
@@ -1311,65 +1377,79 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                     </div>
                   </td>
                 </tr>
-              ) : records.map(r => (
-                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-3 text-slate-700 font-mono">{r.date}</td>
-                  <td className="px-4 py-3 font-medium text-slate-700">
-                    {r.vesselName ? (
-                      <span className="inline-flex items-center gap-1 text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
-                        {r.vesselName}
+              ) : records.map(r => {
+                const code = getCanonicalShiftCode(r.timeRange, r.shiftCode, r.otHours);
+                return (
+                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-slate-700 font-mono">{r.date}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">
+                      {r.vesselName ? (
+                        <span className="inline-flex items-center gap-1 text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
+                          {r.vesselName}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {r.position && r.position !== "-" ? (
+                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                          {r.position}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
+                    <td className="px-4 py-3 text-center font-mono text-slate-600 font-medium">
+                      {r.timeRange || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-lg border font-extrabold text-xs ${getShiftStyle(code)}`}>
+                        {code}
                       </span>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {r.position && r.position !== "-" ? (
-                      <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
-                        {r.position}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded font-black text-xs ${
+                        (r.multiplier ?? 1) >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                        (r.multiplier ?? 1) > 1 ? "bg-indigo-100 text-indigo-800 border border-indigo-200" :
+                        "bg-slate-100 text-slate-700 border border-slate-200"
+                      }`}>
+                        x{r.multiplier ?? 1}
                       </span>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
-                  <td className="px-4 py-3 text-center font-mono text-slate-600 font-medium">
-                    {r.timeRange || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded-lg border font-extrabold text-xs ${getShiftStyle(r.shiftCode)}`}>
-                      {r.shiftCode}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded font-black text-xs ${
-                      (r.multiplier ?? 1) >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
-                      (r.multiplier ?? 1) > 1 ? "bg-indigo-100 text-indigo-800 border border-indigo-200" :
-                      "bg-slate-100 text-slate-700 border border-slate-200"
-                    }`}>
-                      x{r.multiplier ?? 1}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="font-extrabold text-blue-700 text-sm">{r.otHours}</span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={r.note || "-"}>
-                    {r.note || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {r.source === "LINE_OA" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        LINE OA
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400">ระบบกะ</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="font-extrabold text-blue-700 text-sm">{r.otHours}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={r.note || "-"}>
+                      {r.note || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {r.source === "LINE_OA" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          LINE OA
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">ระบบกะ</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setRecordToDelete(r)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+                        title="ลบรายการนี้"
+                        aria-label="ลบรายการ OT"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1380,6 +1460,113 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
           </div>
         )}
       </div>
+
+      {/* Delete Record Confirmation Modal */}
+      {recordToDelete && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-ot-record-modal-title"
+          >
+            {/* Header */}
+            <div className="bg-[#0E3A66] px-6 py-4 flex items-center justify-between text-white border-b border-[#17538F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center text-red-300">
+                  <Trash2 className="w-4 h-4 text-red-300" />
+                </div>
+                <div>
+                  <h3 id="delete-ot-record-modal-title" className="text-sm font-bold tracking-tight text-white">
+                    ยืนยันการลบรายการ OT
+                  </h3>
+                  <p className="text-[11px] text-blue-200 font-medium">Delete Overtime Record</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setRecordToDelete(null)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-blue-200 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Record Summary Card */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">วันที่ปฏิบัติงาน</span>
+                  <span className="font-bold text-slate-800 font-mono">{recordToDelete.date}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">พนักงาน</span>
+                  <span className="font-bold text-slate-800">{recordToDelete.employeeName} ({recordToDelete.employeeId})</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">แผนก</span>
+                  <span className="font-semibold text-slate-700">{DEPT_LABELS[recordToDelete.deptId] || recordToDelete.deptId}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">กะ / ช่วงเวลา</span>
+                  <span className="font-bold text-slate-800">
+                    กะ {getCanonicalShiftCode(recordToDelete.timeRange, recordToDelete.shiftCode, recordToDelete.otHours)} ({recordToDelete.timeRange || "-"})
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">ชั่วโมง OT / ตัวคูณ</span>
+                  <span className="font-bold text-blue-700">
+                    {recordToDelete.otHours} ชม. (x{recordToDelete.multiplier ?? 1})
+                  </span>
+                </div>
+                {recordToDelete.vesselName && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">เรือ / หน้างาน</span>
+                    <span className="font-semibold text-slate-700">{recordToDelete.vesselName}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Warning text */}
+              <p className="text-xs text-slate-600 leading-relaxed">
+                คุณต้องการลบรายการบันทึก OT นี้ใช่หรือไม่? การดำเนินการนี้จะลบข้อมูลออกจากฐานข้อมูล Cloudflare D1 ทันที และไม่สามารถกู้คืนได้
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setRecordToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDeleteRecord}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#B3352C] hover:bg-red-700 active:scale-95 transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังลบข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>ยืนยันลบข้อมูล</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2306,34 +2493,6 @@ function HrDirectEditorView({
 }
 
 export default function App() {
-  const { isOpen: isCommandPaletteOpen, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
-  
-  const handleCommandPaletteSelect = (action: string, payload?: any) => {
-    if (action === "navigate") {
-      // payload is tab id
-      if (payload === "dashboard") {
-        setDashboardMode("executive");
-      } else if (payload === "shift") {
-        setDashboardMode("operational");
-      }
-      setActiveTab(payload);
-    } else if (action === "export_csv") {
-      const exportBtn = document.querySelector('[title="ส่งออกรายงาน (Export CSV)"]') as HTMLButtonElement;
-      if (exportBtn) exportBtn.click();
-    } else if (action === "toggle_theme") {
-      const isDark = document.documentElement.classList.contains("dark");
-      if (isDark) {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      } else {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      }
-    } else if (action === "toggle_compact") {
-      document.body.classList.toggle("compact-mode");
-    }
-  };
-
   // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("adminLoggedIn") === "true"
@@ -14909,12 +15068,6 @@ export default function App() {
           </div>
         ))}
       </div>
-
-      <CommandPalette 
-        isOpen={isCommandPaletteOpen} 
-        onClose={() => setCommandPaletteOpen(false)} 
-        onSelectOption={handleCommandPaletteSelect} 
-      />
     </div>
   );
 }
