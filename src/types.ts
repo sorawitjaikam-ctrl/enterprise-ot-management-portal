@@ -168,6 +168,7 @@ export interface DepartmentRestDayPolicy {
 
 export interface AppState {
   departments: Department[];
+  roles?: string[];
   employees: Employee[];
   shiftConfig: ShiftConfig;
   otTrendData: OtTrendData;
