@@ -87,7 +87,6 @@ let appState = {
   otTrendData: { months: [] as string[], lastYear: [] as number[], currentYear: [] as number[] },
   leaveRecords: [] as any[],
   vesselSchedules: [] as any[],
-  manpowerPositions: [] as any[],
   jobValueRecords: [
     {
       id: "JV-EMP-101", empId: "EMP-101", empName: "นายสมชาย ใจดี", department: "INTER 2", position: "Operator", status: "Active",
@@ -513,14 +512,6 @@ const initD1Database = async () => {
     await queryD1(`CREATE TABLE IF NOT EXISTS accounts (
       username TEXT PRIMARY KEY, password TEXT, name TEXT,
       role TEXT, deptId TEXT, avatar TEXT, canBackup INTEGER DEFAULT 0
-    )`);
-
-    // Manpower Positions table
-    await queryD1(`CREATE TABLE IF NOT EXISTS manpower_positions (
-      id TEXT PRIMARY KEY, empId TEXT DEFAULT '', name TEXT NOT NULL, role TEXT NOT NULL,
-      unit TEXT NOT NULL, isMgr INTEGER DEFAULT 0, isEng INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'Active', ocType TEXT DEFAULT 'OLD',
-      img TEXT DEFAULT '', createdAt TEXT, updatedAt TEXT
     )`);
 
     // Add canBackup if missing
@@ -1035,7 +1026,7 @@ app.post("/api/line-webhook", async (req, res) => {
               replyToken,
               messages: [{
                 type: "text",
-                text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nรหัสพนักงาน 668126\nชื่อนามสกุล นาย สุทัศน์ พุทธเสน\nตำแหน่ง ช่างเครื่อง\nแผนก ปากเรือ\nวันที่ 04/10/2569\n00:00-08:00=8×1\n08:00-16:00=8×3\nหมายเหตุ งานเทียบเรือ"
+                text: "สวัสดีครับ 👋 ระบบบันทึก OT อัตโนมัติ\n\nหากต้องการยื่นขอ OT กรุณาส่งตามรูปแบบตัวอย่างดังนี้ครับ:\n\nขออนุมัติทำงานล่วงเวลา\nM.V.\"PEDHOULAS TRADER\"\nรหัสพนักงาน 668126\nชื่อนามสกุล นาย สุทัศน์ พุทธเสน\nตำแหน่ง ช่างเครื่อง\nแผนก ปากเรือ\nวันที่ 04/10/2569\nเวลา 00:00-08:00=8×1\nเวลา 08:00-16:00=8×3\nหมายเหตุ งานเทียบเรือ"
               }]
             })
           }).catch(() => {});
@@ -1799,117 +1790,8 @@ app.post("/api/clear-mock-data", async (req, res) => {
       ];
       saveLocalDb();
     }
-    res.json({ success: true, message: "ล้างข้อมูล Mock Data ทั้งหมดเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================================
-// Manpower & OC Analytics Positions
-// ============================================================
-app.get("/api/manpower", async (req, res) => {
-  try {
-    if (isD1Enabled()) {
-      const rows = await queryD1("SELECT * FROM manpower_positions ORDER BY id ASC");
-      const positions = (rows || []).map((r: any) => ({
-        id: r.id,
-        empId: r.empId || "",
-        name: r.name,
-        role: r.role,
-        unit: r.unit,
-        isMgr: Boolean(r.isMgr),
-        isEng: Boolean(r.isEng),
-        status: r.status || "Active",
-        ocType: r.ocType || "OLD",
-        img: r.img || null
-      }));
-      return res.json({ success: true, positions });
-    }
-    return res.json({ success: true, positions: appState.manpowerPositions || [] });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/manpower", async (req, res) => {
-  try {
-    const pos = req.body.position || req.body;
-    if (!pos || !pos.id) return res.status(400).json({ error: "Missing position id" });
-
-    if (isD1Enabled()) {
-      await queryD1(
-        `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "",
-          pos.isMgr ? 1 : 0, pos.isEng ? 1 : 0, pos.status || "Active",
-          pos.ocType || "OLD", pos.img || "", new Date().toISOString()
-        ]
-      );
-    } else {
-      const idx = appState.manpowerPositions.findIndex((p: any) => p.id === pos.id);
-      if (idx >= 0) {
-        appState.manpowerPositions[idx] = { ...appState.manpowerPositions[idx], ...pos };
-      } else {
-        appState.manpowerPositions.push(pos);
-      }
-      saveLocalDb();
-    }
-    res.json({ success: true, message: "บันทึกตำแหน่งงานเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/manpower/bulk", async (req, res) => {
-  try {
-    const positions = req.body.positions || [];
-    if (isD1Enabled()) {
-      await queryD1("DELETE FROM manpower_positions");
-      for (const pos of positions) {
-        await queryD1(
-          `INSERT OR REPLACE INTO manpower_positions (id, empId, name, role, unit, isMgr, isEng, status, ocType, img, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            pos.id, pos.empId || "", pos.name || "", pos.role || "", pos.unit || "",
-            pos.isMgr ? 1 : 0, pos.isEng ? 1 : 0, pos.status || "Active",
-            pos.ocType || "OLD", pos.img || "", new Date().toISOString()
-          ]
-        );
-      }
-    } else {
-      appState.manpowerPositions = [...positions];
-      saveLocalDb();
-    }
-    res.json({ success: true, count: positions.length, message: "บันทึกโครงสร้างอัตรากำลังเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete("/api/manpower/:id?", async (req, res) => {
-  try {
-    const id = req.params.id || (req.query.id as string);
-    const clearAll = req.query.clearAll === 'true' || req.query.clear_all === 'true' || id === "all" || id === "clear-all";
-    if (isD1Enabled()) {
-      if (clearAll) {
-        await queryD1("DELETE FROM manpower_positions");
-      } else if (id) {
-        await queryD1("DELETE FROM manpower_positions WHERE id = ?", [id]);
-      }
-    } else {
-      if (clearAll) {
-        appState.manpowerPositions = [];
-      } else if (id) {
-        appState.manpowerPositions = appState.manpowerPositions.filter((p: any) => p.id !== id);
-      }
-      saveLocalDb();
-    }
-    res.json({ success: true, message: "ลบตำแหน่งงานเรียบร้อยแล้ว" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+    res.json({ success: true, message: "รีเซ็ตฐานข้อมูลเรียบร้อย" });
+  } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============================================================
