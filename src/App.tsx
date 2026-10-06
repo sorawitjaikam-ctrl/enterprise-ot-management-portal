@@ -4160,9 +4160,11 @@ export default function App() {
   });
 
   // Fetch initial portal state
-  const fetchPortalState = async (monthOverride?: string) => {
+  const fetchPortalState = async (monthOverride?: string, forceLoading: boolean = false) => {
     try {
-      setLoading(true);
+      if (forceLoading || !state) {
+        setLoading(true);
+      }
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
@@ -4224,10 +4226,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.username) {
       fetchAccounts();
     }
-  }, [currentUser]);
+  }, [currentUser?.username]);
 
   useEffect(() => {
     if (currentUser && currentUser.deptId !== "all") {
@@ -4246,7 +4248,7 @@ export default function App() {
     } else {
       setSelectedDeptFilter("ทุกแผนก");
     }
-  }, [currentUser]);
+  }, [currentUser?.deptId]);
 
   // Job Value CSV Export & Import Handlers
   const handleExportJobValueCsv = () => {

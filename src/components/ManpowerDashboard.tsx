@@ -226,7 +226,6 @@ export default function ManpowerDashboard({
         });
         if (res.ok) {
           setSyncStatus("synced");
-          onRefreshPortalState?.();
         } else {
           setSyncStatus("offline");
         }
