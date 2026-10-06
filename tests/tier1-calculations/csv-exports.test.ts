@@ -63,12 +63,13 @@ describe('Tier 1: 6 CSV Export Routines & RFC 4180 Integrity', () => {
     expect(templateIds).toContain('leave_records');
     expect(templateIds).toContain('ot_history');
 
-    // Check Employee Roster Template (20 columns)
+    // Check Employee Roster Template (Pure Employee Info only, no shifts)
     const empTmpl = csvTemplatesList.find(t => t.id === 'employee_roster')!;
-    expect(empTmpl.headers.length).toBe(20);
+    expect(empTmpl.headers.length).toBe(16);
     expect(empTmpl.headers).toContain('salary');
-    expect(empTmpl.headers).toContain('calendarType');
-    expect(empTmpl.headers).toContain('shifts');
+    expect(empTmpl.headers).toContain('role');
+    expect(empTmpl.headers).not.toContain('shifts');
+    expect(empTmpl.headers).not.toContain('groupName');
 
     // Check Job Value Template (45 columns)
     const jvTmpl = csvTemplatesList.find(t => t.id === 'job_value')!;

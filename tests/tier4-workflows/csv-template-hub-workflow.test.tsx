@@ -13,7 +13,7 @@ describe('Tier 4: CSV Template Hub Multi-File Download Workflow', () => {
 
     expect(screen.getByText('ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV (CSV Template Hub)')).toBeInTheDocument();
     expect(screen.getAllByText(/ดาวน์โหลดแม่แบบ/).length).toBeGreaterThanOrEqual(5);
-    expect(screen.getByText(/20 คอลัมน์/)).toBeInTheDocument();
+    expect(screen.getByText(/16 คอลัมน์/)).toBeInTheDocument();
     expect(screen.getByText(/45 คอลัมน์/)).toBeInTheDocument();
   });
 

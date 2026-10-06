@@ -34,25 +34,25 @@ export const csvTemplatesList = [
   {
     id: "employee_roster",
     title: "1. แม่แบบรายชื่อพนักงาน (Employee Roster)",
-    desc: "ไฟล์แม่แบบสำหรับเพิ่ม/แก้ไขรายชื่อพนักงาน ข้อมูลเงินเดือน สิทธิ์ OT วันเริ่มงาน และประเภทปฏิทิน",
+    desc: "ไฟล์แม่แบบสำหรับเพิ่ม/แก้ไขรายชื่อและประวัติพนักงาน ข้อมูลเงินเดือน วันเริ่มงาน และสถานะการจ้างงาน (เฉพาะข้อมูลประวัติพนักงาน ไม่มีข้อมูลกะ)",
     filename: "employee_roster_template.csv",
-    badge: "พนักงาน & เงินเดือน",
+    badge: "ข้อมูลพนักงาน & เงินเดือน",
     badgeBg: "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]",
     headers: [
       "id", "prefix", "firstName", "lastName", "nickname", "role", "deptId", "division",
-      "salary", "targetOt", "birthday", "age", "startDate", "tenure", "probationDate",
-      "calendarType", "employmentStatus", "resignationDate", "groupName", "shifts"
+      "salary", "birthday", "age", "startDate", "tenure", "probationDate",
+      "employmentStatus", "resignationDate"
     ],
     sampleRows: [
       [
         "EMP-101", "นาย", "สมชาย", "สายงาน", "ชาย", "ผู้ควบคุมงานขนถ่ายสินค้า", "inter2", "ฝ่ายการผลิต",
-        25000, 48, "1990-05-15", 36, "2020-01-15", "6 ปี", "2020-05-15",
-        "ปฏิทินกะ 4-on-2-off", "Active", "", "", '["M12","M12","A12","A12","OFF","OFF"]'
+        25000, "1990-05-15", 36, "2020-01-15", "6 ปี", "2020-05-15",
+        "Active", ""
       ],
       [
         "EMP-102", "นางสาว", "วิภา", "รักงาน", "ภา", "พนักงานขับเครน", "inter3", "ฝ่ายปฏิบัติการ",
-        22000, 48, "1993-08-20", 33, "2021-03-01", "5 ปี", "2021-07-01",
-        "ปฏิทินกะ 4-on-2-off", "Active", "", "", '["A12","A12","N12","N12","OFF","OFF"]'
+        22000, "1993-08-20", 33, "2021-03-01", "5 ปี", "2021-07-01",
+        "Active", ""
       ]
     ]
   },

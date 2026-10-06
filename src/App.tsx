@@ -5000,12 +5000,12 @@ export default function App() {
         return;
       }
         
-        // Define CSV headers
+        // Define CSV headers (Pure Employee Info only - no shift schedule data)
         const headers = [
           "รหัสพนักงาน", "คำนำหน้า", "ชื่อ", "นามสกุล", "ชื่อเล่น",
           "ตำแหน่ง", "แผนก", "ฝ่าย", "ฐานเงินเดือน ปี 2568", "วันเกิด",
-          "อายุตัว", "คำนวณอายุตัว", "วันเริ่มงาน", "อายุงาน", "วันที่ผ่านทดลองงาน", "ปฏิทินทำงาน",
-          "เป้าหมาย OT", "กลุ่มการทำงาน", "รหัสกะรายวัน"
+          "อายุตัว", "คำนวณอายุตัว", "วันเริ่มงาน", "อายุงาน", "วันที่ผ่านทดลองงาน",
+          "สถานะการจ้างงาน", "วันที่ลาออก"
         ];
         
         // Helper to escape values for CSV
@@ -5019,14 +5019,13 @@ export default function App() {
 
         const DEPT_LABELS: Record<string, string> = {
           inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
-          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "CONTROL"
+          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
         };
 
         let csvContent = "\ufeff"; // Add BOM for Excel Thai language support
         csvContent += headers.join(",") + "\n";
 
         employees.forEach((emp: any) => {
-          const shiftsStr = Array.isArray(getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth)) ? getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth).join(",") : "";
           const row = [
             escapeCsv(emp.id),
             escapeCsv(emp.prefix || ""),
@@ -5043,10 +5042,8 @@ export default function App() {
             escapeCsv(emp.startDate || ""),
             escapeCsv(emp.tenure || ""),
             escapeCsv(emp.probationDate || ""),
-            escapeCsv(emp.calendarType || ""),
-            emp.targetOt ?? 48,
-            escapeCsv(emp.groupName || ""),
-            escapeCsv(shiftsStr)
+            escapeCsv(emp.employmentStatus || "Active"),
+            escapeCsv(emp.resignationDate || "")
           ];
           csvContent += row.join(",") + "\n";
         });
@@ -5138,10 +5135,12 @@ export default function App() {
         const startDateIdx   = getColIndex("startDate",     ["วันเริ่มงาน"]);
         const tenureIdx      = getColIndex("tenure",        ["อายุงาน"]);
         const probationIdx   = getColIndex("probationDate", ["วันที่ผ่านทดลองงาน", "ผ่านโปร"]);
-        const calendarIdx    = getColIndex("calendarType",  ["ปฏิทินทำงาน"]);
-        const targetOtIdx    = getColIndex("targetOt",     ["เป้าหมาย OT", "เป้าหมาย"]);
-        const groupNameIdx   = getColIndex("groupName",    ["กลุ่มการทำงาน", "กลุ่ม"]);
-        const shiftsIdx      = getColIndex("shifts",       ["รหัสกะรายวัน", "รหัสกะ"]);
+        const statusIdx      = getColIndex("employmentStatus", ["สถานะการจ้างงาน", "สถานะ"]);
+        const resignIdx      = getColIndex("resignationDate",  ["วันที่ลาออก"]);
+        const calendarIdx    = getColIndex("calendarType",     ["ปฏิทินทำงาน"]);
+        const targetOtIdx    = getColIndex("targetOt",         ["เป้าหมาย OT", "เป้าหมาย"]);
+        const groupNameIdx   = getColIndex("groupName",        ["กลุ่มการทำงาน", "กลุ่ม"]);
+        const shiftsIdx      = getColIndex("shifts",           ["รหัสกะรายวัน", "รหัสกะ"]);
 
         if (idIdx === -1) {
           alert("โครงสร้างหัวตาราง CSV ไม่ถูกต้อง อย่างน้อยต้องมีคอลัมน์: รหัสพนักงาน");
@@ -5206,12 +5205,16 @@ export default function App() {
           const startDate   = startDateIdx !== -1 ? (values[startDateIdx]?.trim() || "") : "";
           const tenure      = tenureIdx !== -1 ? (values[tenureIdx]?.trim() || "") : "";
           const probationDate = probationIdx !== -1 ? (values[probationIdx]?.trim() || "") : "";
-          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "ปฏิทินกะ 4-on-2-off") : "ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)";
+          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)") : "วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)";
+          const employmentStatus = statusIdx !== -1 ? (values[statusIdx]?.trim() || "Active") : "Active";
+          const resignationDate = resignIdx !== -1 ? (values[resignIdx]?.trim() || "") : "";
 
           const targetOt    = targetOtIdx !== -1 ? (Number(values[targetOtIdx]) || 48) : 48;
           const groupName   = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "") : "";
           
-          let shifts: string[] = [];
+          // Preserve existing shifts if employee already exists, never overwrite with blank unless shifts column provided
+          const existingEmp = (state?.employees || []).find(e => e.id === id);
+          let shifts: string[] = existingEmp?.shifts || [];
           if (shiftsIdx !== -1) {
             const rawShifts = values[shiftsIdx]?.trim() || "";
             if (rawShifts) {
@@ -5221,7 +5224,8 @@ export default function App() {
 
           parsedEmployees.push({
             id, name, deptId, role, targetOt, groupName, shifts,
-            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
+            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
+            employmentStatus, resignationDate
           });
         }
 
@@ -5230,7 +5234,7 @@ export default function App() {
           return;
         }
 
-        if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
+        if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำเข้าข้อมูลพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV?`)) {
           return;
         }
 
