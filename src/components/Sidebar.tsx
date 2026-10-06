@@ -30,6 +30,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
     { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
+    { id: "manpower",   label: "โครงสร้างอัตรากำลัง (2-3 ทีม)", icon: Building2 },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
     { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
     ...(isHrOrFullAccess ? [

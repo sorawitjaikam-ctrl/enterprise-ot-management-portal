@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Users,
   TrendingUp,
+  Building2,
   ClipboardList,
   BarChart3,
   ShieldCheck,
@@ -92,12 +93,13 @@ export default function Navbar({
     { id: "shifts", num: "03", label: "ตารางจัดกะพนักงาน", icon: Calendar },
     { id: "employees", num: "04", label: "รายชื่อพนักงาน", icon: Users },
     { id: "job_value", num: "05", label: "โครงสร้าง Job Value", icon: TrendingUp },
-    { id: "leave-records", num: "06", label: "บันทึกวันลา", icon: ClipboardList },
-    { id: "ot-records", num: "07", label: "ประวัติ OT จากกะ", icon: Calendar },
+    { id: "manpower", num: "06", label: "โครงสร้างอัตรากำลัง", icon: Building2 },
+    { id: "leave-records", num: "07", label: "บันทึกวันลา", icon: ClipboardList },
+    { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ", icon: Calendar },
     ...(isHrOrFullAccess ? [
-      { id: "hr-editor", num: "08", label: "ข้อมูล & รายได้", icon: FileText },
-      { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
-      { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
+      { id: "hr-editor", num: "09", label: "ข้อมูล & รายได้", icon: FileText },
+      { id: "admin-permissions", num: "10", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
+      { id: "settings", num: "11", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
   ];
 

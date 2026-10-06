@@ -77,6 +77,7 @@ import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
 import Navbar from "./components/Navbar";
+import ManpowerDashboard from "./components/ManpowerDashboard";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
@@ -6241,6 +6242,7 @@ export default function App() {
           title={
             activeTab === "dashboard" ? "Dashboard" : 
             activeTab === "job_value" ? "Job Value" :
+            activeTab === "manpower" ? "การวางแผนโครงสร้างอัตรากำลังและวิเคราะห์กรอบตำแหน่ง (Manpower & OC Analytics)" :
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
@@ -8133,6 +8135,20 @@ export default function App() {
                 </div>
               </div>
             </ErrorBoundary>
+          )}
+
+          {/* ======================================= */}
+          {/* VIEW: MANPOWER & HEADCOUNT ANALYTICS */}
+          {/* ======================================= */}
+          {activeTab === "manpower" && (
+            <ManpowerDashboard 
+              employees={state?.employees || []}
+              onSyncEmployees={(updatedEmps) => {
+                setState((prev: any) => prev ? { ...prev, employees: updatedEmps } : prev);
+                setTempEmployees(updatedEmps);
+              }}
+              onRefreshPortalState={fetchPortalState}
+            />
           )}
 
           {/* ======================================= */}

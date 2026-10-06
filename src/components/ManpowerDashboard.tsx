@@ -856,7 +856,7 @@ export default function ManpowerDashboard({
                 : "text-[#6A7B87] hover:text-[#0E3A66] hover:bg-white/60"
             }`}
           >
-            3 Teams (Full OC)
+            3 ทีม (3 Teams - Full OC)
           </button>
           <button
             onClick={() => setShiftMode("2T")}
@@ -866,7 +866,7 @@ export default function ManpowerDashboard({
                 : "text-[#6A7B87] hover:text-[#0E3A66] hover:bg-white/60"
             }`}
           >
-            2 Teams (Base OC)
+            2 ทีม (2 Teams - Base OC)
           </button>
         </div>
       </div>
