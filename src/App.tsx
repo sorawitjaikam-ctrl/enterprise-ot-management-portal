@@ -8567,7 +8567,7 @@ export default function App() {
                         <div>
                           <div className="flex justify-between items-start">
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 font-mono uppercase">
-                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType})
+                              {vs.type === "vessel" ? `Vessel (${vs.planType})` : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? `PM (${vs.planType})` : `CM (${vs.planType})`}
                             </span>
                             <span className="text-[10px] font-bold text-slate-400">{vs.startDate}</span>
                           </div>
@@ -9683,7 +9683,7 @@ export default function App() {
                         <button onClick={() => setShowVesselModal(true)}
                           className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
                           <Ship className="w-4 h-4 text-white" />
-                          <span>ตารางเรือ</span>
+                          <span>Vessel / Crane</span>
                         </button>
                       </div>
                     )}
@@ -10102,40 +10102,36 @@ export default function App() {
                     </div>
 
 
-                    {/* ตารางเรือ Vessel & Crane Section (Maritime Operations Header) */}
+                    {/* Vessel & Ship Crane Section (Maritime Operations Header) */}
                     <div className="bg-[#0E3A66] px-4 py-2.5 border-b border-[#17538F] flex flex-wrap justify-between items-center gap-2 text-white sticky left-0 z-20 shadow-maritime-xs">
                       <div className="flex items-center gap-2.5">
                         <div className="w-6 h-6 rounded bg-[#17538F] border border-[#2E90CB]/40 flex items-center justify-center text-[#9FCEE8]">
                           <Ship className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold tracking-tight text-white">
-                            ตารางเทียบเรือสินค้า & เครนหน้าท่า (Vessel & Ship Crane Schedule)
+                          <span className="text-xs font-bold tracking-tight text-white uppercase font-mono">
+                            Vessel & Ship Crane Schedule
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#17538F] border border-[#2E90CB]/30 text-[#9FCEE8] tabular-nums">
-                            {vesselSchedules.length > 0 ? `${vesselSchedules.length} ลำในแผนงาน` : "พร้อมปฏิบัติการ"}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#17538F] border border-[#2E90CB]/30 text-[#9FCEE8] tabular-nums font-mono">
+                            {vesselSchedules.length > 0 ? `${vesselSchedules.length} Operations` : "Operational Ready"}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
                         {/* Legend Indicators */}
-                        <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-300 font-bold">
+                        <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-300 font-bold font-sans">
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-sky-200 border border-sky-400"></span>
-                            <span>เรือ Plan</span>
+                            <span>Vessel Plan</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-[#17538F] border border-blue-400"></span>
-                            <span>เรือ Actual</span>
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span>
-                            <span>เครน Plan</span>
+                            <span>Vessel Actual</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-teal-600 border border-teal-400"></span>
-                            <span>เครน Actual</span>
+                            <span>Ship Crane</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-purple-600 border border-purple-400"></span>
@@ -10150,11 +10146,11 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setShowVesselModal(true)}
-                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm cursor-pointer"
-                          title="คลิกเพื่อเปิดหน้าต่างจัดการเพิ่มหรือแก้ไขตารางเรือ เครน และงานซ่อมบำรุง PM/CM"
+                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm cursor-pointer font-sans"
+                          title="Manage schedule, vessel berthing, cranes and PM/CM maintenance"
                         >
                           <Plus className="w-3 h-3" />
-                          <span>จัดการตารางงาน / PM / CM</span>
+                          <span>Schedule / PM / CM</span>
                         </button>
                       </div>
                     </div>
@@ -10163,8 +10159,8 @@ export default function App() {
                       { 
                         type: "vessel", 
                         planType: "plan", 
-                        title: "แผนเรือเทียบท่า", 
-                        sub: "Vessel Schedule", 
+                        title: "Vessel Schedule", 
+                        sub: "Berth Plan", 
                         tag: "PLAN", 
                         tagColor: "bg-sky-100 text-sky-800 border-sky-300", 
                         icon: Ship,
@@ -10173,8 +10169,8 @@ export default function App() {
                       { 
                         type: "vessel", 
                         planType: "actual", 
-                        title: "เรือเข้าเทียบจริง", 
-                        sub: "Berth Actual", 
+                        title: "Berth Actual", 
+                        sub: "Actual Operation", 
                         tag: "ACTUAL", 
                         tagColor: "bg-blue-600 text-white border-blue-700", 
                         icon: Ship,
@@ -10182,20 +10178,10 @@ export default function App() {
                       },
                       { 
                         type: "crane", 
-                        planType: "plan", 
-                        title: "แผนงานเครน", 
-                        sub: "Ship Crane Plan", 
-                        tag: "PLAN", 
-                        tagColor: "bg-amber-100 text-amber-800 border-amber-300", 
-                        icon: Anchor,
-                        barBg: "bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-dashed border-amber-400 text-amber-950 shadow-xs"
-                      },
-                      { 
-                        type: "crane", 
-                        planType: "actual", 
-                        title: "เครนทำงานจริง", 
-                        sub: "Crane Actual", 
-                        tag: "ACTUAL", 
+                        planType: "all", 
+                        title: "Ship Crane", 
+                        sub: "Quayside Crane", 
+                        tag: "CRANE", 
                         tagColor: "bg-teal-700 text-white border-teal-800", 
                         icon: Anchor,
                         barBg: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white shadow-sm font-extrabold"
@@ -10250,7 +10236,7 @@ export default function App() {
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/90 flex items-center justify-between px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
-                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-teal-100 text-teal-800"
                             }`}>
                               <row.icon className="w-3.5 h-3.5" />
                             </div>
@@ -10293,9 +10279,7 @@ export default function App() {
                                 return {
                                   icon: Anchor,
                                   typeLabel: "CRANE",
-                                  bgClass: planType === "actual"
-                                    ? "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white font-extrabold shadow-sm"
-                                    : "bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-dashed border-amber-400 text-amber-950 shadow-xs"
+                                  bgClass: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white font-extrabold shadow-sm"
                                 };
                               }
                               return {
@@ -10307,15 +10291,13 @@ export default function App() {
                               };
                             };
 
-                            const activeVesselList = vesselSchedules.filter(
-                              (v) =>
-                                (row.type === "vessel"
-                                  ? (v.type === "vessel" || v.type === "pm" || v.type === "cm")
-                                  : v.type === row.type) &&
-                                v.planType === row.planType &&
-                                dateStr >= v.startDate &&
-                                dateStr <= v.endDate
-                            );
+                            const activeVesselList = vesselSchedules.filter((v) => {
+                              if (dateStr < v.startDate || dateStr > v.endDate) return false;
+                              if (row.type === "crane") {
+                                return v.type === "crane";
+                              }
+                              return (v.type === "vessel" || v.type === "pm" || v.type === "cm") && v.planType === row.planType;
+                            });
 
                             if (activeVesselList.length === 1) {
                               const activeVS = activeVesselList[0];
@@ -10339,7 +10321,7 @@ export default function App() {
                                     className={`w-full h-7 flex items-center justify-center relative select-none transition-all ${
                                       isStart ? "rounded-l-md ml-0.5" : ""
                                     } ${isEnd ? "rounded-r-md mr-0.5" : ""} ${style.bgClass}`}
-                                    title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} ตัน` : ""}`}
+                                    title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} - ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} Tons` : ""}`}
                                   >
                                     {isStart && (
                                       <div className="absolute left-2 flex items-center gap-1.5 z-10 pointer-events-none whitespace-nowrap">
@@ -10349,7 +10331,7 @@ export default function App() {
                                         </span>
                                         {ton > 0 && (
                                           <span className="text-[8.5px] font-mono font-bold px-1 py-0.2 rounded bg-black/20 text-white/90">
-                                            {(ton / 1000).toFixed(1)}k ตัน
+                                            {(ton / 1000).toFixed(1)}k Tons
                                           </span>
                                         )}
                                       </div>
@@ -10380,7 +10362,7 @@ export default function App() {
                                         className={`w-full h-3 flex items-center relative select-none transition-all ${
                                           isStart ? "rounded-l-sm ml-0.5" : ""
                                         } ${isEnd ? "rounded-r-sm mr-0.5" : ""} ${style.bgClass}`}
-                                        title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})`}
+                                        title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} - ${activeVS.endDate})`}
                                       >
                                         {isStart && (
                                           <div className="absolute left-1 flex items-center gap-1 z-10 pointer-events-none whitespace-nowrap">
@@ -10419,7 +10401,7 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
                                 <CheckCircle2 className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">กะตรงตามแผน (Plan Accuracy)</span>
+                              <span className="font-extrabold text-slate-700">Plan Accuracy</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-20 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
@@ -10435,10 +10417,10 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
                                 <Clock className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">ชั่วโมง OT สะสมรวมแผนก</span>
+                              <span className="font-extrabold text-slate-700">Total OT Hours</span>
                             </div>
                             <span className="bg-blue-50 text-blue-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-blue-200 shadow-2xs">
-                              {totalDeptOt} ชม.
+                              {totalDeptOt} hrs
                             </span>
                           </div>
                         )}
@@ -10448,24 +10430,16 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
                                 <Users className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">กำลังพลทำงานเฉลี่ย (Avg Staff)</span>
+                              <span className="font-extrabold text-slate-700">Operational Staff</span>
                             </div>
-                            <span className="bg-indigo-50 text-indigo-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-indigo-200 shadow-2xs">
-                              {avgWorkersPerDay} คน/วัน
-                            </span>
-                          </div>
-                        )}
-                        {rIdx === 3 && (
-                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
                             <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
-                                <UserCheck className="w-3 h-3" />
-                              </div>
-                              <span className="font-extrabold text-slate-700">จำนวนกำลังพลปฏิบัติการ</span>
+                              <span className="bg-indigo-50 text-indigo-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-indigo-200 shadow-2xs" title="Average Workers Per Day">
+                                Avg {avgWorkersPerDay} / day
+                              </span>
+                              <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs" title="Total Department Active Staff">
+                                Total {totalActiveStaff}
+                              </span>
                             </div>
-                            <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs">
-                              {totalActiveStaff} คน
-                            </span>
                           </div>
                         )}
                       </div>
@@ -11887,8 +11861,8 @@ export default function App() {
                   <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold font-sans">ตารางเทียบเรือ เครน และงานบำรุงรักษา (PM / CM)</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
+                  <h3 className="text-base font-extrabold font-sans">Vessel, Ship Crane & Maintenance Schedule (PM / CM)</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-sans">Department: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
                 </div>
               </div>
               <button 
@@ -11904,14 +11878,14 @@ export default function App() {
               
               {/* Form to add new schedule */}
               <form onSubmit={handleSaveVesselSchedule} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                   <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                  เพิ่มรายการเข้าเทียบเรือ / เครน / งานบำรุงรักษา (PM/CM)
+                  Add Vessel / Ship Crane / Maintenance (PM/CM)
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ประเภท</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
                     <select
                       value={newVesselType}
                       onChange={(e) => {
@@ -11919,35 +11893,43 @@ export default function App() {
                         setNewVesselType(val);
                         if (val === "pm") setNewVesselColor("#c084fc");
                         else if (val === "cm") setNewVesselColor("#f43f5e");
-                        else if (val === "crane") setNewVesselColor("#99f6e4");
+                        else if (val === "crane") setNewVesselColor("#0d9488");
                         else setNewVesselColor("#fef08a");
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
                     >
-                      <option value="vessel">ตารางเรือ Vessel</option>
-                      <option value="crane">Ship crane</option>
-                      <option value="pm">งานบำรุงรักษา PM (Preventive Maintenance)</option>
-                      <option value="cm">งานซ่อมบำรุง CM (Corrective Maintenance)</option>
+                      <option value="vessel">Vessel</option>
+                      <option value="crane">Ship Crane</option>
+                      <option value="pm">Preventive Maintenance (PM)</option>
+                      <option value="cm">Corrective Maintenance (CM)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แผนงาน / ทำงานจริง</label>
-                    <select
-                      value={newVesselPlanType}
-                      onChange={(e) => setNewVesselPlanType(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-                    >
-                      <option value="plan">Plan</option>
-                      <option value="actual">Actual</option>
-                    </select>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      {newVesselType === "crane" ? "Operational Mode" : "Plan / Actual"}
+                    </label>
+                    {newVesselType === "crane" ? (
+                      <div className="w-full px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl text-xs font-black text-teal-800">
+                        Ship Crane (Direct Operation)
+                      </div>
+                    ) : (
+                      <select
+                        value={newVesselPlanType}
+                        onChange={(e) => setNewVesselPlanType(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="plan">Plan</option>
+                        <option value="actual">Actual</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                      {newVesselType === "vessel" ? "ชื่อเรือสินค้า" : newVesselType === "crane" ? "ชื่อเครน / รายละเอียดงาน" : newVesselType === "pm" ? "ชื่องานบำรุงรักษา PM" : "ชื่องานซ่อมบำรุง CM"}
+                      {newVesselType === "vessel" ? "Vessel Name" : newVesselType === "crane" ? "Ship Crane / Task Details" : newVesselType === "pm" ? "PM Maintenance Task" : "CM Maintenance Task"}
                     </label>
                     <input
                       type="text"
@@ -11956,25 +11938,25 @@ export default function App() {
                       onChange={(e) => setNewVesselName(e.target.value)}
                       placeholder={
                         newVesselType === "vessel"
-                          ? "เช่น MV Golden Friend"
+                          ? "e.g. MV Golden Friend"
                           : newVesselType === "crane"
-                          ? "เช่น ตรวจสอบสายพานเครน 1"
+                          ? "e.g. Ship Crane 1 - Berth A"
                           : newVesselType === "pm"
-                          ? "เช่น แผนงาน PM ตรวจสภาพประจำรอบ"
-                          : "เช่น งานซ่อม CM เปลี่ยนมอเตอร์เร่งด่วน"
+                          ? "e.g. Routine Inspection PM"
+                          : "e.g. Motor Urgent Replacement CM"
                       }
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                      {newVesselType === "vessel" || newVesselType === "crane" ? "ปริมาณงาน (ตัน / Tons)" : "ปริมาณงาน / ชิ้น (ถ้ามี)"}
+                      {newVesselType === "vessel" || newVesselType === "crane" ? "Cargo Volume (Tons)" : "Volume / Qty (Optional)"}
                     </label>
                     <input
                       type="number"
                       value={newVesselTonnage}
                       onChange={(e) => setNewVesselTonnage(e.target.value)}
-                      placeholder="เช่น 15000"
+                      placeholder="e.g. 15000"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                     />
                   </div>
@@ -11982,7 +11964,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่เริ่ม</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Start Date</label>
                     <input
                       type="date"
                       required
@@ -11993,7 +11975,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่สิ้นสุด</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">End Date</label>
                     <input
                       type="date"
                       required
@@ -12006,17 +11988,14 @@ export default function App() {
 
                 <div className="flex items-center justify-between pt-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แถบสีการแสดงผล</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Display Color</label>
                     <div className="flex items-center gap-2">
                       {[
-                        { hex: "#fef08a", label: "เหลือง (เรือ Plan)" },
-                        { hex: "#bfdbfe", label: "ฟ้า (เรือ Actual)" },
-                        { hex: "#fde68a", label: "เหลืองทอง (เครน Plan)" },
-                        { hex: "#99f6e4", label: "เขียวมิ้นท์ (เครน Actual)" },
-                        { hex: "#e9d5ff", label: "ม่วงอ่อน (PM Plan)" },
-                        { hex: "#c084fc", label: "ม่วงเข้ม (PM Actual)" },
-                        { hex: "#fecdd3", label: "ชมพูอ่อน (CM Plan)" },
-                        { hex: "#f43f5e", label: "แดงกุหลาบ (CM Actual)" }
+                        { hex: "#fef08a", label: "Yellow (Vessel Plan)" },
+                        { hex: "#bfdbfe", label: "Blue (Vessel Actual)" },
+                        { hex: "#0d9488", label: "Teal (Ship Crane)" },
+                        { hex: "#c084fc", label: "Purple (PM)" },
+                        { hex: "#f43f5e", label: "Rose (CM)" }
                       ].map((c) => (
                         <button
                           key={c.hex}
@@ -12034,21 +12013,21 @@ export default function App() {
                     type="submit"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md shadow-amber-500/10 cursor-pointer"
                   >
-                    + เพิ่มในตาราง
+                    + Add to Schedule
                   </button>
                 </div>
               </form>
 
               {/* List of existing vessel schedules for current month/dept */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 font-sans">
                   <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                  รายการตารางในเดือนนี้ ({vesselSchedules.length} รายการ)
+                  Current Month Schedule ({vesselSchedules.length} Items)
                 </h4>
 
                 {vesselSchedules.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
-                    ไม่มีรายการเทียบเรือ การใช้เครน หรืองาน PM/CM ในแผนกและเดือนนี้
+                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-sans">
+                    No vessel berthing, crane, or PM/CM maintenance items found for this department and month.
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
@@ -12065,12 +12044,12 @@ export default function App() {
                               {vs.tonnage > 0 && (
                                 <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[10px] font-extrabold font-mono flex items-center gap-1">
                                   <Package className="w-3 h-3 text-amber-600 inline" />
-                                  <span>{Number(vs.tonnage).toLocaleString()} ตัน</span>
+                                  <span>{Number(vs.tonnage).toLocaleString()} Tons</span>
                                 </span>
                               )}
                             </div>
                             <p className="text-[10px] text-slate-500 mt-0.5 font-sans">
-                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType.toUpperCase()}) | {vs.startDate} ถึง {vs.endDate}
+                              {vs.type === "vessel" ? `Vessel (${vs.planType?.toUpperCase() || "PLAN"})` : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? `PM (${vs.planType?.toUpperCase() || "PLAN"})` : `CM (${vs.planType?.toUpperCase() || "PLAN"})`} | {vs.startDate} to {vs.endDate}
                             </p>
                           </div>
                         </div>
@@ -12079,7 +12058,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleDeleteVesselSchedule(vs.id)}
                           className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="ลบรายการ"
+                          title="Delete item"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -12095,9 +12074,9 @@ export default function App() {
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowVesselModal(false)}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer font-sans"
               >
-                ปิดหน้าต่าง
+                Close
               </button>
             </div>
 
