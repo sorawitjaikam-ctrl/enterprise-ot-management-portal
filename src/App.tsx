@@ -78,6 +78,7 @@ import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
 import Navbar from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
+import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
@@ -1566,8 +1567,18 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
   );
 }
 
-function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { empId: string; empName?: string; avatarUrl?: string; className?: string }) {
-  const cleanId = String(empId || "").trim();
+function EmployeeAvatar({ 
+  empId, 
+  empName, 
+  avatarUrl, 
+  className = "w-9 h-9" 
+}: { 
+  empId: string; 
+  empName?: string; 
+  avatarUrl?: string; 
+  className?: string; 
+}) {
+  const cleanId = String(empId || "").replace(/^EMP[-_]?/i, "").trim();
   
   // Build deduplicated candidate image URLs list
   const candidates = useMemo(() => {
@@ -1594,12 +1605,14 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
   }, [cleanId, avatarUrl]);
 
   const [candidateIndex, setCandidateIndex] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [hasFailedAll, setHasFailedAll] = useState(false);
 
   useEffect(() => {
     setCandidateIndex(0);
+    setIsLoaded(false);
     setHasFailedAll(false);
-  }, [candidates]);
+  }, [cleanId, avatarUrl]);
 
   // Clean name without Thai/Eng honorific prefixes for nice monogram initials
   const cleanName = (empName || "")
@@ -1644,27 +1657,32 @@ function EmployeeAvatar({ empId, empName, avatarUrl, className = "w-9 h-9" }: { 
     });
   };
 
-  if (hasFailedAll || !currentSrc || candidateIndex >= candidates.length) {
-    return (
+  return (
+    <div 
+      title={empName || empId}
+      className={`${className} relative rounded-full flex-shrink-0 select-none overflow-hidden shadow-sm`}
+    >
+      {/* Monogram fallback (always rendered underneath, zero layout shift) */}
       <div 
-        title={empName || empId}
-        className={`${className} rounded-full bg-gradient-to-br ${selectedGradient} border-2 border-white/60 text-white font-black flex items-center justify-center text-xs flex-shrink-0 shadow-md select-none`}
+        className={`w-full h-full rounded-full bg-gradient-to-br ${selectedGradient} border border-white/60 text-white font-black flex items-center justify-center text-[10px] sm:text-xs leading-none`}
       >
         {initials}
       </div>
-    );
-  }
 
-  return (
-    <img 
-      key={`${cleanId}-${currentSrc}`}
-      src={currentSrc} 
-      alt={cleanName || cleanId}
-      referrerPolicy="no-referrer"
-      loading="lazy"
-      onError={handleImgError}
-      className={`${className} rounded-full object-cover border-2 border-white/80 flex-shrink-0 shadow-md`}
-    />
+      {/* Real photo overlay (fades in cleanly on load, hidden if error or loading) */}
+      {!hasFailedAll && currentSrc && (
+        <img 
+          key={currentSrc}
+          src={currentSrc} 
+          alt=""
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onLoad={() => setIsLoaded(true)}
+          onError={handleImgError}
+          className={`absolute inset-0 w-full h-full rounded-full object-cover border border-white/80 transition-opacity duration-200 ${isLoaded ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        />
+      )}
+    </div>
   );
 }
 
@@ -6163,11 +6181,15 @@ export default function App() {
     const empMgr = state.employees.find(e => e.deptId === deptId && (e.role.includes("Manager") || e.role.includes("หัวหน้า") || e.role.includes("Supervisor")));
     
     if (mgr) {
+      const matchedEmp = state.employees.find(e => 
+        e.id === mgr.username || 
+        (e.name && mgr.name && e.name.trim().toLowerCase() === mgr.name.trim().toLowerCase())
+      );
       return {
-        username: mgr.username,
+        username: matchedEmp?.id || mgr.username,
         name: mgr.name,
         role: mgr.role,
-        avatar: mgr.avatar
+        avatar: mgr.avatar || matchedEmp?.avatar || ""
       };
     }
     if (empMgr) {
@@ -7802,707 +7824,23 @@ export default function App() {
           )}
 
           {/* ======================================= */}
-          {/* VIEW: JOB VALUE & EXECUTIVE DASHBOARD */}
+          {/* VIEW: JOB VALUE SPREADSHEET & CORPORATE EVALUATION */}
           {/* ======================================= */}
-          {(activeTab === "job_value" || activeTab === "jobValue" || activeTab === "hr-editor") && (
+          {(activeTab === "job_value" || activeTab === "jobValue") && (
             <ErrorBoundary>
-              <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-                {/* Header card with database & import/export controls */}
-                <div className="bezel-shell">
-                  <div className="bezel-core p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                    <div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="eyebrow block">JOB VALUE &amp; COMPENSATION ENGINE</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 mt-0.5">
-                        <h3 className="text-base sm:text-lg font-bold text-[#0E3A66]">โครงสร้างคุณค่าตำแหน่งงาน</h3>
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F6F0] border border-[#A5DCC5] text-[#1E9C6E] text-xs font-bold flex items-center gap-1">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          <span>ปี 2026</span>
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#59656D] mt-1 leading-relaxed max-w-2xl">
-                        ตรวจสอบคุณค่าตำแหน่งงาน ประเมินรายได้ ต้นทุน และกำไรรายบุคคลและแผนก
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      {isHrOrFullAccess && (
-                        <>
-                          {/* CSV Template Hub */}
-                          <button
-                            type="button"
-                            onClick={() => setIsCsvTemplateHubOpen(true)}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#E8F3FA] hover:bg-[#9FCEE8]/50 text-[#0E3A66] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#9FCEE8] btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
-                            title="ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับ Job Value และเมนูอื่น"
-                          >
-                            <FileSpreadsheet className="w-3.5 h-3.5 text-[#17538F]" />
-                            <span>แม่แบบ CSV</span>
-                          </button>
-
-                          {/* Export CSV */}
-                          <button
-                            type="button"
-                            onClick={handleExportJobValueCsv}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#F3F6F8] hover:bg-[#DCE4EA] text-[#333B41] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
-                            title="ส่งออกข้อมูล Job Value เป็นไฟล์ CSV"
-                          >
-                            <Download className="w-3.5 h-3.5 text-[#17538F]" />
-                            <span>ส่งออกข้อมูล CSV</span>
-                          </button>
-
-                          {/* Import CSV */}
-                          <label 
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-maritime-sm btn-press btn-bezel min-h-[36px]"
-                            title="อัพโหลดไฟล์ CSV เพื่อนำเข้าข้อมูล Job Value"
-                          >
-                            <Upload className="w-3.5 h-3.5 text-[#9FCEE8]" />
-                            <span>{importJvLoading ? "กำลังนำเข้า..." : "นำเข้าข้อมูล CSV"}</span>
-                            <input
-                              type="file"
-                              accept=".csv"
-                              onChange={handleImportJobValueCsv}
-                              className="hidden"
-                              disabled={importJvLoading}
-                            />
-                          </label>
-
-                          {/* Clear D1 Data */}
-                          {safeJobValueRecords.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={handleClearJobValueData}
-                              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#FBEAEA] hover:bg-[#F4B8B4]/40 text-[#B3352C] rounded-lg text-xs font-bold transition-colors cursor-pointer border border-[#F4B8B4] btn-press btn-bezel min-h-[36px]"
-                              title="ล้างข้อมูล Job Value ทั้งหมดในฐานข้อมูล D1"
-                              disabled={importJvLoading}
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-[#B3352C]" />
-                              <span>ล้างข้อมูลทั้งหมด</span>
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* KPI Stat Cards (4 Cards) */}
-                {(() => {
-                  const targetDeptFilter = !isHrOrFullAccess && currentUser?.deptId 
-                    ? getDeptName(currentUser.deptId, state?.departments) 
-                    : financialChartDeptFilter;
-
-                  const scopedEmpList = (() => {
-                    const list: any[] = [...(state?.employees || [])];
-                    for (const jv of safeJobValueRecords) {
-                      const exists = list.some(e => matchesEmpJv(jv, e));
-                      if (!exists) {
-                        list.push({
-                          id: jv.empId || jv.id,
-                          name: jv.empName || (jv as any).name || jv.empId,
-                          role: jv.position || "Operator",
-                          deptId: jv.deptId || jv.department || "inter2",
-                          department: jv.department || "INTER 2",
-                          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
-                          employmentStatus: jv.status || "Active",
-                          shifts: []
-                        });
-                      }
-                    }
-                    return list.filter(e => {
-                      if (!isJvDepartment(e.department || e.deptId)) return false;
-                      if (!isJvRole(e.role)) return false;
-                      if (!isHrOrFullAccess && currentUser?.deptId) {
-                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
-                      }
-                      if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
-                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
-                      }
-                      return true;
-                    });
-                  })();
-
-                  const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
-
-                  // Dynamic breakdowns for all scoped employees connecting shift overtime (1.5x, 3.0x, 1.0x)
-                  const dynamicBreakdowns: EmployeeJobValueBreakdown[] = scopedEmpList.map(emp => {
-                    const matchingJv = safeJobValueRecords.find(r => matchesEmpJv(r, emp));
-                    return getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
-                  });
-
-                  const totalBaseSalary = dynamicBreakdowns.reduce((sum, b) => sum + b.baseSalary, 0);
-                  const totalOtPay = dynamicBreakdowns.reduce((sum, b) => sum + b.monthlyOtPay, 0);
-                  const totalLaborCost = dynamicBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0);
-                  const totalRevenue = dynamicBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0);
-                  const totalValueAdd = totalRevenue - totalLaborCost;
-                  const revenueCostRatio = totalLaborCost > 0 ? Number((totalRevenue / totalLaborCost).toFixed(2)) : 0;
-                  const profitMarginPct = totalRevenue > 0 ? Number(((totalValueAdd / totalRevenue) * 100).toFixed(1)) : 0;
-                  const avgCostPerPerson = scopedEmpList.length > 0 ? Math.round(totalLaborCost / scopedEmpList.length) : 0;
-
-                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
-                      <div className="bezel-shell">
-                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">รายได้ประเมินรวม</span>
-                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalRevenue.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
-                          <span className="sub text-[11px] text-[#59656D] mt-1">ประมาณการจาก {scopedEmpList.length} บุคลากร (เฉลี่ย {scopedEmpList.length > 0 ? Math.round(totalRevenue / scopedEmpList.length).toLocaleString() : 0} /คน)</span>
-                        </div>
-                      </div>
-                      <div className="bezel-shell">
-                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">ต้นทุนแรงงานรวมต่อเดือน</span>
-                          <span className="val text-2xl font-bold font-mono text-[#B3352C] tabular-nums mt-1">{totalLaborCost.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
-                          <span className="sub text-[11px] text-[#59656D] mt-1">ฐานเงินเดือน {totalBaseSalary.toLocaleString()} + OT จริง {totalOtPay.toLocaleString()} THB</span>
-                        </div>
-                      </div>
-                      <div className="bezel-shell">
-                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">คุณค่าเพิ่มจากการดำเนินงาน</span>
-                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{totalValueAdd.toLocaleString()}<span className="text-xs font-normal text-[#59656D]"> THB</span></span>
-                          <span className="sub text-[11px] text-[#59656D] mt-1">อัตรากำไรจากการดำเนินงาน {profitMarginPct}%</span>
-                        </div>
-                      </div>
-                      <div className="bezel-shell">
-                        <div className="bezel-core p-4.5 flex flex-col justify-between h-full">
-                          <span className="lbl text-[11px] font-bold text-[#6A7B87] uppercase tracking-wider">สัดส่วนรายได้ต่อต้นทุน (Rev / Cost)</span>
-                          <span className="val text-2xl font-bold font-mono text-[#0E3A66] tabular-nums mt-1">{revenueCostRatio}x <span className="text-xs font-normal text-[#6A7B87]">เท่า</span></span>
-                          <span className="sub text-[11px] text-[#59656D] mt-1">เฉลี่ย {avgCostPerPerson.toLocaleString()} THB / คน / เดือน</span>
-                        </div>
-                      </div>
-                    </div>
+              <JobValueSpreadsheetView
+                currentUser={currentUser}
+                isHrOrFullAccess={isHrOrFullAccess}
+                onOpenEmployeeDetails={(emp) => {
+                  const matched = (state?.employees || []).find(e => 
+                    e.id === emp.empId || 
+                    (e.name && emp.name && e.name.trim().toLowerCase() === emp.name.trim().toLowerCase())
                   );
-                })()}
-
-                {/* Role-Level Economic & Value Ratios Section */}
-                {(() => {
-                  const targetDeptFilter = !isHrOrFullAccess && currentUser?.deptId 
-                    ? getDeptName(currentUser.deptId, state?.departments) 
-                    : financialChartDeptFilter;
-
-                  const scopedEmpList = (() => {
-                    const list: any[] = [...(state?.employees || [])];
-                    for (const jv of safeJobValueRecords) {
-                      const exists = list.some(e => matchesEmpJv(jv, e));
-                      if (!exists) {
-                        list.push({
-                          id: jv.empId || jv.id,
-                          name: jv.empName || (jv as any).name || jv.empId,
-                          role: jv.position || "Operator",
-                          deptId: jv.deptId || jv.department || "inter2",
-                          department: jv.department || "INTER 2",
-                          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
-                          employmentStatus: jv.status || "Active",
-                          shifts: []
-                        });
-                      }
-                    }
-                    return list.filter(e => {
-                      if (!isJvDepartment(e.department || e.deptId)) return false;
-                      if (!isJvRole(e.role)) return false;
-                      if (!isHrOrFullAccess && currentUser?.deptId) {
-                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(currentUser.deptId)) return false;
-                      }
-                      if (targetDeptFilter && targetDeptFilter !== "ทุกแผนก") {
-                        if (normalizeDeptId(e.deptId) !== normalizeDeptId(targetDeptFilter)) return false;
-                      }
-                      return true;
-                    });
-                  })();
-
-                  const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
-                  const roleSummaries = getRoleJobValueSummaries(scopedEmpList, currentMonth, safeJobValueRecords);
-
-                  if (roleSummaries.length === 0) return null;
-
-                  return (
-                    <div className="bezel-shell">
-                      <div className="bezel-core p-5 sm:p-6 space-y-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DCE4EA] pb-4">
-                          <div>
-                            <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
-                              <TrendingUp className="w-5 h-5 text-[#2E90CB]" />
-                              <span>สัดส่วนคุณค่าและผลประกอบการรายตำแหน่งงาน</span>
-                            </h4>
-                            <p className="text-xs text-[#59656D] mt-1">
-                              วิเคราะห์ต้นทุนแรงงานจริง (ฐานเงินเดือน + ค่าล่วงเวลา) เทียบรายได้ประเมินและสัดส่วน Revenue / Cost แยกตามตำแหน่ง
-                            </p>
-                          </div>
-                          <span className="px-3 py-1 bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold rounded-full self-start md:self-auto font-mono">
-                            {roleSummaries.length} ตำแหน่งงาน
-                          </span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse min-w-[850px]">
-                            <thead>
-                              <tr className="bg-[#F3F6F8] border-b border-[#DCE4EA] text-[11px] font-bold text-[#333B41] uppercase tracking-wider">
-                                <th className="px-3.5 py-2.5">ตำแหน่งงาน</th>
-                                <th className="px-3 py-2.5 text-center w-24">จำนวนคน</th>
-                                <th className="px-3.5 py-2.5 text-right">ฐานเงินเดือนเฉลี่ย</th>
-                                <th className="px-3.5 py-2.5 text-right">ชม. OT รวม</th>
-                                <th className="px-3.5 py-2.5 text-right text-[#B3352C] font-bold">ต้นทุนแรงงานรวม</th>
-                                <th className="px-3.5 py-2.5 text-right text-[#1E9C6E] font-bold">รายได้ประเมินรวม</th>
-                                <th className="px-3.5 py-2.5 text-right text-[#0E3A66] font-bold">คุณค่าเพิ่มสุทธิ</th>
-                                <th className="px-3.5 py-2.5 text-center">สัดส่วน Rev/Cost</th>
-                                <th className="px-3.5 py-2.5 text-center">อัตรากำไร %</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#DCE4EA] text-xs font-mono">
-                              {roleSummaries.map(r => (
-                                <tr key={r.role} className="hover:bg-[#E8F3FA]/50 transition-colors">
-                                  <td className="px-3.5 py-2.5 font-sans font-bold text-[#333B41]">{r.role}</td>
-                                  <td className="px-3 py-2.5 text-center font-sans">
-                                    <span className="px-2 py-0.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded text-[11px] font-bold text-[#59656D]">
-                                      {r.headcount} คน
-                                    </span>
-                                  </td>
-                                  <td className="px-3.5 py-2.5 text-right text-[#59656D]">{r.avgBaseSalary.toLocaleString()}</td>
-                                  <td className="px-3.5 py-2.5 text-right text-[#59656D]">{r.totalOtHours.toLocaleString()} ชม.</td>
-                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#B3352C]">{r.totalLaborCost.toLocaleString()}</td>
-                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#1E9C6E]">{r.totalRevenue.toLocaleString()}</td>
-                                  <td className="px-3.5 py-2.5 text-right font-bold text-[#0E3A66]">{r.operationalValueAdd.toLocaleString()}</td>
-                                  <td className="px-3.5 py-2.5 text-center">
-                                    <span className="px-2 py-0.5 bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] rounded font-bold text-[11px]">
-                                      {r.revenueCostRatio}x
-                                    </span>
-                                  </td>
-                                  <td className="px-3.5 py-2.5 text-center font-sans font-bold">
-                                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${r.profitMarginPct >= 0 ? "bg-[#E8F6F0] text-[#1E9C6E] border border-[#A5DCC5]" : "bg-[#FBEAEA] text-[#B3352C] border border-[#F4B8B4]"}`}>
-                                      {r.profitMarginPct}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Department Job Value Summary Section */}
-                <div className="bezel-shell">
-                  <div className="bezel-core p-5 sm:p-6 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DCE4EA] pb-4">
-                      <div>
-                        <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-[#2E90CB]" />
-                          <span>สรุปข้อมูลคุณค่าตำแหน่งงาน (Job Value) และผลตอบแทน แยกรายแผนก</span>
-                        </h4>
-                        <p className="text-xs text-[#59656D] mt-1">เปรียบเทียบผลประกอบการสะสม 2568 - 2569 รายแผนกย่อย</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                      {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(deptName => {
-                        if (isHrOrFullAccess) return true;
-                        return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(deptName);
-                      }).map(deptName => {
-                        const targetDeptId = normalizeDeptId(deptName);
-                        const safeJv = jobValueRecords || [];
-                        const deptJvRecords = safeJv.filter(r => 
-                          (r.department === deptName || 
-                          normalizeDeptId(r.department) === targetDeptId ||
-                          normalizeDeptId(r.deptId) === targetDeptId) &&
-                          isJvRole(r.position)
-                        );
-                        const empList = (state.employees || []).filter(e => 
-                          (normalizeDeptId(e.deptId) === targetDeptId || 
-                          normalizeDeptId(e.department) === targetDeptId ||
-                          e.deptId === deptName ||
-                          e.department === deptName) &&
-                          isJvRole(e.role)
-                        );
-
-                        const currentMonth = state?.shiftConfig?.currentMonth || "2026-08";
-                        const deptBreakdowns = empList.map(e => {
-                          const matchingJv = safeJv.find(r => matchesEmpJv(r, e));
-                          return getEmployeeJobValueBreakdown(e, currentMonth, matchingJv);
-                        });
-
-                        let count = Math.max(deptJvRecords.length, empList.length);
-                        let totalRev = deptBreakdowns.length > 0
-                          ? deptBreakdowns.reduce((sum, b) => sum + b.monthlyRevenue, 0)
-                          : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgRevenue) || 0), 0);
-                        let totalCost = deptBreakdowns.length > 0
-                          ? deptBreakdowns.reduce((sum, b) => sum + b.totalLaborCost, 0)
-                          : deptJvRecords.reduce((sum, r) => sum + (Number(r.avgCost) || 0), 0);
-                        let p26 = (totalRev - totalCost);
-                        let p25 = deptJvRecords.length > 0
-                          ? deptJvRecords.reduce((sum, r) => sum + (Number(r.profit2025) || 0), 0)
-                          : Math.round(p26 * 0.88);
-
-                        const diff = p26 - p25;
-                        const isGrowth = diff >= 0;
-
-                        return (
-                          <div key={deptName} className="bg-[#F3F6F8] rounded-xl p-4 border border-[#DCE4EA] hover:border-[#9FCEE8] transition-all space-y-3">
-                            <div className="flex justify-between items-center pb-2 border-b border-[#DCE4EA]">
-                              <span className="font-bold text-[#0E3A66] text-sm">แผนก {deptName}</span>
-                              <span className="px-2 py-0.5 bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] rounded text-[10px] font-bold">
-                                {count} บุคลากร
-                              </span>
-                            </div>
-
-                            <div className="space-y-1.5 text-xs font-mono">
-                              <div className="flex justify-between">
-                                <span className="text-[#59656D] font-sans">รายได้เฉลี่ย/เดือน:</span>
-                                <span className="font-bold text-[#1E9C6E]">{totalRev.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-[#59656D] font-sans">ต้นทุนเฉลี่ย/เดือน:</span>
-                                <span className="font-bold text-[#B3352C]">{totalCost.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between pt-1 border-t border-[#DCE4EA]">
-                                <span className="text-[#59656D] font-sans">กำไรสะสม 2568:</span>
-                                <span className="font-bold text-[#59656D]">{p25.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-[#59656D] font-sans">กำไรสะสม 2569:</span>
-                                <span className="font-bold text-[#0E3A66]">{p26.toLocaleString()}</span>
-                              </div>
-                            </div>
-
-                            <div className={`p-2 rounded-lg text-[11px] font-bold text-center border ${
-                              isGrowth ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#A5DCC5]" : "bg-[#FBEAEA] text-[#B3352C] border-[#F4B8B4]"
-                            }`}>
-                              {isGrowth ? `ต่อยอด (+${diff.toLocaleString()})` : `ไม่ต่อยอด (-${Math.abs(diff).toLocaleString()})`}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Monthly Performance Trend & Financial Chart */}
-                <div className="bezel-shell">
-                  <div className="bezel-core p-5 sm:p-6 space-y-5">
-                    {/* Chart Header & Filter Controls */}
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-base font-bold text-[#0E3A66] flex items-center gap-2">
-                          <span>เปรียบเทียบผลประกอบการรายเดือน (Monthly Financial Breakdown 2026)</span>
-                        </h4>
-                        <p className="text-xs text-[#59656D] mt-0.5">
-                          เปรียบเทียบแนวโน้ม รายได้ (Revenue), ต้นทุน (Cost), และกำไร (Profit) สุภาพการเงินรายเดือน
-                        </p>
-                      </div>
-
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
-                      {/* Department Selector Filter */}
-                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1.5 text-xs font-bold border border-[#DCE4EA] shrink-0">
-                        <span className="text-[#59656D] pl-2 font-sans">แผนก:</span>
-                        <select
-                          value={financialChartDeptFilter}
-                          disabled={!isHrOrFullAccess}
-                          onChange={(e) => setFinancialChartDeptFilter(e.target.value)}
-                          className="bg-white text-[#0E3A66] border border-[#DCE4EA] rounded-md py-1 px-2.5 text-xs font-bold shadow-xs focus:ring-0 cursor-pointer disabled:opacity-80"
-                        >
-                          {isHrOrFullAccess && <option value="ทุกแผนก">ทุกแผนก (รวมทั้งหมด)</option>}
-                          {["INTER 2", "INTER 3", "INTER 5", "INTER 7"].filter(dept => {
-                            if (isHrOrFullAccess) return true;
-                            return normalizeDeptId(currentUser?.deptId) === normalizeDeptId(dept);
-                          }).map(dept => (
-                            <option key={dept} value={dept}>แผนก {dept}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Active Months vs 12 Months Filter */}
-                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1 text-xs font-bold border border-[#DCE4EA] shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setFinancialChartOnlyActiveMonths(true)}
-                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap btn-press ${
-                            financialChartOnlyActiveMonths 
-                              ? "bg-white text-[#0E3A66] shadow-xs font-bold border border-[#DCE4EA]" 
-                              : "text-[#59656D] hover:text-[#0E3A66]"
-                          }`}
-                        >
-                          เฉพาะเดือนที่มีข้อมูล
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFinancialChartOnlyActiveMonths(false)}
-                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap btn-press ${
-                            !financialChartOnlyActiveMonths 
-                              ? "bg-white text-[#0E3A66] shadow-xs font-bold border border-[#DCE4EA]" 
-                              : "text-[#59656D] hover:text-[#0E3A66]"
-                          }`}
-                        >
-                          แสดงทั้ง 12 เดือน
-                        </button>
-                      </div>
-
-                      {/* Trend Line vs Bar Chart Toggle */}
-                      <div className="bg-[#F3F6F8] p-1 rounded-lg flex items-center gap-1 text-xs font-bold border border-[#DCE4EA] shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setFinancialChartViewType("trend")}
-                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 btn-press ${
-                            financialChartViewType === "trend" 
-                              ? "bg-[#0E3A66] text-white shadow-xs font-bold" 
-                              : "text-[#59656D] hover:text-[#0E3A66]"
-                          }`}
-                        >
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          <span>กราฟแนวโน้ม (Trend Line)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFinancialChartViewType("bar")}
-                          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 btn-press ${
-                            financialChartViewType === "bar" 
-                              ? "bg-[#0E3A66] text-white shadow-xs font-bold" 
-                              : "text-[#59656D] hover:text-[#0E3A66]"
-                          }`}
-                        >
-                          <BarChart3 className="w-3.5 h-3.5" />
-                          <span>กราฟแท่ง (Bar)</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const filteredJvByDept = safeJobValueRecords.filter(r => {
-                      if (!isJvDepartment(r.department || r.deptId)) return false;
-                      if (!isJvRole(r.position)) return false;
-                      if (financialChartDeptFilter === "ทุกแผนก") return true;
-                      const targetDeptId = normalizeDeptId(financialChartDeptFilter);
-                      return r.department === financialChartDeptFilter || 
-                             normalizeDeptId(r.department) === targetDeptId ||
-                             normalizeDeptId(r.deptId) === targetDeptId;
-                    });
-
-                    const allMonthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    const allMonthData = allMonthLabels.map((m, idx) => {
-                      const monthRev = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyRevenue || [])[idx]) || 0), 0);
-                      const monthCost = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyCost || [])[idx]) || 0), 0);
-                      const monthProf = filteredJvByDept.reduce((sum, r) => sum + (Number((r?.monthlyProfit || [])[idx]) || 0), 0);
-                      return { month: m, idx, rev: monthRev, cost: monthCost, prof: monthProf, hasData: monthRev > 0 || monthCost > 0 || monthProf > 0 };
-                    });
-
-                    // Filter active months
-                    const filteredData = financialChartOnlyActiveMonths 
-                      ? allMonthData.filter(d => d.hasData)
-                      : allMonthData;
-
-                    const displayData = filteredData.length > 0 ? filteredData : allMonthData.slice(0, 6);
-                    const maxVal = Math.max(1, ...displayData.map(d => Math.max(d.rev, d.cost, d.prof)));
-
-                    return (
-                      <div className="space-y-4 pt-2 border-t border-[#DCE4EA]">
-                        {/* CHART CANVAS */}
-                        {financialChartViewType === "trend" ? (
-                          /* SVG TREND LINE CHART */
-                          <div className="w-full bg-[#F3F6F8] rounded-xl p-4 border border-[#DCE4EA] overflow-x-auto">
-                            <div className="min-w-[600px] h-[260px] relative flex flex-col justify-between">
-                              <svg className="w-full h-[220px] overflow-visible" viewBox="0 0 800 220" preserveAspectRatio="none">
-                                <defs>
-                                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#1E9C6E" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="#1E9C6E" stopOpacity="0.0" />
-                                  </linearGradient>
-                                  <linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#B3352C" stopOpacity="0.2" />
-                                    <stop offset="100%" stopColor="#B3352C" stopOpacity="0.0" />
-                                  </linearGradient>
-                                  <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#0E3A66" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="#0E3A66" stopOpacity="0.0" />
-                                  </linearGradient>
-                                </defs>
-
-                                {/* Background Grid Lines */}
-                                <line x1="40" y1="30" x2="760" y2="30" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
-                                <line x1="40" y1="80" x2="760" y2="80" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
-                                <line x1="40" y1="130" x2="760" y2="130" stroke="#DCE4EA" strokeDasharray="4 4" strokeWidth="1" />
-                                <line x1="40" y1="180" x2="760" y2="180" stroke="#B4C1C9" strokeWidth="1.5" />
-
-                                {/* SVG Polylines & Data Area Paths */}
-                                {(() => {
-                                  const n = displayData.length;
-                                  const getX = (i: number) => 50 + (i * (700 / Math.max(1, n - 1)));
-                                  const getY = (val: number) => 180 - Math.round((val / maxVal) * 140);
-
-                                  const revPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.rev) }));
-                                  const costPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.cost) }));
-                                  const profPts = displayData.map((d, i) => ({ x: getX(i), y: getY(d.prof) }));
-
-                                  const makePath = (pts: { x: number; y: number }[]) => {
-                                    if (pts.length === 0) return "";
-                                    let path = `M ${pts[0].x} ${pts[0].y}`;
-                                    for (let i = 0; i < pts.length - 1; i++) {
-                                      const p0 = pts[i];
-                                      const p1 = pts[i + 1];
-                                      const cpX1 = p0.x + (p1.x - p0.x) / 2;
-                                      const cpX2 = p0.x + (p1.x - p0.x) / 2;
-                                      path += ` C ${cpX1} ${p0.y}, ${cpX2} ${p1.y}, ${p1.x} ${p1.y}`;
-                                    }
-                                    return path;
-                                  };
-
-                                  const revPath = makePath(revPts);
-                                  const costPath = makePath(costPts);
-                                  const profPath = makePath(profPts);
-
-                                  const revArea = revPts.length > 0 ? `${revPath} L ${revPts[revPts.length - 1].x} 180 L ${revPts[0].x} 180 Z` : "";
-                                  const costArea = costPts.length > 0 ? `${costPath} L ${costPts[costPts.length - 1].x} 180 L ${costPts[0].x} 180 Z` : "";
-                                  const profArea = profPts.length > 0 ? `${profPath} L ${profPts[profPts.length - 1].x} 180 L ${profPts[0].x} 180 Z` : "";
-
-                                  return (
-                                    <>
-                                      {/* Area fills */}
-                                      <path d={revArea} fill="url(#revGrad)" />
-                                      <path d={costArea} fill="url(#costGrad)" />
-                                      <path d={profArea} fill="url(#profGrad)" />
-
-                                      {/* Trend Lines */}
-                                      <path d={revPath} fill="none" stroke="#1E9C6E" strokeWidth="3.5" strokeLinecap="round" />
-                                      <path d={costPath} fill="none" stroke="#B3352C" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 5" />
-                                      <path d={profPath} fill="none" stroke="#0E3A66" strokeWidth="3.5" strokeLinecap="round" />
-
-                                      {/* Data Dots & Interactive Circles */}
-                                      {displayData.map((d, i) => {
-                                        const px = getX(i);
-                                        const ry = getY(d.rev);
-                                        const cy = getY(d.cost);
-                                        const py = getY(d.prof);
-
-                                        return (
-                                          <g key={d.month} className="group/dot cursor-pointer">
-                                            {/* Vertical hover line */}
-                                            <line x1={px} y1="30" x2={px} y2="180" stroke="#B4C1C9" strokeDasharray="3 3" strokeWidth="1.5" className="opacity-0 group-hover/dot:opacity-100 transition-opacity" />
-
-                                            {/* Revenue Dot */}
-                                            <circle cx={px} cy={ry} r="5" fill="#1E9C6E" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
-                                            {/* Cost Dot */}
-                                            <circle cx={px} cy={cy} r="4" fill="#B3352C" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-6" />
-                                            {/* Profit Dot */}
-                                            <circle cx={px} cy={py} r="5" fill="#0E3A66" stroke="#ffffff" strokeWidth="2" className="transition-transform group-hover/dot:r-7" />
-                                          </g>
-                                        );
-                                      })}
-                                    </>
-                                  );
-                                })()}
-                              </svg>
-
-                              {/* X-Axis Month Labels */}
-                              <div className="flex justify-between px-[50px] text-xs font-bold text-[#333B41] pt-2 border-t border-[#DCE4EA]">
-                                {displayData.map(d => (
-                                  <div key={d.month} className="text-center">
-                                    <span>{d.month}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          /* BAR CHART VIEW */
-                          <div className="grid gap-3 pt-2" style={{ gridTemplateColumns: `repeat(${displayData.length}, minmax(0, 1fr))` }}>
-                            {displayData.map((d) => {
-                              const revPct = Math.round((d.rev / maxVal) * 100);
-                              const costPct = Math.round((d.cost / maxVal) * 100);
-                              const profPct = Math.round((d.prof / maxVal) * 100);
-
-                              return (
-                                <div key={d.month} className="flex flex-col items-center gap-2 group">
-                                  <div className="h-36 w-full bg-[#F3F6F8] rounded-xl flex items-end justify-center p-1.5 gap-1 relative overflow-hidden border border-[#DCE4EA] shadow-inner">
-                                    <div 
-                                      className="w-1/3 bg-[#1E9C6E] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
-                                      style={{ height: `${Math.max(10, Math.min(100, revPct))}%` }}
-                                      title={`Revenue (${d.month}): ${d.rev.toLocaleString()}`}
-                                    />
-                                    <div 
-                                      className="w-1/3 bg-[#B3352C] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
-                                      style={{ height: `${Math.max(8, Math.min(100, costPct))}%` }}
-                                      title={`Cost (${d.month}): ${d.cost.toLocaleString()}`}
-                                    />
-                                    <div 
-                                      className="w-1/3 bg-[#0E3A66] rounded-t transition-all duration-300 group-hover:brightness-110 shadow-xs" 
-                                      style={{ height: `${Math.max(5, Math.min(100, profPct))}%` }}
-                                      title={`Profit (${d.month}): ${d.prof.toLocaleString()}`}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-bold text-[#333B41]">{d.month}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Chart Legend */}
-                        <div className="flex flex-wrap items-center justify-center gap-6 pt-3 text-xs font-bold border-t border-[#DCE4EA]">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-[#1E9C6E]" />
-                            <span className="text-[#333B41]">Revenue (รายได้เฉลี่ยรวม)</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-[#B3352C] border border-dashed border-[#B3352C]" />
-                            <span className="text-[#333B41]">Cost (ต้นทุนเฉลี่ยรวม)</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-[#0E3A66]" />
-                            <span className="text-[#333B41]">Profit (กำไรสุทธิ)</span>
-                          </div>
-                        </div>
-
-                        {/* Monthly Exact Numbers Pill Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-3">
-                          {displayData.map(d => (
-                            <div key={d.month} className="bg-[#F3F6F8] rounded-xl p-3 border border-[#DCE4EA] space-y-1 text-left font-mono">
-                              <div className="flex justify-between items-center pb-1 border-b border-[#DCE4EA] font-sans">
-                                <span className="font-bold text-[#0E3A66] text-xs">{d.month}</span>
-                                <span className="text-[10px] font-bold text-[#6A7B87]">2026</span>
-                              </div>
-                              <div className="text-[11px] space-y-0.5 pt-1">
-                                <div className="flex justify-between">
-                                  <span className="text-[#59656D] font-sans">รายได้:</span>
-                                  <span className="font-bold text-[#1E9C6E]">{d.rev.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-[#59656D] font-sans">ต้นทุน:</span>
-                                  <span className="font-bold text-[#B3352C]">{d.cost.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between pt-0.5 border-t border-[#DCE4EA]">
-                                  <span className="text-[#59656D] font-sans">กำไร:</span>
-                                  <span className="font-bold text-[#0E3A66]">{d.prof.toLocaleString()}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  </div>
-                </div>
-
-                {/* Relocation Notice Card & Navigation to Tab 08 for HR */}
-                {/* Embedded Direct Editor & Compensation Management */}
-                {isHrOrFullAccess && (
-                  <div className="mt-6">
-                    <HrDirectEditorView 
-                      currentUser={currentUser} 
-                      state={state}
-                      jobValueRecords={jobValueRecords}
-                      setJobValueRecords={setJobValueRecords}
-                      fetchJobValueRecords={fetchJobValueRecords}
-                      onOpenEmployeeDetails={(emp) => setViewingEmployeeDetails(emp)}
-                      onOpenSalaryFormulaEmployee={(params) => setViewingSalaryFormulaEmployee(params)}
-                      onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
-                      onExportCsv={handleExportJobValueCsv}
-                      onImportCsv={handleImportJobValueCsv}
-                      onClearD1Data={handleClearJobValueData}
-                      importLoading={importJvLoading}
-                    />
-                  </div>
-                )}
-              </div>
+                  if (matched) {
+                    setViewingEmployeeDetails(matched);
+                  }
+                }}
+              />
             </ErrorBoundary>
           )}
 
