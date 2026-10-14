@@ -52,6 +52,19 @@ const GROUPS_ORDER = [
   "อายุงานน้อยกว่า 1 ปี"
 ];
 
+
+// Formatter strictly suppressing decimals (whole integers only)
+export const formatInt = (val: number | null | undefined): string => {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  return Math.round(Number(val)).toLocaleString("en-US", { maximumFractionDigits: 0 });
+};
+
+export const formatSignedInt = (val: number | null | undefined): string => {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  const rounded = Math.round(Number(val));
+  return (rounded > 0 ? "+" : "") + rounded.toLocaleString("en-US", { maximumFractionDigits: 0 });
+};
+
 export default function JobValueSpreadsheetView({
   currentUser,
   isHrOrFullAccess,
@@ -170,13 +183,13 @@ export default function JobValueSpreadsheetView({
           if (row[1]) {
             const mRev25 = [];
             const mProf25 = [];
-            for (let c = 8; c <= 19; c++) mRev25.push(Number(row[c]) || 0);
-            for (let c = 21; c <= 32; c++) mProf25.push(Number(row[c]) || 0);
+            for (let c = 8; c <= 19; c++) mRev25.push(Math.round(Number(row[c]) || 0));
+            for (let c = 21; c <= 32; c++) mProf25.push(Math.round(Number(row[c]) || 0));
 
             const mRev26 = [];
             const mProf26 = [];
-            for (let c = 34; c <= 45; c++) mRev26.push(Number(row[c]) || 0);
-            for (let c = 47; c <= 58; c++) mProf26.push(Number(row[c]) || 0);
+            for (let c = 34; c <= 45; c++) mRev26.push(Math.round(Number(row[c]) || 0));
+            for (let c = 47; c <= 58; c++) mProf26.push(Math.round(Number(row[c]) || 0));
 
             let sDate = "";
             if (row[7]) {
@@ -216,8 +229,8 @@ export default function JobValueSpreadsheetView({
               rankSubgroup: row[68] || null,
               rankMainGroup: row[69] || null,
               eval2025: row[70] ? String(row[70]).trim() : "",
-              leaves2026: Number(row[72]) || 0,
-              leaves2025: Number(row[73]) || 0,
+              leaves2026: Math.round(Number(row[72]) || 0),
+              leaves2025: Math.round(Number(row[73]) || 0),
               criteria1_1: row[75] || (Number(row[61]) > 0 ? "กำไรต่อยอด" : "ไม่ต่อยอด"),
               criteria1_2: row[76] || "",
               criteria1_3: row[77] || "",
@@ -228,9 +241,9 @@ export default function JobValueSpreadsheetView({
               criteria3_1: row[84] || "",
               criteria3_2: row[85] || "",
               adjStatus: row[87] ? String(row[87]).trim() : (Number(row[61]) > 0 ? "ปรับ" : "ไม่ปรับ"),
-              adjBeforeCap: Number(row[88]) || 0,
-              adjBaseSalary: Number(row[89]) || 0,
-              adjCapJv: Number(row[90]) || 0,
+              adjBeforeCap: Math.round(Number(row[88]) || 0),
+              adjBaseSalary: Math.round(Number(row[89]) || 0),
+              adjCapJv: Math.round(Number(row[90]) || 0),
               note: row[91] ? String(row[91]).trim() : ""
             });
           }
@@ -282,21 +295,21 @@ export default function JobValueSpreadsheetView({
         escapeCsv(r.level),
         escapeCsv(r.role),
         escapeCsv(r.startDate),
-        r.avgRev2025,
-        r.avgProf2025,
-        r.avgRev2026,
-        r.avgProf2026,
-        r.profitGrowth,
+        Math.round(r.avgRev2025),
+        Math.round(r.avgProf2025),
+        Math.round(r.avgRev2026),
+        Math.round(r.avgProf2026),
+        Math.round(r.profitGrowth),
         escapeCsv(r.profitGrowthStatus),
         escapeCsv(r.rank2025Fraction),
         escapeCsv(r.rank2026Fraction),
         escapeCsv(r.eval2025),
         escapeCsv(r.eval2026),
-        r.leaves2025,
-        r.leaves2026,
+        Math.round(r.leaves2025),
+        Math.round(r.leaves2026),
         escapeCsv(r.adjStatus),
-        r.adjBaseSalary,
-        r.adjCapJv,
+        Math.round(r.adjBaseSalary),
+        Math.round(r.adjCapJv),
         escapeCsv(r.note)
       ];
       content += row.join(",") + "\n";
@@ -395,11 +408,11 @@ export default function JobValueSpreadsheetView({
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <span className="text-[11px] font-sans font-bold text-slate-500">รายได้เฉลี่ยรวม ปี 2569 (2026)</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-black text-emerald-700">{totalRev2026.toLocaleString()}</span>
+            <span className="text-2xl font-black text-emerald-700">{formatInt(totalRev2026)}</span>
             <span className="text-xs font-sans text-slate-500 font-bold">บาท/เดือน</span>
           </div>
           <span className="text-[10px] font-sans text-slate-500 mt-2">
-            ปี 2568: {totalRev2025.toLocaleString()} บาท/เดือน
+            ปี 2568: {formatInt(totalRev2025)} บาท/เดือน
           </span>
         </div>
 
@@ -407,11 +420,11 @@ export default function JobValueSpreadsheetView({
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <span className="text-[11px] font-sans font-bold text-slate-500">กำไรเฉลี่ยรวม ปี 2569 (2026)</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-black text-blue-700">{totalProf2026.toLocaleString()}</span>
+            <span className="text-2xl font-black text-blue-700">{formatInt(totalProf2026)}</span>
             <span className="text-xs font-sans text-slate-500 font-bold">บาท/เดือน</span>
           </div>
           <span className="text-[10px] font-sans text-slate-500 mt-2">
-            ปี 2568: {totalProf2025.toLocaleString()} บาท/เดือน
+            ปี 2568: {formatInt(totalProf2025)} บาท/เดือน
           </span>
         </div>
 
@@ -420,7 +433,7 @@ export default function JobValueSpreadsheetView({
           <span className="text-[11px] font-sans font-bold text-slate-500">สัดส่วนกำไรต่อยอด (สุทธิ)</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className={`text-2xl font-black ${netGrowth >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-              {netGrowth >= 0 ? `+${netGrowth.toLocaleString()}` : netGrowth.toLocaleString()}
+              {formatSignedInt(netGrowth)}
             </span>
             <span className="text-xs font-sans text-slate-500 font-bold">บาท</span>
           </div>
@@ -663,8 +676,8 @@ export default function JobValueSpreadsheetView({
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-[11px] font-mono font-normal">
-                        <span>รายได้ 26 รวม: <strong>{emps.reduce((s, e) => s + e.avgRev2026, 0).toLocaleString()}</strong> บาท</span>
-                        <span>กำไร 26 รวม: <strong>{emps.reduce((s, e) => s + e.avgProf2026, 0).toLocaleString()}</strong> บาท</span>
+                        <span>รายได้ 26 รวม: <strong>{formatInt(emps.reduce((s, e) => s + e.avgRev2026, 0))}</strong> บาท</span>
+                        <span>กำไร 26 รวม: <strong>{formatInt(emps.reduce((s, e) => s + e.avgProf2026, 0))}</strong> บาท</span>
                       </div>
                     </td>
                   </tr>
@@ -702,23 +715,23 @@ export default function JobValueSpreadsheetView({
 
                         {/* 2025 Averages */}
                         <td className="px-3 py-2.5 text-right font-mono text-slate-600 bg-blue-50/20">
-                          {emp.avgRev2025 > 0 ? emp.avgRev2025.toLocaleString() : "-"}
+                          {emp.avgRev2025 > 0 ? formatInt(emp.avgRev2025) : "-"}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-slate-700 bg-blue-50/20 font-bold">
-                          {emp.avgProf2025 !== 0 ? emp.avgProf2025.toLocaleString() : "-"}
+                          {emp.avgProf2025 !== 0 ? formatInt(emp.avgProf2025) : "-"}
                         </td>
 
                         {/* 2026 Averages */}
                         <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-800 bg-emerald-50/20">
-                          {emp.avgRev2026 > 0 ? emp.avgRev2026.toLocaleString() : "-"}
+                          {emp.avgRev2026 > 0 ? formatInt(emp.avgRev2026) : "-"}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono font-black text-slate-900 bg-emerald-50/20">
-                          {emp.avgProf2026 !== 0 ? emp.avgProf2026.toLocaleString() : "-"}
+                          {emp.avgProf2026 !== 0 ? formatInt(emp.avgProf2026) : "-"}
                         </td>
 
                         {/* Growth */}
                         <td className={`px-3.5 py-2.5 text-right font-mono font-black ${isPositive ? "text-emerald-700" : "text-rose-700"}`}>
-                          {isPositive ? `+${emp.profitGrowth.toLocaleString()}` : emp.profitGrowth.toLocaleString()}
+                          {formatSignedInt(emp.profitGrowth)}
                         </td>
                         <td className="px-3 py-2.5 text-center whitespace-nowrap">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
@@ -755,8 +768,8 @@ export default function JobValueSpreadsheetView({
                                 </span>
                               ) : "-"}
                             </td>
-                            <td className="px-2.5 py-2.5 text-center font-mono text-slate-600 text-[11px]">{emp.leaves2025}</td>
-                            <td className="px-2.5 py-2.5 text-center font-mono font-bold text-slate-800 text-[11px]">{emp.leaves2026}</td>
+                            <td className="px-2.5 py-2.5 text-center font-mono text-slate-600 text-[11px]">{formatInt(emp.leaves2025)}</td>
+                            <td className="px-2.5 py-2.5 text-center font-mono font-bold text-slate-800 text-[11px]">{formatInt(emp.leaves2026)}</td>
                           </>
                         ) : (
                           <>
@@ -771,10 +784,10 @@ export default function JobValueSpreadsheetView({
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-right font-mono font-bold text-purple-900 bg-purple-50/20">
-                              {emp.adjBaseSalary > 0 ? emp.adjBaseSalary.toLocaleString() : "-"}
+                              {emp.adjBaseSalary > 0 ? formatInt(emp.adjBaseSalary) : "-"}
                             </td>
                             <td className="px-3 py-2.5 text-right font-mono font-bold text-purple-900 bg-purple-50/20">
-                              {emp.adjCapJv > 0 ? emp.adjCapJv.toLocaleString() : "-"}
+                              {emp.adjCapJv > 0 ? formatInt(emp.adjCapJv) : "-"}
                             </td>
                           </>
                         )}
@@ -829,7 +842,7 @@ export default function JobValueSpreadsheetView({
                 <p className="text-xs text-slate-500 mt-1">
                   กลุ่ม: <strong>{drilldownEmp.group}</strong> | วันเริ่มงาน: {drilldownEmp.startDate || "-"} | 
                   สถานะ: <strong className={drilldownEmp.profitGrowth > 0 ? "text-emerald-700" : "text-rose-700"}>
-                    {drilldownEmp.profitGrowthStatus} ({drilldownEmp.profitGrowth > 0 ? `+${drilldownEmp.profitGrowth.toLocaleString()}` : drilldownEmp.profitGrowth.toLocaleString()} บาท)
+                    {drilldownEmp.profitGrowthStatus} ({formatSignedInt(drilldownEmp.profitGrowth)} บาท)
                   </strong>
                 </p>
               </div>
@@ -852,8 +865,8 @@ export default function JobValueSpreadsheetView({
                     <span>รอบปี 2026 (ต.ค. 2568 – ก.ย. 2569)</span>
                   </h4>
                   <span className="font-mono text-xs">
-                    รายได้เฉลี่ย: <strong>{drilldownEmp.avgRev2026.toLocaleString()}</strong> | 
-                    กำไรเฉลี่ย: <strong className="text-emerald-700 font-extrabold">{drilldownEmp.avgProf2026.toLocaleString()}</strong> บาท/เดือน
+                    รายได้เฉลี่ย: <strong>{formatInt(drilldownEmp.avgRev2026)}</strong> | 
+                    กำไรเฉลี่ย: <strong className="text-emerald-700 font-extrabold">{formatInt(drilldownEmp.avgProf2026)}</strong> บาท/เดือน
                   </span>
                 </div>
 
@@ -869,14 +882,14 @@ export default function JobValueSpreadsheetView({
                       <tr>
                         <td className="p-2 text-left font-sans font-bold text-slate-700 bg-slate-50">รายได้ JV</td>
                         {drilldownEmp.monthlyRev2026.map((v, i) => (
-                          <td key={i} className="p-2 text-slate-800">{v > 0 ? v.toLocaleString() : "-"}</td>
+                          <td key={i} className="p-2 text-slate-800">{v > 0 ? formatInt(v) : "-"}</td>
                         ))}
                       </tr>
                       <tr className="bg-emerald-50/30">
                         <td className="p-2 text-left font-sans font-extrabold text-emerald-800 bg-emerald-50/50">กำไรสุทธิ</td>
                         {drilldownEmp.monthlyProf2026.map((v, i) => (
                           <td key={i} className={`p-2 font-bold ${v >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                            {v !== 0 ? v.toLocaleString() : "-"}
+                            {v !== 0 ? formatInt(v) : "-"}
                           </td>
                         ))}
                       </tr>
@@ -893,8 +906,8 @@ export default function JobValueSpreadsheetView({
                     <span>รอบปี 2025 (ต.ค. 2567 – ก.ย. 2568)</span>
                   </h4>
                   <span className="font-mono text-xs">
-                    รายได้เฉลี่ย: <strong>{drilldownEmp.avgRev2025.toLocaleString()}</strong> | 
-                    กำไรเฉลี่ย: <strong className="text-[#17538F] font-extrabold">{drilldownEmp.avgProf2025.toLocaleString()}</strong> บาท/เดือน
+                    รายได้เฉลี่ย: <strong>{formatInt(drilldownEmp.avgRev2025)}</strong> | 
+                    กำไรเฉลี่ย: <strong className="text-[#17538F] font-extrabold">{formatInt(drilldownEmp.avgProf2025)}</strong> บาท/เดือน
                   </span>
                 </div>
 
@@ -910,14 +923,14 @@ export default function JobValueSpreadsheetView({
                       <tr>
                         <td className="p-2 text-left font-sans font-bold text-slate-700 bg-slate-50">รายได้ JV</td>
                         {drilldownEmp.monthlyRev2025.map((v, i) => (
-                          <td key={i} className="p-2 text-slate-800">{v > 0 ? v.toLocaleString() : "-"}</td>
+                          <td key={i} className="p-2 text-slate-800">{v > 0 ? formatInt(v) : "-"}</td>
                         ))}
                       </tr>
                       <tr className="bg-blue-50/30">
                         <td className="p-2 text-left font-sans font-extrabold text-blue-800 bg-blue-50/50">กำไรสุทธิ</td>
                         {drilldownEmp.monthlyProf2025.map((v, i) => (
                           <td key={i} className={`p-2 font-bold ${v >= 0 ? "text-blue-700" : "text-rose-700"}`}>
-                            {v !== 0 ? v.toLocaleString() : "-"}
+                            {v !== 0 ? formatInt(v) : "-"}
                           </td>
                         ))}
                       </tr>

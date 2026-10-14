@@ -23,14 +23,14 @@ for (let r = 4; r < data.length; r++) {
     // 2025 monthly rev (cols 8 to 19), profit (cols 21 to 32)
     const mRev25 = [];
     const mProf25 = [];
-    for (let c = 8; c <= 19; c++) mRev25.push(Number(row[c]) || 0);
-    for (let c = 21; c <= 32; c++) mProf25.push(Number(row[c]) || 0);
+    for (let c = 8; c <= 19; c++) mRev25.push(Math.round(Number(row[c]) || 0));
+    for (let c = 21; c <= 32; c++) mProf25.push(Math.round(Number(row[c]) || 0));
 
     // 2026 monthly rev (cols 34 to 45), profit (cols 47 to 58)
     const mRev26 = [];
     const mProf26 = [];
-    for (let c = 34; c <= 45; c++) mRev26.push(Number(row[c]) || 0);
-    for (let c = 47; c <= 58; c++) mProf26.push(Number(row[c]) || 0);
+    for (let c = 34; c <= 45; c++) mRev26.push(Math.round(Number(row[c]) || 0));
+    for (let c = 47; c <= 58; c++) mProf26.push(Math.round(Number(row[c]) || 0));
 
     // Format start date if numeric
     let startDateFormatted = '';
@@ -81,8 +81,8 @@ for (let r = 4; r < data.length; r++) {
       rankSubgroup: row[68] || null,
       rankMainGroup: row[69] || null,
       eval2025: row[70] ? String(row[70]).trim() : '',
-      leaves2026: Number(row[72]) || 0,
-      leaves2025: Number(row[73]) || 0,
+      leaves2026: Math.round(Number(row[72]) || 0),
+      leaves2025: Math.round(Number(row[73]) || 0),
 
       // Criteria flags
       criteria1_1: row[75] || (Number(row[61]) > 0 ? "กำไรต่อยอด" : "ไม่ต่อยอด"),
@@ -97,9 +97,9 @@ for (let r = 4; r < data.length; r++) {
 
       // Adjustment summary
       adjStatus: row[87] ? String(row[87]).trim() : (Number(row[61]) > 0 ? "ปรับ" : "ไม่ปรับ"),
-      adjBeforeCap: Number(row[88]) || 0,
-      adjBaseSalary: Number(row[89]) || 0,
-      adjCapJv: Number(row[90]) || 0,
+      adjBeforeCap: Math.round(Number(row[88]) || 0),
+      adjBaseSalary: Math.round(Number(row[89]) || 0),
+      adjCapJv: Math.round(Number(row[90]) || 0),
       note: row[91] ? String(row[91]).trim() : ''
     });
   }
