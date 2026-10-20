@@ -1105,9 +1105,9 @@ app.post("/api/line-webhook", async (req, res) => {
 
             if (isD1Enabled()) {
               try {
-                verifiedEmp = await db.prepare(
+                verifiedEmp = await queryD1(
                   "SELECT id, name, deptId, role FROM employees WHERE id = ? OR id = ?"
-                ).bind(employeeId, employeeId.padStart(7, "0")).first();
+                , [employeeId, employeeId.padStart(7, "0")]).then(r => r?.[0]);
 
                 if (!verifiedEmp) {
                   const unpaddedId = employeeId.replace(/^0+/, "");

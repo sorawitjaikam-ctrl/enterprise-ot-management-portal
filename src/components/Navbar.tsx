@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Search, 
   AlertTriangle, 
@@ -6,7 +6,6 @@ import {
   LogOut,
   Menu,
   X,
-  User,
   CheckCircle2,
   Calendar,
   LayoutDashboard,
@@ -15,11 +14,26 @@ import {
   ClipboardList,
   BarChart3,
   ShieldCheck,
-  FileText,
   Settings,
-  Building2
+  Building2,
+  Lock
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
+
+export const isStrictHrOrAdmin = (role?: string): boolean => {
+  const normalized = (role || "").trim();
+  return [
+    "HR",
+    "HR Section Manager",
+    "ผู้ดูแลระบบ",
+    "Admin",
+    "admin",
+    "Co-admin",
+    "Co-Admin",
+    "co_admin",
+    "ผู้ช่วยดูแลระบบ"
+  ].includes(normalized);
+};
 
 export interface NavbarProps {
   title: string;
@@ -35,6 +49,7 @@ export interface NavbarProps {
   setIsNavbarCollapsed?: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
   complianceNotifications?: Array<{ emp: any; alerts: any[] }>;
   onOpenComplianceModal?: (item: { emp: any; alerts: any[] }) => void;
+  restrictToJvOnly?: boolean;
 }
 
 export default function Navbar({ 
@@ -49,9 +64,13 @@ export default function Navbar({
   isNavbarCollapsed,
   setIsNavbarCollapsed,
   complianceNotifications = [],
-  onOpenComplianceModal
+  onOpenComplianceModal,
+  restrictToJvOnly
 }: NavbarProps) {
-  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
+  const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
+  const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
+  const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+  const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -84,6 +103,12 @@ export default function Navbar({
   }, []);
 
   const handleTabSelect = (tabId: string) => {
+    if (isJvOnlyLocked && tabId !== "job_value") {
+      setActiveTab("job_value");
+      setIsMobileMenuOpen(false);
+      setIsMobileSearchOpen(false);
+      return;
+    }
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
     setIsMobileSearchOpen(false);
@@ -99,7 +124,7 @@ export default function Navbar({
     { id: "manpower", num: "06", label: "โครงสร้างอัตรากำลัง", icon: Building2 },
     { id: "leave-records", num: "07", label: "บันทึกวันลา", icon: ClipboardList },
     { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ", icon: Calendar },
-    ...(isHrOrFullAccess ? [
+    ...(isHrOrAdmin || (!isJvOnlyLocked && isHrOrFullAccess) ? [
       { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
       { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
@@ -128,7 +153,7 @@ export default function Navbar({
               </button>
 
               <div 
-                onClick={() => handleTabSelect("dashboard")}
+                onClick={() => handleTabSelect(isJvOnlyLocked ? "job_value" : "dashboard")}
                 className="cursor-pointer select-none shrink-0"
               >
                 <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · INTER STEVEDORING</span>
@@ -266,34 +291,47 @@ export default function Navbar({
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
+              const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
               const isActive = activeTab === tab.id;
               const isHovered = hoveredTabId === tab.id;
-              // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover
-              const isExpanded = isActive || isHovered;
+              // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover (or when locked to show Coming Soon)
+              const isExpanded = isActive || isHovered || isTabLocked;
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
-                  title={`${tab.num} · ${tab.label}`}
+                  aria-disabled={isTabLocked}
+                  title={isTabLocked ? `${tab.num} · ${tab.label} (Coming Soon)` : `${tab.num} · ${tab.label}`}
                   onMouseEnter={() => setHoveredTabId(tab.id)}
                   onMouseLeave={() => setHoveredTabId(null)}
                   style={{ flex: "0 0 auto" }}
                   className={`btn-press focus-ring transition-all duration-200 ${
-                    isActive ? "active px-3.5" : isHovered ? "px-3" : "px-2.5"
+                    isTabLocked
+                      ? "opacity-45 cursor-not-allowed select-none px-2.5 bg-[#F8FAFC] text-[#64748B]"
+                      : isActive
+                      ? "active px-3.5"
+                      : isHovered
+                      ? "px-3"
+                      : "px-2.5"
                   }`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
                   <Icon className="w-3.5 h-3.5 opacity-85 shrink-0" />
                   <span 
-                    className={`transition-all duration-200 ease-out whitespace-nowrap overflow-hidden inline-block ${
+                    className={`transition-all duration-200 ease-out whitespace-nowrap overflow-hidden inline-flex items-center gap-1.5 ${
                       isExpanded 
-                        ? "max-w-[180px] opacity-100 ml-1" 
+                        ? "max-w-[240px] opacity-100 ml-1" 
                         : "max-w-0 opacity-0 w-0 m-0 pointer-events-none"
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {isTabLocked && (
+                      <span className="px-1.5 py-0.5 rounded bg-[#E2E8F0] text-[#475569] font-mono text-[9px] font-bold uppercase tracking-wider shrink-0">
+                        Coming Soon
+                      </span>
+                    )}
                   </span>
                 </button>
               );
@@ -337,22 +375,33 @@ export default function Navbar({
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {tabsList.map((tab) => {
             const Icon = tab.icon;
+            const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                aria-disabled={isTabLocked}
                 onClick={() => handleTabSelect(tab.id)}
                 className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-semibold transition-all btn-press focus-ring ${
-                  isActive
+                  isTabLocked
+                    ? "opacity-45 cursor-not-allowed select-none text-[#64748B] bg-[#F8FAFC]"
+                    : isActive
                     ? "bg-[#E8F3FA] text-[#0E3A66] border-l-3 border-[#0E3A66]"
                     : "text-[#59656D] hover:bg-[#F3F6F8] hover:text-[#0E3A66] active:scale-[0.99]"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4 text-[#6A7B87]" />
-                  <span>{tab.label}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className="w-4 h-4 text-[#6A7B87] shrink-0" />
+                  <span className="truncate">{tab.label}</span>
                 </div>
-                <span className="font-mono text-[10px] text-[#6A7B87] tabular-nums">{tab.num}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isTabLocked && (
+                    <span className="px-1.5 py-0.5 rounded bg-[#E2E8F0] text-[#475569] font-mono text-[9px] font-bold uppercase tracking-wider">
+                      Coming Soon
+                    </span>
+                  )}
+                  <span className="font-mono text-[10px] text-[#6A7B87] tabular-nums">{tab.num}</span>
+                </div>
               </button>
             );
           })}

@@ -303,7 +303,7 @@ export default function EmployeeShiftCalendarModal({
   const [newShiftEnd, setNewShiftEnd] = useState<string>("17:00");
   const [newShiftWorkHours, setNewShiftWorkHours] = useState<number>(8);
   const [newShiftOtHours, setNewShiftOtHours] = useState<number>(0);
-  const [newShiftColorTheme, setNewShiftColorTheme] = useState<"yellow" | "purple" | "blue" | "green" | "rose">("yellow");
+  const [newShiftColorTheme, setNewShiftColorTheme] = useState<"yellow" | "blue" | "green" | "rose">("yellow");
 
   // Shifts state for the selected month (array of length = days in month)
   const daysInMonth = useMemo(() => {
@@ -671,11 +671,7 @@ export default function EmployeeShiftCalendarModal({
     let borderClass = "border-[#fde047]";
     let textClass = "text-[#854d0e]";
 
-    if (newShiftColorTheme === "purple") {
-      bgClass = "bg-[#ede9fe]";
-      borderClass = "border-[#c4b5fd]";
-      textClass = "text-[#5b21b6]";
-    } else if (newShiftColorTheme === "blue") {
+    if (newShiftColorTheme === "blue") {
       bgClass = "bg-[#e0f2fe]";
       borderClass = "border-[#7dd3fc]";
       textClass = "text-[#0369a1]";
@@ -1459,10 +1455,9 @@ export default function EmployeeShiftCalendarModal({
 
               <div>
                 <label className="block text-xs font-bold text-[#333B41] mb-1">ธีมสีกะ</label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
                     { id: "yellow", bg: "bg-[#fef9c3]", border: "border-[#fde047]", label: "เหลือง" },
-                    { id: "purple", bg: "bg-[#ede9fe]", border: "border-[#c4b5fd]", label: "ม่วง" },
                     { id: "blue", bg: "bg-[#e0f2fe]", border: "border-[#7dd3fc]", label: "ฟ้า" },
                     { id: "green", bg: "bg-[#dcfce7]", border: "border-[#86efac]", label: "เขียว" },
                     { id: "rose", bg: "bg-[#ffe4e6]", border: "border-[#fecdd3]", label: "ชมพู" }

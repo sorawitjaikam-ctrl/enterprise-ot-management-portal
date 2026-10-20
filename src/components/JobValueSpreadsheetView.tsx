@@ -606,7 +606,7 @@ export default function JobValueSpreadsheetView({
                     ผลการประเมิน &amp; สถิติวันลา
                   </th>
                 ) : (
-                  <th colSpan={4} className="px-3.5 py-2 text-center bg-[#6A0572]">
+                  <th colSpan={4} className="px-3.5 py-2 text-center bg-[#0E3A66]">
                     เกณฑ์การพิจารณา 3 ด้าน &amp; การปรับประจำปี
                   </th>
                 )}
@@ -650,10 +650,10 @@ export default function JobValueSpreadsheetView({
                   </>
                 ) : (
                   <>
-                    <th className="px-3 py-2.5 text-center bg-purple-50/50 text-purple-900">เกณฑ์ 1.1</th>
-                    <th className="px-3 py-2.5 text-center bg-purple-50/50 text-purple-900">สรุปการปรับฯ</th>
-                    <th className="px-3 py-2.5 text-right bg-purple-50/50 text-purple-900">ปรับเข้าฐาน</th>
-                    <th className="px-3 py-2.5 text-right bg-purple-50/50 text-purple-900">ปรับเข้า CAP</th>
+                    <th className="px-3 py-2.5 text-center bg-slate-100 text-[#0E3A66]">เกณฑ์ 1.1</th>
+                    <th className="px-3 py-2.5 text-center bg-slate-100 text-[#0E3A66]">สรุปการปรับฯ</th>
+                    <th className="px-3 py-2.5 text-right bg-slate-100 text-[#0E3A66]">ปรับเข้าฐาน</th>
+                    <th className="px-3 py-2.5 text-right bg-slate-100 text-[#0E3A66]">ปรับเข้า CAP</th>
                   </>
                 )}
 
@@ -773,20 +773,20 @@ export default function JobValueSpreadsheetView({
                           </>
                         ) : (
                           <>
-                            <td className="px-3 py-2.5 text-center text-[10px] font-bold bg-purple-50/20">
+                            <td className="px-3 py-2.5 text-center text-[10px] font-bold bg-slate-50/30 text-slate-700">
                               {emp.criteria1_1}
                             </td>
-                            <td className="px-3 py-2.5 text-center text-[10px] font-bold bg-purple-50/20">
+                            <td className="px-3 py-2.5 text-center text-[10px] font-bold bg-slate-50/30">
                               <span className={`px-2 py-0.5 rounded ${
                                 emp.adjStatus === "ปรับ" ? "bg-emerald-100 text-emerald-800 font-black" : "bg-slate-100 text-slate-600"
                               }`}>
                                 {emp.adjStatus || "ไม่ปรับ"}
                               </span>
                             </td>
-                            <td className="px-3 py-2.5 text-right font-mono font-bold text-purple-900 bg-purple-50/20">
+                            <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900 bg-slate-50/30">
                               {emp.adjBaseSalary > 0 ? formatInt(emp.adjBaseSalary) : "-"}
                             </td>
-                            <td className="px-3 py-2.5 text-right font-mono font-bold text-purple-900 bg-purple-50/20">
+                            <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900 bg-slate-50/30">
                               {emp.adjCapJv > 0 ? formatInt(emp.adjCapJv) : "-"}
                             </td>
                           </>

@@ -1253,7 +1253,7 @@ export default function ManpowerDashboard({
 
       {/* Empty State Hero Banner when no positions exist */}
       {positions.length === 0 && (
-        <div className="bg-gradient-to-br from-[#F8FAFC] via-white to-[#E8F3FA]/40 border-2 border-dashed border-[#9FCEE8] rounded-2xl p-8 text-center shadow-xs">
+        <div className="bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center shadow-xs">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8F3FA] border border-[#9FCEE8]/60 flex items-center justify-center text-[#17538F] mb-4 shadow-xs">
             <Database className="w-7 h-7" />
           </div>
@@ -1907,7 +1907,7 @@ export default function ManpowerDashboard({
                         onChange={(e) => handleSyncLevel(p.id, e.target.value)}
                         className={`inline-block w-full px-1 py-0.5 rounded text-[10px] font-semibold border cursor-pointer transition ${
                           pLevel === "Director"
-                            ? "bg-purple-900 text-purple-100 border-purple-800"
+                            ? "bg-slate-900 text-white border-slate-800"
                             : pLevel === "Department Manager"
                             ? "bg-[#0E3A66] text-white border-[#0E3A66]"
                             : pLevel === "Section Manager"

@@ -76,9 +76,10 @@ import {
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
-import Navbar from "./components/Navbar";
+import Navbar, { isStrictHrOrAdmin } from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
 import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
+import DataLineageHubView from "./components/DataLineageHubView";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
@@ -1119,7 +1120,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newEmployeeId}
                   onChange={e => setNewEmployeeId(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors cursor-pointer"
                 >
                   {state.employees.map(e => (
                     <option key={e.id} value={e.id}>{e.id} - {e.name} ({departments.find(d => d.id === e.deptId)?.name || e.deptId})</option>
@@ -1134,7 +1135,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newDate}
                   onChange={e => setNewDate(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors"
                 />
               </div>
 
@@ -1144,7 +1145,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newType}
                   onChange={e => setNewType(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors cursor-pointer"
                 >
                   <option value="vacation">ลาพักร้อน (Vacation)</option>
                   <option value="sick">ลาป่วย (Sick Leave)</option>
@@ -1160,7 +1161,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   onChange={e => setNewNote(e.target.value)}
                   rows={3}
                   placeholder="เช่น ลาป่วยใบรับรองแพทย์, ลากิจไปทำธุระส่วนตัว..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors resize-none placeholder-slate-400"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors resize-none placeholder-slate-400"
                 />
               </div>
 
@@ -1175,7 +1176,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10"
+                  className="flex-1 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
                 >
                   {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                 </button>
@@ -1413,7 +1414,7 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block px-2 py-0.5 rounded font-black text-xs ${
                         (r.multiplier ?? 1) >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
-                        (r.multiplier ?? 1) > 1 ? "bg-indigo-100 text-indigo-800 border border-indigo-200" :
+                        (r.multiplier ?? 1) > 1 ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]" :
                         "bg-slate-100 text-slate-700 border border-slate-200"
                       }`}>
                         x{r.multiplier ?? 1}
@@ -1634,16 +1635,16 @@ function EmployeeAvatar({
     initials = "--";
   }
 
-  // Deterministic avatar gradient
-  const gradients = [
-    "from-blue-600 to-indigo-700",
-    "from-teal-600 to-emerald-700",
-    "from-cyan-600 to-blue-700",
-    "from-indigo-600 to-violet-700",
-    "from-sky-600 to-blue-800"
+  // Deterministic avatar corporate palette (Swiss Corporate Editorial)
+  const avatarColors = [
+    "bg-[#0E3A66] text-white",
+    "bg-[#17538F] text-white",
+    "bg-slate-700 text-white",
+    "bg-[#2E90CB] text-white",
+    "bg-slate-800 text-white"
   ];
   const colorHash = (cleanId + (empName || "")).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const selectedGradient = gradients[colorHash % gradients.length];
+  const selectedBg = avatarColors[colorHash % avatarColors.length];
 
   const currentSrc = candidates[candidateIndex];
 
@@ -1664,7 +1665,7 @@ function EmployeeAvatar({
     >
       {/* Monogram fallback (always rendered underneath, zero layout shift) */}
       <div 
-        className={`w-full h-full rounded-full bg-gradient-to-br ${selectedGradient} border border-white/60 text-white font-black flex items-center justify-center text-[10px] sm:text-xs leading-none`}
+        className={`w-full h-full rounded-full ${selectedBg} border border-white/60 font-black flex items-center justify-center text-[10px] sm:text-xs leading-none`}
       >
         {initials}
       </div>
@@ -2970,6 +2971,9 @@ export default function App() {
         localStorage.setItem("currentUser", JSON.stringify(data.user));
         setIsLoggedIn(true);
         setCurrentUser(data.user);
+        if (!isStrictHrOrAdmin(data.user?.role) && localStorage.getItem("restrictToJvOnly") !== "false") {
+          setActiveTab("job_value");
+        }
         setLoginUsername("");
         setLoginPassword("");
       } else {
@@ -2985,6 +2989,9 @@ export default function App() {
         localStorage.setItem("currentUser", JSON.stringify(user));
         setIsLoggedIn(true);
         setCurrentUser(user);
+        if (!isStrictHrOrAdmin(user?.role) && localStorage.getItem("restrictToJvOnly") !== "false") {
+          setActiveTab("job_value");
+        }
         setLoginUsername("");
         setLoginPassword("");
       } else {
@@ -3004,8 +3011,46 @@ export default function App() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>(getInitialTabFromUrl);
+  // JV-Only Access Mode ("ให้ทุกคนยกเว้น HR & Admin เห็นแค่หน้า Job Value")
+  const [restrictToJvOnly, setRestrictToJvOnly] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("restrictToJvOnly") !== "false";
+    }
+    return true;
+  });
+
+  const handleToggleRestrictToJvOnly = (nextVal: boolean) => {
+    setRestrictToJvOnly(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("restrictToJvOnly", nextVal ? "true" : "false");
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const initialTab = getInitialTabFromUrl();
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("restrictToJvOnly") !== "false" &&
+      !isStrictHrOrAdmin(currentUser?.role)
+    ) {
+      return "job_value";
+    }
+    return initialTab;
+  });
   useUrlRouting(activeTab, setActiveTab);
+
+  // Enforce JV-Only mode for non-HR/Admin users whenever user or mode changes
+  useEffect(() => {
+    if (
+      restrictToJvOnly &&
+      !isStrictHrOrAdmin(currentUser?.role) &&
+      activeTab !== "job_value" &&
+      activeTab !== "jobValue" &&
+      activeTab !== "profile"
+    ) {
+      setActiveTab("job_value");
+    }
+  }, [restrictToJvOnly, currentUser, activeTab]);
 
   // Executive Mode vs Operational Mode State (Requirement R1)
   const [dashboardMode, setDashboardMode] = useState<"executive" | "operational">(() => {
@@ -4689,90 +4734,39 @@ export default function App() {
 
   if (loading || !state) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#020b18] via-[#05182e] to-[#021020] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
-        {/* Ambient Oceanic Glows */}
-        <div className="absolute -top-32 -left-32 w-[450px] h-[450px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute -bottom-32 left-1/4 w-[600px] h-[400px] bg-teal-500/10 rounded-full blur-[160px] pointer-events-none" />
-
-        {/* Floating Water Bubble Particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-          <div className="absolute bottom-10 left-[15%] w-3 h-3 bg-cyan-300/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '4s' }} />
-          <div className="absolute bottom-20 left-[28%] w-2 h-2 bg-blue-300/50 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '6s' }} />
-          <div className="absolute bottom-16 right-[20%] w-4 h-4 bg-teal-300/30 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '5s' }} />
-          <div className="absolute bottom-24 right-[35%] w-2.5 h-2.5 bg-cyan-200/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '7s' }} />
-        </div>
-
-        {/* Multi-Layer Animated SVG Ocean Waves at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 w-full h-48 pointer-events-none overflow-hidden leading-none z-0">
-          {/* Wave 3 (Deep Blue Background Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-35 animate-wave-3">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,0 C150,90 350,-40 500,45 C650,130 900,10 1200,50 L1200,120 L0,120 Z" fill="#034078" />
-            </svg>
-          </div>
-          {/* Wave 2 (Glowing Cyan Mid Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-45 animate-wave-2">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,30 C200,100 450,0 650,60 C850,120 1050,20 1200,70 L1200,120 L0,120 Z" fill="#0284c7" />
-            </svg>
-          </div>
-          {/* Wave 1 (Bright Teal Seafoam Foreground Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-60 animate-wave-1">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,50 C150,110 300,20 500,75 C700,130 950,40 1200,85 L1200,120 L0,120 Z" fill="#0891b2" />
-            </svg>
-          </div>
-        </div>
-
+      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 select-none font-sans">
         {/* Main Central Card */}
-        <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center">
+        <div className="relative z-10 flex flex-col items-center max-w-md w-full p-8 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
           
           {/* Maritime Brand Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-widest mb-7 shadow-[0_0_25px_rgba(6,182,212,0.25)] backdrop-blur-xl">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[#0E3A66] text-xs font-bold uppercase tracking-wider mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#0E3A66]" />
             <span>Double A Terminal • Port & Logistics</span>
           </div>
 
-          {/* Floating Vessel / Maritime Core with Sonar Ripple */}
-          <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-            {/* Pulsing Sonar / Wave Ripple Rings */}
-            <div className="absolute inset-0 rounded-full border border-cyan-400/20 animate-ping" style={{ animationDuration: '3s' }} />
-            <div className="absolute -inset-3 rounded-full border border-blue-500/25 animate-ping" style={{ animationDuration: '4s' }} />
-            
-            {/* Glowing Water Pool Base */}
-            <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-blue-600/30 via-cyan-500/30 to-teal-400/20 blur-xl animate-pulse" />
-
-            {/* Rotating Marine Compass Rings */}
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-400/30 animate-[spin_12s_linear_infinite]" />
-            <div className="absolute inset-3 rounded-full border border-blue-400/40 animate-[spin_8s_linear_infinite_reverse]" />
-
-            {/* Floating Ship / Port Beacon Centerpiece */}
-            <div className="w-18 h-18 rounded bg-gradient-to-b from-[#0e2540] to-[#071322] border border-cyan-400/40 flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(6,182,212,0.3)] relative z-10 animate-float-boat">
-              <Ship className="w-8 h-8 text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-              {/* Miniature wave line under ship */}
-              <div className="w-7 h-1 bg-cyan-400/60 rounded-full mt-1 blur-[0.5px]" />
-            </div>
+          {/* Central Port Icon */}
+          <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0E3A66] mb-5 shadow-2xs">
+            <Ship className="w-8 h-8 text-[#0E3A66]" />
           </div>
 
           {/* Headings */}
-          <h2 className="text-xl font-black tracking-tight text-white mb-2 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 mb-1.5 flex items-center gap-2">
             <span>ระบบบริหารเวลา OT และจัดกะหน้าท่า</span>
           </h2>
           
-          <p className="text-xs text-cyan-200/70 font-medium leading-relaxed mb-6 max-w-xs">
+          <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6 max-w-xs">
             กำลังเชื่อมต่อฐานข้อมูลตารางเรือ แผนกปฏิบัติการ และจัดเตรียมคำนวณเบี้ย OT ประจำเดือน...
           </p>
 
-          {/* Liquid Shimmering Wave Progress Bar */}
-          <div className="w-full max-w-xs bg-[#091e36] border border-cyan-500/30 rounded-full h-2.5 p-0.5 overflow-hidden relative shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] mb-4">
-            <div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-teal-300 rounded-full w-full animate-[pulse_1.8s_ease-in-out_infinite] shadow-[0_0_16px_rgba(6,182,212,0.8)]" />
+          {/* Calm Minimalist Progress Bar */}
+          <div className="w-full max-w-xs bg-slate-100 border border-slate-200 rounded-full h-2 p-0.5 overflow-hidden mb-5">
+            <div className="h-full bg-[#0E3A66] rounded-full w-2/3 animate-pulse" />
           </div>
 
           {/* Footer Terminal Metadata */}
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-mono tracking-wider">
-            <span className="text-[#a9cdfc] flex items-center gap-1">
-              <Ship className="w-3 h-3 text-[#6d93fc] inline" /> Maritime Port Sync
+            <span className="text-[#0E3A66] flex items-center gap-1 font-semibold">
+              <Ship className="w-3 h-3 text-[#0E3A66] inline" /> Maritime Port Sync
             </span>
             <span>•</span>
             <span>Real-time Operations</span>
@@ -6488,12 +6482,12 @@ export default function App() {
           style={{ backgroundImage: `url(${loginBg})` }}
         ></div>
 
-        {/* Dark Glassmorphism Gradient Mask */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-blue-950/65 to-slate-900/75"></div>
+        {/* Dark Glassmorphism Solid Mask */}
+        <div className="absolute inset-0 bg-slate-950/75"></div>
 
         {/* Animated background blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#17538F]/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
         
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded p-8 shadow-lg relative z-10 text-white">
@@ -6558,7 +6552,7 @@ export default function App() {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl text-sm transition-all shadow-lg shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#0E3A66] hover:bg-[#17538F] text-white font-extrabold rounded-xl text-sm transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-2"
             >
               {loginLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -6643,6 +6637,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
           onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
+          restrictToJvOnly={restrictToJvOnly}
         />
       )}
 
@@ -10983,15 +10978,35 @@ export default function App() {
           )}
 
           {/* ======================================= */}
+          {/* VIEW: DATA LINEAGE HUB                  */}
+          {/* ======================================= */}
+          {activeTab === "lineage" && (
+            <DataLineageHubView
+              state={state}
+              onReconcileAll={(updatedState) => setState(updatedState)}
+              restrictToJvOnly={restrictToJvOnly}
+              onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+            />
+          )}
+
+          {/* ======================================= */}
           {/* VIEW: SETTINGS */}
           {/* ======================================= */}
           {activeTab === "settings" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 className="text-base sm:text-lg font-extrabold text-slate-800">การตั้งค่านโยบายวันหยุดและฐานข้อมูลระบบ</h3>
-                <p className="text-xs text-slate-500 mt-1">กำหนดวันหยุดตามประเพณีของบริษัท นโยบายวันหยุดประจำสัปดาห์รายแผนก และการจัดการฐานข้อมูล</p>
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#DCE4EA] shadow-2xs">
+                <h3 className="text-base sm:text-lg font-extrabold text-[#0E3A66]">การตั้งค่านโยบายวันหยุด เครือข่ายข้อมูล และฐานข้อมูลระบบ</h3>
+                <p className="text-xs text-[#475569] mt-1">จัดการผังความเชื่อมโยงเครือข่ายข้อมูลทั้ง 7 โมดูล, โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value, วันหยุดตามประเพณี และนโยบายวันหยุดรายแผนก</p>
               </div>
+
+              {/* Interactive Data Network & Lineage Configuration Hub + JV-Only Toggle */}
+              <DataLineageHubView
+                state={state}
+                onReconcileAll={(updatedState) => setState(updatedState)}
+                restrictToJvOnly={restrictToJvOnly}
+                onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+              />
 
               {/* Settings Cards */}
               <div className="space-y-6">
@@ -11212,30 +11227,75 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "admin-permissions" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#DCE4EA] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ระบบจัดการบัญชีและสิทธิการเข้าถึง</h3>
-                  <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
+                  <h3 className="text-base sm:text-lg font-extrabold text-[#0E3A66]">ระบบจัดการบัญชีและสิทธิการเข้าถึง</h3>
+                  <p className="text-xs text-[#475569] mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ โหมดแสดงผลเฉพาะหน้า Job Value หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <button
                     type="button"
+                    onClick={() => setActiveTab("settings")}
+                    className="px-3.5 sm:px-4 py-2.5 bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[#0E3A66] border border-[#DCE4EA] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
+                  >
+                    <Layers className="w-4 h-4 text-[#0E3A66]" />
+                    <span>ผังเครือข่ายข้อมูล (Data Network Hub)</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setIsCsvTemplateHubOpen(true)}
-                    className="px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
+                    className="px-3.5 sm:px-4 py-2.5 bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[#0E3A66] border border-[#DCE4EA] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
                     title="ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับทุกเมนู"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-[#0E3A66]" />
                     <span>ศูนย์ดาวน์โหลดแม่แบบ CSV</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAddAccountModal(true)}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
+                    className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
                   >
                     <Plus className="w-4 h-4" />
                     <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
                   </button>
                 </div>
+              </div>
+
+              {/* JV-Only Access Mode Control Banner */}
+              <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
+                    <h4 className="text-sm font-bold text-[#0E3A66]">
+                      โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value (ให้ทุกคนยกเว้น HR &amp; Admin เห็นแค่ JV)
+                    </h4>
+                    <span
+                      className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                        restrictToJvOnly
+                          ? "bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE]"
+                          : "bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]"
+                      }`}
+                    >
+                      {restrictToJvOnly ? "เปิดใช้งาน (ACTIVE)" : "ปิดใช้งาน (OPEN ALL)"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#475569]">
+                    เมื่อเปิดโหมดนี้ ผู้ใช้ทั่วไปและหัวหน้าแผนกทุกคน (ยกเว้น <b>HR</b> และ <b>Admin</b>) จะเข้าถึงได้เฉพาะหัวข้อ{" "}
+                    <b>04 โครงสร้าง Job Value</b> เท่านั้น ส่วนเมนูอื่น (01, 02, 03, 05, 06, 07, 08) จะแสดงสีจางพร้อมป้าย{" "}
+                    <span className="font-mono font-bold text-[#0F172A]">Coming Soon</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleRestrictToJvOnly(!restrictToJvOnly)}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shrink-0 ${
+                    restrictToJvOnly
+                      ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
+                      : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
+                  }`}
+                >
+                  {restrictToJvOnly ? "เปิดใช้งานอยู่ (คลิกเพื่อปลดล็อกทุกเมนู)" : "ปิดอยู่ (คลิกเพื่อจำกัดเฉพาะหน้า JV)"}
+                </button>
               </div>
 
               <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">

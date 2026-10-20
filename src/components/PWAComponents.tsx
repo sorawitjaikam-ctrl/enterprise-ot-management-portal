@@ -82,10 +82,10 @@ export const PWAInstallButton: React.FC<{
       <button
         type="button"
         onClick={() => promptInstall()}
-        className={`w-full min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-600/20 to-sky-600/20 border border-sky-500/30 text-sky-300 hover:bg-sky-600/30 hover:text-white transition-all text-xs font-extrabold cursor-pointer shadow-sm ${className}`}
+        className={`w-full min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[#0E3A66] transition-all text-xs font-bold cursor-pointer shadow-2xs ${className}`}
         title="ติดตั้งแอพพลิเคชันลงในอุปกรณ์"
       >
-        <Download className="w-4 h-4 text-sky-400 flex-shrink-0" />
+        <Download className="w-4 h-4 text-[#0E3A66] flex-shrink-0" />
         <span className="truncate">ติดตั้งแอพลงเครื่อง (Install PWA)</span>
       </button>
     );
@@ -95,7 +95,7 @@ export const PWAInstallButton: React.FC<{
     <button
       type="button"
       onClick={() => promptInstall()}
-      className={`min-h-[44px] flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 active:scale-95 text-white border border-sky-400/30 rounded-2xl text-xs font-black transition-all shadow-md cursor-pointer ${className}`}
+      className={`min-h-[44px] flex items-center gap-1.5 px-3 py-2 bg-[#0E3A66] hover:bg-[#17538F] active:scale-95 text-white border border-[#0E3A66] rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${className}`}
       title="ติดตั้งแอพพลิเคชันลงในอุปกรณ์ (Install App)"
     >
       <Download className="w-3.5 h-3.5 animate-bounce" />
@@ -116,10 +116,10 @@ export const PWAOfflineBadge: React.FC<{ className?: string }> = ({ className = 
     <div
       role="status"
       aria-live="polite"
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-400 rounded-full text-[11px] font-extrabold animate-pulse ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-[11px] font-extrabold animate-pulse ${className}`}
       title="กำลังทำงานในโหมดออฟไลน์ ข้อมูลจากแคชในเครื่อง"
     >
-      <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+      <WifiOff className="w-3.5 h-3.5 text-amber-700" />
       <span>โหมดออฟไลน์ (Offline Mode)</span>
     </div>
   );
@@ -140,7 +140,7 @@ export const PWAInstallBanner: React.FC<{
 
   return (
     <div
-      className={`bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-b border-sky-500/30 text-white px-4 py-2.5 flex items-center justify-between gap-4 shadow-lg ${className}`}
+      className={`bg-[#0E3A66] border-b border-slate-700 text-white px-4 py-2.5 flex items-center justify-between gap-4 shadow-xs ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -159,7 +159,7 @@ export const PWAInstallBanner: React.FC<{
         <button
           type="button"
           onClick={() => promptInstall()}
-          className="min-h-[44px] px-3.5 py-1.5 bg-sky-500 hover:bg-sky-400 active:scale-95 text-slate-950 text-xs font-black rounded-xl transition-all shadow cursor-pointer flex items-center gap-1.5"
+          className="min-h-[44px] px-3.5 py-1.5 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-extrabold rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5"
         >
           <Download className="w-3.5 h-3.5" />
           <span>ติดตั้ง</span>
