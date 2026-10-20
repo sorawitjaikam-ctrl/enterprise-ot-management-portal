@@ -1248,20 +1248,11 @@ export default function JobValueSpreadsheetView({
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0F172A] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
               <option value="ALL">ทุกแผนก (Corporate Overview)</option>
-              <optgroup label="แยกตามแผนก (Department)">
-                {departmentOptions.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="แยกตามกลุ่มสายงาน (Job Value Group)">
-                {GROUPS_ORDER.map((grp) => (
-                  <option key={grp} value={`GROUP:${grp}`}>
-                    กลุ่ม: {grp}
-                  </option>
-                ))}
-              </optgroup>
+              {departmentOptions.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
             </select>
           </div>
 
