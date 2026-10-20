@@ -151,6 +151,11 @@ export const isCoAdminOrAdmin = (role?: string): boolean => {
   );
 };
 
+export function normalizeDeptString(d?: string): string {
+  if (!d) return "";
+  return d.toLowerCase().replace(/[\s\-_]/g, "");
+}
+
 function loadInitialYearlyStore(): Record<string, YearlyJobValueRecord[]> {
   const defaults = buildDefaultYearlyDatabase();
   if (typeof window !== "undefined") {
@@ -305,27 +310,37 @@ export default function JobValueSpreadsheetView({
     return Array.from(keys).sort();
   }, [yearlyStore]);
 
+  // Scoped records per year based on user permissions with proper department normalization
+  const getScopedRecordsForYear = useCallback(
+    (yearKey: string): YearlyJobValueRecord[] => {
+      const raw = yearlyStore[yearKey] || [];
+      if (!currentUser?.deptId || currentUser.deptId === "all" || isHrOrFullAccess) {
+        return raw;
+      }
+      const uDeptNorm = normalizeDeptString(currentUser.deptId);
+      const scoped = raw.filter((emp) => {
+        const empDeptNorm = normalizeDeptString(emp.dept);
+        return empDeptNorm.includes(uDeptNorm) || uDeptNorm.includes(empDeptNorm);
+      });
+      return scoped.length > 0 ? scoped : raw;
+    },
+    [yearlyStore, currentUser, isHrOrFullAccess]
+  );
+
   // Active year records & compare year records
   const currentYearRecords = useMemo(() => {
-    const raw = yearlyStore[selectedYear] || [];
-    return raw.filter((emp) => {
-      if (!isHrOrFullAccess && currentUser?.deptId && currentUser.deptId !== "all") {
-        const uDept = String(currentUser.deptId).toUpperCase();
-        if (!emp.dept.toUpperCase().includes(uDept)) return false;
-      }
-      return true;
-    });
-  }, [yearlyStore, selectedYear, isHrOrFullAccess, currentUser]);
+    return getScopedRecordsForYear(selectedYear);
+  }, [getScopedRecordsForYear, selectedYear]);
 
   const compareYearMap = useMemo(() => {
-    const raw = yearlyStore[compareYear] || [];
+    const raw = getScopedRecordsForYear(compareYear);
     const map = new Map<string, YearlyJobValueRecord>();
     raw.forEach((r) => {
       map.set(r.empId, r);
       if (r.name) map.set(r.name.trim(), r);
     });
     return map;
-  }, [yearlyStore, compareYear]);
+  }, [getScopedRecordsForYear, compareYear]);
 
   // Distinct departments list for #filter-dept
   const departmentOptions = useMemo(() => {
@@ -1201,11 +1216,14 @@ export default function JobValueSpreadsheetView({
               onChange={(e) => setSelectedYear(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0E3A66] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              {storedYearKeys.map((y) => (
-                <option key={y} value={y}>
-                  ปี {y} ({yearlyStore[y]?.length || 0} คน)
-                </option>
-              ))}
+              {storedYearKeys.map((y) => {
+                const count = getScopedRecordsForYear(y).length;
+                return (
+                  <option key={y} value={y}>
+                    ปี {y} ({count} คน)
+                  </option>
+                );
+              })}
             </select>
           </div>
 
