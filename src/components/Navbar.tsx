@@ -5,22 +5,35 @@ import {
   Bell, 
   LogOut,
   Menu,
-  Monitor,
   X,
-  User,
   CheckCircle2,
   Calendar,
   LayoutDashboard,
   Users,
   TrendingUp,
-  Building2,
   ClipboardList,
   BarChart3,
   ShieldCheck,
-  FileText,
-  Settings
+  Settings,
+  Building2,
+  Lock
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
+
+export const isStrictHrOrAdmin = (role?: string): boolean => {
+  const normalized = (role || "").trim();
+  return [
+    "HR",
+    "HR Section Manager",
+    "ผู้ดูแลระบบ",
+    "Admin",
+    "admin",
+    "Co-admin",
+    "Co-Admin",
+    "co_admin",
+    "ผู้ช่วยดูแลระบบ"
+  ].includes(normalized);
+};
 
 export interface NavbarProps {
   title: string;
@@ -36,6 +49,7 @@ export interface NavbarProps {
   setIsNavbarCollapsed?: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
   complianceNotifications?: Array<{ emp: any; alerts: any[] }>;
   onOpenComplianceModal?: (item: { emp: any; alerts: any[] }) => void;
+  restrictToJvOnly?: boolean;
 }
 
 export default function Navbar({ 
@@ -47,14 +61,22 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   onLogout,
+  isNavbarCollapsed,
+  setIsNavbarCollapsed,
   complianceNotifications = [],
-  onOpenComplianceModal
+  onOpenComplianceModal,
+  restrictToJvOnly
 }: NavbarProps) {
-  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
+  const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
+  const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
+  const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+  const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -81,6 +103,12 @@ export default function Navbar({
   }, []);
 
   const handleTabSelect = (tabId: string) => {
+    if (isJvOnlyLocked && tabId !== "job_value") {
+      setActiveTab("job_value");
+      setIsMobileMenuOpen(false);
+      setIsMobileSearchOpen(false);
+      return;
+    }
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
     setIsMobileSearchOpen(false);
@@ -96,17 +124,18 @@ export default function Navbar({
     { id: "manpower", num: "06", label: "โครงสร้างอัตรากำลัง", icon: Building2 },
     { id: "leave-records", num: "07", label: "บันทึกวันลา", icon: ClipboardList },
     { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ", icon: Calendar },
-    ...(isHrOrFullAccess ? [
-      { id: "hr-editor", num: "09", label: "ข้อมูล & รายได้", icon: FileText },
-      { id: "admin-permissions", num: "10", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
-      { id: "settings", num: "11", label: "ตั้งค่าระบบ", icon: Settings },
+    ...(isHrOrAdmin || (!isJvOnlyLocked && isHrOrFullAccess) ? [
+      { id: "admin-permissions", num: "09", label: "สิทธิ์ผู้ใช้งาน", icon: ShieldCheck },
+      { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
   ];
 
   return (
     <>
       {/* Editorial Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans">
+      <header 
+        className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#DCE4EA] font-sans transition-all duration-300 shadow-2xs"
+      >
         
         {/* Top Header Bar */}
         <div className="w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
@@ -124,7 +153,7 @@ export default function Navbar({
               </button>
 
               <div 
-                onClick={() => handleTabSelect("dashboard")}
+                onClick={() => handleTabSelect(isJvOnlyLocked ? "job_value" : "dashboard")}
                 className="cursor-pointer select-none shrink-0"
               >
                 <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · INTER STEVEDORING</span>
@@ -155,21 +184,22 @@ export default function Navbar({
               <PWAOfflineBadge />
               <PWAInstallButton />
 
+
               {/* Notification Bell */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className={`w-8 h-8 rounded border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
+                  className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer relative btn-press focus-ring active:scale-95 ${
                     complianceNotifications.length > 0
-                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F]"
-                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA]"
+                      ? "bg-[#FCF3DE] text-[#D99B14] border-[#F3D98F] shadow-xs"
+                      : "bg-[#F3F6F8] text-[#6A7B87] border-[#DCE4EA] hover:bg-[#E8F3FA] hover:text-[#0E3A66]"
                   }`}
                   title="การแจ้งเตือนข้อควรระวัง"
                 >
                   <Bell className="w-4 h-4" />
                   {complianceNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#B3352C] text-white text-[9px] font-bold rounded-full flex items-center justify-center tabular-nums shadow-xs">
                       {complianceNotifications.length}
                     </span>
                   )}
@@ -182,11 +212,11 @@ export default function Navbar({
                       className="fixed inset-0 z-40" 
                       onClick={() => setIsNotificationsOpen(false)} 
                     />
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
-                      <div className="p-3 bg-[#0E3A66] text-white flex items-center justify-between">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-[#DCE4EA] shadow-md z-50 overflow-hidden font-sans">
+                      <div className="p-3.5 bg-[#0E3A66] text-white flex items-center justify-between border-b border-[#17538F]">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-[#F3D98F]" />
-                          <span className="text-xs font-bold">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
+                          <span className="text-xs font-bold tracking-wide">การแจ้งเตือนข้อควรระวัง ({complianceNotifications.length})</span>
                         </div>
                       </div>
 
@@ -200,27 +230,23 @@ export default function Navbar({
                         ) : (
                           complianceNotifications.map((item, idx) => (
                             <div 
-                              key={item.emp?.id || idx}
+                              key={idx}
                               onClick={() => {
                                 setIsNotificationsOpen(false);
-                                if (onOpenComplianceModal) onOpenComplianceModal(item);
+                                onOpenComplianceModal?.(item);
                               }}
-                              className="p-2.5 hover:bg-[#E8F3FA] rounded transition-colors cursor-pointer group"
+                              className="p-3 hover:bg-[#F3F6F8] transition-colors cursor-pointer flex items-start gap-2.5 group"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-[#0E3A66]">
-                                  {item.emp?.name}
-                                </span>
-                                <span className="tag t-r">
-                                  {item.alerts?.length || 0} ข้อระวัง
-                                </span>
+                              <div className="p-1.5 rounded-lg bg-[#FCF3DE] text-[#D99B14] shrink-0 mt-0.5">
+                                <AlertTriangle className="w-4 h-4" />
                               </div>
-                              <div className="text-[11px] text-[#59656D] mt-1 space-y-0.5">
-                                {item.alerts?.slice(0, 2).map((a: any, ai: number) => (
-                                  <p key={ai} className="truncate text-[#B3352C]">
-                                    • {a.message || a.desc || "ข้อควรระวัง OT / การพักผ่อน"}
-                                  </p>
-                                ))}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-[#0E3A66] group-hover:text-[#17538F]">
+                                  {item.emp?.name}
+                                </p>
+                                <p className="text-[11px] text-[#6A7B87]">
+                                  {item.emp?.deptId} · {item.alerts?.[0]?.message || "มีข้อควรระวังในการจัดกะ"}
+                                </p>
                               </div>
                             </div>
                           ))
@@ -231,30 +257,13 @@ export default function Navbar({
                 )}
               </div>
 
-              <button
-                onClick={() => {
-                  const isDark = document.documentElement.classList.contains("dark");
-                  if (isDark) {
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("theme", "light");
-                  } else {
-                    document.documentElement.classList.add("dark");
-                    localStorage.setItem("theme", "dark");
-                  }
-                }}
-                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 text-[#6A7B87] hover:text-[#0E3A66] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
-                title="สลับธีม (Dark/Light)"
-              >
-                <Monitor className="w-3.5 h-3.5" />
-              </button>
-
               {/* Profile button */}
               <button 
                 onClick={onOpenProfile}
-                className="flex items-center gap-2 px-2 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] rounded transition-all text-left cursor-pointer btn-press focus-ring"
+                className="flex items-center gap-2 px-2.5 py-1 bg-[#F3F6F8] hover:bg-[#E8F3FA] active:scale-95 border border-[#DCE4EA] hover:border-[#9FCEE8] rounded-lg transition-all text-left cursor-pointer btn-press focus-ring"
                 title="ดูโปรไฟล์ของคุณ"
               >
-                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#0E3A66] text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
                   {(currentUser?.name || "U")[0]}
                 </div>
                 <div className="text-left hidden lg:block pr-1">
@@ -265,7 +274,7 @@ export default function Navbar({
               {/* Logout button */}
               <button
                 onClick={onLogout}
-                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] rounded transition-all cursor-pointer btn-press focus-ring"
+                className="flex items-center justify-center w-8 h-8 bg-[#F3F6F8] hover:bg-[#FBEAEA] active:scale-95 text-[#6A7B87] hover:text-[#B3352C] border border-[#DCE4EA] hover:border-[#F4B8B4] rounded-lg transition-all cursor-pointer btn-press focus-ring"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -276,23 +285,53 @@ export default function Navbar({
         </div>
 
         {/* Row 2: Folder-Style Tab Navigation (Desktop / Tablet) */}
-        <div className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x">
+        <div 
+          className="hidden md:block w-full px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar touch-pan-x"
+        >
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
+              const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
               const isActive = activeTab === tab.id;
+              const isHovered = hoveredTabId === tab.id;
+              // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover (or when locked to show Coming Soon)
+              const isExpanded = isActive || isHovered || isTabLocked;
               return (
                 <button
                   key={tab.id}
                   role="tab"
                   aria-selected={isActive}
-                  className={`btn-press focus-ring ${isActive ? "active" : ""}`}
+                  aria-disabled={isTabLocked}
+                  title={isTabLocked ? `${tab.num} · ${tab.label} (Coming Soon)` : `${tab.num} · ${tab.label}`}
+                  onMouseEnter={() => setHoveredTabId(tab.id)}
+                  onMouseLeave={() => setHoveredTabId(null)}
+                  style={{ flex: "0 0 auto" }}
+                  className={`btn-press focus-ring transition-all duration-200 ${
+                    isTabLocked
+                      ? "opacity-45 cursor-not-allowed select-none px-2.5 bg-[#F8FAFC] text-[#64748B]"
+                      : isActive
+                      ? "active px-3.5"
+                      : isHovered
+                      ? "px-3"
+                      : "px-2.5"
+                  }`}
                   onClick={() => handleTabSelect(tab.id)}
                 >
                   <span className="num">{tab.num}</span>
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap ml-1">
-                    <Icon className="w-3.5 h-3.5 opacity-80" />
-                    <span className={isActive ? "" : "sr-only"}>{tab.label}</span>
+                  <Icon className="w-3.5 h-3.5 opacity-85 shrink-0" />
+                  <span 
+                    className={`transition-all duration-200 ease-out whitespace-nowrap overflow-hidden inline-flex items-center gap-1.5 ${
+                      isExpanded 
+                        ? "max-w-[240px] opacity-100 ml-1" 
+                        : "max-w-0 opacity-0 w-0 m-0 pointer-events-none"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isTabLocked && (
+                      <span className="px-1.5 py-0.5 rounded bg-[#E2E8F0] text-[#475569] font-mono text-[9px] font-bold uppercase tracking-wider shrink-0">
+                        Coming Soon
+                      </span>
+                    )}
                   </span>
                 </button>
               );
@@ -336,22 +375,33 @@ export default function Navbar({
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {tabsList.map((tab) => {
             const Icon = tab.icon;
+            const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                aria-disabled={isTabLocked}
                 onClick={() => handleTabSelect(tab.id)}
                 className={`w-full flex items-center justify-between p-2.5 rounded text-xs font-semibold transition-all btn-press focus-ring ${
-                  isActive
+                  isTabLocked
+                    ? "opacity-45 cursor-not-allowed select-none text-[#64748B] bg-[#F8FAFC]"
+                    : isActive
                     ? "bg-[#E8F3FA] text-[#0E3A66] border-l-3 border-[#0E3A66]"
                     : "text-[#59656D] hover:bg-[#F3F6F8] hover:text-[#0E3A66] active:scale-[0.99]"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4 text-[#6A7B87]" />
-                  <span>{tab.label}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className="w-4 h-4 text-[#6A7B87] shrink-0" />
+                  <span className="truncate">{tab.label}</span>
                 </div>
-                <span className="font-mono text-[10px] text-[#6A7B87] tabular-nums">{tab.num}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isTabLocked && (
+                    <span className="px-1.5 py-0.5 rounded bg-[#E2E8F0] text-[#475569] font-mono text-[9px] font-bold uppercase tracking-wider">
+                      Coming Soon
+                    </span>
+                  )}
+                  <span className="font-mono text-[10px] text-[#6A7B87] tabular-nums">{tab.num}</span>
+                </div>
               </button>
             );
           })}

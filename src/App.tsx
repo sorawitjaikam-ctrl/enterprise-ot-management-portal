@@ -76,13 +76,15 @@ import {
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
-import Navbar from "./components/Navbar";
+import Navbar, { isStrictHrOrAdmin } from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
 import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
+import DataLineageHubView from "./components/DataLineageHubView";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
+import EmployeeShiftCalendarModal from "./components/EmployeeShiftCalendarModal";
 import { LiveSimulationHUD } from "./components/LiveSimulationHUD";
 import ExecutiveDashboardView from "./components/dashboard/ExecutiveDashboardView";
 import { simulateShiftPaintingDelta, SimulationResult } from "./utils/costSimulationEngine";
@@ -105,22 +107,6 @@ import {
   SHIFT_DEFINITIONS,
   ComplianceAlert
 } from "./utils/shiftRecommendation";
-
-export const MASTER_ROLES: string[] = [
-  "O&M Electrical",
-  "O&M Mechanical",
-  "O&M Generator",
-  "O&M Specialist",
-  "ผู้ควบคุมงานขนถ่ายสินค้า",
-  "ผู้ควบคุมงานจักรกลหนัก",
-  "Operation Engineer",
-  "พนักงานขับจักรกลหนัก",
-  "พนักงานขับเครน",
-  "พนักงานขับเครน ชำนาญการ",
-  "ปากเรือ",
-  "ปากเรือ ชำนาญการ",
-  "ผู้จัดการแผนก"
-];
 
 export const LEAVE_CODES = ["ป", "ก", "ข", "ปง", "ณ", "คม", "พ", "ลย", "ลบ", "ตง"] as const;
 export const isLeaveCode = (code: string) => LEAVE_CODES.includes(code as any);
@@ -298,16 +284,28 @@ export const getEmpShiftsArray = (shifts: any, monthKey?: string, calendarType?:
   return extracted && extracted.length > 0 ? extracted : [];
 };
 
-export const isJvDepartment = (deptNameOrId: string): boolean => {
-  if (!deptNameOrId) return false;
-  const n = normalizeDeptId(deptNameOrId);
-  return n === "inter2" || n === "inter3" || n === "inter5" || n === "inter7";
+export const isJvDepartment = (_deptNameOrId?: string): boolean => {
+  return true;
 };
 
-export const isJvRole = (roleOrPosition?: string): boolean => {
-  if (!roleOrPosition) return false;
-  const trimmed = roleOrPosition.trim();
-  return /^O&M\b/i.test(trimmed) || /^O&M\s*[-–—]/i.test(trimmed) || trimmed.toUpperCase().startsWith("O&M");
+export const isJvRole = (_roleOrPosition?: string): boolean => {
+  return true;
+};
+
+export const matchesEmpJv = (jv: any, emp: any): boolean => {
+  if (!jv || !emp) return false;
+  const jvId = String(jv.empId || jv.id || "").trim().toLowerCase();
+  const empId = String(emp.id || emp.empId || "").trim().toLowerCase();
+  if (jvId && empId) {
+    if (jvId === empId) return true;
+    const cleanJv = jvId.replace(/^(emp-|pos-)/i, "");
+    const cleanEmp = empId.replace(/^(emp-|pos-)/i, "");
+    if (cleanJv && cleanEmp && cleanJv === cleanEmp) return true;
+  }
+  const jvName = String(jv.empName || jv.name || "").replace(/^(นาย|นางสาว|นาง)\s*/, "").trim().toLowerCase();
+  const empName = String(emp.name || emp.empName || "").replace(/^(นาย|นางสาว|นาง)\s*/, "").trim().toLowerCase();
+  if (jvName && empName && jvName === empName) return true;
+  return false;
 };
 
 export const getEmpMonthlyOtPayBreakdown = (
@@ -757,7 +755,6 @@ type OtRecord = {
   employeeId: string; employeeName: string;
   deptId: string; shiftCode: string; otHours: number; note: string;
   vesselName?: string; timeRange?: string; multiplier?: number; source?: string;
-  position?: string;
 };
 
 const MONTH_TH = ["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -1123,7 +1120,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newEmployeeId}
                   onChange={e => setNewEmployeeId(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors cursor-pointer"
                 >
                   {state.employees.map(e => (
                     <option key={e.id} value={e.id}>{e.id} - {e.name} ({departments.find(d => d.id === e.deptId)?.name || e.deptId})</option>
@@ -1138,7 +1135,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newDate}
                   onChange={e => setNewDate(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors"
                 />
               </div>
 
@@ -1148,7 +1145,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   value={newType}
                   onChange={e => setNewType(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors cursor-pointer"
                 >
                   <option value="vacation">ลาพักร้อน (Vacation)</option>
                   <option value="sick">ลาป่วย (Sick Leave)</option>
@@ -1164,7 +1161,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                   onChange={e => setNewNote(e.target.value)}
                   rows={3}
                   placeholder="เช่น ลาป่วยใบรับรองแพทย์, ลากิจไปทำธุระส่วนตัว..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-850 focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors resize-none placeholder-slate-400"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-850 focus:outline-none focus:border-[#0E3A66] focus:bg-white transition-colors resize-none placeholder-slate-400"
                 />
               </div>
 
@@ -1179,7 +1176,7 @@ function LeaveRecordsView({ currentUser, state }: { currentUser: any; state: App
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10"
+                  className="flex-1 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
                 >
                   {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                 </button>
@@ -1269,21 +1266,17 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
     if (records.length === 0) { alert("ไม่มีข้อมูล OT สำหรับส่งออก"); return; }
     const esc = (v: any) => { const s = String(v ?? "").replace(/"/g, '""'); return `"${s}"`; };
     let csv = "\ufeff"; // BOM for Excel Thai
-    csv += "วันที่,เรือ/หน้างาน,รหัสพนักงาน,ชื่อพนักงาน,ตำแหน่ง,แผนก,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,หมายเหตุ,ที่มา\n";
+    csv += "วันที่,รหัสพนักงาน,ชื่อพนักงาน,แผนก,เรือ/หน้างาน,ช่วงเวลากะ,รหัสกะ,ตัวคูณ,ชั่วโมง OT,ที่มา\n";
     records.forEach(r => {
       const code = getCanonicalShiftCode(r.timeRange, r.shiftCode, r.otHours);
       csv += [
-        esc(r.date),
-        esc(r.vesselName || "-"),
-        esc(r.employeeId),
-        esc(r.employeeName),
-        esc(r.position || "-"),
+        esc(r.date), esc(r.employeeId), esc(r.employeeName),
         esc(DEPT_LABELS[r.deptId] || r.deptId),
+        esc(r.vesselName || "-"),
         esc(r.timeRange || "-"),
         esc(code),
         esc(r.multiplier ? "x" + r.multiplier : "x1"),
         r.otHours,
-        esc(r.note || "-"),
         esc(r.source || "SYSTEM")
       ].join(",") + "\n";
     });
@@ -1368,30 +1361,28 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-4 py-3 text-left font-bold text-slate-600">วันที่</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-600">เรือ / หน้างาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">รหัสพนักงาน</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">ชื่อพนักงาน</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-600">ตำแหน่ง</th>
                 <th className="px-4 py-3 text-left font-bold text-slate-600">แผนก</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">เรือ / หน้างาน</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ช่วงเวลากะ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">รหัสกะ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ตัวคูณ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">OT (ชม.)</th>
-                <th className="px-4 py-3 text-left font-bold text-slate-600">หมายเหตุ</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">ที่มา</th>
                 <th className="px-4 py-3 text-center font-bold text-slate-600">จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#DCE4EA]">
               {loading ? (
-                <tr><td colSpan={13} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
+                <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-400">กำลังโหลด...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-4 py-16 text-center">
+                  <td colSpan={11} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                       <p className="text-sm font-bold text-slate-500">ไม่มีข้อมูล OT</p>
-                      <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" หรือส่งผ่าน LINE OA เพื่อให้ข้อมูลปรากฏที่นี่</p>
+                      <p className="text-xs text-slate-400">บันทึกกะที่มี OT ในหน้า "จัดการตารางกะ" เพื่อให้ข้อมูลปรากฏที่นี่</p>
                     </div>
                   </td>
                 </tr>
@@ -1400,6 +1391,9 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                 return (
                   <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3 text-slate-700 font-mono">{r.date}</td>
+                    <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
+                    <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
                     <td className="px-4 py-3 font-medium text-slate-700">
                       {r.vesselName ? (
                         <span className="inline-flex items-center gap-1 text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded-md">
@@ -1409,30 +1403,18 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 font-mono">{r.employeeId}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800">{r.employeeName}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {r.position && r.position !== "-" ? (
-                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
-                          {r.position}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{DEPT_LABELS[r.deptId] || r.deptId}</td>
                     <td className="px-4 py-3 text-center font-mono text-slate-600 font-medium">
                       {r.timeRange || "-"}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded-lg border font-extrabold text-xs ${getShiftStyle(code)}`}>
+                      <span className={`inline-block px-2.5 py-0.5 rounded-lg border font-extrabold text-xs shadow-xs ${getShiftStyle(code)}`}>
                         {code}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block px-2 py-0.5 rounded font-black text-xs ${
                         (r.multiplier ?? 1) >= 3 ? "bg-amber-100 text-amber-800 border border-amber-300" :
-                        (r.multiplier ?? 1) > 1 ? "bg-indigo-100 text-indigo-800 border border-indigo-200" :
+                        (r.multiplier ?? 1) > 1 ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]" :
                         "bg-slate-100 text-slate-700 border border-slate-200"
                       }`}>
                         x{r.multiplier ?? 1}
@@ -1440,9 +1422,6 @@ function OtRecordsView({ currentUser, state }: { currentUser: any; state: AppSta
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className="font-extrabold text-blue-700 text-sm">{r.otHours}</span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={r.note || "-"}>
-                      {r.note || "-"}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {r.source === "LINE_OA" ? (
@@ -1656,16 +1635,16 @@ function EmployeeAvatar({
     initials = "--";
   }
 
-  // Deterministic avatar gradient
-  const gradients = [
-    "from-blue-600 to-indigo-700",
-    "from-teal-600 to-emerald-700",
-    "from-cyan-600 to-blue-700",
-    "from-indigo-600 to-violet-700",
-    "from-sky-600 to-blue-800"
+  // Deterministic avatar corporate palette (Swiss Corporate Editorial)
+  const avatarColors = [
+    "bg-[#0E3A66] text-white",
+    "bg-[#17538F] text-white",
+    "bg-slate-700 text-white",
+    "bg-[#2E90CB] text-white",
+    "bg-slate-800 text-white"
   ];
   const colorHash = (cleanId + (empName || "")).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const selectedGradient = gradients[colorHash % gradients.length];
+  const selectedBg = avatarColors[colorHash % avatarColors.length];
 
   const currentSrc = candidates[candidateIndex];
 
@@ -1686,7 +1665,7 @@ function EmployeeAvatar({
     >
       {/* Monogram fallback (always rendered underneath, zero layout shift) */}
       <div 
-        className={`w-full h-full rounded-full bg-gradient-to-br ${selectedGradient} border border-white/60 text-white font-black flex items-center justify-center text-[10px] sm:text-xs leading-none`}
+        className={`w-full h-full rounded-full ${selectedBg} border border-white/60 font-black flex items-center justify-center text-[10px] sm:text-xs leading-none`}
       >
         {initials}
       </div>
@@ -1884,18 +1863,25 @@ function HrDirectEditorView({
   });
 
   // Filtered employees for Job Value & Compensation breakdown roster
-  const empSourceList = (state?.employees && state.employees.length > 0)
-    ? state.employees
-    : safeJobValueRecords.map(jv => ({
-        id: jv.empId,
-        name: jv.empName,
-        role: jv.position,
-        deptId: jv.deptId || jv.department,
-        department: jv.department,
-        salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
-        employmentStatus: jv.status || "Active",
-        shifts: []
-      }));
+  const empSourceList = (() => {
+    const list: any[] = [...(state?.employees || [])];
+    for (const jv of safeJobValueRecords) {
+      const exists = list.some(e => matchesEmpJv(jv, e));
+      if (!exists) {
+        list.push({
+          id: jv.empId || jv.id,
+          name: jv.empName || (jv as any).name || jv.empId,
+          role: jv.position || "Operator",
+          deptId: jv.deptId || jv.department || "inter2",
+          department: jv.department || "INTER 2",
+          salary: jv.avgCost ? Math.round(jv.avgCost / 1.35) : 15000,
+          employmentStatus: jv.status || "Active",
+          shifts: []
+        });
+      }
+    }
+    return list;
+  })();
 
   const rosterFilteredItems = empSourceList.filter(emp => {
     if (!emp) return false;
@@ -2146,10 +2132,7 @@ function HrDirectEditorView({
                   </tr>
                 ) : (
                   rosterFilteredItems.map(emp => {
-                    const matchingJv = safeJobValueRecords.find(jv =>
-                      String(jv.empId || "").toLowerCase() === String(emp.id || "").toLowerCase() ||
-                      String(jv.empName || "").toLowerCase() === String(emp.name || "").toLowerCase()
-                    );
+                    const matchingJv = safeJobValueRecords.find(jv => matchesEmpJv(jv, emp));
                     const b = getEmployeeJobValueBreakdown(emp, currentMonth, matchingJv);
                     const deptName = getDeptName(emp.deptId, state?.departments) || emp.department || "-";
                     const otBreakdown = getEmpMonthlyOtPayBreakdown(emp, currentMonth);
@@ -2703,6 +2686,47 @@ export default function App() {
     }
   };
 
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: "edit" | "add") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const src = evt.target?.result as string;
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 256;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          if (mode === "edit") {
+            setEditAccountAvatar(dataUrl);
+          } else {
+            setNewAccountAvatar(dataUrl);
+          }
+        }
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const fetchAccounts = async () => {
     try {
       const res = await fetch("/api/portal-state");
@@ -2947,6 +2971,9 @@ export default function App() {
         localStorage.setItem("currentUser", JSON.stringify(data.user));
         setIsLoggedIn(true);
         setCurrentUser(data.user);
+        if (!isStrictHrOrAdmin(data.user?.role) && localStorage.getItem("restrictToJvOnly") !== "false") {
+          setActiveTab("job_value");
+        }
         setLoginUsername("");
         setLoginPassword("");
       } else {
@@ -2962,6 +2989,9 @@ export default function App() {
         localStorage.setItem("currentUser", JSON.stringify(user));
         setIsLoggedIn(true);
         setCurrentUser(user);
+        if (!isStrictHrOrAdmin(user?.role) && localStorage.getItem("restrictToJvOnly") !== "false") {
+          setActiveTab("job_value");
+        }
         setLoginUsername("");
         setLoginPassword("");
       } else {
@@ -2981,8 +3011,46 @@ export default function App() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>(getInitialTabFromUrl);
+  // JV-Only Access Mode ("ให้ทุกคนยกเว้น HR & Admin เห็นแค่หน้า Job Value")
+  const [restrictToJvOnly, setRestrictToJvOnly] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("restrictToJvOnly") !== "false";
+    }
+    return true;
+  });
+
+  const handleToggleRestrictToJvOnly = (nextVal: boolean) => {
+    setRestrictToJvOnly(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("restrictToJvOnly", nextVal ? "true" : "false");
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const initialTab = getInitialTabFromUrl();
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("restrictToJvOnly") !== "false" &&
+      !isStrictHrOrAdmin(currentUser?.role)
+    ) {
+      return "job_value";
+    }
+    return initialTab;
+  });
   useUrlRouting(activeTab, setActiveTab);
+
+  // Enforce JV-Only mode for non-HR/Admin users whenever user or mode changes
+  useEffect(() => {
+    if (
+      restrictToJvOnly &&
+      !isStrictHrOrAdmin(currentUser?.role) &&
+      activeTab !== "job_value" &&
+      activeTab !== "jobValue" &&
+      activeTab !== "profile"
+    ) {
+      setActiveTab("job_value");
+    }
+  }, [restrictToJvOnly, currentUser, activeTab]);
 
   // Executive Mode vs Operational Mode State (Requirement R1)
   const [dashboardMode, setDashboardMode] = useState<"executive" | "operational">(() => {
@@ -3020,7 +3088,7 @@ export default function App() {
   }, []);
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem("isNavbarCollapsed");
-    return stored === null ? true : stored === "true";
+    return stored === "true";
   });
   useEffect(() => {
     localStorage.setItem("isNavbarCollapsed", String(isNavbarCollapsed));
@@ -3142,6 +3210,33 @@ export default function App() {
 
   const [newEmpCalendarType, setNewEmpCalendarType] = useState<string>("ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)");
 
+  // Executive Maritime Confirmation & Alert Modals for Employee Management
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    employee: Employee | null;
+  }>({
+    isOpen: false,
+    employee: null
+  });
+
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
+
+  const [portalAlertModal, setPortalAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  });
+
+  const showPortalAlert = (title: string, message: string, variant: "success" | "error" | "info" = "info") => {
+    setPortalAlertModal({ isOpen: true, title, message, variant });
+  };
+
   const updatePlannerMonth = (newMonthStr: string) => {
     setState((prev: any) => prev ? ({
       ...prev,
@@ -3168,6 +3263,7 @@ export default function App() {
 
   // Detail Modal State
   const [viewingEmployeeDetails, setViewingEmployeeDetails] = useState<Employee | null>(null);
+  const [calendarModalEmployee, setCalendarModalEmployee] = useState<Employee | null>(null);
   const [empProfileLeaveRecords, setEmpProfileLeaveRecords] = useState<any[]>([]);
   const [loadingEmpProfileLeaveRecords, setLoadingEmpProfileLeaveRecords] = useState<boolean>(false);
 
@@ -3203,7 +3299,16 @@ export default function App() {
   }, [viewingEmployeeDetails, state?.leaveRecords]);
 
   // Dedicated Job Value State & Controls
-  const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>([]);
+  const [jobValueRecords, setJobValueRecords] = useState<JobValueRecord[]>(() => {
+    try {
+      const cached = localStorage.getItem("jobValueRecords");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
   const [jobValueDeptFilter, setJobValueDeptFilter] = useState<string>("ทุกแผนก");
   const [jobValueSearchQuery, setJobValueSearchQuery] = useState<string>("");
   const [showImportJobValueModal, setShowImportJobValueModal] = useState<boolean>(false);
@@ -3229,18 +3334,36 @@ export default function App() {
       const res = await fetch("/api/job-value");
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setJobValueRecords(data);
+          localStorage.setItem("jobValueRecords", JSON.stringify(data));
         } else {
-          console.warn("Job value API did not return an array:", data);
-          setJobValueRecords([]);
+          const cached = localStorage.getItem("jobValueRecords");
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+            } catch (_) {}
+          }
         }
       } else {
-        setJobValueRecords([]);
+        const cached = localStorage.getItem("jobValueRecords");
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+          } catch (_) {}
+        }
       }
     } catch (err) {
       console.error("Error fetching Job Value records:", err);
-      setJobValueRecords([]);
+      const cached = localStorage.getItem("jobValueRecords");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) setJobValueRecords(parsed);
+        } catch (_) {}
+      }
     }
   };
 
@@ -4201,7 +4324,23 @@ export default function App() {
       { id: "improvement",    name: "Improvement",           nameTh: "แผนก Improvement",           manager: "คุณจิราภรณ์", managerRole: "Section Manager", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "trending_up" },
       { id: "management",    name: "Management",           nameTh: "แผนก Management",           manager: "คุณสมบูรณ์", managerRole: "Director", managerImg: "", employeesCount: 0, otHours: 0, budgetUsed: 0, budgetUsedChange: 0, budgetUsedChangePct: 0, budgetUtilization: 0, status: "On Track", icon: "business_center" }
     ],
-    roles: [...MASTER_ROLES],
+    roles: [
+      "พนักงานขับเครน",
+      "ช่างขับจักรกลหนัก",
+      "ผู้ควบคุมงานจักรกลหนัก",
+      "ผู้ควบคุมงานขนถ่ายสินค้า",
+      "ช่างปากเรือ",
+      "O&M Specialist",
+      "O&M Generator",
+      "O&M Mechanical",
+      "O&M Electrical",
+      "เจ้าหน้าที่ศูนย์ควบคุม",
+      "Operation Engineer",
+      "Improvement Engineer",
+      "ผู้จัดการฝ่ายปฏิบัติการ",
+      "ผู้จัดการแผนก",
+      "Maintenance Improvement"
+    ],
     employees: [],
     shiftConfig: {
       pattern: "4-on-2-off",
@@ -4214,11 +4353,9 @@ export default function App() {
   });
 
   // Fetch initial portal state
-  const fetchPortalState = async (monthOverride?: string, forceLoading: boolean = false) => {
+  const fetchPortalState = async (monthOverride?: string, silent: boolean = false) => {
     try {
-      if (forceLoading || !state) {
-        setLoading(true);
-      }
+      if (!silent) setLoading(true);
       setStateError(null);
       const res = await fetch("/api/portal-state");
       if (res.ok) {
@@ -4226,8 +4363,6 @@ export default function App() {
         const targetMonth = monthOverride || state?.shiftConfig?.currentMonth || data?.shiftConfig?.currentMonth || "2026-08";
         const updatedData: AppState = {
           ...data,
-          departments: (data.departments || []).filter((d: any) => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK"),
-          roles: (data?.roles && Array.isArray(data.roles) && data.roles.length > 0) ? data.roles : MASTER_ROLES,
           shiftConfig: {
             pattern: data?.shiftConfig?.pattern || "4-on-2-off",
             currentDept: data?.shiftConfig?.currentDept || "inter2",
@@ -4271,7 +4406,7 @@ export default function App() {
       setTempEmployees(def.employees);
       setAccounts([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -4280,10 +4415,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (currentUser?.username) {
+    if (currentUser) {
       fetchAccounts();
     }
-  }, [currentUser?.username]);
+  }, [currentUser]);
 
   useEffect(() => {
     if (currentUser && currentUser.deptId !== "all") {
@@ -4302,7 +4437,7 @@ export default function App() {
     } else {
       setSelectedDeptFilter("ทุกแผนก");
     }
-  }, [currentUser?.deptId]);
+  }, [currentUser]);
 
   // Job Value CSV Export & Import Handlers
   const handleExportJobValueCsv = () => {
@@ -4376,115 +4511,202 @@ export default function App() {
   const handleImportJobValueCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) return;
-      const lines = text.split(/\r?\n/).filter(line => line.trim());
-      if (lines.length <= 1) return alert("ไฟล์ CSV ไม่มีข้อมูล");
-
-      const parseNum = (val: any) => {
-        if (val === null || val === undefined) return 0;
-        const cleaned = String(val).replace(/,/g, "").replace(/฿/g, "").replace(/\$/g, "").trim();
-        const num = parseFloat(cleaned);
-        return isNaN(num) ? 0 : num;
-      };
-
-      const parseCsvLine = (line: string): string[] => {
-        const result: string[] = [];
-        let current = "";
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
-            current = "";
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim().replace(/^"/, '').replace(/"$/, ''));
-        return result;
-      };
-
-      const parsedRecords: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseCsvLine(lines[i]);
-        if (!cols[0]) continue;
-        const empId = cols[0];
-        const empName = cols[1] || "";
-        const department = cols[2] || "ไม่ระบุแผนก";
-        const position = cols[3] || "";
-        const status = cols[4] || "Active";
-        const avgRevenue = parseNum(cols[5]);
-        const avgCost = parseNum(cols[6]);
-        const profit2026 = parseNum(cols[7]);
-        const profit2025 = parseNum(cols[8]);
-
-        const monthlyRevenue = cols.slice(9, 21).map(parseNum);
-        const monthlyCost = cols.slice(21, 33).map(parseNum);
-        const monthlyProfit = cols.slice(33, 45).map(parseNum);
-
-        parsedRecords.push({
-          id: `JV-${empId}`,
-          empId,
-          empName,
-          department,
-          position,
-          status,
-          avgRevenue,
-          avgCost,
-          profit2026,
-          profit2025,
-          monthlyRevenue,
-          monthlyCost,
-          monthlyProfit
-        });
-      }
-
       try {
+        let text = evt.target?.result as string;
+        if (!text) {
+          alert("ไฟล์ไม่มีเนื้อหาข้อมูล");
+          return;
+        }
+
+        // 1. Strip UTF-8 BOM if present
+        text = text.replace(/^\uFEFF/, "");
+
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        if (lines.length <= 1) {
+          alert("ไฟล์ CSV ไม่มีข้อมูลหรือมีเพียงหัวตาราง กรุณาตรวจสอบไฟล์อีกครั้ง");
+          return;
+        }
+
+        // 2. Auto-detect delimiter: comma, semicolon, tab
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semiCount = (firstLine.match(/;/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+        let delimiter = ",";
+        if (semiCount > commaCount && semiCount > tabCount) delimiter = ";";
+        else if (tabCount > commaCount && tabCount > semiCount) delimiter = "\t";
+
+        const parseCsvLine = (line: string, delim: string): string[] => {
+          if (delim === "\t") return line.split("\t").map(c => c.trim().replace(/^"|"$/g, ""));
+          const result: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delim && !inQuotes) {
+              result.push(current.trim().replace(/^"|"$/g, ""));
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim().replace(/^"|"$/g, ""));
+          return result;
+        };
+
+        const parseNum = (val: any) => {
+          if (val === null || val === undefined) return 0;
+          const cleaned = String(val).replace(/,/g, "").replace(/฿/g, "").replace(/\$/g, "").trim();
+          const num = parseFloat(cleaned);
+          return isNaN(num) ? 0 : num;
+        };
+
+        // 3. Inspect headers for column mapping
+        const rawHeaders = parseCsvLine(lines[0], delimiter).map(h => h.trim().toLowerCase());
+        const findColIdx = (candidates: string[]) => {
+          for (const cand of candidates) {
+            const idx = rawHeaders.findIndex(h => h.includes(cand.toLowerCase()));
+            if (idx >= 0) return idx;
+          }
+          return -1;
+        };
+
+        const idIdx = findColIdx(["empid", "employee id", "รหัสพนักงาน", "id", "รหัส"]);
+        const nameIdx = findColIdx(["empname", "name", "ชื่อพนักงาน", "ชื่อ-สกุล", "ชื่อ - นามสกุล", "ชื่อ"]);
+        const deptIdx = findColIdx(["department", "deptid", "แผนก", "หน่วยงาน", "ฝ่าย", "ทุ่น"]);
+        const posIdx = findColIdx(["position", "role", "ตำแหน่ง", "สายงาน"]);
+        const statusIdx = findColIdx(["status", "สถานะ"]);
+        const avgRevIdx = findColIdx(["avg_revenue", "avgrevenue", "revenue", "รายได้เฉลี่ย", "รายได้"]);
+        const avgCostIdx = findColIdx(["avg_cost", "avgcost", "cost", "ต้นทุนเฉลี่ย", "ต้นทุน"]);
+        const p26Idx = findColIdx(["profit_2026", "profit2026", "กำไรปี 2026", "กำไร 2569", "profit"]);
+        const p25Idx = findColIdx(["profit_2025", "profit2025", "กำไรปี 2025", "กำไร 2568"]);
+
+        const parsedRecords: any[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvLine(lines[i], delimiter);
+          if (!cols || cols.length === 0) continue;
+
+          // Resolve empId
+          const empId = idIdx >= 0 ? cols[idIdx] : cols[0];
+          if (!empId) continue;
+
+          const empName = (nameIdx >= 0 && cols[nameIdx]) ? cols[nameIdx] : (cols[1] || empId);
+          const department = (deptIdx >= 0 && cols[deptIdx]) ? cols[deptIdx] : (cols[2] || "INTER 2");
+          const position = (posIdx >= 0 && cols[posIdx]) ? cols[posIdx] : (cols[3] || "Operator");
+          const status = (statusIdx >= 0 && cols[statusIdx]) ? cols[statusIdx] : (cols[4] || "Active");
+
+          const avgRevenue = avgRevIdx >= 0 ? parseNum(cols[avgRevIdx]) : parseNum(cols[5]);
+          const avgCost = avgCostIdx >= 0 ? parseNum(cols[avgCostIdx]) : parseNum(cols[6]);
+          let profit2026 = p26Idx >= 0 ? parseNum(cols[p26Idx]) : parseNum(cols[7]);
+          if (!profit2026 && (avgRevenue > 0 || avgCost > 0)) {
+            profit2026 = (avgRevenue - avgCost) * 12;
+          }
+          let profit2025 = p25Idx >= 0 ? parseNum(cols[p25Idx]) : parseNum(cols[8]);
+          if (!profit2025 && profit2026) {
+            profit2025 = Math.round(profit2026 * 0.9);
+          }
+
+          // 12-month series: read from columns or calculate from monthly average
+          let monthlyRevenue: number[] = [];
+          let monthlyCost: number[] = [];
+          let monthlyProfit: number[] = [];
+
+          if (cols.length >= 45) {
+            monthlyRevenue = cols.slice(9, 21).map(parseNum);
+            monthlyCost = cols.slice(21, 33).map(parseNum);
+            monthlyProfit = cols.slice(33, 45).map(parseNum);
+          } else {
+            const monthlyProf = avgRevenue - avgCost;
+            monthlyRevenue = Array(12).fill(Math.round(avgRevenue));
+            monthlyCost = Array(12).fill(Math.round(avgCost));
+            monthlyProfit = Array(12).fill(Math.round(monthlyProf));
+          }
+
+          parsedRecords.push({
+            id: `JV-${empId}`,
+            empId,
+            empName,
+            department,
+            position,
+            status,
+            avgRevenue,
+            avgCost,
+            profit2026,
+            profit2025,
+            monthlyRevenue,
+            monthlyCost,
+            monthlyProfit,
+            updatedAt: new Date().toISOString()
+          });
+        }
+
+        if (parsedRecords.length === 0) {
+          alert("ไม่พบรายการข้อมูลพนักงานที่ถูกต้องในไฟล์ CSV");
+          return;
+        }
+
+        // Apply immediately to local state & cache
+        setJobValueRecords(parsedRecords);
+        localStorage.setItem("jobValueRecords", JSON.stringify(parsedRecords));
+
         setImportJvLoading(true);
-        const res = await fetch("/api/job-value/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            records: parsedRecords,
-            role: currentUser?.role,
-            username: currentUser?.name
-          })
-        });
-        if (res.ok) {
-          const result = await res.json();
-          alert(`นำเข้าข้อมูล Job Value สำเร็จเรียบร้อย (${result.count} รายการ)`);
-          fetchJobValueRecords();
-        } else {
-          const errData = await res.json();
-          alert(`เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ${errData.error || "ไม่ทราบสาเหตุ"}`);
+        try {
+          const res = await fetch("/api/job-value/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              records: parsedRecords,
+              role: currentUser?.role || "ผู้ดูแลระบบ",
+              username: currentUser?.name || "Admin"
+            })
+          });
+          if (res.ok) {
+            const result = await res.json();
+            alert(`นำเข้าข้อมูล Job Value สำเร็จเรียบร้อย (${result.count || parsedRecords.length} รายการ)`);
+            fetchJobValueRecords();
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            alert(`นำเข้าข้อมูลและบันทึกในเครื่องเรียบร้อยแล้ว (${parsedRecords.length} รายการ)${errData.error ? ` [เซิร์ฟเวอร์: ${errData.error}]` : ""}`);
+          }
+        } catch (fetchErr: any) {
+          alert(`นำเข้าข้อมูลและบันทึกในเครื่องเรียบร้อยแล้ว (${parsedRecords.length} รายการ)`);
         }
       } catch (err: any) {
-        alert(`เกิดข้อผิดพลาด: ${err.message}`);
+        alert(`เกิดข้อผิดพลาดในการนำเข้าไฟล์: ${err.message || err}`);
       } finally {
         setImportJvLoading(false);
+        e.target.value = "";
       }
     };
     reader.readAsText(file, "UTF-8");
   };
 
   const handleClearJobValueData = async () => {
-    if (!confirm("คุณต้องการล้างข้อมูล Job Value ทั้งหมดที่เคยบันทึกไว้ในฐานข้อมูล D1 ใช่หรือไม่?")) return;
+    if (!confirm("คุณต้องการล้างข้อมูล Job Value ทั้งหมดใช่หรือไม่?")) return;
     try {
       setImportJvLoading(true);
       const res = await fetch("/api/clear-job-value", { method: "POST" });
+      localStorage.removeItem("jobValueRecords");
+      setJobValueRecords([]);
       if (res.ok) {
         alert("ล้างข้อมูล Job Value ในฐานข้อมูล D1 เรียบร้อยแล้ว");
-        setJobValueRecords([]);
       } else {
-        alert("เกิดข้อผิดพลาดในการล้างข้อมูล");
+        alert("ล้างข้อมูล Job Value เรียบร้อยแล้ว");
       }
     } catch (err: any) {
-      alert(`เกิดข้อผิดพลาด: ${err.message}`);
+      localStorage.removeItem("jobValueRecords");
+      setJobValueRecords([]);
+      alert("ล้างข้อมูล Job Value เรียบร้อยแล้ว");
     } finally {
       setImportJvLoading(false);
     }
@@ -4512,90 +4734,39 @@ export default function App() {
 
   if (loading || !state) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#020b18] via-[#05182e] to-[#021020] text-white flex flex-col items-center justify-center relative overflow-hidden font-sans select-none">
-        {/* Ambient Oceanic Glows */}
-        <div className="absolute -top-32 -left-32 w-[450px] h-[450px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute -bottom-32 left-1/4 w-[600px] h-[400px] bg-teal-500/10 rounded-full blur-[160px] pointer-events-none" />
-
-        {/* Floating Water Bubble Particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-          <div className="absolute bottom-10 left-[15%] w-3 h-3 bg-cyan-300/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '4s' }} />
-          <div className="absolute bottom-20 left-[28%] w-2 h-2 bg-blue-300/50 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '6s' }} />
-          <div className="absolute bottom-16 right-[20%] w-4 h-4 bg-teal-300/30 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '5s' }} />
-          <div className="absolute bottom-24 right-[35%] w-2.5 h-2.5 bg-cyan-200/40 rounded-full blur-[1px] animate-water-pulse" style={{ animationDuration: '7s' }} />
-        </div>
-
-        {/* Multi-Layer Animated SVG Ocean Waves at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 w-full h-48 pointer-events-none overflow-hidden leading-none z-0">
-          {/* Wave 3 (Deep Blue Background Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-35 animate-wave-3">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,0 C150,90 350,-40 500,45 C650,130 900,10 1200,50 L1200,120 L0,120 Z" fill="#034078" />
-            </svg>
-          </div>
-          {/* Wave 2 (Glowing Cyan Mid Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-45 animate-wave-2">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,30 C200,100 450,0 650,60 C850,120 1050,20 1200,70 L1200,120 L0,120 Z" fill="#0284c7" />
-            </svg>
-          </div>
-          {/* Wave 1 (Bright Teal Seafoam Foreground Wave) */}
-          <div className="absolute bottom-0 left-0 w-[200%] h-full opacity-60 animate-wave-1">
-            <svg className="w-full h-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
-              <path d="M0,50 C150,110 300,20 500,75 C700,130 950,40 1200,85 L1200,120 L0,120 Z" fill="#0891b2" />
-            </svg>
-          </div>
-        </div>
-
+      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 select-none font-sans">
         {/* Main Central Card */}
-        <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center">
+        <div className="relative z-10 flex flex-col items-center max-w-md w-full p-8 bg-white border border-slate-200 rounded-xl shadow-xs text-center">
           
           {/* Maritime Brand Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-widest mb-7 shadow-[0_0_25px_rgba(6,182,212,0.25)] backdrop-blur-xl">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[#0E3A66] text-xs font-bold uppercase tracking-wider mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#0E3A66]" />
             <span>Double A Terminal • Port & Logistics</span>
           </div>
 
-          {/* Floating Vessel / Maritime Core with Sonar Ripple */}
-          <div className="relative w-32 h-32 flex items-center justify-center mb-6">
-            {/* Pulsing Sonar / Wave Ripple Rings */}
-            <div className="absolute inset-0 rounded-full border border-cyan-400/20 animate-ping" style={{ animationDuration: '3s' }} />
-            <div className="absolute -inset-3 rounded-full border border-blue-500/25 animate-ping" style={{ animationDuration: '4s' }} />
-            
-            {/* Glowing Water Pool Base */}
-            <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-blue-600/30 via-cyan-500/30 to-teal-400/20 blur-xl animate-pulse" />
-
-            {/* Rotating Marine Compass Rings */}
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-400/30 animate-[spin_12s_linear_infinite]" />
-            <div className="absolute inset-3 rounded-full border border-blue-400/40 animate-[spin_8s_linear_infinite_reverse]" />
-
-            {/* Floating Ship / Port Beacon Centerpiece */}
-            <div className="w-18 h-18 rounded bg-gradient-to-b from-[#0e2540] to-[#071322] border border-cyan-400/40 flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(6,182,212,0.3)] relative z-10 animate-float-boat">
-              <Ship className="w-8 h-8 text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-              {/* Miniature wave line under ship */}
-              <div className="w-7 h-1 bg-cyan-400/60 rounded-full mt-1 blur-[0.5px]" />
-            </div>
+          {/* Central Port Icon */}
+          <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0E3A66] mb-5 shadow-2xs">
+            <Ship className="w-8 h-8 text-[#0E3A66]" />
           </div>
 
           {/* Headings */}
-          <h2 className="text-xl font-black tracking-tight text-white mb-2 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 mb-1.5 flex items-center gap-2">
             <span>ระบบบริหารเวลา OT และจัดกะหน้าท่า</span>
           </h2>
           
-          <p className="text-xs text-cyan-200/70 font-medium leading-relaxed mb-6 max-w-xs">
+          <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6 max-w-xs">
             กำลังเชื่อมต่อฐานข้อมูลตารางเรือ แผนกปฏิบัติการ และจัดเตรียมคำนวณเบี้ย OT ประจำเดือน...
           </p>
 
-          {/* Liquid Shimmering Wave Progress Bar */}
-          <div className="w-full max-w-xs bg-[#091e36] border border-cyan-500/30 rounded-full h-2.5 p-0.5 overflow-hidden relative shadow-[inset_0_2px_6px_rgba(0,0,0,0.6)] mb-4">
-            <div className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-teal-300 rounded-full w-full animate-[pulse_1.8s_ease-in-out_infinite] shadow-[0_0_16px_rgba(6,182,212,0.8)]" />
+          {/* Calm Minimalist Progress Bar */}
+          <div className="w-full max-w-xs bg-slate-100 border border-slate-200 rounded-full h-2 p-0.5 overflow-hidden mb-5">
+            <div className="h-full bg-[#0E3A66] rounded-full w-2/3 animate-pulse" />
           </div>
 
           {/* Footer Terminal Metadata */}
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-mono tracking-wider">
-            <span className="text-[#a9cdfc] flex items-center gap-1">
-              <Ship className="w-3 h-3 text-[#6d93fc] inline" /> Maritime Port Sync
+            <span className="text-[#0E3A66] flex items-center gap-1 font-semibold">
+              <Ship className="w-3 h-3 text-[#0E3A66] inline" /> Maritime Port Sync
             </span>
             <span>•</span>
             <span>Real-time Operations</span>
@@ -4903,6 +5074,7 @@ export default function App() {
 
     const newEmpObj: Employee = {
       id: finalEmpId,
+      empId: finalEmpId,
       name: fullName,
       deptId: newEmpDept || "inter2",
       role: newEmpRole || "Operation Engineer",
@@ -5057,12 +5229,12 @@ export default function App() {
         return;
       }
         
-        // Define CSV headers (Pure Employee Info only - no shift schedule data)
+        // Define CSV headers
         const headers = [
           "รหัสพนักงาน", "คำนำหน้า", "ชื่อ", "นามสกุล", "ชื่อเล่น",
           "ตำแหน่ง", "แผนก", "ฝ่าย", "ฐานเงินเดือน ปี 2568", "วันเกิด",
-          "อายุตัว", "คำนวณอายุตัว", "วันเริ่มงาน", "อายุงาน", "วันที่ผ่านทดลองงาน",
-          "สถานะการจ้างงาน", "วันที่ลาออก"
+          "อายุตัว", "คำนวณอายุตัว", "วันเริ่มงาน", "อายุงาน", "วันที่ผ่านทดลองงาน", "ปฏิทินทำงาน",
+          "เป้าหมาย OT", "กลุ่มการทำงาน", "รหัสกะรายวัน"
         ];
         
         // Helper to escape values for CSV
@@ -5076,13 +5248,14 @@ export default function App() {
 
         const DEPT_LABELS: Record<string, string> = {
           inter2: "INTER 2", inter3: "INTER 3", inter5: "INTER 5",
-          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "ECC"
+          inter7: "INTER 7", heavy: "Heavy Machine", ecc: "CONTROL"
         };
 
         let csvContent = "\ufeff"; // Add BOM for Excel Thai language support
         csvContent += headers.join(",") + "\n";
 
         employees.forEach((emp: any) => {
+          const shiftsStr = Array.isArray(getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth)) ? getEmpShiftsArray(emp.shifts, state?.shiftConfig?.currentMonth).join(",") : "";
           const row = [
             escapeCsv(emp.id),
             escapeCsv(emp.prefix || ""),
@@ -5099,8 +5272,10 @@ export default function App() {
             escapeCsv(emp.startDate || ""),
             escapeCsv(emp.tenure || ""),
             escapeCsv(emp.probationDate || ""),
-            escapeCsv(emp.employmentStatus || "Active"),
-            escapeCsv(emp.resignationDate || "")
+            escapeCsv(emp.calendarType || ""),
+            emp.targetOt ?? 48,
+            escapeCsv(emp.groupName || ""),
+            escapeCsv(shiftsStr)
           ];
           csvContent += row.join(",") + "\n";
         });
@@ -5192,12 +5367,10 @@ export default function App() {
         const startDateIdx   = getColIndex("startDate",     ["วันเริ่มงาน"]);
         const tenureIdx      = getColIndex("tenure",        ["อายุงาน"]);
         const probationIdx   = getColIndex("probationDate", ["วันที่ผ่านทดลองงาน", "ผ่านโปร"]);
-        const statusIdx      = getColIndex("employmentStatus", ["สถานะการจ้างงาน", "สถานะ"]);
-        const resignIdx      = getColIndex("resignationDate",  ["วันที่ลาออก"]);
-        const calendarIdx    = getColIndex("calendarType",     ["ปฏิทินทำงาน"]);
-        const targetOtIdx    = getColIndex("targetOt",         ["เป้าหมาย OT", "เป้าหมาย"]);
-        const groupNameIdx   = getColIndex("groupName",        ["กลุ่มการทำงาน", "กลุ่ม"]);
-        const shiftsIdx      = getColIndex("shifts",           ["รหัสกะรายวัน", "รหัสกะ"]);
+        const calendarIdx    = getColIndex("calendarType",  ["ปฏิทินทำงาน"]);
+        const targetOtIdx    = getColIndex("targetOt",     ["เป้าหมาย OT", "เป้าหมาย"]);
+        const groupNameIdx   = getColIndex("groupName",    ["กลุ่มการทำงาน", "กลุ่ม"]);
+        const shiftsIdx      = getColIndex("shifts",       ["รหัสกะรายวัน", "รหัสกะ"]);
 
         if (idIdx === -1) {
           alert("โครงสร้างหัวตาราง CSV ไม่ถูกต้อง อย่างน้อยต้องมีคอลัมน์: รหัสพนักงาน");
@@ -5262,16 +5435,12 @@ export default function App() {
           const startDate   = startDateIdx !== -1 ? (values[startDateIdx]?.trim() || "") : "";
           const tenure      = tenureIdx !== -1 ? (values[tenureIdx]?.trim() || "") : "";
           const probationDate = probationIdx !== -1 ? (values[probationIdx]?.trim() || "") : "";
-          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)") : "วันทำงานปกติ 6 วันต่อสัปดาห์ (จันทร์-เสาร์)";
-          const employmentStatus = statusIdx !== -1 ? (values[statusIdx]?.trim() || "Active") : "Active";
-          const resignationDate = resignIdx !== -1 ? (values[resignIdx]?.trim() || "") : "";
+          const calendarType = calendarIdx !== -1 ? (values[calendarIdx]?.trim() || "ปฏิทินกะ 4-on-2-off") : "ปฏิทิน 2 ทีม (คู่กะ 12 ชม.)";
 
           const targetOt    = targetOtIdx !== -1 ? (Number(values[targetOtIdx]) || 48) : 48;
           const groupName   = groupNameIdx !== -1 ? (values[groupNameIdx]?.trim() || "") : "";
           
-          // Preserve existing shifts if employee already exists, never overwrite with blank unless shifts column provided
-          const existingEmp = (state?.employees || []).find(e => e.id === id);
-          let shifts: string[] = existingEmp?.shifts || [];
+          let shifts: string[] = [];
           if (shiftsIdx !== -1) {
             const rawShifts = values[shiftsIdx]?.trim() || "";
             if (rawShifts) {
@@ -5280,9 +5449,8 @@ export default function App() {
           }
 
           parsedEmployees.push({
-            id, name, deptId, role, targetOt, groupName, shifts,
-            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType,
-            employmentStatus, resignationDate
+            id, empId: id, name, deptId, role, targetOt, groupName, shifts,
+            prefix, firstName, lastName, nickname, division, salary, birthday, age, calculatedAge, startDate, tenure, probationDate, calendarType
           });
         }
 
@@ -5291,7 +5459,7 @@ export default function App() {
           return;
         }
 
-        if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำเข้าข้อมูลพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV?`)) {
+        if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการนำเข้าพนักงานจำนวน ${parsedEmployees.length} คน จากไฟล์ CSV? ข้อมูลรายชื่อและกะทำงานเดิมจะถูกล้างและแทนที่ทั้งหมด`)) {
           return;
         }
 
@@ -5435,38 +5603,135 @@ export default function App() {
         setShowEditEmployeeModal(false);
         setEditingEmployee(null);
         await fetchPortalState();
-        alert("แก้ไขข้อมูลพนักงานสำเร็จ!");
+        showPortalAlert("แก้ไขข้อมูลสำเร็จ", "บันทึกการแก้ไขข้อมูลพนักงานเรียบร้อยแล้ว", "success");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDeleteEmployee = async (employeeId: string) => {
-    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบพนักงานรายนี้ออกจากระบบ? ข้อมูลประวัติ OT ของพนักงานรายนี้จะถูกลบออกทั้งหมดด้วย")) {
-      return;
+  const handleDeleteEmployee = (empOrId: Employee | string) => {
+    let emp: Employee | null = null;
+    if (typeof empOrId === "object" && empOrId !== null) {
+      emp = empOrId;
+    } else if (typeof empOrId === "string") {
+      emp = (state?.employees || []).find((e: Employee) => e.id === empOrId || e.positionId === empOrId || e.name === empOrId) || null;
+      if (!emp) {
+        emp = {
+          id: empOrId,
+          name: empOrId,
+          deptId: "UNKNOWN",
+          role: "พนักงาน",
+          targetOt: 0,
+          actualOt: 0,
+          otPct: 0,
+          status: "Active",
+          groupName: "กลุ่มทั่วไป",
+          shifts: {}
+        };
+      }
     }
+    if (emp) {
+      setDeleteConfirmModal({
+        isOpen: true,
+        employee: emp
+      });
+    }
+  };
+
+  const executeDeleteEmployee = async (emp: Employee) => {
+    setIsDeletingEmployee(true);
     try {
+      const targetId = emp.id;
+      const targetName = emp.name;
+      const targetPosId = emp.positionId;
+
+      // 1. Optimistic local removal
+      setState((prev: any) => {
+        if (!prev) return prev;
+        const remaining = (prev.employees || []).filter((e: Employee) =>
+          e.id !== targetId &&
+          e.name !== targetName &&
+          (!targetPosId || e.positionId !== targetPosId)
+        );
+        return {
+          ...prev,
+          employees: remaining
+        };
+      });
+
+      setTempEmployees((prev: Employee[]) =>
+        (prev || []).filter((e: Employee) =>
+          e.id !== targetId &&
+          e.name !== targetName &&
+          (!targetPosId || e.positionId !== targetPosId)
+        )
+      );
+
+      // 2. Clean up cached manpower roster if present in localStorage
+      try {
+        const cached = localStorage.getItem("port_ops_manpower_masterList");
+        if (cached) {
+          const list = JSON.parse(cached);
+          if (Array.isArray(list)) {
+            const filtered = list.filter((p: any) =>
+              p.id !== targetId &&
+              p.positionId !== targetId &&
+              (!targetPosId || p.positionId !== targetPosId) &&
+              p.name !== targetName
+            );
+            localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(filtered));
+          }
+        }
+      } catch (_) {}
+
+      // 3. Close edit modal if open
+      setShowEditEmployeeModal(false);
+      setEditingEmployee(null);
+
+      // 4. Send delete request to server
       const res = await fetch("/api/delete-employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: employeeId,
-          role: currentUser?.role
+          id: targetId,
+          empId: targetId,
+          positionId: targetPosId || targetId,
+          name: targetName,
+          role: currentUser?.role,
+          username: currentUser?.name || currentUser?.username
         })
       });
+
+      // 5. Re-fetch portal state to synchronize
+      await fetchPortalState(undefined, true);
+
+      // 6. Close confirm modal
+      setDeleteConfirmModal({ isOpen: false, employee: null });
+
       if (res.ok) {
-        setShowEditEmployeeModal(false);
-        setEditingEmployee(null);
-        await fetchPortalState();
-        alert("ลบข้อมูลพนักงานสำเร็จเรียบร้อยแล้ว!");
+        showPortalAlert(
+          "ลบข้อมูลพนักงานสำเร็จ",
+          `ระบบได้ลบข้อมูลของ "${targetName}" (${targetPosId || targetId}) และประวัติ OT ทั้งหมดออกจากฐานข้อมูลเรียบร้อยแล้ว`,
+          "success"
+        );
       } else {
-        const errData = await res.json();
-        alert(errData.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+        const errData = await res.json().catch(() => ({}));
+        showPortalAlert(
+          "เกิดข้อผิดพลาดในการลบข้อมูล",
+          errData.error || "ไม่สามารถลบข้อมูลจากฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+          "error"
+        );
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      showPortalAlert(
+        "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        err.message || "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        "error"
+      );
+    } finally {
+      setIsDeletingEmployee(false);
     }
   };
 
@@ -5843,14 +6108,66 @@ export default function App() {
     };
   };
 
+  // Helper to parse month count from filter string (supports 1, 2, 3, 6, and 12 months)
+  const getFilterMonthCount = (filter: string): number => {
+    if (filter.includes("2 เดือน")) return 2;
+    if (filter.includes("3 เดือน")) return 3;
+    if (filter.includes("6 เดือน")) return 6;
+    if (filter.includes("1 ปี") || filter.includes("12 เดือน")) return 12;
+    return 1;
+  };
+
+  // Function to get the EXACT array of month keys corresponding to the user filter
+  const getTargetMonths = (filter: string, baseMonth: string): string[] => {
+    const [yStr, mStr] = (baseMonth || "2026-08").split("-");
+    let y = parseInt(yStr, 10) || 2026;
+    let m = parseInt(mStr, 10) || 8;
+    const count = getFilterMonthCount(filter);
+    const result: string[] = [];
+    
+    for (let i = 0; i < count; i++) {
+      let curM = m - i;
+      let curY = y;
+      while (curM <= 0) {
+        curY -= 1;
+        curM += 12;
+      }
+      const padM = String(curM).padStart(2, "0");
+      result.push(`${curY}-${padM}`);
+    }
+    return result;
+  };
+
+  // Comparison with the exact equivalent prior period
+  const getPriorPeriodMonths = (filter: string, baseMonth: string): string[] => {
+    const count = getFilterMonthCount(filter);
+    const [yStr, mStr] = (baseMonth || "2026-08").split("-");
+    let y = parseInt(yStr, 10) || 2026;
+    let m = (parseInt(mStr, 10) || 8) - count;
+    while (m <= 0) {
+      y -= 1;
+      m += 12;
+    }
+    const priorStartMonth = `${y}-${String(m).padStart(2, "0")}`;
+    return getTargetMonths(filter, priorStartMonth);
+  };
+
   const getDynamicEmployeeOt = (empId: string, monthFilter: string) => {
-    const emp = state.employees.find(e => e.id === empId);
-    return emp ? emp.actualOt : 0;
+    const emp = state.employees.find(e => e.id === empId || e.empId === empId);
+    if (!emp) return 0;
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const targetMonths = getTargetMonths(monthFilter, currentMonthKey);
+    return Math.round(targetMonths.reduce((sum, mKey) => sum + getEmpCalculatedOt(emp, mKey), 0) * 10) / 10;
   };
 
   const getDynamicDeptOt = (deptId: string, monthFilter: string) => {
-    const dept = state.departments.find(d => d.id === deptId);
-    return dept ? dept.otHours : 0;
+    const normDept = normalizeDeptId(deptId);
+    const deptEmps = (state.employees || []).filter(e => normalizeDeptId(e.deptId) === normDept);
+    const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
+    const targetMonths = getTargetMonths(monthFilter, currentMonthKey);
+    return Math.round(deptEmps.reduce((deptSum, emp) => {
+      return deptSum + targetMonths.reduce((mSum, mKey) => mSum + getEmpCalculatedOt(emp, mKey), 0);
+    }, 0) * 10) / 10;
   };
 
   const getDeptManagerInfo = (deptId: string) => {
@@ -6165,12 +6482,12 @@ export default function App() {
           style={{ backgroundImage: `url(${loginBg})` }}
         ></div>
 
-        {/* Dark Glassmorphism Gradient Mask */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-blue-950/65 to-slate-900/75"></div>
+        {/* Dark Glassmorphism Solid Mask */}
+        <div className="absolute inset-0 bg-slate-950/75"></div>
 
         {/* Animated background blobs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full filter blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#17538F]/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
         
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded p-8 shadow-lg relative z-10 text-white">
@@ -6235,7 +6552,7 @@ export default function App() {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl text-sm transition-all shadow-lg shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#0E3A66] hover:bg-[#17538F] text-white font-extrabold rounded-xl text-sm transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-2"
             >
               {loginLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -6306,10 +6623,9 @@ export default function App() {
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
             activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
-            activeTab === "hr-editor" ? "ระบบจัดการแก้ไขข้อมูลพนักงานและผลตอบแทนออนไลน์ (HR Web Direct Editor)" :
             activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
             activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
-            activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน (Admin Permissions)" :
+            activeTab === "admin-permissions" ? "ระบบจัดการสิทธิ์ผู้ดูแลและบัญชีผู้ใช้งาน" :
             activeTab === "profile" ? "การจัดการโปรไฟล์ส่วนตัว" :
             "การตั้งค่าระบบและกฎเกณฑ์"
           }
@@ -6321,6 +6637,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
           onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
+          restrictToJvOnly={restrictToJvOnly}
         />
       )}
 
@@ -6336,7 +6653,7 @@ export default function App() {
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               
               {/* Executive Control Header & Toolbar */}
-              <div className="bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col gap-4">
+              <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-maritime-xs flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <span className="eyebrow">ภาพรวมการปฏิบัติงาน · ท่าเรือ & โลจิสติกส์</span>
@@ -6392,9 +6709,11 @@ export default function App() {
                           onChange={(e) => setSelectedMonthFilter(e.target.value)}
                           className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
                         >
-                          <option>เดือนปัจจุบัน</option>
-                          <option>3 เดือนที่ผ่านมา</option>
+                          <option>1 เดือน (เดือนปัจจุบัน)</option>
+                          <option>2 เดือนย้อนหลัง</option>
+                          <option>3 เดือนย้อนหลัง</option>
                           <option>6 เดือนย้อนหลัง</option>
+                          <option>1 ปี (12 เดือนย้อนหลัง)</option>
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
                       </div>
@@ -6409,108 +6728,110 @@ export default function App() {
                 ) : (
                   /* Integrated Control Toolbar: Filters + Quick Action Buttons */
                   <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-[#DCE4EA]">
-                  {/* Left Filter Cluster */}
-                  <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded border border-[#DCE4EA]">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
-                      <Filter className="w-3.5 h-3.5 text-[#0E3A66]" />
-                      <span className="text-xs font-bold text-[#0E3A66]">ตัวกรองแดชบอร์ด</span>
+                    {/* Left Filter Cluster */}
+                    <div className="flex flex-wrap items-center gap-2 bg-[#F3F6F8] p-1.5 rounded-lg border border-[#DCE4EA]">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 border-r border-[#DCE4EA] text-[#0E3A66]">
+                        <Filter className="w-3.5 h-3.5 text-[#0E3A66]" />
+                        <span className="text-xs font-bold text-[#0E3A66]">ตัวกรองแดชบอร์ด</span>
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedMonthFilter}
+                          onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        >
+                          <option>1 เดือน (เดือนปัจจุบัน)</option>
+                          <option>2 เดือนย้อนหลัง</option>
+                          <option>3 เดือนย้อนหลัง</option>
+                          <option>6 เดือนย้อนหลัง</option>
+                          <option>1 ปี (12 เดือนย้อนหลัง)</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedDeptFilter}
+                          onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                          disabled={activeDeptId !== "all"}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] disabled:opacity-75 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <option>ทุกแผนก</option>
+                          <option>INTER 2</option>
+                          <option>INTER 3</option>
+                          <option>INTER 5</option>
+                          <option>INTER 7</option>
+                          <option>Heavy Machine</option>
+                          <option>ECC</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
+                      <div className="relative inline-flex items-center">
+                        <select 
+                          value={selectedRoleFilter}
+                          onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                          className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded-md py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        >
+                          <option>ทุกตำแหน่ง</option>
+                          <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
+                          <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
+                          <option>พนักงานขับเครน</option>
+                          <option>ปากเรือ</option>
+                          <option>ผู้ควบคุมงานจักรกลหนัก</option>
+                          <option>ช่างขับจักรกลหนัก</option>
+                          <option>O&M - Specialist</option>
+                          <option>O&M - Generator</option>
+                          <option>O&M - Mechanical</option>
+                          <option>O&M - Electrical</option>
+                          <option>ECC</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                      </div>
                     </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedMonthFilter}
-                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+
+                    {/* Right Quick Action Cluster */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("shifts")}
+                        className="px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel shadow-maritime-xs min-h-[36px]"
+                        title="เปิดหน้าต่างจัดตารางกะพนักงาน"
                       >
-                        <option>เดือนปัจจุบัน</option>
-                        <option>3 เดือนที่ผ่านมา</option>
-                        <option>6 เดือนย้อนหลัง</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
-                    </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedDeptFilter}
-                        onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                        disabled={activeDeptId !== "all"}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] disabled:opacity-75 disabled:cursor-not-allowed transition-colors"
+                        <span className="icon-pill"><Calendar className="w-3.5 h-3.5" /></span>
+                        <span>จัดตารางกะพนักงาน</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setShowOtRequestModal(true)}
+                        className="px-3 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/50 text-[#D99B14] border border-[#F3D98F] font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
                       >
-                        <option>ทุกแผนก</option>
-                        <option>INTER 2</option>
-                        <option>INTER 3</option>
-                        <option>INTER 5</option>
-                        <option>INTER 7</option>
-                        <option>Heavy Machine</option>
-                        <option>ECC</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
-                    </div>
-                    <div className="relative inline-flex items-center">
-                      <select 
-                        value={selectedRoleFilter}
-                        onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                        className="appearance-none bg-white border border-[#DCE4EA] text-xs rounded py-1 pl-2.5 pr-6 text-[#333B41] font-bold focus-ring cursor-pointer hover:border-[#9FCEE8] transition-colors"
+                        <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
+                        <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={handleExportCsvReport}
+                        className="px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] font-medium rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ส่งออกรายงานสรุปข้อมูล OT ประจำแผนก"
                       >
-                        <option>ทุกตำแหน่ง</option>
-                        <option>กลุ่มตำแหน่งปฏิบัติการ (10 ตำแหน่ง)</option>
-                        <option>ผู้ควบคุมงานขนถ่ายสินค้า</option>
-                        <option>พนักงานขับเครน</option>
-                        <option>ปากเรือ</option>
-                        <option>ผู้ควบคุมงานจักรกลหนัก</option>
-                        <option>ช่างขับจักรกลหนัก</option>
-                        <option>O&M - Specialist</option>
-                        <option>O&M - Generator</option>
-                        <option>O&M - Mechanical</option>
-                        <option>O&M - Electrical</option>
-                        <option>ECC</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-[#6A7B87] absolute right-1.5 pointer-events-none" />
+                        <span className="icon-pill"><Download className="w-3.5 h-3.5 text-[#6A7B87]" /></span>
+                        <span>ส่งออกรายงาน</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={handleNavigateToEmployees}
+                        className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#9FCEE8]/40 text-[#0E3A66] border border-[#9FCEE8] font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press btn-bezel min-h-[36px]"
+                        title="ดูรายชื่อพนักงานทั้งหมด"
+                      >
+                        <span className="icon-pill"><Users className="w-3.5 h-3.5 text-[#0E3A66]" /></span>
+                        <span>รายชื่อพนักงาน</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Right Quick Action Cluster */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("shifts")}
-                      className="px-3 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press shadow-maritime-xs min-h-[36px]"
-                      title="เปิดหน้าต่างจัดตารางกะพนักงาน"
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>จัดตารางกะพนักงาน</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => setShowOtRequestModal(true)}
-                      className="px-3 py-1.5 bg-[#FCF3DE] hover:bg-[#F3D98F]/50 text-[#D99B14] border border-[#F3D98F] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ดูรายการใบคำขอทำ OT และอนุมัติออนไลน์"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-[#D99B14]"></span>
-                      <span>คำขอ OT ({(otRequests || []).filter(r => r?.status === "pending").length})</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={handleExportCsvReport}
-                      className="px-3 py-1.5 bg-white hover:bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] font-medium rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ส่งออกรายงานสรุปข้อมูล OT ประจำแผนก"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#6A7B87]" />
-                      <span>ส่งออกรายงาน</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={handleNavigateToEmployees}
-                      className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#9FCEE8]/40 text-[#0E3A66] border border-[#9FCEE8] font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer btn-press min-h-[36px]"
-                      title="ดูรายชื่อพนักงานทั้งหมด"
-                    >
-                      <Users className="w-3.5 h-3.5 text-[#0E3A66]" />
-                      <span>รายชื่อพนักงาน</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
               </div>
 
               {/* Conditional View: Executive Mode vs Operational Mode */}
@@ -6532,28 +6853,6 @@ export default function App() {
                 /* Dynamic Metric Calculations for Active Month & Filter Selection (Operational Mode) */
                 (() => {
                 const currentMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
-
-                // Function to get the EXACT array of month keys corresponding to the user filter
-                const getTargetMonths = (filter: string, baseMonth: string) => {
-                  const [yStr, mStr] = baseMonth.split("-");
-                  let y = parseInt(yStr, 10);
-                  let m = parseInt(mStr, 10);
-                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                  const result: string[] = [];
-                  
-                  for (let i = 0; i < count; i++) {
-                    const curM = m - i;
-                    let curY = y;
-                    let actualM = curM;
-                    if (curM <= 0) {
-                      curY -= 1;
-                      actualM = 12 + curM;
-                    }
-                    const padM = String(actualM).padStart(2, "0");
-                    result.push(`${curY}-${padM}`);
-                  }
-                  return result;
-                };
 
                 const activeMonthsList = getTargetMonths(selectedMonthFilter, currentMonthKey);
 
@@ -6582,20 +6881,6 @@ export default function App() {
                 const periodTotalSalary = singleMonthBaseSalary * activeMonthsList.length;
                 const otSalaryPct = periodTotalSalary > 0 && totalSpent > 0 ? Math.min(100, Math.round((totalSpent / periodTotalSalary) * 100)) : 0;
 
-                // Comparison with the exact equivalent prior period
-                const getPriorPeriodMonths = (filter: string, baseMonth: string) => {
-                  const count = filter === "3 เดือนที่ผ่านมา" ? 3 : (filter === "6 เดือนย้อนหลัง" ? 6 : 1);
-                  const [yStr, mStr] = baseMonth.split("-");
-                  let y = parseInt(yStr, 10);
-                  let m = parseInt(mStr, 10) - count;
-                  if (m <= 0) {
-                    y -= 1;
-                    m = 12 + m;
-                  }
-                  const priorStartMonth = `${y}-${String(m).padStart(2, "0")}`;
-                  return getTargetMonths(filter, priorStartMonth);
-                };
-
                 const priorMonthsList = getPriorPeriodMonths(selectedMonthFilter, currentMonthKey);
                 const prevTotalSpent = Math.round(
                   dashboardEmployees.reduce((sum, emp) => {
@@ -6607,13 +6892,18 @@ export default function App() {
                   ? Math.round(((totalSpent - prevTotalSpent) / prevTotalSpent) * 100)
                   : (totalSpent > 0 ? 100 : 0);
 
-                const periodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
-                  ? "สะสม 3 เดือนที่ผ่านมา" 
-                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "สะสม 6 เดือนย้อนหลัง" : "ประจำเดือนนี้");
+                const filterMonthCount = getFilterMonthCount(selectedMonthFilter);
+                const periodLabel = filterMonthCount === 1
+                  ? "ประจำเดือนนี้"
+                  : filterMonthCount === 12
+                  ? "สะสม 1 ปี (12 เดือนย้อนหลัง)"
+                  : `สะสม ${filterMonthCount} เดือนย้อนหลัง`;
 
-                const comparePeriodLabel = selectedMonthFilter === "3 เดือนที่ผ่านมา" 
-                  ? "เทียบกับ 3 เดือนก่อนหน้า" 
-                  : (selectedMonthFilter === "6 เดือนย้อนหลัง" ? "เทียบกับ 6 เดือนก่อนหน้า" : "เทียบกับเดือนก่อนหน้า");
+                const comparePeriodLabel = filterMonthCount === 1
+                  ? "เทียบกับเดือนก่อนหน้า"
+                  : filterMonthCount === 12
+                  ? "เทียบกับ 1 ปีก่อนหน้า"
+                  : `เทียบกับ ${filterMonthCount} เดือนก่อนหน้า`;
 
                 // 10-Month Dynamic Calculation Array (Jan - Oct 2026)
                 const monthKeys = ["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10"];
@@ -6648,115 +6938,123 @@ export default function App() {
                     {/* ========================================================================= */}
                     
                     {/* Tile 1.1: MoM Overtime Pay Comparison */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
-                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold">
-                          {otComparePct < 0 ? (
-                            <TrendingDown className="w-4 h-4 text-[#1E9C6E]" />
-                          ) : (
-                            <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-1">
-                          <span className="text-[11px] text-[#6A7B87] font-medium">{comparePeriodLabel}</span>
-                          {prevTotalSpent > 0 ? (
-                            otComparePct <= 0 ? (
-                              <span className="tag t-g">ประหยัดงบ</span>
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">เปรียบเทียบผลรวมค่าล่วงเวลา</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold shadow-xs">
+                            {otComparePct < 0 ? (
+                              <TrendingDown className="w-4 h-4 text-[#1E9C6E]" />
                             ) : (
-                              <span className="tag t-y">เพิ่มขึ้น</span>
-                            )
-                          ) : (
-                            <span className="tag t-b">เริ่มบันทึก</span>
-                          )}
+                              <TrendingUp className="w-4 h-4 text-[#0E3A66]" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {otComparePct > 0 ? `+${otComparePct}%` : `${otComparePct}%`}
+                          </div>
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="text-[11px] text-[#6A7B87] font-medium">{comparePeriodLabel}</span>
+                            {prevTotalSpent > 0 ? (
+                              otComparePct <= 0 ? (
+                                <span className="tag t-g">ประหยัดงบ</span>
+                              ) : (
+                                <span className="tag t-y">เพิ่มขึ้น</span>
+                              )
+                            ) : (
+                              <span className="tag t-b">เริ่มบันทึก</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.2: Total Overtime Financial Spend */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ผลรวมค่าล่วงเวลาสะสม</h3>
-                        <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs">
-                          ฿
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ผลรวมค่าล่วงเวลาสะสม</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs shadow-xs">
+                            ฿
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {totalSpent.toLocaleString()} THB
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${singleMonthBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / singleMonthBaseSalary) * 100)) : 0}%` }}
-                            className="bg-[#0E3A66] h-full rounded-full transition-all"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
-                          <span>{periodLabel}</span>
-                          <span>{totalOtHrs.toLocaleString()} ชม.</span>
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {totalSpent.toLocaleString()} THB
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${singleMonthBaseSalary > 0 ? Math.min(100, Math.round((totalSpent / singleMonthBaseSalary) * 100)) : 0}%` }}
+                              className="bg-[#0E3A66] h-full rounded-full transition-all"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                            <span>{periodLabel}</span>
+                            <span>{totalOtHrs.toLocaleString()} ชม.</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.3: Overtime Payroll Ratio */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">สัดส่วน OT เทียบเงินเดือน</h3>
-                        <div className="w-8 h-8 rounded bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold">
-                          <Settings className="w-4 h-4 text-[#333B41]" />
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">สัดส่วน OT เทียบเงินเดือน</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#F3F6F8] text-[#333B41] border border-[#DCE4EA] flex items-center justify-center font-bold shadow-xs">
+                            <Settings className="w-4 h-4 text-[#333B41]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">
-                          {otSalaryPct}%
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${Math.min(100, otSalaryPct)}%` }}
-                            className={`h-full rounded-full transition-all ${otSalaryPct > 25 ? "bg-[#D99B14]" : "bg-[#2E90CB]"}`}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
-                          <span>งบรวม ฿{totalBaseSalary.toLocaleString()}</span>
-                          {otSalaryPct > 25 ? (
-                            <span className="tag t-y">เกินเกณฑ์ 25%</span>
-                          ) : (
-                            <span className="tag t-g">ตามเกณฑ์</span>
-                          )}
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">
+                            {otSalaryPct}%
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${Math.min(100, otSalaryPct)}%` }}
+                              className={`h-full rounded-full transition-all ${otSalaryPct > 25 ? "bg-[#D99B14]" : "bg-[#2E90CB]"}`}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-[#6A7B87] font-medium mt-1.5">
+                            <span>งบรวม ฿{totalBaseSalary.toLocaleString()}</span>
+                            {otSalaryPct > 25 ? (
+                              <span className="tag t-y">เกินเกณฑ์ 25%</span>
+                            ) : (
+                              <span className="tag t-g">ตามเกณฑ์</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Tile 1.4: Average Overtime Workload & Safety Index */}
-                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ชั่วโมง OT เฉลี่ยต่อคน</h3>
-                        <div className="w-8 h-8 rounded bg-[#FCF3DE] text-[#D99B14] border border-[#F3D98F] flex items-center justify-center font-bold">
-                          <Clock className="w-4 h-4 text-[#D99B14]" />
+                    <div className="col-span-1 md:col-span-1 lg:col-span-3 bezel-shell">
+                      <div className="bezel-core p-5 flex flex-col justify-between min-h-[145px] h-full">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">ชั่วโมง OT เฉลี่ยต่อคน</h3>
+                          <div className="w-8 h-8 rounded-lg bg-[#FCF3DE] text-[#D99B14] border border-[#F3D98F] flex items-center justify-center font-bold shadow-xs">
+                            <Clock className="w-4 h-4 text-[#D99B14]" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
-                          {avgOtPerEmp} hrs
-                        </div>
-                        <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
-                          <div 
-                            style={{ width: `${Math.min(100, Math.round((avgOtPerEmp / 48) * 100))}%` }}
-                            className={`h-full rounded-full transition-all ${avgOtPerEmp > 36 ? "bg-[#B3352C]" : "bg-[#1E9C6E]"}`}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-medium mt-1.5">
-                          <span className="text-[#6A7B87]">{activeEmps} คน / ทั้งหมด {dashboardEmployees.length} คน</span>
-                          {avgOtPerEmp > 36 ? (
-                            <span className="tag t-r">เกิน 36 ชม.</span>
-                          ) : (
-                            <span className="tag t-g">เกณฑ์ปกติ</span>
-                          )}
+                        <div className="mt-3">
+                          <div className="text-2xl sm:text-3xl font-black tracking-tight text-[#0E3A66] font-mono tabular-nums">
+                            {avgOtPerEmp} hrs
+                          </div>
+                          <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA] mt-2">
+                            <div 
+                              style={{ width: `${Math.min(100, Math.round((avgOtPerEmp / 48) * 100))}%` }}
+                              className={`h-full rounded-full transition-all ${avgOtPerEmp > 36 ? "bg-[#B3352C]" : "bg-[#1E9C6E]"}`}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] font-medium mt-1.5">
+                            <span className="text-[#6A7B87]">{activeEmps} คน / ทั้งหมด {dashboardEmployees.length} คน</span>
+                            {avgOtPerEmp > 36 ? (
+                              <span className="tag t-r">เกิน 36 ชม.</span>
+                            ) : (
+                              <span className="tag t-g">เกณฑ์ปกติ</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -6813,7 +7111,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-8 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <div>
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">แนวโน้มค่าล่วงเวลารายเดือน (Jan - Oct 2026)</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">แนวโน้มค่าล่วงเวลารายเดือน</h3>
                           <p className="text-xs text-[#59656D] mt-0.5">การเปรียบเทียบงบประมาณและการเติบโตเทียบเดือนก่อนหน้า</p>
                         </div>
                         
@@ -6942,7 +7240,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วน OT แยกตามแผนก</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วนค่าล่วงเวลารายแผนก</h3>
                           <span className="tag t-b">ข้อมูลเรียลไทม์</span>
                         </div>
                         <p className="text-xs text-[#59656D] mb-4">ปริมาณชั่วโมงสะสมรายแผนกท่าเรือ</p>
@@ -6997,7 +7295,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การกระจาย OT 10 ตำแหน่งปฏิบัติการ</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">สัดส่วนค่าล่วงเวลาตามกลุ่มตำแหน่งงาน</h3>
                           <span className="tag t-n">10 ตำแหน่งหลัก</span>
                         </div>
                         <p className="text-xs text-[#59656D] mb-4">การจัดสรรชั่วโมงการทำงานล่วงเวลาตามกลุ่มงานท่าเรือ</p>
@@ -7037,7 +7335,7 @@ export default function App() {
                     <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">รายชื่อ OT สูงสุด (Watchlist)</h3>
+                          <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">รายชื่อพนักงานที่มีชั่วโมง OT สูงสุด</h3>
                           <button 
                             type="button"
                             onClick={handleNavigateToEmployees}
@@ -7168,11 +7466,11 @@ export default function App() {
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="tag t-b font-mono">F3.1 DRIVER TREE</span>
-                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ผังเชื่อมโยงเหตุและผลต้นทุน (Shift-to-Cost Driver Tree)</h3>
+                                <span className="tag t-b font-mono">โครงสร้างต้นทุน</span>
+                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">โครงสร้างต้นทุนและปัจจัยขับเคลื่อนค่าล่วงเวลา</h3>
                               </div>
                               <p className="text-xs text-[#59656D] mt-0.5">
-                                วิเคราะห์การส่งผลต่อเนื่อง: ประเภทการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ภาระงบประมาณจ่ายจริง (THB)
+                                วิเคราะห์ปัจจัยขับเคลื่อน: รูปแบบการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ยอดเบิกจ่ายจริง
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -7194,15 +7492,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะปกติ (8h):</span>
+                                    <span>กะปกติ 8 ชั่วโมง:</span>
                                     <span className="font-mono font-bold">{totalStandardShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalStandardShifts / totalWorkingShifts) * 100) : 0}%)</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะ OT (12h/16h/24h):</span>
+                                    <span>กะล่วงเวลา 12-24 ชั่วโมง:</span>
                                     <span className="font-mono">{totalOtShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}%)</span>
                                   </div>
                                   <div className="flex justify-between text-[#6A7B87]">
-                                    <span>วันหยุดพัก (O/OFF):</span>
+                                    <span>วันหยุดประจำสัปดาห์:</span>
                                     <span className="font-mono">{offDays.toLocaleString()} วัน</span>
                                   </div>
                                 </div>
@@ -7222,15 +7520,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะ M12 / N12 (+4h):</span>
+                                    <span>กะ 12 ชั่วโมง (+4 ชม.):</span>
                                     <span className="font-mono font-bold">{((otM12 + otN12) * 4).toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>กะยาว M16 / M24:</span>
+                                    <span>กะยาว 16-24 ชั่วโมง:</span>
                                     <span className="font-mono font-bold">{(otM16 * 8 + otM24 * 16).toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะวันหยุด OND (+8h):</span>
+                                    <span>กะวันหยุด (+8 ชม.):</span>
                                     <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                 </div>
@@ -7250,15 +7548,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1.5 mt-2.5 text-[11px]">
                                   <div className="flex justify-between text-[#333B41]">
-                                    <span>OT วันทำงาน (1.5x):</span>
+                                    <span>OT วันทำงานปกติ 1.5 เท่า:</span>
                                     <span className="font-mono font-bold">{totalNormalOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>OT วันหยุด (3.0x):</span>
+                                    <span>OT วันหยุด 3.0 เท่า:</span>
                                     <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
                                   </div>
                                   <div className="flex justify-between text-[#1E9C6E]">
-                                    <span>ทำงานวันหยุด (1.0x):</span>
+                                    <span>ทำงานวันหยุด 1.0 เท่า:</span>
                                     <span className="font-mono font-bold">{(otOND * 8).toLocaleString()} ชม.</span>
                                   </div>
                                 </div>
@@ -7346,13 +7644,13 @@ export default function App() {
                             <div>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">F3.2 RANKING</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การจัดอันดับตัวขับเคลื่อนต้นทุนรายแผนก</h3>
+                                  <span className="tag t-b font-mono">จัดอันดับแผนก</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">อันดับแผนกที่มีค่าล่วงเวลาสูงสุด</h3>
                                 </div>
                                 <span className="text-[10px] text-[#6A7B87] font-mono">เรียงตามยอดใช้จ่ายสูงสุด</span>
                               </div>
                               <p className="text-xs text-[#59656D] mb-4">
-                                เปรียบเทียบแผนจัดกะ vs ผลการปฏิบัติงานจริง และส่วนต่างงบประมาณ (&Delta;THB, &Delta;%)
+                                เปรียบเทียบแผนจัดกะกับผลการทำงานจริง และส่วนต่างงบประมาณ
                               </p>
 
                               <div className="space-y-2.5">
@@ -7413,13 +7711,13 @@ export default function App() {
                             <div>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">F3.3 SENSITIVITY</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">ความไวช่องว่างกำลังพลและความล้าสะสม</h3>
+                                  <span className="tag t-b font-mono">วิเคราะห์ความเสี่ยง</span>
+                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การวิเคราะห์ความเสี่ยงด้านอัตรากำลังและความล้าสะสม</h3>
                                 </div>
-                                <span className="tag t-y font-mono">LABOR SAFETY</span>
+                                <span className="tag t-y font-mono">ความปลอดภัยแรงงาน</span>
                               </div>
                               <p className="text-xs text-[#59656D] mb-4">
-                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานต้องทำงานเกินขีดจำกัดความล้า (&gt;36 ชม./สัปดาห์)
+                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานทำงานเกินเกณฑ์ความล้าสะสมมากกว่า 36 ชั่วโมงต่อสัปดาห์
                               </p>
 
                               <div className="space-y-3">
@@ -7551,7 +7849,7 @@ export default function App() {
                 setState((prev: any) => prev ? { ...prev, employees: updatedEmps } : prev);
                 setTempEmployees(updatedEmps);
               }}
-              onRefreshPortalState={fetchPortalState}
+              onRefreshPortalState={() => fetchPortalState(undefined, true)}
             />
           )}
 
@@ -7561,49 +7859,52 @@ export default function App() {
           {activeTab === "reports" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card with analytics label and selectors */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">รายงานข้อมูลและงบประมาณรายแผนก</h3>
-                  <p className="text-xs text-slate-500 mt-1">วิเคราะห์งบการเงิน OT, ความสมดุลของตาราง และการใช้ทรัพยากรส่วนบุคคล</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold select-none">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                    <select
-                      value={selectedMonthFilter}
-                      onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold"
-                    >
-                      <option value="เดือนปัจจุบัน">เดือนปัจจุบัน</option>
-                      <option value="ตุลาคม 2023">ตุลาคม 2023</option>
-                      <option value="พฤศจิกายน 2023">พฤศจิกายน 2023</option>
-                      <option value="ธันวาคม 2023">ธันวาคม 2023</option>
-                    </select>
+              <div className="bezel-shell">
+                <div className="bezel-core p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                  <div>
+                    <span className="eyebrow block">DEPARTMENT REPORTS &amp; BUDGET CONTROL</span>
+                    <h3 className="text-base sm:text-lg font-bold text-[#0E3A66] mt-0.5">รายงานข้อมูลและงบประมาณรายแผนก</h3>
+                    <p className="text-xs text-[#59656D] mt-1">วิเคราะห์งบการเงิน OT, ความสมดุลของตาราง และการใช้ทรัพยากรส่วนบุคคล</p>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-bold select-none">
-                    <Filter className="w-3.5 h-3.5 text-blue-500" />
-                    <select
-                      value={selectedDeptFilter === "ทุกแผนก" ? "ทุกแผนกทำงาน" : selectedDeptFilter}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedDeptFilter(val === "ทุกแผนกทำงาน" ? "ทุกแผนก" : val);
-                      }}
-                      disabled={activeDeptId !== "all"}
-                      className="bg-transparent border-none text-xs rounded-md p-0 focus:ring-0 cursor-pointer text-slate-700 font-bold disabled:opacity-80 disabled:cursor-not-allowed"
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-lg text-xs text-[#333B41] font-bold select-none">
+                      <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                      <select
+                        value={selectedMonthFilter}
+                        onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                        className="bg-transparent border-none text-xs rounded p-0 focus:ring-0 cursor-pointer text-[#0E3A66] font-bold"
+                      >
+                        <option value="เดือนปัจจุบัน">เดือนปัจจุบัน</option>
+                        <option value="ตุลาคม 2023">ตุลาคม 2023</option>
+                        <option value="พฤศจิกายน 2023">พฤศจิกายน 2023</option>
+                        <option value="ธันวาคม 2023">ธันวาคม 2023</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-lg text-xs text-[#333B41] font-bold select-none">
+                      <Filter className="w-3.5 h-3.5 text-[#17538F]" />
+                      <select
+                        value={selectedDeptFilter === "ทุกแผนก" ? "ทุกแผนกทำงาน" : selectedDeptFilter}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedDeptFilter(val === "ทุกแผนกทำงาน" ? "ทุกแผนก" : val);
+                        }}
+                        disabled={activeDeptId !== "all"}
+                        className="bg-transparent border-none text-xs rounded p-0 focus:ring-0 cursor-pointer text-[#0E3A66] font-bold disabled:opacity-80 disabled:cursor-not-allowed"
+                      >
+                        <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
+                        {state.departments.map(d => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button 
+                      onClick={() => window.print()}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#0E3A66] text-white rounded-lg text-xs font-bold hover:bg-[#17538F] transition-colors shadow-maritime-sm cursor-pointer btn-press btn-bezel min-h-[36px]"
                     >
-                      <option value="ทุกแผนกทำงาน">ทุกแผนกทำงาน</option>
-                      {state.departments.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
+                      <Download className="w-3.5 h-3.5 text-[#9FCEE8]" />
+                      <span>ส่งออกรายงาน PDF</span>
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>ส่งออกรายงาน PDF</span>
-                  </button>
                 </div>
               </div>
 
@@ -7611,170 +7912,174 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Visual Chart representation: Spending correlation */}
-                <div className="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">
-                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
-                          ? `ชั่วโมงการทำงานล่วงเวลารายบุคคล - ${selectedDeptFilter}` 
-                          : "เปรียบเทียบชั่วโมงทำโอทีกับความสัมพันธ์ด้านงบประมาณ (OT vs Spending)"
-                        }
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
-                          ? "ชั่วโมงการทำงานล่วงเวลาสะสมจริงของพนักงานแต่ละท่านเทียบกับเป้าหมายความปลอดภัย" 
-                          : "วิเคราะห์ความสัมพันธ์ระหว่างชั่วโมงทำงานกับค่าใช้จ่ายงบประมาณรวมสะสม"
-                        }
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 select-none">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        <>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                            <span className="text-[10px] font-bold text-slate-500">ชั่วโมง OT (ปกติ)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 bg-red-500 rounded-sm"></span>
-                            <span className="text-[10px] font-bold text-slate-500">เกินเป้าความปลอดภัย</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2.5 h-2.5 bg-blue-600 rounded-sm"></span>
-                          <span className="text-[10px] font-bold text-slate-500">ชั่วโมงทำงานจริง (ชม.)</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="h-64 relative mt-4">
-                    {/* Simulated composite chart with exact axes from picture 2 */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 ml-10 mr-10">
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-200 border-dashed"></div>
-                      <div className="w-full border-t border-slate-300"></div>
-                    </div>
-
-                    <div className="absolute inset-x-10 bottom-6 top-0 flex items-end justify-between gap-2">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        filteredEmployeesForReport.map((emp) => {
-                          const actualOt = getDynamicEmployeeOt(emp.id, selectedMonthFilter);
-                          const maxOt = 100;
-                          const otHeight = Math.min(100, Math.round((actualOt / maxOt) * 100));
-                          const isOverLimit = actualOt > emp.targetOt;
-                          return (
-                            <div key={emp.id} className="flex-1 flex flex-col items-center group relative h-full">
-                              <div 
-                                style={{ height: `${otHeight}%` }}
-                                className={`w-8 absolute bottom-0 rounded-t transition-all hover:scale-105 shadow-sm cursor-pointer ${
-                                  isOverLimit ? "bg-red-500 hover:bg-red-600" : "bg-blue-600 hover:bg-blue-700"
-                                }`}
-                                title={`${emp.name}: ${actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
-                              ></div>
-                              <span className="absolute -bottom-6 text-[9px] font-bold text-slate-500 text-center truncate max-w-[70px]" title={emp.name}>
-                                {emp.name.split(" ")[0]}
-                              </span>
+                <div className="lg:col-span-8 bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 flex flex-col justify-between h-full">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">
+                          {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
+                            ? `ชั่วโมงการทำงานล่วงเวลารายบุคคล - ${selectedDeptFilter}` 
+                            : "เปรียบเทียบชั่วโมงทำโอทีกับความสัมพันธ์ด้านงบประมาณ (OT vs Spending)"
+                          }
+                        </h4>
+                        <p className="text-xs text-[#59656D] mt-1">
+                          {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" 
+                            ? "ชั่วโมงการทำงานล่วงเวลาสะสมจริงของพนักงานแต่ละท่านเทียบกับเป้าหมายความปลอดภัย" 
+                            : "วิเคราะห์ความสัมพันธ์ระหว่างชั่วโมงทำงานกับค่าใช้จ่ายงบประมาณรวมสะสม"
+                          }
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 select-none">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 bg-[#0E3A66] rounded-xs"></span>
+                              <span className="text-[10px] font-bold text-[#59656D]">ชั่วโมง OT (ปกติ)</span>
                             </div>
-                          );
-                        })
-                      ) : (
-                        reportDepartments.slice(0, 5).map((dept) => {
-                          const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
-                          const budgetUsed = dept.budgetUsed || 0;
-                          
-                          const maxOt = Math.max(...reportDepartments.map(d => d.otHours), 50);
-                          const maxBudget = Math.max(...reportDepartments.map(d => d.budgetUsed), 10000);
-                          
-                          const otHeight = Math.round((otHours / maxOt) * 100);
-                          const budgetHeight = Math.round((budgetUsed / maxBudget) * 100);
-                          return (
-                            <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
-                              <div className="flex items-end justify-center gap-1.5 w-full h-full pb-6">
-                                {/* OT Hours Bar */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 bg-[#B3352C] rounded-xs"></span>
+                              <span className="text-[10px] font-bold text-[#59656D]">เกินเป้าความปลอดภัย</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-2.5 h-2.5 bg-[#0E3A66] rounded-xs"></span>
+                            <span className="text-[10px] font-bold text-[#59656D]">ชั่วโมงทำงานจริง (ชม.)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="h-64 relative mt-4">
+                      {/* Simulated composite chart with exact axes from picture 2 */}
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 ml-10 mr-10">
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#DCE4EA] border-dashed"></div>
+                        <div className="w-full border-t border-[#B4C1C9]"></div>
+                      </div>
+
+                      <div className="absolute inset-x-10 bottom-6 top-0 flex items-end justify-between gap-2">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          filteredEmployeesForReport.map((emp) => {
+                            const actualOt = getDynamicEmployeeOt(emp.id, selectedMonthFilter);
+                            const maxOt = 100;
+                            const otHeight = Math.min(100, Math.round((actualOt / maxOt) * 100));
+                            const isOverLimit = actualOt > emp.targetOt;
+                            return (
+                              <div key={emp.id} className="flex-1 flex flex-col items-center group relative h-full">
                                 <div 
                                   style={{ height: `${otHeight}%` }}
-                                  className="w-3 bg-blue-600 rounded-t transition-all hover:bg-blue-700 shadow-sm cursor-pointer"
-                                  title={`${dept.nameTh}: OT ${otHours} ชม.`}
+                                  className={`w-8 absolute bottom-0 rounded-t transition-all hover:scale-105 shadow-xs cursor-pointer ${
+                                    isOverLimit ? "bg-[#B3352C] hover:brightness-110" : "bg-[#0E3A66] hover:bg-[#17538F]"
+                                  }`}
+                                  title={`${emp.name}: ${actualOt} ชม. (เป้าหมาย ${emp.targetOt} ชม.)`}
                                 ></div>
-                                {/* Spending Bar */}
-                                <div 
-                                  style={{ height: `${budgetHeight}%` }}
-                                  className="w-3 bg-amber-500 rounded-t transition-all hover:bg-amber-600 shadow-sm cursor-pointer"
-                                  title={`${dept.nameTh}: งบประมาณ ${budgetUsed.toLocaleString()}`}
-                                ></div>
+                                <span className="absolute -bottom-6 text-[9px] font-bold text-[#59656D] text-center truncate max-w-[70px]" title={emp.name}>
+                                  {emp.name.split(" ")[0]}
+                                </span>
                               </div>
-                              <span className="absolute -bottom-6 text-[10px] font-bold text-slate-500 text-center truncate max-w-[70px]">{dept.name}</span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                            );
+                          })
+                        ) : (
+                          reportDepartments.slice(0, 5).map((dept) => {
+                            const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+                            const budgetUsed = dept.budgetUsed || 0;
+                            
+                            const maxOt = Math.max(...reportDepartments.map(d => d.otHours), 50);
+                            const maxBudget = Math.max(...reportDepartments.map(d => d.budgetUsed), 10000);
+                            
+                            const otHeight = Math.round((otHours / maxOt) * 100);
+                            const budgetHeight = Math.round((budgetUsed / maxBudget) * 100);
+                            return (
+                              <div key={dept.id} className="flex-1 flex flex-col items-center group relative h-full">
+                                <div className="flex items-end justify-center gap-1.5 w-full h-full pb-6">
+                                  {/* OT Hours Bar */}
+                                  <div 
+                                    style={{ height: `${otHeight}%` }}
+                                    className="w-3 bg-[#0E3A66] rounded-t transition-all hover:bg-[#17538F] shadow-xs cursor-pointer"
+                                    title={`${dept.nameTh}: OT ${otHours} ชม.`}
+                                  ></div>
+                                  {/* Spending Bar */}
+                                  <div 
+                                    style={{ height: `${budgetHeight}%` }}
+                                    className="w-3 bg-[#D99B14] rounded-t transition-all hover:brightness-110 shadow-xs cursor-pointer"
+                                    title={`${dept.nameTh}: งบประมาณ ${budgetUsed.toLocaleString()}`}
+                                  ></div>
+                                </div>
+                                <span className="absolute -bottom-6 text-[10px] font-bold text-[#59656D] text-center truncate max-w-[70px]">{dept.name}</span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
 
-                    {/* Left axis (Hours) */}
-                    <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold text-slate-400 pb-6">
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50))}h`}</span>
-                      <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50) / 2)}h`}</span>
-                      <span>0h</span>
-                    </div>
+                      {/* Left axis (Hours) */}
+                      <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold text-[#6A7B87] pb-6 font-mono">
+                        <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "100h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50))}h`}</span>
+                        <span>{selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? "50h" : `${Math.round(Math.max(...reportDepartments.map(d => d.otHours), 50) / 2)}h`}</span>
+                        <span>0h</span>
+                      </div>
 
-                    {/* Right axis (Cost) */}
-                    <div className="absolute right-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold pb-6 text-right">
-                      {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
-                        <>
-                          <span className="text-slate-400">100%</span>
-                          <span className="text-slate-400">50%</span>
-                          <span className="text-slate-400">0%</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
-                          <span className="text-amber-600">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
-                          <span className="text-slate-400">0</span>
-                        </>
-                      )}
+                      {/* Right axis (Cost) */}
+                      <div className="absolute right-0 top-0 h-full flex flex-col justify-between text-[10px] font-bold pb-6 text-right font-mono">
+                        {selectedDeptFilter !== "ทุกแผนก" && selectedDeptFilter !== "ทุกแผนกทำงาน" ? (
+                          <>
+                            <span className="text-[#6A7B87]">100%</span>
+                            <span className="text-[#6A7B87]">50%</span>
+                            <span className="text-[#6A7B87]">0%</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[#D99B14]">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 1000)}k`}</span>
+                            <span className="text-[#D99B14]">{`${Math.round(Math.max(...reportDepartments.map(d => d.budgetUsed), 10000) / 2000)}k`}</span>
+                            <span className="text-[#6A7B87]">0</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Sidebar managers list */}
-                <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">หัวหน้าแผนกผู้ควบคุม (Summary)</h4>
-                    <p className="text-xs text-slate-500 mb-6">ผู้รับผิดชอบงบประมาณและเวลา</p>
-                  </div>
+                <div className="lg:col-span-4 bezel-shell">
+                  <div className="bezel-core p-5 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">หัวหน้าแผนกผู้ควบคุม (Summary)</h4>
+                      <p className="text-xs text-[#59656D] mb-5">ผู้รับผิดชอบงบประมาณและเวลา</p>
+                    </div>
 
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {reportDepartments.map((dept) => {
-                      const managerInfo = getDeptManagerInfo(dept.id);
-                      const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
-                      return (
-                        <div key={dept.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all">
-                          <div className="flex items-center gap-3">
-                            <EmployeeAvatar empId={managerInfo.username} empName={managerInfo.name} avatarUrl={managerInfo.avatar} className="w-9 h-9 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-bold text-slate-800">{managerInfo.name}</p>
-                              <p className="text-[9px] text-blue-600 font-mono font-bold uppercase tracking-wider">{managerInfo.role}</p>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {reportDepartments.map((dept) => {
+                        const managerInfo = getDeptManagerInfo(dept.id);
+                        const otHours = getDynamicDeptOt(dept.id, selectedMonthFilter);
+                        return (
+                          <div key={dept.id} className="flex items-center justify-between p-3 bg-[#F3F6F8] rounded-xl border border-[#DCE4EA] hover:border-[#9FCEE8] transition-all">
+                            <div className="flex items-center gap-3">
+                              <EmployeeAvatar empId={managerInfo.username} empName={managerInfo.name} avatarUrl={managerInfo.avatar} className="w-9 h-9 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-bold text-[#0E3A66]">{managerInfo.name}</p>
+                                <p className="text-[9px] text-[#17538F] font-mono font-bold uppercase tracking-wider">{managerInfo.role}</p>
+                              </div>
+                            </div>
+                            <div className="text-right font-mono">
+                              <p className="text-xs font-bold text-[#0E3A66]">{otHours} ชม.</p>
+                              <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-[#B3352C]' : 'text-[#1E9C6E]'}`}>
+                                {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
+                              </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xs font-extrabold text-blue-600">{otHours} ชม.</p>
-                            <p className={`text-[9px] font-bold ${dept.status === 'Warning' ? 'text-red-500' : 'text-emerald-600'}`}>
-                              {dept.status === 'Warning' ? 'Warning' : 'On Budget'}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
 
-                  <button 
-                    onClick={() => setActiveTab("employees")}
-                    className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors mt-4"
-                  >
-                    ดูข้อมูลหัวหน้าทั้งหมด
-                  </button>
+                    <button 
+                      onClick={() => setActiveTab("employees")}
+                      className="w-full py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] border border-[#DCE4EA] text-[#0E3A66] rounded-lg text-xs font-bold transition-colors mt-4 btn-press btn-bezel"
+                    >
+                      ดูข้อมูลหัวหน้าทั้งหมด
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -7783,345 +8088,368 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
                 
                 {/* Heatmap block */}
-                <div className="lg:col-span-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
-                      <p className="text-xs text-slate-500 mt-1">วิเคราะห์ช่วงกะเวลาที่มีกำลังพลทำงานล่วงเวลาสูงที่สุดในแต่ละวัน</p>
-                    </div>
-                    {/* Scale labels */}
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                      <span>Low</span>
-                      <div className="flex gap-0.5">
-                        <div className="w-3.5 h-3.5 bg-blue-100 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-300 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-500 rounded-sm"></div>
-                        <div className="w-3.5 h-3.5 bg-blue-800 rounded-sm"></div>
+                <div className="lg:col-span-6 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#0E3A66]">ช่วงเวลาที่มีการทำโอทีหนาแน่นที่สุด (Heatmap)</h4>
+                        <p className="text-xs text-[#59656D] mt-1">วิเคราะห์ช่วงกะเวลาที่มีกำลังพลทำงานล่วงเวลาสูงที่สุดในแต่ละวัน</p>
                       </div>
-                      <span>High</span>
+                      {/* Scale labels */}
+                      <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#6A7B87]">
+                        <span>Low</span>
+                        <div className="flex gap-0.5">
+                          <div className="w-3.5 h-3.5 bg-[#E8F3FA] border border-[#9FCEE8]/50 rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#9FCEE8] rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#2E90CB] rounded-xs"></div>
+                          <div className="w-3.5 h-3.5 bg-[#0E3A66] rounded-xs"></div>
+                        </div>
+                        <span>High</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Calendar Heatmap Grid */}
-                  <div className="overflow-x-auto no-scrollbar touch-pan-x">
-                    <div className="grid grid-cols-8 gap-1.5 pt-2 min-w-[340px]">
-                      <div></div>
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                        <div key={d} className="text-center text-[10px] font-bold text-slate-500">{d}</div>
-                      ))}
-                      
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">17:00-19:00</div>
-                      {heatmapGrid[0].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                    {/* Calendar Heatmap Grid */}
+                    <div className="overflow-x-auto no-scrollbar touch-pan-x">
+                      <div className="grid grid-cols-8 gap-1.5 pt-2 min-w-[340px]">
+                        <div></div>
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                          <div key={d} className="text-center text-[10px] font-bold text-[#59656D]">{d}</div>
+                        ))}
+                        
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">17:00-19:00</div>
+                        {heatmapGrid[0].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
 
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">19:00-21:00</div>
-                      {heatmapGrid[1].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">19:00-21:00</div>
+                        {heatmapGrid[1].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
 
-                      <div className="text-[10px] font-bold text-slate-500 flex items-center">21:00-23:00</div>
-                      {heatmapGrid[2].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`h-8 rounded-sm ${getHeatColorClass(val)} flex items-center justify-center text-[9px]`}
-                          title={`ยอด OT รวม: ${val} ชม.`}
-                        >
-                          {val > 0 ? `${val}h` : ""}
-                        </div>
-                      ))}
+                        <div className="text-[10px] font-bold text-[#59656D] flex items-center">21:00-23:00</div>
+                        {heatmapGrid[2].map((val, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-8 rounded-xs ${getHeatColorClass(val)} flex items-center justify-center text-[9px] font-mono`}
+                            title={`ยอด OT รวม: ${val} ชม.`}
+                          >
+                            {val > 0 ? `${val}h` : ""}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Radar Chart KPIs */}
-                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
-                    <p className="text-xs text-slate-500 mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
-                  </div>
-
-                  <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
-                    {dashboardEmployees.length === 0 && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-2xl z-20">
-                        <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                        <p className="text-xs font-bold text-slate-500">ยังไม่มีข้อมูลพนักงาน</p>
-                        <p className="text-[10px] text-slate-400 mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
-                      </div>
-                    )}
-                    <svg className="w-40 h-40 overflow-visible" viewBox="0 0 100 100">
-                      {/* Grid */}
-                      <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <polygon points="50,30 69,44 62,66 38,66 31,44" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                      {/* Axis lines */}
-                      <line x1="50" y1="50" x2="50" y2="10" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="88" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="74" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="26" y2="82" stroke="#e2e8f0" strokeWidth="0.5" />
-                      <line x1="50" y1="50" x2="12" y2="38" stroke="#e2e8f0" strokeWidth="0.5" />
-                      {/* Baseline */}
-                      <polygon points={safetyBaselinePoints} fill="rgba(249,115,22,0.05)" stroke="#f97316" strokeWidth="1.2" strokeDasharray="2,2" />
-                      {/* Company polygon */}
-                      <polygon points={companyPoints} fill="rgba(59, 130, 246, 0.15)" stroke="#2563eb" strokeWidth="1.5" />
-                      {/* Dots at vertices */}
-                      {companyPoints.split(" ").map((pt, i) => {
-                        const [x, y] = pt.split(",").map(Number);
-                        return <circle key={i} cx={x} cy={y} r="2" fill="#2563eb" />;
-                      })}
-                    </svg>
-                    {/* Labels */}
-                    <span className="absolute top-1 text-[8px] font-bold text-slate-500 text-center w-full">จัดกะ ({Math.round(coveragePct * 100)}%)</span>
-                    <span className="absolute top-16 right-0 text-[8px] font-bold text-slate-500">ผลผลิต ({Math.round(productivityPct * 100)}%)</span>
-                    <span className="absolute bottom-1 right-2 text-[8px] font-bold text-slate-500">ความคุ้มค่า ({Math.round(costEfficiencyPct * 100)}%)</span>
-                    <span className="absolute bottom-1 left-2 text-[8px] font-bold text-slate-500">ความปลอดภัย ({Math.round(safetyPct * 100)}%)</span>
-                    <span className="absolute top-16 left-0 text-[8px] font-bold text-slate-500">กำลังพล ({Math.round(attendancePct * 100)}%)</span>
-                  </div>
-
-                  <div className="flex gap-4 justify-center text-[9px] font-bold text-slate-600 mt-2">
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 bg-blue-600 rounded-sm"></span>
-                      <span>ดัชนี (Current)</span>
+                <div className="lg:col-span-3 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">ตัวชี้วัดประสิทธิภาพหลัก (Key KPIs)</h4>
+                      <p className="text-xs text-[#59656D] mb-4">ดัชนีชี้วัดความคล่องตัวและความเสถียรของทรัพยากร</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 border border-dashed border-orange-500 bg-orange-50 rounded-sm"></span>
-                      <span>เกณฑ์ (Baseline)</span>
+
+                    <div className="flex-1 flex items-center justify-center relative min-h-[180px]">
+                      {dashboardEmployees.length === 0 && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-xl z-20">
+                          <BarChart3 className="w-10 h-10 text-[#B4C1C9] mx-auto mb-2" />
+                          <p className="text-xs font-bold text-[#59656D]">ยังไม่มีข้อมูลพนักงาน</p>
+                          <p className="text-[10px] text-[#6A7B87] mt-1">กรุณานำเข้าหรือเพิ่มข้อมูลพนักงานก่อน</p>
+                        </div>
+                      )}
+                      <svg className="w-40 h-40 overflow-visible" viewBox="0 0 100 100">
+                        {/* Grid */}
+                        <polygon points="50,10 88,38 74,82 26,82 12,38" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <polygon points="50,20 78,41 68,74 32,74 22,41" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <polygon points="50,30 69,44 62,66 38,66 31,44" fill="none" stroke="#DCE4EA" strokeWidth="0.5" />
+                        {/* Axis lines */}
+                        <line x1="50" y1="50" x2="50" y2="10" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="88" y2="38" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="74" y2="82" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="26" y2="82" stroke="#DCE4EA" strokeWidth="0.5" />
+                        <line x1="50" y1="50" x2="12" y2="38" stroke="#DCE4EA" strokeWidth="0.5" />
+                        {/* Baseline */}
+                        <polygon points={safetyBaselinePoints} fill="rgba(217,155,20,0.05)" stroke="#D99B14" strokeWidth="1.2" strokeDasharray="2,2" />
+                        {/* Company polygon */}
+                        <polygon points={companyPoints} fill="rgba(14, 58, 102, 0.15)" stroke="#0E3A66" strokeWidth="1.5" />
+                        {/* Dots at vertices */}
+                        {companyPoints.split(" ").map((pt, i) => {
+                          const [x, y] = pt.split(",").map(Number);
+                          return <circle key={i} cx={x} cy={y} r="2" fill="#0E3A66" />;
+                        })}
+                      </svg>
+                      {/* Labels */}
+                      <span className="absolute top-1 text-[8px] font-bold text-[#59656D] text-center w-full">จัดกะ {Math.round(coveragePct * 100)}%</span>
+                      <span className="absolute top-16 right-0 text-[8px] font-bold text-[#59656D]">ผลผลิต {Math.round(productivityPct * 100)}%</span>
+                      <span className="absolute bottom-1 right-2 text-[8px] font-bold text-[#59656D]">ความคุ้มค่า {Math.round(costEfficiencyPct * 100)}%</span>
+                      <span className="absolute bottom-1 left-2 text-[8px] font-bold text-[#59656D]">ความปลอดภัย {Math.round(safetyPct * 100)}%</span>
+                      <span className="absolute top-16 left-0 text-[8px] font-bold text-[#59656D]">กำลังพล {Math.round(attendancePct * 100)}%</span>
+                    </div>
+
+                    <div className="flex gap-4 justify-center text-[9px] font-bold text-[#59656D] mt-2">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-[#0E3A66] rounded-xs"></span>
+                        <span>รอบปัจจุบัน</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 border border-dashed border-[#D99B14] bg-[#FCF3DE] rounded-xs"></span>
+                        <span>เกณฑ์อ้างอิง</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* OT Distribution by Position */}
-                <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">เอนเอียงกลุ่มตำแหน่งปฏิบัติการ</h4>
-                    <p className="text-[10px] text-slate-500 mb-4">สัดส่วนชั่วโมงทำงาน OT ของ 10 ตำแหน่งปฏิบัติการหลัก</p>
-                  </div>
+                <div className="lg:col-span-3 bezel-shell">
+                  <div className="bezel-core p-4 sm:p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0E3A66]">สัดส่วน OT แยกตามตำแหน่งงาน</h4>
+                      <p className="text-[10px] text-[#59656D] mb-4">สัดส่วนชั่วโมง OT รวมของ 10 ตำแหน่งงานหลัก</p>
+                    </div>
 
-                  <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
-                    {roleOtData.map((item, idx) => {
-                      const pct = Math.round((item.totalOt / maxRoleOt) * 100);
-                      return (
-                        <div key={idx} className="group">
-                          <div className="flex justify-between items-center text-[10px] mb-0.5">
-                            <span className="font-bold text-slate-600 group-hover:text-blue-600 truncate max-w-[130px] transition-colors" title={item.role}>
-                              {item.role}
-                            </span>
-                            <span className="font-bold text-slate-900 font-mono">{item.totalOt} ชม. ({item.empCount} คน)</span>
+                    <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1.5 scrollbar-thin">
+                      {roleOtData.map((item, idx) => {
+                        const pct = Math.round((item.totalOt / maxRoleOt) * 100);
+                        return (
+                          <div key={idx} className="group">
+                            <div className="flex justify-between items-center text-[10px] mb-0.5">
+                              <span className="font-bold text-[#333B41] group-hover:text-[#0E3A66] truncate max-w-[130px] transition-colors" title={item.role}>
+                                {item.role}
+                              </span>
+                              <span className="font-bold text-[#0E3A66] font-mono">{item.totalOt} ชม. ({item.empCount} คน)</span>
+                            </div>
+                            <div className="w-full bg-[#F3F6F8] h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
+                              <div 
+                                style={{ width: `${pct}%` }}
+                                className="bg-[#17538F] h-full rounded-full transition-all"
+                              ></div>
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden shadow-inner">
-                            <div 
-                              style={{ width: `${pct}%` }}
-                              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all"
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div className="pt-2.5 border-t border-slate-100 mt-4 flex items-center justify-between text-[9px] font-bold text-slate-400">
-                    <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
-                    <span className="text-blue-600">วิเคราะห์เอนเอียง</span>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="pt-2.5 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[9px] font-bold text-[#6A7B87]">
+                      <span>กลุ่มตำแหน่งปฏิบัติการหลัก</span>
+                      <span className="text-[#0E3A66]">10 อันดับตำแหน่งงาน</span>
+                    </div>
                   </div>
                 </div>
 
               </div>
 
               {/* Row: Cargo Tonnage vs OT Analytics Card */}
-              <div className="bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-orange-500/5 p-4 sm:p-6 rounded border border-amber-200 shadow-sm space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-base font-black text-amber-950 flex items-center gap-2">
-                      <Ship className="w-5 h-5 text-amber-600 inline" />
-                      <span>การวิเคราะห์ปริมาณงานเรือ/เครน (ตัน) กับ ชั่วโมง OT (Cargo Tonnage vs OT Analytics)</span>
-                    </h4>
-                    <p className="text-xs text-amber-800/80 mt-0.5">
-                      วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ที่ใช้ในการจัดการสินค้าน้ำหนักตัน
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2.5 rounded-2xl border border-amber-200 shadow-sm">
-                    <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-500">ปริมาณงานสินค้ารวม</span>
-                      <span className="text-base font-black text-amber-600 font-mono">
-                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0).toLocaleString()} <span className="text-xs font-bold">ตัน</span>
-                      </span>
-                    </div>
-                    <div className="h-8 w-px bg-amber-200" />
-                    <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-500">อัตราเฉลี่ย OT / 1,000 ตัน</span>
-                      <span className="text-base font-black text-blue-600 font-mono">
-                        {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) > 0 
-                          ? (state.employees.reduce((s, e) => s + (e.actualOt || 0), 0) / (vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) / 1000)).toFixed(1)
-                          : "0.0"} <span className="text-xs font-bold">ชม.</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vessel Tonnage vs OT Comparison Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-                  {vesselSchedules.length === 0 ? (
-                    <div className="col-span-full py-8 text-center bg-white/60 rounded-2xl border border-dashed border-amber-200 text-xs font-bold text-amber-700">
-                      ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
-                    </div>
-                  ) : vesselSchedules.map((vs) => {
-                    const ton = Number(vs.tonnage) || 0;
-                    const dept = state.departments.find(d => d.id === vs.deptId);
-                    const deptEmps = state.employees.filter(e => e.deptId === vs.deptId);
-                    const deptOt = deptEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
-                    return (
-                      <div key={vs.id} className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-between space-y-3">
-                        <div>
-                          <div className="flex justify-between items-start">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 font-mono uppercase">
-                              {vs.type === "vessel" ? `Vessel (${vs.planType})` : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? `PM (${vs.planType})` : `CM (${vs.planType})`}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400">{vs.startDate}</span>
-                          </div>
-                          <h5 className="text-xs font-black text-slate-800 mt-2 truncate" title={vs.name}>{vs.name}</h5>
-                          <p className="text-[10px] text-slate-500">แผนกรับผิดชอบ: {dept?.nameTh || vs.deptId}</p>
-                        </div>
-
-                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600 flex items-center gap-1">
-                              <Package className="w-3.5 h-3.5 text-amber-500 inline" /> ปริมาณงาน:
-                            </span>
-                            <span className="text-amber-600 font-mono">{ton.toLocaleString()} ตัน</span>
-                          </div>
-                          <div className="flex justify-between items-center text-xs font-bold">
-                            <span className="text-slate-600 flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-blue-500 inline" /> OT สะสมแผนก:
-                            </span>
-                            <span className="text-blue-600 font-mono">{deptOt} ชม.</span>
-                          </div>
-                        </div>
+              <div className="bezel-shell p-1.5 bg-[#FCF3DE]/50 border border-[#D99B14]/30 rounded-2xl shadow-none">
+                <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#D99B14]/20 space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FCF3DE] text-[#D99B14] border border-[#D99B14]/30">
+                          <Ship className="w-3.5 h-3.5 text-[#D99B14] inline" />
+                          <span>ปริมาณงานสินค้าและชั่วโมง OT</span>
+                        </span>
                       </div>
-                    );
-                  })}
+                      <h4 className="text-sm sm:text-base font-black text-[#333B41] tracking-tight">
+                        ปริมาณงานยกตู้สินค้าและชั่วโมงค่าล่วงเวลา
+                      </h4>
+                      <p className="text-xs text-[#59656D] mt-0.5">
+                        วิเคราะห์ประสิทธิภาพการทำงาน ประเมินอัตราส่วนชั่วโมง OT ต่อปริมาณการจัดการตู้สินค้า
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 bg-[#F3F6F8] px-4 py-2.5 rounded-xl border border-[#DCE4EA]">
+                      <div className="text-right">
+                        <span className="block text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">ปริมาณงานสินค้ารวม</span>
+                        <span className="text-base font-black text-[#D99B14] font-mono tabular-nums">
+                          {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0).toLocaleString()} <span className="text-xs font-bold text-[#59656D]">ตัน</span>
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-[#DCE4EA]" />
+                      <div className="text-right">
+                        <span className="block text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">อัตราเฉลี่ย OT / 1,000 ตัน</span>
+                        <span className="text-base font-black text-[#0E3A66] font-mono tabular-nums">
+                          {vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) > 0 
+                            ? (state.employees.reduce((s, e) => s + (e.actualOt || 0), 0) / (vesselSchedules.reduce((sum, vs) => sum + (Number(vs.tonnage) || 0), 0) / 1000)).toFixed(1)
+                            : "0.0"} <span className="text-xs font-bold text-[#59656D]">ชม.</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vessel Tonnage vs OT Comparison Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                    {vesselSchedules.length === 0 ? (
+                      <div className="col-span-full py-8 text-center bg-[#F3F6F8] rounded-xl border border-dashed border-[#DCE4EA] text-xs font-bold text-[#6A7B87]">
+                        ยังไม่มีข้อมูลตารางเรือและเครนตักสินค้า (เพิ่มตารางเรือได้ในหน้าจัดตารางกะ)
+                      </div>
+                    ) : vesselSchedules.map((vs) => {
+                      const ton = Number(vs.tonnage) || 0;
+                      const dept = state.departments.find(d => d.id === vs.deptId);
+                      const deptEmps = state.employees.filter(e => e.deptId === vs.deptId);
+                      const deptOt = deptEmps.reduce((s, e) => s + (e.actualOt || 0), 0);
+                      return (
+                        <div key={vs.id} className="bezel-shell p-1 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl shadow-none">
+                          <div className="bezel-core p-3.5 bg-white rounded-lg border border-[#DCE4EA] flex flex-col justify-between space-y-3 h-full">
+                            <div>
+                              <div className="flex justify-between items-start">
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-[#FCF3DE] text-[#D99B14] border border-[#D99B14]/30 font-mono uppercase">
+                                  {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType})
+                                </span>
+                                <span className="text-[10px] font-bold text-[#6A7B87] font-mono">{vs.startDate}</span>
+                              </div>
+                              <h5 className="text-xs font-black text-[#333B41] mt-2 truncate" title={vs.name}>{vs.name}</h5>
+                              <p className="text-[10px] text-[#59656D]">แผนกรับผิดชอบ: {dept?.nameTh || vs.deptId}</p>
+                            </div>
+
+                            <div className="space-y-2 pt-2 border-t border-[#DCE4EA]">
+                              <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-[#59656D] flex items-center gap-1">
+                                  <Package className="w-3.5 h-3.5 text-[#D99B14] inline" /> ปริมาณงาน:
+                                </span>
+                                <span className="text-[#D99B14] font-mono tabular-nums">{ton.toLocaleString()} ตัน</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-[#59656D] flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5 text-[#0E3A66] inline" /> OT สะสมแผนก:
+                                </span>
+                                <span className="text-[#0E3A66] font-mono tabular-nums">{deptOt} ชม.</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               {/* Comprehensive Statistics Table */}
-              <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">ตารางสรุปงบประมาณและข้อมูลประสิทธิภาพรายแผนก</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">การวิเคราะห์พฤติกรรมการใช้งบประมาณและกำลังพล</p>
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none overflow-hidden">
+                <div className="bezel-core bg-white rounded-xl border border-[#DCE4EA] overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-[#DCE4EA] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                          <BarChart3 className="w-3 h-3 text-[#0E3A66]" />
+                          <span>Departmental Efficiency Ledger</span>
+                        </span>
+                      </div>
+                      <h4 className="text-sm sm:text-base font-bold text-[#333B41]">ตารางสรุปงบประมาณและข้อมูลประสิทธิภาพรายแผนก</h4>
+                      <p className="text-xs text-[#59656D] mt-0.5">การวิเคราะห์พฤติกรรมการใช้งบประมาณและกำลังพล</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-[#F3F6F8] border border-[#DCE4EA] px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider">เรียงตาม:</span>
+                      <select 
+                        value={reportSortBy}
+                        onChange={(e) => setReportSortBy(e.target.value)}
+                        className="bg-transparent border-none text-[10px] font-extrabold focus:ring-0 cursor-pointer text-[#333B41]"
+                      >
+                        <option>OT Hours (High to Low)</option>
+                        <option>Department Name</option>
+                        <option>Budget Used</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                    <span className="text-[10px] font-bold text-slate-500">เรียงตาม:</span>
-                    <select 
-                      value={reportSortBy}
-                      onChange={(e) => setReportSortBy(e.target.value)}
-                      className="bg-transparent border-none text-[10px] font-extrabold focus:ring-0 cursor-pointer text-slate-700"
-                    >
-                      <option>OT Hours (High to Low)</option>
-                      <option>Department Name</option>
-                      <option>Budget Used</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">ชื่อแผนก</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">พนักงานทำ OT</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">ชั่วโมงงานสะสม</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">งบประมาณที่ใช้จริง</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">สัดส่วนการใช้งบสูงสุด</th>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">สถานะควบคุม</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#DCE4EA] text-slate-700 text-xs">
-                      {sortedDepartments.map((dept) => (
-                        <tr key={dept.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded bg-[#E8F3FA] flex items-center justify-center text-[#0E3A66] border border-[#9FCEE8]">
-                                <Building2 className="w-4 h-4 text-[#0E3A66]" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-800">{dept.nameTh}</p>
-                                <p className="text-[10px] text-slate-400">หน่วยการผลิตย่อย {dept.name}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center font-bold font-mono">{dept.employeesCount} คน</td>
-                          <td className="px-6 py-4 text-right font-extrabold text-slate-800 font-mono">{dept.otHours} ชม.</td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="font-extrabold text-slate-800 font-mono">{dept.budgetUsed.toLocaleString()}</div>
-                            <div className={`flex items-center justify-end gap-0.5 text-[9px] font-bold ${
-                              dept.budgetUsedChangePct > 0 ? 'text-red-500' : 'text-emerald-600'
-                            }`}>
-                              {dept.budgetUsedChangePct > 0 ? (
-                                <>
-                                  <ArrowUpRight className="w-3 h-3" />
-                                  <span>+{dept.budgetUsedChangePct}%</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ArrowDownRight className="w-3 h-3" />
-                                  <span>{dept.budgetUsedChangePct}%</span>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex-grow bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                <div 
-                                  style={{ width: `${dept.budgetUtilization}%` }}
-                                  className={`h-full rounded-full ${
-                                    dept.budgetUtilization > 90 ? 'bg-red-500' : 'bg-blue-600'
-                                  }`}
-                                ></div>
-                              </div>
-                              <span className="font-extrabold text-slate-800 font-mono w-8">{dept.budgetUtilization}%</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase border ${
-                              dept.status === "On Track" 
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                : "bg-red-50 text-red-700 border-red-100"
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                dept.status === "On Track" ? "bg-emerald-500" : "bg-red-500"
-                              }`}></span>
-                              {dept.status === "On Track" ? "On Track" : "Warning"}
-                            </span>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                      <thead>
+                        <tr className="bg-[#F3F6F8] border-b border-[#DCE4EA]">
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider">ชื่อแผนก</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-center">พนักงานทำ OT</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-right">ชั่วโมงงานสะสม</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-right">งบประมาณที่ใช้จริง</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider">สัดส่วนการใช้งบสูงสุด</th>
+                          <th className="px-6 py-4 text-xs font-bold text-[#6A7B87] uppercase tracking-wider text-center">สถานะควบคุม</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-[#DCE4EA] text-[#333B41] text-xs">
+                        {sortedDepartments.map((dept) => (
+                          <tr key={dept.id} className="hover:bg-[#F3F6F8]/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#E8F3FA] flex items-center justify-center text-[#0E3A66] border border-[#9FCEE8]">
+                                  <Building2 className="w-4 h-4 text-[#0E3A66]" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-[#333B41]">{dept.nameTh}</p>
+                                  <p className="text-[10px] text-[#6A7B87]">หน่วยการผลิตย่อย {dept.name}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center font-bold font-mono tabular-nums">{dept.employeesCount} คน</td>
+                            <td className="px-6 py-4 text-right font-extrabold text-[#0E3A66] font-mono tabular-nums">{dept.otHours} ชม.</td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="font-extrabold text-[#333B41] font-mono tabular-nums">{dept.budgetUsed.toLocaleString()}</div>
+                              <div className={`flex items-center justify-end gap-0.5 text-[9px] font-bold ${
+                                dept.budgetUsedChangePct > 0 ? 'text-[#B3352C]' : 'text-[#1E9C6E]'
+                              }`}>
+                                {dept.budgetUsedChangePct > 0 ? (
+                                  <>
+                                    <ArrowUpRight className="w-3 h-3" />
+                                    <span>+{dept.budgetUsedChangePct}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDownRight className="w-3 h-3" />
+                                    <span>{dept.budgetUsedChangePct}%</span>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-grow bg-[#DCE4EA] h-2 rounded-full overflow-hidden">
+                                  <div 
+                                    style={{ width: `${dept.budgetUtilization}%` }}
+                                    className={`h-full rounded-full transition-all ${
+                                      dept.budgetUtilization > 90 ? 'bg-[#B3352C]' : 'bg-[#0E3A66]'
+                                    }`}
+                                  ></div>
+                                </div>
+                                <span className="font-extrabold text-[#333B41] font-mono tabular-nums w-8">{dept.budgetUtilization}%</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                                dept.status === "On Track" 
+                                  ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#1E9C6E]/30" 
+                                  : "bg-[#FBEAEA] text-[#B3352C] border-[#B3352C]/30"
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  dept.status === "On Track" ? "bg-[#1E9C6E]" : "bg-[#B3352C]"
+                                }`}></span>
+                                {dept.status === "On Track" ? "On Track" : "Warning"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                {/* Footer stats metadata */}
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs font-semibold text-slate-500">
-                  <p>แสดง 6 แผนกหลัก</p>
-                  <div className="flex gap-1">
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-white text-slate-500">
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold">1</button>
+                  {/* Footer stats metadata */}
+                  <div className="px-6 py-4 bg-[#F3F6F8] border-t border-[#DCE4EA] flex justify-between items-center text-xs font-semibold text-[#6A7B87]">
+                    <p>แสดง 6 แผนกหลัก</p>
+                    <div className="flex gap-1">
+                      <button className="btn-bezel w-8 h-8 flex items-center justify-center rounded-lg border border-[#DCE4EA] hover:bg-white text-[#59656D]">
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button className="btn-bezel w-8 h-8 flex items-center justify-center rounded-lg bg-[#0E3A66] text-white font-bold font-mono">1</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -8182,52 +8510,60 @@ export default function App() {
 
                       return (
                         <>
-                          <div className="bg-white border-l-4 border-l-blue-600 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200/60 flex items-center justify-center shadow-2xs">
-                                <Users className="w-5 h-5 text-blue-700" />
+                          {/* Card 1: Current Total Employees (Double Bezel) */}
+                          <div className="bezel-shell p-1.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl shadow-none">
+                            <div className="bezel-core p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-col justify-between min-h-[160px]">
+                              <div className="flex justify-between items-start">
+                                <div className="w-10 h-10 rounded-xl bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center">
+                                  <Users className="w-5 h-5 text-[#0E3A66]" />
+                                </div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                                  Workforce Telemetry
+                                </span>
                               </div>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Current Total Employees</h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-slate-900">{activeEmps}/{totalEmps}</span>
-                                <span className="text-xs font-semibold text-slate-500">in total</span>
+                              
+                              <div className="mt-4">
+                                <h4 className="text-xs font-bold text-[#6A7B87] uppercase tracking-wider mb-1">Current Total Employees</h4>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl sm:text-4xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">{activeEmps}/{totalEmps}</span>
+                                  <span className="text-xs font-semibold text-[#6A7B87]">in total</span>
+                                </div>
+                                <p className="text-xs font-extrabold text-[#0E3A66] pt-1 font-mono tabular-nums">({activeRatioPct}% active workforce)</p>
                               </div>
-                              <p className="text-xs font-extrabold text-blue-600 pt-1">({activeRatioPct}% active workforce)</p>
                             </div>
                           </div>
 
-                          {/* Card 2: Case and Resigned (Current Month Calculation) */}
-                          <div className="bg-white border-l-4 border-l-rose-500 border-y border-r border-slate-200/80 p-6 rounded shadow-sm flex flex-col justify-between min-h-[160px] relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center shadow-2xs">
-                                <UserX className="w-5 h-5 text-rose-600" />
-                              </div>
+                          {/* Card 2: Case and Resigned (Double Bezel) */}
+                          <div className="bezel-shell p-1.5 bg-[#FBEAEA] border border-[#B3352C]/30 rounded-2xl shadow-none">
+                            <div className="bezel-core p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-col justify-between min-h-[160px]">
+                              <div className="flex justify-between items-start">
+                                <div className="w-10 h-10 rounded-xl bg-[#FBEAEA] text-[#B3352C] border border-[#B3352C]/30 flex items-center justify-center">
+                                  <UserX className="w-5 h-5 text-[#B3352C]" />
+                                </div>
 
-                              {isHrOrFullAccess && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedEmpStatusTab("Resigned");
-                                    setShowResignedModal(true);
-                                  }}
-                                  className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-black transition-all border border-rose-200/80 cursor-pointer shadow-xs hover:scale-105 active:scale-95 flex items-center gap-1.5"
-                                  title="เปิดหน้าต่างจัดการข้อมูลพนักงานลาออก / พ้นสภาพ"
-                                >
-                                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                                  <span>จัดการข้อมูล</span>
-                                </button>
-                              )}
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Case and Resigned</h4>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black tracking-tight text-slate-900">{thisMonthCaseCount} Case</span>
+                                {isHrOrFullAccess && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedEmpStatusTab("Resigned");
+                                      setShowResignedModal(true);
+                                    }}
+                                    className="btn-bezel px-3.5 py-1.5 bg-[#FBEAEA] hover:bg-[#F8D7D7] text-[#B3352C] rounded-xl text-xs font-black transition-all border border-[#B3352C]/30 cursor-pointer flex items-center gap-1.5"
+                                    title="เปิดหน้าต่างจัดการข้อมูลพนักงานลาออก / พ้นสภาพ"
+                                  >
+                                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                                    <span>จัดการข้อมูล</span>
+                                  </button>
+                                )}
                               </div>
-                              <p className="text-xs font-extrabold text-rose-600 pt-1">ประจำเดือน {formatMonthThai(currentMonthKey)} (สะสมทั้งหมด {allResignedEmps.length} เคส)</p>
+                              
+                              <div className="mt-4">
+                                <h4 className="text-xs font-bold text-[#6A7B87] uppercase tracking-wider mb-1">Case and Resigned</h4>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl sm:text-4xl font-black tracking-tight text-[#333B41] font-mono tabular-nums">{thisMonthCaseCount} Case</span>
+                                </div>
+                                <p className="text-xs font-extrabold text-[#B3352C] pt-1">ประจำเดือน {formatMonthThai(currentMonthKey)} (สะสมทั้งหมด {allResignedEmps.length} เคส)</p>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -8337,117 +8673,126 @@ export default function App() {
                     const activeIconsCount = Math.min(10, Math.round((activeRatioPct / 100) * 10));
 
                     return (
-                      <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                      <div className="lg:col-span-2 space-y-4 sm:space-y-6 flex flex-col justify-between">
                         
-                        {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart */}
-                        <div className="bg-white border border-slate-200/80 rounded p-4 sm:p-6 shadow-sm flex-1 flex flex-col justify-between">
-                          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                            <div>
-                              <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase">DASHBOARD BY SECTION</h3>
-                              <p className="text-[10px] text-slate-400 font-medium mt-0.5">จำนวนพนักงานแยกตามแผนก Jan - Oct</p>
-                            </div>
-                            
-                            {/* Section Legend Pills with Real Live Headcounts */}
-                            <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]"></span>
-                                <span className="text-slate-700">INTER 2 ({countInter2} คน)</span>
+                        {/* Top Panel: DASHBOARD BY SECTION Dynamic Stacked Area Chart (Double Bezel) */}
+                        <div className="bezel-shell p-1.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-2xl shadow-none flex-1 flex flex-col justify-between">
+                          <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#DCE4EA] flex-1 flex flex-col justify-between">
+                            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                                    Headcount Dynamics
+                                  </span>
+                                </div>
+                                <h3 className="text-xs sm:text-sm font-black text-[#333B41] tracking-wider uppercase">DASHBOARD BY SECTION</h3>
+                                <p className="text-[10px] text-[#6A7B87] font-medium mt-0.5">จำนวนพนักงานแยกตามแผนก Jan - Oct</p>
                               </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
-                                <span className="text-slate-700">INTER 3 ({countInter3} คน)</span>
+                              
+                              {/* Section Legend Pills with Real Live Headcounts */}
+                              <div className="flex items-center gap-2 text-xs font-bold overflow-x-auto no-scrollbar touch-pan-x py-1 max-w-full">
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#0E3A66]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 2 ({countInter2} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#1E9C6E]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 3 ({countInter3} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#17538F]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 5 ({countInter5} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#D99B14]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">INTER 7 ({countInter7} คน)</span>
+                                </div>
+                                <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F3F6F8] border border-[#DCE4EA]">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#2E90CB]"></span>
+                                  <span className="text-[#333B41] font-mono tabular-nums">HVM ({countHvm} คน)</span>
+                                </div>
                               </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></span>
-                                <span className="text-slate-700">INTER 5 ({countInter5} คน)</span>
-                              </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]"></span>
-                                <span className="text-slate-700">INTER 7 ({countInter7} คน)</span>
-                              </div>
-                              <div className="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/80">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#0284c7]"></span>
-                                <span className="text-slate-700">HVM ({countHvm} คน)</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SVG Stacked Area Chart */}
-                          <div className="h-48 relative pt-4 flex flex-col justify-between border-t border-slate-100">
-                            
-                            {/* Y-Axis Labels */}
-                            <div className="absolute left-0 top-2 bottom-6 flex flex-col justify-between text-[10px] font-bold text-slate-400 pointer-events-none">
-                              <span>80</span>
-                              <span>60</span>
-                              <span>40</span>
-                              <span>20</span>
-                              <span>0</span>
                             </div>
 
-                            {/* Grid Lines */}
-                            <div className="absolute left-7 right-0 top-2 bottom-6 flex flex-col justify-between pointer-events-none">
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-100"></div>
-                              <div className="w-full h-px bg-slate-200"></div>
-                            </div>
+                            {/* SVG Stacked Area Chart */}
+                            <div className="h-48 relative pt-4 flex flex-col justify-between border-t border-[#DCE4EA]">
+                              
+                              {/* Y-Axis Labels */}
+                              <div className="absolute left-0 top-2 bottom-6 flex flex-col justify-between text-[10px] font-bold text-[#6A7B87] pointer-events-none font-mono tabular-nums">
+                                <span>80</span>
+                                <span>60</span>
+                                <span>40</span>
+                                <span>20</span>
+                                <span>0</span>
+                              </div>
 
-                            {/* Area Chart SVG Stacked Layers (Dynamic Polygons) */}
-                            <div className="pl-8 h-full w-full relative">
-                              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                {/* Layer 5: HVM (Sky Blue) */}
-                                <polygon points={polyLayer5} fill="#0284c7" opacity="0.35" />
-                                {/* Layer 4: INTER 7 (Amber Gold) */}
-                                <polygon points={polyLayer4} fill="#d97706" opacity="0.4" />
-                                {/* Layer 3: INTER 5 (Indigo Purple) */}
-                                <polygon points={polyLayer3} fill="#6366f1" opacity="0.5" />
-                                {/* Layer 2: INTER 3 (Emerald Green) */}
-                                <polygon points={polyLayer2} fill="#059669" opacity="0.6" />
-                                {/* Layer 1: INTER 2 (Royal Blue) */}
-                                <polygon points={polyLayer1} fill="#2563eb" opacity="0.8" />
-                              </svg>
-                            </div>
+                              {/* Grid Lines */}
+                              <div className="absolute left-7 right-0 top-2 bottom-6 flex flex-col justify-between pointer-events-none">
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#F3F6F8]"></div>
+                                <div className="w-full h-px bg-[#DCE4EA]"></div>
+                              </div>
 
-                            {/* X-Axis Month Labels */}
-                            <div className="pl-8 flex justify-between text-[11px] font-bold text-slate-500 pt-2 border-t border-slate-100">
-                              {monthNames.map(m => (
-                                <span key={m}>{m}</span>
-                              ))}
-                            </div>
+                              {/* Area Chart SVG Stacked Layers (Dynamic Polygons) */}
+                              <div className="pl-8 h-full w-full relative">
+                                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                  {/* Layer 5: HVM (Sky Blue) */}
+                                  <polygon points={polyLayer5} fill="#2E90CB" opacity="0.4" />
+                                  {/* Layer 4: INTER 7 (Amber Gold) */}
+                                  <polygon points={polyLayer4} fill="#D99B14" opacity="0.4" />
+                                  {/* Layer 3: INTER 5 (Maritime Blue) */}
+                                  <polygon points={polyLayer3} fill="#17538F" opacity="0.5" />
+                                  {/* Layer 2: INTER 3 (Emerald Green) */}
+                                  <polygon points={polyLayer2} fill="#1E9C6E" opacity="0.6" />
+                                  {/* Layer 1: INTER 2 (Deep Maritime Navy) */}
+                                  <polygon points={polyLayer1} fill="#0E3A66" opacity="0.8" />
+                                </svg>
+                              </div>
 
+                              {/* X-Axis Month Labels */}
+                              <div className="pl-8 flex justify-between text-[11px] font-bold text-[#6A7B87] pt-2 border-t border-[#DCE4EA]">
+                                {monthNames.map(m => (
+                                  <span key={m}>{m}</span>
+                                ))}
+                              </div>
+
+                            </div>
                           </div>
                         </div>
 
-                        {/* Bottom Panel: Organization Chart People Silhouettes Bar */}
-                        <div className="bg-white border border-slate-200/80 rounded p-5 shadow-sm flex flex-wrap items-center justify-between gap-4 font-sans">
-                          
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                              <Globe className="w-6 h-6 text-white" />
+                        {/* Bottom Panel: Organization Chart People Silhouettes Bar (Double Bezel) */}
+                        <div className="bezel-shell p-1.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-2xl shadow-none">
+                          <div className="bezel-core p-4 sm:p-5 bg-white rounded-xl border border-[#DCE4EA] flex flex-wrap items-center justify-between gap-4 font-sans">
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-[#0E3A66] text-white flex items-center justify-center">
+                                <Globe className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-extrabold text-[#333B41]">Organization chart</h4>
+                                <p className="text-[10px] text-[#6A7B87] font-medium">สัดส่วนพนักงานปฏิบัติงานปัจจุบัน</p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="text-sm font-extrabold text-slate-800">Organization chart</h4>
-                              <p className="text-[10px] text-slate-500 font-medium">สัดส่วนพนักงานปฏิบัติงานปัจจุบัน</p>
+
+                            {/* 10 People Icon Silhouettes */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F3F6F8] rounded-xl border border-[#DCE4EA]">
+                              {Array.from({ length: 10 }).map((_, idx) => (
+                                <Users 
+                                  key={idx} 
+                                  className={`w-4 h-4 ${idx < activeIconsCount ? "text-[#0E3A66]" : "text-[#B4C1C9]"}`} 
+                                />
+                              ))}
                             </div>
-                          </div>
 
-                          {/* 10 People Icon Silhouettes */}
-                          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
-                            {Array.from({ length: 10 }).map((_, idx) => (
-                              <Users 
-                                key={idx} 
-                                className={`w-5 h-5 ${idx < activeIconsCount ? "text-blue-600" : "text-slate-300"}`} 
-                              />
-                            ))}
-                          </div>
+                            {/* Percent badge */}
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl sm:text-3xl font-black text-[#0E3A66] font-mono tabular-nums">{activeRatioPct}%</span>
+                              <span className="text-xs font-bold text-[#6A7B87] font-mono tabular-nums">({activeEmpsList.length} จาก {empsList.length} คน)</span>
+                            </div>
 
-                          {/* Percent badge */}
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-blue-600">{activeRatioPct}%</span>
-                            <span className="text-xs font-bold text-slate-500">({activeEmpsList.length} จาก {empsList.length} คน)</span>
                           </div>
-
                         </div>
 
                       </div>
@@ -8457,62 +8802,69 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Header block with employee database controls */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
-                  <p className="text-xs text-slate-500 mt-1">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
-                    <>
-                      {/* Export Button */}
+              {/* Header block with employee database controls (Double Bezel) */}
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none">
+                <div className="bezel-core p-4 sm:p-6 bg-white rounded-xl border border-[#DCE4EA] flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
+                        Personnel Telemetry Ledger
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-extrabold text-[#333B41]">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
+                    <p className="text-xs text-[#59656D] mt-0.5">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
+                      <>
+                        {/* Export Button */}
+                        <button 
+                          onClick={handleExportEmployees}
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] text-[#333B41] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] min-h-[38px]"
+                          title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#0E3A66]" />
+                          <span>ส่งออกข้อมูล (Export CSV)</span>
+                        </button>
+
+                        {/* Import Button */}
+                        <label 
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#F3F6F8] hover:bg-[#E8F3FA] text-[#333B41] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#DCE4EA] min-h-[38px]"
+                          title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-[#17538F]" />
+                          <span>นำเข้าข้อมูล (Import CSV)</span>
+                          <input 
+                            type="file"
+                            accept=".csv"
+                            onChange={handleImportEmployees}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* CSV Template Hub */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCsvTemplateHubOpen(true)}
+                          className="btn-bezel flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#E8F3FA] hover:bg-[#9FCEE8]/30 text-[#0E3A66] rounded-xl text-xs font-bold transition-colors cursor-pointer border border-[#9FCEE8] min-h-[38px]"
+                          title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-[#0E3A66]" />
+                          <span>แม่แบบ CSV</span>
+                        </button>
+                      </>
+                    )}
+                    
+                    {isHrOrFullAccess && (
                       <button 
-                        onClick={handleExportEmployees}
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
-                        title="ส่งออกฐานข้อมูลรายชื่อพนักงานทั้งหมดเป็นไฟล์ CSV"
+                        onClick={handleOpenAddEmployeeModal}
+                        className="btn-bezel btn-press flex items-center gap-2 px-4 py-2 bg-[#0E3A66] text-white rounded-xl text-xs font-bold hover:bg-[#17538F] transition-colors border border-[#0E3A66] cursor-pointer min-h-[38px]"
                       >
-                        <Download className="w-3.5 h-3.5 text-blue-600" />
-                        <span>ส่งออกข้อมูล (Export CSV)</span>
+                        <Plus className="w-4 h-4" />
+                        <span>เพิ่มพนักงานใหม่</span>
                       </button>
-
-                      {/* Import Button */}
-                      <label 
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer min-h-[40px]"
-                        title="นำเข้าไฟล์ CSV เพื่อปรับปรุงฐานข้อมูลพนักงาน"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>นำเข้าข้อมูล (Import CSV)</span>
-                        <input 
-                          type="file"
-                          accept=".csv"
-                          onChange={handleImportEmployees}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {/* CSV Template Hub */}
-                      <button
-                        type="button"
-                        onClick={() => setIsCsvTemplateHubOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-blue-200 min-h-[40px]"
-                        title="ดาวน์โหลดไฟล์แม่แบบ CSV ทุกประเภท"
-                      >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
-                        <span>แม่แบบ CSV</span>
-                      </button>
-                    </>
-                  )}
-                  
-                  {isHrOrFullAccess && (
-                    <button 
-                      onClick={handleOpenAddEmployeeModal}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer min-h-[40px]"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>เพิ่มพนักงานใหม่</span>
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -8596,101 +8948,102 @@ export default function App() {
 
               {/* Employee roster list */}
               <div id="employee-roster-section"></div>
-              <div className="bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
-                <div className="p-4 sm:p-6 border-b border-slate-100 space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2.5">
-                        <h4 className="text-sm font-bold text-slate-800">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#DCE4EA] text-[#0E3A66] text-xs font-bold font-mono">
-                          แสดง {filteredEmployees.length} จาก {
-                            selectedEmpStatusTab === "All"
-                              ? (state?.employees || []).length
-                              : selectedEmpStatusTab === "Active"
-                              ? (state?.employees || []).filter(e => isActiveEmployee(e, state?.shiftConfig?.currentMonth)).length
-                              : selectedEmpStatusTab === "On-Leave"
-                              ? (state?.employees || []).filter(e => isOnLeaveEmployee(e, state?.shiftConfig?.currentMonth)).length
-                              : (state?.employees || []).filter(e => isResignedEmployee(e)).length
-                          } คน
-                        </span>
+              <div className="bezel-shell p-1.5 bg-[#E8F3FA]/40 border border-[#9FCEE8] rounded-2xl shadow-none overflow-hidden">
+                <div className="bezel-core bg-white border border-[#DCE4EA] rounded-xl overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-[#DCE4EA] space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <h4 className="text-sm sm:text-base font-black text-[#333B41]">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold font-mono tabular-nums">
+                            แสดง {filteredEmployees.length} จาก {
+                              selectedEmpStatusTab === "All"
+                                ? (state?.employees || []).length
+                                : selectedEmpStatusTab === "Active"
+                                ? (state?.employees || []).filter(e => isActiveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                                : selectedEmpStatusTab === "On-Leave"
+                                ? (state?.employees || []).filter(e => isOnLeaveEmployee(e, state?.shiftConfig?.currentMonth)).length
+                                : (state?.employees || []).filter(e => isResignedEmployee(e)).length
+                            } คน
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#59656D] mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
-                    </div>
 
-                    {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEmpSearchQuery("");
-                          setEmpDeptFilter("ทุกแผนก");
-                          setEmpDivisionFilter("ทุกฝ่าย");
-                          setEmpRoleFilter("ทุกตำแหน่ง");
-                          setSearchQuery("");
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition-all border border-rose-200 cursor-pointer self-start md:self-auto min-h-[36px]"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>ล้างตัวกรองทั้งหมด</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Filter Toolbar Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-                    {/* 1. Quick Search Box */}
-                    <div className="relative">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={empSearchQuery}
-                        onChange={(e) => setEmpSearchQuery(e.target.value)}
-                        placeholder="ค้นหารหัส, ชื่อ-นามสกุล..."
-                        className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                      />
-                      {empSearchQuery && (
-                        <button 
+                      {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
+                        <button
                           type="button"
-                          onClick={() => setEmpSearchQuery("")}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            setEmpSearchQuery("");
+                            setEmpDeptFilter("ทุกแผนก");
+                            setEmpDivisionFilter("ทุกฝ่าย");
+                            setEmpRoleFilter("ทุกตำแหน่ง");
+                            setSearchQuery("");
+                          }}
+                          className="btn-bezel flex items-center gap-1.5 px-3 py-1.5 bg-[#FBEAEA] text-[#B3352C] hover:bg-[#F8D7D7] rounded-xl text-xs font-bold transition-all border border-[#B3352C]/30 cursor-pointer self-start md:self-auto min-h-[36px]"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>ล้างตัวกรองทั้งหมด</span>
                         </button>
                       )}
                     </div>
 
-                    {/* 2. Department Dropdown */}
-                    <div className="relative">
-                      <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={empDeptFilter}
-                        onChange={(e) => setEmpDeptFilter(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
-                      >
-                        <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>
-                        {uniqueRosterDepts.map(d => (
-                          <option key={d} value={d}>แผนก {d}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Filter Toolbar Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                      {/* 1. Quick Search Box */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={empSearchQuery}
+                          onChange={(e) => setEmpSearchQuery(e.target.value)}
+                          placeholder="ค้นหารหัส, ชื่อ-นามสกุล..."
+                          className="w-full pl-9 pr-8 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all"
+                        />
+                        {empSearchQuery && (
+                          <button 
+                            type="button"
+                            onClick={() => setEmpSearchQuery("")}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6A7B87] hover:text-[#333B41]"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
 
-                    {/* 3. Division Dropdown */}
-                    <div className="relative">
-                      <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={empDivisionFilter}
-                        onChange={(e) => setEmpDivisionFilter(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer appearance-none"
-                      >
-                        <option value="ทุกฝ่าย">ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
-                        {uniqueRosterDivisions.map(div => (
-                          <option key={div} value={div}>ฝ่าย {div}</option>
-                        ))}
-                      </select>
-                    </div>
+                      {/* 2. Department Dropdown */}
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={empDeptFilter}
+                          onChange={(e) => setEmpDeptFilter(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all cursor-pointer appearance-none"
+                        >
+                          <option value="ทุกแผนก">แผนกทั้งหมด (ทุกแผนก)</option>
+                          {uniqueRosterDepts.map(d => (
+                            <option key={d} value={d}>แผนก {d}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    {/* 4. Position / Role Dropdown */}
-                    <div className="relative">
-                      <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      {/* 3. Division Dropdown */}
+                      <div className="relative">
+                        <Briefcase className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={empDivisionFilter}
+                          onChange={(e) => setEmpDivisionFilter(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2.5 bg-[#F3F6F8] border border-[#DCE4EA] rounded-xl text-xs font-bold text-[#333B41] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0E3A66]/20 transition-all cursor-pointer appearance-none"
+                        >
+                          <option value="ทุกฝ่าย">ฝ่ายทั้งหมด (ทุกฝ่าย)</option>
+                          {uniqueRosterDivisions.map(div => (
+                            <option key={div} value={div}>ฝ่าย {div}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 4. Position / Role Dropdown */}
+                      <div className="relative">
+                        <UserCheck className="w-4 h-4 text-[#6A7B87] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <select
                         value={empRoleFilter}
                         onChange={(e) => setEmpRoleFilter(e.target.value)}
@@ -8943,6 +9296,15 @@ export default function App() {
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   type="button"
+                                  onClick={() => setCalendarModalEmployee(emp)}
+                                  className="px-2 py-1 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                                  title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
+                                >
+                                  <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                                  <span>ตั้งกะ</span>
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => setViewingEmployeeDetails(emp)}
                                   className="p-1.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
                                   title="ดูรายละเอียดพนักงาน"
@@ -8965,10 +9327,10 @@ export default function App() {
                                   </button>
                                 )}
                                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
-                                  <button
-                                    type="button"
-                          onClick={() => handleDeleteEmployee(emp.id)}
-                                    className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteEmployee(emp)}
+                                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                     title="ลบพนักงาน"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -9013,9 +9375,10 @@ export default function App() {
                   </table>
                 </div>
               </div>
-
             </div>
-          )}
+
+          </div>
+        )}
 
           {/* ======================================= */}
           {/* VIEW: SHIFT MANAGEMENT */}
@@ -9100,10 +9463,28 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 h-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const activeList = isEditingShifts ? tempEmployees : (state?.employees || []);
+                            const deptEmps = activeList.filter((e: Employee) => e.deptId === currentShiftsDept && e.employmentStatus !== "Resigned" && e.employmentStatus !== "ลาออก");
+                            const targetEmp = deptEmps[0] || activeList[0] || null;
+                            if (targetEmp) {
+                              setCalendarModalEmployee(targetEmp);
+                            } else {
+                              alert("ไม่พบข้อมูลพนักงานในแผนกนี้");
+                            }
+                          }}
+                          className="h-10 px-3.5 bg-[#0E3A66] text-white hover:bg-[#17538F] rounded-2xl text-xs font-black cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all"
+                          title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
+                        >
+                          <Calendar className="w-4 h-4 text-sky-300" />
+                          <span>ตั้งกะรายคน</span>
+                        </button>
                         <button onClick={() => setShowVesselModal(true)}
                           className="h-10 px-3.5 bg-amber-600 text-white rounded-2xl text-xs font-black hover:bg-amber-700 cursor-pointer font-sans shadow-2xs flex items-center gap-1.5 transition-all hover:bg-amber-500">
                           <Ship className="w-4 h-4 text-white" />
-                          <span>Vessel / Crane</span>
+                          <span>ตารางเรือ</span>
                         </button>
                       </div>
                     )}
@@ -9522,36 +9903,40 @@ export default function App() {
                     </div>
 
 
-                    {/* Vessel & Ship Crane Section (Maritime Operations Header) */}
+                    {/* ตารางเรือ Vessel & Crane Section (Maritime Operations Header) */}
                     <div className="bg-[#0E3A66] px-4 py-2.5 border-b border-[#17538F] flex flex-wrap justify-between items-center gap-2 text-white sticky left-0 z-20 shadow-maritime-xs">
                       <div className="flex items-center gap-2.5">
                         <div className="w-6 h-6 rounded bg-[#17538F] border border-[#2E90CB]/40 flex items-center justify-center text-[#9FCEE8]">
                           <Ship className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold tracking-tight text-white uppercase font-mono">
-                            Vessel & Ship Crane Schedule
+                          <span className="text-xs font-bold tracking-tight text-white">
+                            ตารางเทียบเรือสินค้า & เครนหน้าท่า (Vessel & Ship Crane Schedule)
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#17538F] border border-[#2E90CB]/30 text-[#9FCEE8] tabular-nums font-mono">
-                            {vesselSchedules.length > 0 ? `${vesselSchedules.length} Operations` : "Operational Ready"}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#17538F] border border-[#2E90CB]/30 text-[#9FCEE8] tabular-nums">
+                            {vesselSchedules.length > 0 ? `${vesselSchedules.length} ลำในแผนงาน` : "พร้อมปฏิบัติการ"}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
                         {/* Legend Indicators */}
-                        <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-300 font-bold font-sans">
+                        <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-300 font-bold">
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-sky-200 border border-sky-400"></span>
-                            <span>Vessel Plan</span>
+                            <span>เรือ Plan</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-[#17538F] border border-blue-400"></span>
-                            <span>Vessel Actual</span>
+                            <span>เรือ Actual</span>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded bg-amber-200 border border-amber-400"></span>
+                            <span>เครน Plan</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-teal-600 border border-teal-400"></span>
-                            <span>Ship Crane</span>
+                            <span>เครน Actual</span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded bg-purple-600 border border-purple-400"></span>
@@ -9566,11 +9951,11 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setShowVesselModal(true)}
-                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm cursor-pointer font-sans"
-                          title="Manage schedule, vessel berthing, cranes and PM/CM maintenance"
+                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                          title="คลิกเพื่อเปิดหน้าต่างจัดการเพิ่มหรือแก้ไขตารางเรือ เครน และงานซ่อมบำรุง PM/CM"
                         >
                           <Plus className="w-3 h-3" />
-                          <span>Schedule / PM / CM</span>
+                          <span>จัดการตารางงาน / PM / CM</span>
                         </button>
                       </div>
                     </div>
@@ -9579,8 +9964,8 @@ export default function App() {
                       { 
                         type: "vessel", 
                         planType: "plan", 
-                        title: "Vessel Schedule", 
-                        sub: "Berth Plan", 
+                        title: "แผนเรือเทียบท่า", 
+                        sub: "Vessel Schedule", 
                         tag: "PLAN", 
                         tagColor: "bg-sky-100 text-sky-800 border-sky-300", 
                         icon: Ship,
@@ -9589,8 +9974,8 @@ export default function App() {
                       { 
                         type: "vessel", 
                         planType: "actual", 
-                        title: "Berth Actual", 
-                        sub: "Actual Operation", 
+                        title: "เรือเข้าเทียบจริง", 
+                        sub: "Berth Actual", 
                         tag: "ACTUAL", 
                         tagColor: "bg-blue-600 text-white border-blue-700", 
                         icon: Ship,
@@ -9598,10 +9983,20 @@ export default function App() {
                       },
                       { 
                         type: "crane", 
-                        planType: "all", 
-                        title: "Ship Crane", 
-                        sub: "Quayside Crane", 
-                        tag: "CRANE", 
+                        planType: "plan", 
+                        title: "แผนงานเครน", 
+                        sub: "Ship Crane Plan", 
+                        tag: "PLAN", 
+                        tagColor: "bg-amber-100 text-amber-800 border-amber-300", 
+                        icon: Anchor,
+                        barBg: "bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-dashed border-amber-400 text-amber-950 shadow-xs"
+                      },
+                      { 
+                        type: "crane", 
+                        planType: "actual", 
+                        title: "เครนทำงานจริง", 
+                        sub: "Crane Actual", 
+                        tag: "ACTUAL", 
                         tagColor: "bg-teal-700 text-white border-teal-800", 
                         icon: Anchor,
                         barBg: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white shadow-sm font-extrabold"
@@ -9656,7 +10051,7 @@ export default function App() {
                         <div className="w-56 flex-shrink-0 border-r border-slate-200 bg-slate-50/90 flex items-center justify-between px-3 py-2 sticky left-0 z-10 shadow-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
-                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-teal-100 text-teal-800"
+                              row.type === "vessel" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
                             }`}>
                               <row.icon className="w-3.5 h-3.5" />
                             </div>
@@ -9699,7 +10094,9 @@ export default function App() {
                                 return {
                                   icon: Anchor,
                                   typeLabel: "CRANE",
-                                  bgClass: "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white font-extrabold shadow-sm"
+                                  bgClass: planType === "actual"
+                                    ? "bg-gradient-to-r from-teal-700 to-emerald-600 border border-teal-400 text-white font-extrabold shadow-sm"
+                                    : "bg-gradient-to-r from-amber-50 to-amber-100 border-2 border-dashed border-amber-400 text-amber-950 shadow-xs"
                                 };
                               }
                               return {
@@ -9711,13 +10108,15 @@ export default function App() {
                               };
                             };
 
-                            const activeVesselList = vesselSchedules.filter((v) => {
-                              if (dateStr < v.startDate || dateStr > v.endDate) return false;
-                              if (row.type === "crane") {
-                                return v.type === "crane";
-                              }
-                              return (v.type === "vessel" || v.type === "pm" || v.type === "cm") && v.planType === row.planType;
-                            });
+                            const activeVesselList = vesselSchedules.filter(
+                              (v) =>
+                                (row.type === "vessel"
+                                  ? (v.type === "vessel" || v.type === "pm" || v.type === "cm")
+                                  : v.type === row.type) &&
+                                v.planType === row.planType &&
+                                dateStr >= v.startDate &&
+                                dateStr <= v.endDate
+                            );
 
                             if (activeVesselList.length === 1) {
                               const activeVS = activeVesselList[0];
@@ -9741,7 +10140,7 @@ export default function App() {
                                     className={`w-full h-7 flex items-center justify-center relative select-none transition-all ${
                                       isStart ? "rounded-l-md ml-0.5" : ""
                                     } ${isEnd ? "rounded-r-md mr-0.5" : ""} ${style.bgClass}`}
-                                    title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} - ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} Tons` : ""}`}
+                                    title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})${ton > 0 ? ` • ${ton.toLocaleString()} ตัน` : ""}`}
                                   >
                                     {isStart && (
                                       <div className="absolute left-2 flex items-center gap-1.5 z-10 pointer-events-none whitespace-nowrap">
@@ -9751,7 +10150,7 @@ export default function App() {
                                         </span>
                                         {ton > 0 && (
                                           <span className="text-[8.5px] font-mono font-bold px-1 py-0.2 rounded bg-black/20 text-white/90">
-                                            {(ton / 1000).toFixed(1)}k Tons
+                                            {(ton / 1000).toFixed(1)}k ตัน
                                           </span>
                                         )}
                                       </div>
@@ -9782,7 +10181,7 @@ export default function App() {
                                         className={`w-full h-3 flex items-center relative select-none transition-all ${
                                           isStart ? "rounded-l-sm ml-0.5" : ""
                                         } ${isEnd ? "rounded-r-sm mr-0.5" : ""} ${style.bgClass}`}
-                                        title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} - ${activeVS.endDate})`}
+                                        title={`[${style.typeLabel}] ${activeVS.name} (${activeVS.startDate} ถึง ${activeVS.endDate})`}
                                       >
                                         {isStart && (
                                           <div className="absolute left-1 flex items-center gap-1 z-10 pointer-events-none whitespace-nowrap">
@@ -9821,7 +10220,7 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
                                 <CheckCircle2 className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">Plan Accuracy</span>
+                              <span className="font-extrabold text-slate-700">กะตรงตามแผน (Plan Accuracy)</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-20 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
@@ -9837,10 +10236,10 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
                                 <Clock className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">Total OT Hours</span>
+                              <span className="font-extrabold text-slate-700">ชั่วโมง OT สะสมรวมแผนก</span>
                             </div>
                             <span className="bg-blue-50 text-blue-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-blue-200 shadow-2xs">
-                              {totalDeptOt} hrs
+                              {totalDeptOt} ชม.
                             </span>
                           </div>
                         )}
@@ -9850,16 +10249,24 @@ export default function App() {
                               <div className="w-5 h-5 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
                                 <Users className="w-3 h-3" />
                               </div>
-                              <span className="font-extrabold text-slate-700">Operational Staff</span>
+                              <span className="font-extrabold text-slate-700">กำลังพลทำงานเฉลี่ย (Avg Staff)</span>
                             </div>
+                            <span className="bg-indigo-50 text-indigo-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-indigo-200 shadow-2xs">
+                              {avgWorkersPerDay} คน/วัน
+                            </span>
+                          </div>
+                        )}
+                        {rIdx === 3 && (
+                          <div className="flex-shrink-0 border-l border-slate-300 w-[368px] bg-white flex items-center justify-between px-3.5 py-1.5 text-[10px] font-sans border-b border-slate-200">
                             <div className="flex items-center gap-2">
-                              <span className="bg-indigo-50 text-indigo-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-indigo-200 shadow-2xs" title="Average Workers Per Day">
-                                Avg {avgWorkersPerDay} / day
-                              </span>
-                              <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs" title="Total Department Active Staff">
-                                Total {totalActiveStaff}
-                              </span>
+                              <div className="w-5 h-5 rounded bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+                                <UserCheck className="w-3 h-3" />
+                              </div>
+                              <span className="font-extrabold text-slate-700">จำนวนกำลังพลปฏิบัติการ</span>
                             </div>
+                            <span className="bg-amber-50 text-amber-900 px-2.5 py-0.5 rounded-lg font-mono font-black text-[11px] border border-amber-200 shadow-2xs">
+                              {totalActiveStaff} คน
+                            </span>
                           </div>
                         )}
                       </div>
@@ -9983,12 +10390,23 @@ export default function App() {
                                 return (
                                   <div key={emp.id} className="flex w-full min-w-fit hover:bg-blue-50/40 transition-colors group">
                                      {/* Employee ID & Name head */}
-                                     <div onClick={(e) => { e.stopPropagation(); openModalForEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2.5 px-3 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินบันทึกกะ 24H สำหรับพนักงานคนนี้">
-                                      <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7" />
+                                     <div onClick={(e) => { e.stopPropagation(); setCalendarModalEmployee(emp); }} className="w-56 flex-shrink-0 border-r border-slate-200 bg-white group-hover:bg-[#f1f6fe] flex items-center gap-2 px-2.5 py-1.5 sticky left-0 z-10 shadow-sm cursor-pointer" title="คลิกเพื่อเปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)">
+                                      <EmployeeAvatar empId={emp.id} empName={emp.name} className="w-7 h-7 shrink-0" />
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1 flex-wrap">
-                                          <p className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={emp.name}>{emp.name}</p>
-                                          
+                                        <div className="flex items-center justify-between gap-1">
+                                          <p className="text-xs font-bold text-slate-800 truncate max-w-[95px]" title={emp.name}>{emp.name}</p>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setCalendarModalEmployee(emp);
+                                            }}
+                                            className="px-1.5 py-0.5 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded text-[10px] font-black transition-all shrink-0 flex items-center gap-1 cursor-pointer shadow-2xs"
+                                            title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
+                                          >
+                                            <Calendar className="w-3 h-3 text-[#17538F]" />
+                                            <span>ตั้งกะ</span>
+                                          </button>
                                         </div>
                                         <p className="text-[9px] text-slate-400 font-mono font-semibold">{emp.id}</p>
                                       </div>
@@ -10537,25 +10955,7 @@ export default function App() {
             </div>
           )}
 
-          {/* ======================================= */}
-          {/* VIEW: HR DIRECT DATA EDITOR */}
-          {/* ======================================= */}
-          {activeTab === "hr-editor" && (
-            <HrDirectEditorView 
-              currentUser={currentUser} 
-              state={state}
-              jobValueRecords={jobValueRecords}
-              setJobValueRecords={setJobValueRecords}
-              fetchJobValueRecords={fetchJobValueRecords}
-              onOpenEmployeeDetails={(emp) => setViewingEmployeeDetails(emp)}
-              onOpenSalaryFormulaEmployee={(params) => setViewingSalaryFormulaEmployee(params)}
-              onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
-              onExportCsv={handleExportJobValueCsv}
-              onImportCsv={handleImportJobValueCsv}
-              onClearD1Data={handleClearJobValueData}
-              importLoading={importJvLoading}
-            />
-          )}
+
 
           {/* ======================================= */}
           {/* VIEW: OT RECORDS FROM SHIFTS */}
@@ -10578,219 +10978,38 @@ export default function App() {
           )}
 
           {/* ======================================= */}
+          {/* VIEW: DATA LINEAGE HUB                  */}
+          {/* ======================================= */}
+          {activeTab === "lineage" && (
+            <DataLineageHubView
+              state={state}
+              onReconcileAll={(updatedState) => setState(updatedState)}
+              restrictToJvOnly={restrictToJvOnly}
+              onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+            />
+          )}
+
+          {/* ======================================= */}
           {/* VIEW: SETTINGS */}
           {/* ======================================= */}
           {activeTab === "settings" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
               {/* Header card */}
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 className="text-base sm:text-lg font-extrabold text-slate-800">การตั้งค่ากฎเกณฑ์และการวิเคราะห์ของระบบ</h3>
-                <p className="text-xs text-slate-500 mt-1">กำหนดเป้าหมาย ขีดจำกัดชั่วโมงโอทีความปลอดภัย และนโยบายการจัดตารางกะ</p>
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#DCE4EA] shadow-2xs">
+                <h3 className="text-base sm:text-lg font-extrabold text-[#0E3A66]">การตั้งค่านโยบายวันหยุด เครือข่ายข้อมูล และฐานข้อมูลระบบ</h3>
+                <p className="text-xs text-[#475569] mt-1">จัดการผังความเชื่อมโยงเครือข่ายข้อมูลทั้ง 7 โมดูล, โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value, วันหยุดตามประเพณี และนโยบายวันหยุดรายแผนก</p>
               </div>
 
-              {/* Grid configs */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                
-                {/* Labor laws parameters limits */}
-                <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">กฎหมายแรงงานไทยและพารามิเตอร์ความปลอดภัย</h4>
-                    <p className="text-xs text-slate-500">กำหนดขีดจำกัดสูงสุดเพื่อให้สอดคล้องกับกฎหมายและสุขภาพของพนักงาน</p>
-                  </div>
+              {/* Interactive Data Network & Lineage Configuration Hub + JV-Only Toggle */}
+              <DataLineageHubView
+                state={state}
+                onReconcileAll={(updatedState) => setState(updatedState)}
+                restrictToJvOnly={restrictToJvOnly}
+                onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+              />
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ชั่วโมง OT สูงสุดต่อเดือนของรายบุคคล</label>
-                      <input 
-                        type="number" 
-                        defaultValue={48}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ขีดจำกัดชั่วโมงทำงานล่วงเวลารายสัปดาห์ (กฎหมายแรงงานไทยจำกัดไม่เกิน 36 ชม./สัปดาห์)</label>
-                      <input 
-                        type="number" 
-                        defaultValue={36}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ระยะเวลาพักผ่อนขั้นต่ำหลังปฏิบัติหน้าที่กะกลางคืน (ชั่วโมง)</label>
-                      <input 
-                        type="number" 
-                        defaultValue={12}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                      />
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={() => alert("บันทึกการตั้งค่าขีดจำกัดความปลอดภัยสำเร็จแล้ว!")}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
-                  >
-                    บันทึกพารามิเตอร์ระบบ
-                  </button>
-                </div>
-
-                {/* Automation / Gemini settings */}
-                <div className="bg-white border border-[#DCE4EA] rounded p-5 space-y-6">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">การรวมกำลังพลระบบ AI และการวิเคราะห์อัจฉริยะ</h4>
-                    <p className="text-xs text-slate-500">ควบคุมและประเมินระดับการทำรายงานอัจฉริยะ (Gemini Live Audit)</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                      <div>
-                        <h5 className="text-xs font-bold text-slate-800">เปิดระบบตรวจหาโอทีทับซ้อนอัตโนมัติ</h5>
-                        <p className="text-[10px] text-slate-500 mt-0.5">ระบบจะตรวจสอบสิทธิและกำลังพลอัตโนมัติเมื่อจัดตาราง</p>
-                      </div>
-                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20" />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                      <div>
-                        <h5 className="text-xs font-bold text-slate-800">แจ้งเตือนงบประมาณจำกัดระดับ 90%</h5>
-                        <p className="text-[10px] text-slate-500 mt-0.5">ส่งคำเตือนเมื่อกำลังพลใช้โควตางบประมาณใกล้เคียงกำหนดสูงสุด</p>
-                      </div>
-                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20" />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-                      <div>
-                        <h5 className="text-xs font-bold text-slate-800">เปิดระบบประเมินโดยโมเดล Gemini 3.5 Flash</h5>
-                        <p className="text-[10px] text-slate-500 mt-0.5">สร้างคำแนะนำอัจฉริยะสำหรับการสลับกะตารางพนักงาน</p>
-                      </div>
-                      <input type="checkbox" defaultChecked className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20" />
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={() => alert("ปรับปรุงระบบสืบค้น AI อัจฉริยะเรียบร้อยแล้ว!")}
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
-                  >
-                    ยืนยันตัวตนและการอัปเกรด
-                  </button>
-                </div>
-
-                {/* User & Permissions Management (Visible to Admin & HR) */}
-                <div className="col-span-1 md:col-span-2 bg-white border border-slate-200 rounded p-6 shadow-sm space-y-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Users & Permissions)</h4>
-                      <p className="text-xs text-slate-500">ปรับเปลี่ยนสิทธิ์ความรับผิดชอบของหัวหน้างาน หรือรีเซ็ตรหัสผ่านของพนักงานอื่น</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddAccountModal(true)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100 divide-y divide-slate-100">
-                    <table className="w-full text-left text-xs text-slate-600">
-                      <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
-                        <tr>
-                          <th className="p-4">ผู้ใช้งาน (Username)</th>
-                          <th className="p-4">บทบาทสิทธิ์ (Role)</th>
-                          <th className="p-4">แผนกที่รับผิดชอบ</th>
-                          <th className="p-4 text-center">จัดการการทำงาน</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#DCE4EA]">
-                        {accounts.map((acc) => (
-                          <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="p-4 flex items-center gap-3">
-                              <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
-                              <div>
-                                <div className="font-bold text-slate-800">{acc.name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <select 
-                                value={
-                                  ["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)
-                                    ? "Admin"
-                                    : ["Co-admin", "Co-Admin", "co_admin", "ผู้ช่วยดูแลระบบ"].includes(acc.role)
-                                    ? "Co-admin"
-                                    : "User"
-                                }
-                                onChange={(e) => {
-                                  const nextRole = e.target.value;
-                                  const nextDept = nextRole === "Admin" ? "all" : acc.deptId;
-                                  handleUpdateAccountPermission(acc.username, nextRole, nextDept);
-                                }}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-bold"
-                              >
-                                <option value="Admin">Admin</option>
-                                <option value="Co-admin">Co-admin</option>
-                                <option value="User">User</option>
-                              </select>
-                            </td>
-                            <td className="p-4">
-                              <select
-                                disabled={["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)}
-                                value={acc.deptId}
-                                onChange={(e) => {
-                                  handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
-                                }}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
-                              >
-                                <option value="all">ทุกแผนก (All)</option>
-                                {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                              </select>
-                            </td>
-                            <td className="p-4 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditAccountOriginalUsername(acc.username);
-                                    setEditAccountUsername(acc.username);
-                                    setEditAccountName(acc.name);
-                                    setEditAccountRole(acc.role);
-                                    setEditAccountDeptId(acc.deptId);
-                                    setEditAccountAvatar(acc.avatar || "");
-                                    setEditAccountCanBackup(acc.canBackup === 1);
-                                    setShowEditAccountModal(true);
-                                  }}
-                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer flex items-center gap-1"
-                                >
-                                  <Edit2 className="w-3 h-3 text-amber-600" />
-                                  <span>แก้ไขข้อมูล</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setResetTargetUsername(acc.username);
-                                    setNewResetPassword("");
-                                    setShowResetPasswordModal(true);
-                                  }}
-                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer flex items-center gap-1"
-                                >
-                                  <Key className="w-3 h-3 text-blue-600" />
-                                  <span>รีเซ็ตรหัสผ่าน</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteAccount(acc.username)}
-                                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-[10px] font-bold text-red-600 transition-all cursor-pointer flex items-center gap-1"
-                                >
-                                  <Trash2 className="w-3 h-3 text-red-600" />
-                                  <span>ลบ</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+              {/* Settings Cards */}
+              <div className="space-y-6">
 
                 {/* ===================================================================== */}
                 {/* Milestone 4: Company Traditional Holidays Configuration System (F4.1)  */}
@@ -10987,7 +11206,7 @@ export default function App() {
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                   <div className="col-span-1 md:col-span-2 bg-red-50/50 border border-red-200 rounded p-6 shadow-sm space-y-4">
                     <div>
-                      <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูล (Database Administration)</h4>
+                      <h4 className="text-sm font-bold text-red-800">การจัดการฐานข้อมูลระบบ</h4>
                       <p className="text-xs text-red-600">ล้างข้อมูลพนักงานและ OT records เพื่อเตรียมตัวเริ่มใช้งานระบบจริงในบริษัทของคุณ</p>
                     </div>
                     <button 
@@ -11008,30 +11227,75 @@ export default function App() {
           {/* ======================================= */}
           {activeTab === "admin-permissions" && (
             <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#DCE4EA] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">ระบบการจัดการบัญชีและสิทธิ์ผู้สวมบทบาท (Admin Permissions)</h3>
-                  <p className="text-xs text-slate-500 mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
+                  <h3 className="text-base sm:text-lg font-extrabold text-[#0E3A66]">ระบบจัดการบัญชีและสิทธิการเข้าถึง</h3>
+                  <p className="text-xs text-[#475569] mt-1">ปรับเปลี่ยนสิทธิ์การเข้าถึง กำหนดแผนกที่รับผิดชอบ โหมดแสดงผลเฉพาะหน้า Job Value หรือรีเซ็ตรหัสผ่านผู้ใช้งานในระบบ</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <button
                     type="button"
+                    onClick={() => setActiveTab("settings")}
+                    className="px-3.5 sm:px-4 py-2.5 bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[#0E3A66] border border-[#DCE4EA] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
+                  >
+                    <Layers className="w-4 h-4 text-[#0E3A66]" />
+                    <span>ผังเครือข่ายข้อมูล (Data Network Hub)</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setIsCsvTemplateHubOpen(true)}
-                    className="px-3.5 sm:px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
+                    className="px-3.5 sm:px-4 py-2.5 bg-[#F8FAFC] hover:bg-[#E2E8F0] text-[#0E3A66] border border-[#DCE4EA] rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
                     title="ศูนย์ดาวน์โหลดแม่แบบไฟล์ CSV สำหรับทุกเมนู"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-[#0E3A66]" />
                     <span>ศูนย์ดาวน์โหลดแม่แบบ CSV</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAddAccountModal(true)}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer min-h-[40px]"
+                    className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
                   >
                     <Plus className="w-4 h-4" />
                     <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
                   </button>
                 </div>
+              </div>
+
+              {/* JV-Only Access Mode Control Banner */}
+              <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
+                    <h4 className="text-sm font-bold text-[#0E3A66]">
+                      โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value (ให้ทุกคนยกเว้น HR &amp; Admin เห็นแค่ JV)
+                    </h4>
+                    <span
+                      className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                        restrictToJvOnly
+                          ? "bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE]"
+                          : "bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]"
+                      }`}
+                    >
+                      {restrictToJvOnly ? "เปิดใช้งาน (ACTIVE)" : "ปิดใช้งาน (OPEN ALL)"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#475569]">
+                    เมื่อเปิดโหมดนี้ ผู้ใช้ทั่วไปและหัวหน้าแผนกทุกคน (ยกเว้น <b>HR</b> และ <b>Admin</b>) จะเข้าถึงได้เฉพาะหัวข้อ{" "}
+                    <b>04 โครงสร้าง Job Value</b> เท่านั้น ส่วนเมนูอื่น (01, 02, 03, 05, 06, 07, 08) จะแสดงสีจางพร้อมป้าย{" "}
+                    <span className="font-mono font-bold text-[#0F172A]">Coming Soon</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleRestrictToJvOnly(!restrictToJvOnly)}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shrink-0 ${
+                    restrictToJvOnly
+                      ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
+                      : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
+                  }`}
+                >
+                  {restrictToJvOnly ? "เปิดใช้งานอยู่ (คลิกเพื่อปลดล็อกทุกเมนู)" : "ปิดอยู่ (คลิกเพื่อจำกัดเฉพาะหน้า JV)"}
+                </button>
               </div>
 
               <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
@@ -11143,7 +11407,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-slate-800">จัดการข้อมูลโปรไฟล์ส่วนตัว</h3>
-                  <p className="text-xs text-slate-500 mt-1">อัปเดตชื่อแสดงผล ลิงก์รูปภาพโปรไฟล์ และเปลี่ยนรหัสผ่านเพื่อความปลอดภัย</p>
+                  <p className="text-xs text-slate-500 mt-1">อัปเดตชื่อแสดงผล รูปภาพโปรไฟล์ และเปลี่ยนรหัสผ่านเพื่อความปลอดภัย</p>
                 </div>
               </div>
 
@@ -11161,6 +11425,39 @@ export default function App() {
                         (e.target as HTMLImageElement).src = "https://lh3.googleusercontent.com/aida-public/AB6AXuAf5UhzQFkBl2tAqPIfYe5tF5JObtrReGu_lohxjpxav5OEjcmmCJhPclOvd2pYN5Q63ircrUY62HYEtYICs05VEFPgL0t4CQSbr1dUS_veJddqwvCz2hrMENO5DyK5fUo9Lx_K8EQj_RXIf9a91CYGwMUZftntpoCZ5n7RUAnxYNIsXz71ttH1VvWFLTpEggMdONt3b-WOccq3oi4S33bsL6DAyTg_90K2vzyRwxDzf3Isscur4MrcuQ";
                       }}
                     />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>อัปโหลดรูปภาพ</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === "string") {
+                                setProfileAvatar(reader.result);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }} 
+                      />
+                    </label>
+                    {profileAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setProfileAvatar("")}
+                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                        title="ลบรูปภาพ"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <div>
                     <h4 className="text-base font-extrabold text-slate-800">{currentUser?.name}</h4>
@@ -11187,27 +11484,15 @@ export default function App() {
                 {/* Right card: Form editor */}
                 <div className="lg:col-span-2 bg-white border border-slate-200 rounded p-5 sm:p-6 shadow-sm">
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล ที่แสดง</label>
-                        <input 
-                          type="text"
-                          required
-                          value={profileName}
-                          onChange={(e) => setProfileName(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                        <input 
-                          type="text"
-                          required
-                          value={profileAvatar}
-                          onChange={(e) => setProfileAvatar(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล ที่แสดง</label>
+                      <input 
+                        type="text"
+                        required
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
@@ -11281,8 +11566,8 @@ export default function App() {
                   <Ship className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold font-sans">Vessel, Ship Crane & Maintenance Schedule (PM / CM)</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5 font-sans">Department: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
+                  <h3 className="text-base font-extrabold font-sans">แผนงานเทียบเรือและงานบำรุงรักษาอุปกรณ์</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-sans">แผนก: {(state?.departments.find(d => d.id === currentShiftsDept)?.nameTh || currentShiftsDept).toUpperCase()}</p>
                 </div>
               </div>
               <button 
@@ -11298,14 +11583,14 @@ export default function App() {
               
               {/* Form to add new schedule */}
               <form onSubmit={handleSaveVesselSchedule} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                  Add Vessel / Ship Crane / Maintenance (PM/CM)
+                  เพิ่มรายการเข้าเทียบเรือ / เครน / งานบำรุงรักษา (PM/CM)
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ประเภท</label>
                     <select
                       value={newVesselType}
                       onChange={(e) => {
@@ -11313,43 +11598,35 @@ export default function App() {
                         setNewVesselType(val);
                         if (val === "pm") setNewVesselColor("#c084fc");
                         else if (val === "cm") setNewVesselColor("#f43f5e");
-                        else if (val === "crane") setNewVesselColor("#0d9488");
+                        else if (val === "crane") setNewVesselColor("#99f6e4");
                         else setNewVesselColor("#fef08a");
                       }}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
                     >
-                      <option value="vessel">Vessel</option>
-                      <option value="crane">Ship Crane</option>
-                      <option value="pm">Preventive Maintenance (PM)</option>
-                      <option value="cm">Corrective Maintenance (CM)</option>
+                      <option value="vessel">ตารางเรือ Vessel</option>
+                      <option value="crane">Ship crane</option>
+                      <option value="pm">งานบำรุงรักษา PM (Preventive Maintenance)</option>
+                      <option value="cm">งานซ่อมบำรุง CM (Corrective Maintenance)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                      {newVesselType === "crane" ? "Operational Mode" : "Plan / Actual"}
-                    </label>
-                    {newVesselType === "crane" ? (
-                      <div className="w-full px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl text-xs font-black text-teal-800">
-                        Ship Crane (Direct Operation)
-                      </div>
-                    ) : (
-                      <select
-                        value={newVesselPlanType}
-                        onChange={(e) => setNewVesselPlanType(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-                      >
-                        <option value="plan">Plan</option>
-                        <option value="actual">Actual</option>
-                      </select>
-                    )}
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แผนงาน / ทำงานจริง</label>
+                    <select
+                      value={newVesselPlanType}
+                      onChange={(e) => setNewVesselPlanType(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="plan">Plan</option>
+                      <option value="actual">Actual</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                      {newVesselType === "vessel" ? "Vessel Name" : newVesselType === "crane" ? "Ship Crane / Task Details" : newVesselType === "pm" ? "PM Maintenance Task" : "CM Maintenance Task"}
+                      {newVesselType === "vessel" ? "ชื่อเรือสินค้า" : newVesselType === "crane" ? "ชื่อเครน / รายละเอียดงาน" : newVesselType === "pm" ? "ชื่องานบำรุงรักษา PM" : "ชื่องานซ่อมบำรุง CM"}
                     </label>
                     <input
                       type="text"
@@ -11358,25 +11635,25 @@ export default function App() {
                       onChange={(e) => setNewVesselName(e.target.value)}
                       placeholder={
                         newVesselType === "vessel"
-                          ? "e.g. MV Golden Friend"
+                          ? "เช่น MV Golden Friend"
                           : newVesselType === "crane"
-                          ? "e.g. Ship Crane 1 - Berth A"
+                          ? "เช่น ตรวจสอบสายพานเครน 1"
                           : newVesselType === "pm"
-                          ? "e.g. Routine Inspection PM"
-                          : "e.g. Motor Urgent Replacement CM"
+                          ? "เช่น แผนงาน PM ตรวจสภาพประจำรอบ"
+                          : "เช่น งานซ่อม CM เปลี่ยนมอเตอร์เร่งด่วน"
                       }
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                      {newVesselType === "vessel" || newVesselType === "crane" ? "Cargo Volume (Tons)" : "Volume / Qty (Optional)"}
+                      {newVesselType === "vessel" || newVesselType === "crane" ? "ปริมาณงาน (ตัน / Tons)" : "ปริมาณงาน / ชิ้น (ถ้ามี)"}
                     </label>
                     <input
                       type="number"
                       value={newVesselTonnage}
                       onChange={(e) => setNewVesselTonnage(e.target.value)}
-                      placeholder="e.g. 15000"
+                      placeholder="เช่น 15000"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                     />
                   </div>
@@ -11384,7 +11661,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Start Date</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่เริ่ม</label>
                     <input
                       type="date"
                       required
@@ -11395,7 +11672,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">End Date</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่สิ้นสุด</label>
                     <input
                       type="date"
                       required
@@ -11408,14 +11685,17 @@ export default function App() {
 
                 <div className="flex items-center justify-between pt-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Display Color</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">แถบสีการแสดงผล</label>
                     <div className="flex items-center gap-2">
                       {[
-                        { hex: "#fef08a", label: "Yellow (Vessel Plan)" },
-                        { hex: "#bfdbfe", label: "Blue (Vessel Actual)" },
-                        { hex: "#0d9488", label: "Teal (Ship Crane)" },
-                        { hex: "#c084fc", label: "Purple (PM)" },
-                        { hex: "#f43f5e", label: "Rose (CM)" }
+                        { hex: "#fef08a", label: "เหลือง (เรือ Plan)" },
+                        { hex: "#bfdbfe", label: "ฟ้า (เรือ Actual)" },
+                        { hex: "#fde68a", label: "เหลืองทอง (เครน Plan)" },
+                        { hex: "#99f6e4", label: "เขียวมิ้นท์ (เครน Actual)" },
+                        { hex: "#e9d5ff", label: "ม่วงอ่อน (PM Plan)" },
+                        { hex: "#c084fc", label: "ม่วงเข้ม (PM Actual)" },
+                        { hex: "#fecdd3", label: "ชมพูอ่อน (CM Plan)" },
+                        { hex: "#f43f5e", label: "แดงกุหลาบ (CM Actual)" }
                       ].map((c) => (
                         <button
                           key={c.hex}
@@ -11433,21 +11713,21 @@ export default function App() {
                     type="submit"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors shadow-md shadow-amber-500/10 cursor-pointer"
                   >
-                    + Add to Schedule
+                    + เพิ่มในตาราง
                   </button>
                 </div>
               </form>
 
               {/* List of existing vessel schedules for current month/dept */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-                  Current Month Schedule ({vesselSchedules.length} Items)
+                  รายการตารางในเดือนนี้ ({vesselSchedules.length} รายการ)
                 </h4>
 
                 {vesselSchedules.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-sans">
-                    No vessel berthing, crane, or PM/CM maintenance items found for this department and month.
+                  <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+                    ไม่มีรายการเทียบเรือ การใช้เครน หรืองาน PM/CM ในแผนกและเดือนนี้
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
@@ -11464,12 +11744,12 @@ export default function App() {
                               {vs.tonnage > 0 && (
                                 <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[10px] font-extrabold font-mono flex items-center gap-1">
                                   <Package className="w-3 h-3 text-amber-600 inline" />
-                                  <span>{Number(vs.tonnage).toLocaleString()} Tons</span>
+                                  <span>{Number(vs.tonnage).toLocaleString()} ตัน</span>
                                 </span>
                               )}
                             </div>
                             <p className="text-[10px] text-slate-500 mt-0.5 font-sans">
-                              {vs.type === "vessel" ? `Vessel (${vs.planType?.toUpperCase() || "PLAN"})` : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? `PM (${vs.planType?.toUpperCase() || "PLAN"})` : `CM (${vs.planType?.toUpperCase() || "PLAN"})`} | {vs.startDate} to {vs.endDate}
+                              {vs.type === "vessel" ? "เรือ Vessel" : vs.type === "crane" ? "Ship Crane" : vs.type === "pm" ? "บำรุงรักษา PM" : "ซ่อมบำรุง CM"} ({vs.planType.toUpperCase()}) | {vs.startDate} ถึง {vs.endDate}
                             </p>
                           </div>
                         </div>
@@ -11478,7 +11758,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleDeleteVesselSchedule(vs.id)}
                           className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete item"
+                          title="ลบรายการ"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -11494,9 +11774,9 @@ export default function App() {
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowVesselModal(false)}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer font-sans"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
               >
-                Close
+                ปิดหน้าต่าง
               </button>
             </div>
 
@@ -11642,9 +11922,10 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      {(state?.roles && state.roles.length > 0 ? state.roles : MASTER_ROLES).map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
+                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
+                      <><option value="Operation Engineer">Operation Engineer</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
+                    )}
                     </select>
                   </div>
                   <div>
@@ -11654,9 +11935,7 @@ export default function App() {
                       onChange={(e) => setNewEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      {state?.departments?.filter(d => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK").map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
+                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -11967,9 +12246,10 @@ export default function App() {
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       required
                     >
-                      {(state?.roles && state.roles.length > 0 ? state.roles : MASTER_ROLES).map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
+                      {state?.roles ? state.roles.map(r => <option key={r} value={r}>{r}</option>) : (
+                      <><option value="Operation Engineer">Operation Engineer</option>
+                      <option value="พนักงานขับเครน">พนักงานขับเครน</option></>
+                    )}
                     </select>
                   </div>
                   <div>
@@ -11979,9 +12259,7 @@ export default function App() {
                       onChange={(e) => setEditEmpDept(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      {state?.departments?.filter(d => d.id !== "deck" && d.id !== "DECK" && (d.name || "").toUpperCase() !== "DECK").map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
+                      {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -12142,7 +12420,7 @@ export default function App() {
                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
                   <button
                     type="button"
-                    onClick={() => handleDeleteEmployee(editingEmployee.id)}
+                    onClick={() => editingEmployee && handleDeleteEmployee(editingEmployee)}
                     className="px-3.5 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 hover:text-red-700 transition-colors mr-auto"
                     title="ลบพนักงานออกจากระบบ"
                   >
@@ -12339,6 +12617,15 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => setCalendarModalEmployee(emp)}
+                    className="px-3 py-1.5 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    title="เปิดปฏิทินบริหารวันทำงานและกะรายบุคคล"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
+                    <span>บริหารวันทำงาน & จัดกะ</span>
+                  </button>
                   <button 
                     type="button"
                     onClick={() => setViewingEmployeeDetails(null)}
@@ -12766,7 +13053,7 @@ export default function App() {
                   <Sparkles className="w-5 h-5 animate-spin" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-indigo-950">รายงานวิเคราะห์และตรวจสอบความปลอดภัยอัจฉริยะ (Gemini Live Audit)</h3>
+                  <h3 className="text-sm font-extrabold text-indigo-950">รายงานตรวจสอบความปลอดภัยและกฎหมายแรงงาน</h3>
                   <p className="text-[11px] text-indigo-600">วิเคราะห์ตามกฎหมายแรงงานไทยจำกัดชั่วโมงโอทีพนักงาน</p>
                 </div>
               </div>
@@ -12831,12 +13118,35 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAddAccountSubmit} className="p-6 space-y-4">
-              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
-                <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
-                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
-                  <p className="text-[9px] text-slate-500">ระบบจะดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+              <div className="flex items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
+                    <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>อัปโหลดรูป</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => handleAvatarFileUpload(e, "add")} 
+                    />
+                  </label>
+                  {newAccountAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setNewAccountAvatar("")}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                      title="ลบรูปภาพ / ใช้ป้ายตัวย่อ"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -12876,17 +13186,6 @@ export default function App() {
                   placeholder="ป้อนชื่อและนามสกุลจริง"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                <input 
-                  type="text"
-                  value={newAccountAvatar}
-                  onChange={(e) => setNewAccountAvatar(e.target.value)}
-                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${newAccountUsername || "พนักงาน"} อัตโนมัติ`}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -12977,19 +13276,42 @@ export default function App() {
             </div>
 
             <form onSubmit={handleEditAccountSubmit} className="p-6 space-y-4">
-              <div className="flex items-center gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
-                <EmployeeAvatar empId={editAccountUsername} empName={editAccountName} avatarUrl={editAccountAvatar} className="w-12 h-12 flex-shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{editAccountName || "ชื่อพนักงาน"}</h4>
-                  <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {editAccountUsername || "-"}</p>
-                  <p className="text-[9px] text-slate-500">ระบบดึงรูปถ่ายพนักงานตรงตามรหัสให้อัตโนมัติ</p>
+              <div className="flex items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <EmployeeAvatar empId={editAccountUsername} empName={editAccountName} avatarUrl={editAccountAvatar} className="w-12 h-12 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">{editAccountName || "ชื่อพนักงาน"}</h4>
+                    <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {editAccountUsername || "-"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>อัปโหลดรูป</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => handleAvatarFileUpload(e, "edit")} 
+                    />
+                  </label>
+                  {editAccountAvatar && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAccountAvatar("")}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                      title="ลบรูปภาพ / ใช้ป้ายตัวย่อ"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={editAccountUsername}
                   onChange={(e) => {
                     setEditAccountUsername(e.target.value);
@@ -13004,23 +13326,12 @@ export default function App() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={editAccountName}
                   onChange={(e) => setEditAccountName(e.target.value)}
                   placeholder="ป้อนชื่อและนามสกุลจริง"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ลิงก์รูปภาพโปรไฟล์ (Avatar URL)</label>
-                <input 
-                  type="text"
-                  value={editAccountAvatar}
-                  onChange={(e) => setEditAccountAvatar(e.target.value)}
-                  placeholder={`หากเว้นว่าง ระบบจะดึงรูปจากรหัส ${editAccountUsername || "พนักงาน"} อัตโนมัติ`}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -13149,7 +13460,7 @@ export default function App() {
               <div className="flex items-center gap-2.5">
                 <Zap className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม (Bulk Shift Setter)</h3>
+                  <h3 className="text-sm font-extrabold">กำหนดกะงานแบบกลุ่ม</h3>
                   <p className="text-[10px] text-indigo-300">กำหนดกะงานให้พนักงานทั้งกลุ่มพร้อมกันในคลิกเดียว</p>
                 </div>
               </div>
@@ -13230,7 +13541,7 @@ export default function App() {
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">รายการใบคำขอทำล่วงเวลา (OT Request & Approval Pipeline)</h3>
+                  <h3 className="text-base font-extrabold">รายการคำขออนุมัติทำงานล่วงเวลา</h3>
                   <p className="text-[10px] text-slate-400">ยื่นขอทำ OT และอนุมัติใบคำขอออนไลน์ก่อนการปฏิบัติงานจริง</p>
                 </div>
               </div>
@@ -13408,15 +13719,15 @@ export default function App() {
               {/* Monthly Breakdown Table */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
                 <div className="p-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-slate-800">ตารางรายได้-ต้นทุน-กำไร รายเดือน 12 เดือน (Jan - Dec)</h4>
+                  <h4 className="text-xs font-bold text-slate-800">ตารางรายได้ ต้นทุน และกำไรรายเดือน</h4>
                 </div>
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-white border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase">
                       <th className="px-3 py-2">เดือน</th>
-                      <th className="px-3 py-2 text-right text-emerald-700">Revenue (รายได้)</th>
-                      <th className="px-3 py-2 text-right text-rose-700">Cost (ต้นทุน)</th>
-                      <th className="px-3 py-2 text-right text-blue-700">Profit (กำไร)</th>
+                      <th className="px-3 py-2 text-right text-emerald-700">รายได้</th>
+                      <th className="px-3 py-2 text-right text-rose-700">ต้นทุน</th>
+                      <th className="px-3 py-2 text-right text-blue-700">กำไร</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#DCE4EA]/60 font-mono">
@@ -13587,6 +13898,65 @@ export default function App() {
           </div>
         );
       })()}
+
+      <EmployeeShiftCalendarModal
+        isOpen={Boolean(calendarModalEmployee)}
+        onClose={() => setCalendarModalEmployee(null)}
+        employee={calendarModalEmployee}
+        employees={isEditingShifts ? tempEmployees : (state?.employees || [])}
+        onSelectEmployee={(emp) => setCalendarModalEmployee(emp)}
+        currentYear={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[0]) || 2026}
+        currentMonth={Number((state?.shiftConfig?.currentMonth || "2026-11").split("-")[1]) || 11}
+        onSaveEmployeeShifts={async (empId, year, month, shifts) => {
+          const mKey = `${year}-${String(month).padStart(2, "0")}`;
+          setState((prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              employees: (prev.employees || []).map((e: Employee) => {
+                if (e.id === empId) {
+                  let existingShiftsRaw: any = e.shifts;
+                  let nextShifts: any;
+                  if (Array.isArray(existingShiftsRaw)) {
+                    nextShifts = shifts;
+                  } else if (existingShiftsRaw && typeof existingShiftsRaw === "object") {
+                    nextShifts = { ...existingShiftsRaw, [mKey]: shifts };
+                  } else {
+                    nextShifts = shifts;
+                  }
+                  return { ...e, shifts: nextShifts };
+                }
+                return e;
+              })
+            };
+          });
+          setTempEmployees((prev: Employee[]) => prev.map((e: Employee) => {
+            if (e.id === empId) {
+              return { ...e, shifts };
+            }
+            return e;
+          }));
+
+          const targetEmp = (state?.employees || []).find((e: Employee) => e.id === empId);
+          if (targetEmp) {
+            await fetch("/api/save-shifts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                year,
+                month,
+                employees: [
+                  {
+                    ...targetEmp,
+                    shifts
+                  }
+                ]
+              })
+            });
+            fetchPortalState(mKey);
+          }
+        }}
+      />
 
       {/* ======================================= */}
       <PremiumShiftTimePickerModal
@@ -13784,7 +14154,7 @@ export default function App() {
       {viewingSalaryFormulaEmployee && (() => {
         const modalMonthKey = state?.shiftConfig?.currentMonth || "2026-08";
         const modalAuditRows = getEmpDailyShiftAuditRows(viewingSalaryFormulaEmployee.emp, modalMonthKey);
-        const modalJvRecord = (safeJobValueRecords || []).find((r: any) => r.empId === viewingSalaryFormulaEmployee.emp.id);
+        const modalJvRecord = (safeJobValueRecords || []).find((r: any) => matchesEmpJv(r, viewingSalaryFormulaEmployee.emp));
         const modalJvBreakdown = getEmployeeJobValueBreakdown(viewingSalaryFormulaEmployee.emp, modalMonthKey, modalJvRecord);
         const modalSalary = Number(viewingSalaryFormulaEmployee.salary) || Number(viewingSalaryFormulaEmployee.emp.salary) || 15000;
         const modalHourlyRate = modalSalary > 0 ? (modalSalary / 240) : 62.5;
@@ -14305,7 +14675,7 @@ export default function App() {
                                 {/* Delete Button */}
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                  onClick={() => handleDeleteEmployee(emp)}
                                   className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                   title="ลบข้อมูลพนักงานถาวร"
                                 >
@@ -14445,6 +14815,152 @@ export default function App() {
         </div>
       )}
 
+      {/* Executive Maritime Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.employee && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-employee-modal-title"
+          >
+            {/* Maritime Blue Header */}
+            <div className="bg-[#0E3A66] px-6 py-4 flex items-center justify-between text-white border-b border-[#17538F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/30 flex items-center justify-center text-red-300">
+                  <ShieldAlert className="w-4 h-4 text-red-300" />
+                </div>
+                <div>
+                  <h3 id="delete-employee-modal-title" className="text-sm font-bold tracking-tight text-white">
+                    ยืนยันการลบข้อมูลพนักงานถาวร
+                  </h3>
+                  <p className="text-[11px] text-blue-200 font-medium">Permanent Record Deletion</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => setDeleteConfirmModal({ isOpen: false, employee: null })}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-blue-200 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Employee Summary Card */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-[#0E3A66]/10 border border-[#0E3A66]/20 flex items-center justify-center text-[#0E3A66] font-bold text-sm shrink-0">
+                  {deleteConfirmModal.employee.name ? deleteConfirmModal.employee.name.slice(0, 2) : "EM"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 text-sm truncate">
+                    {deleteConfirmModal.employee.name}
+                  </div>
+                  <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 font-mono">
+                    <span>ID: {deleteConfirmModal.employee.positionId || deleteConfirmModal.employee.id}</span>
+                    <span>•</span>
+                    <span className="font-sans font-medium text-slate-600">
+                      {deleteConfirmModal.employee.deptId} ({deleteConfirmModal.employee.role})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Danger Notice Box */}
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-red-800 leading-relaxed">
+                  <span className="font-bold">คำเตือน:</span> การดำเนินการนี้จะลบข้อมูลของพนักงานรายนี้ออกจากระบบ Cloudflare D1 ฐานข้อมูลกลาง ตารางกะทำงาน และประวัติ OT ทั้งหมดอย่างถาวร โดยไม่สามารถกู้คืนข้อมูลได้
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => setDeleteConfirmModal({ isOpen: false, employee: null })}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingEmployee}
+                onClick={() => executeDeleteEmployee(deleteConfirmModal.employee!)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#B3352C] hover:bg-red-700 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingEmployee ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังลบข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>ยืนยันลบข้อมูลถาวร</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Executive Maritime Alert / Feedback Modal */}
+      {portalAlertModal.isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+            role="alertdialog"
+          >
+            <div className={`p-5 flex items-start gap-3.5 ${
+              portalAlertModal.variant === "success"
+                ? "bg-emerald-50/50"
+                : portalAlertModal.variant === "error"
+                ? "bg-red-50/50"
+                : "bg-blue-50/50"
+            }`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                portalAlertModal.variant === "success"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : portalAlertModal.variant === "error"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}>
+                {portalAlertModal.variant === "success" ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : portalAlertModal.variant === "error" ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : (
+                  <Info className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                  {portalAlertModal.title}
+                </h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
+                  {portalAlertModal.message}
+                </p>
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPortalAlertModal({ isOpen: false, title: "", message: "", variant: "info" })}
+                className="px-4 py-1.5 bg-[#0E3A66] hover:bg-[#17538F] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Container */}
       <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-3 max-w-sm pointer-events-none">
         {toasts.map((t: any) => (
@@ -14475,6 +14991,7 @@ export default function App() {
           </div>
         ))}
       </div>
+
     </div>
   );
 }

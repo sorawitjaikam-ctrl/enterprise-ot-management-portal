@@ -27,34 +27,61 @@ import {
 } from "lucide-react";
 import { ManpowerPosition } from "../types";
 
-// Standard canonical categories for level classification
-const STANDARD_ROLE_CATEGORIES = [
-  { id: 'om_elec', label: 'O&M Electrical', level: 'staff' as const, patterns: [/o&m elec/i, /electrical/i, /ไฟฟ้า/i, /ช่างไฟ/i] },
-  { id: 'om_mech', label: 'O&M Mechanical', level: 'staff' as const, patterns: [/o&m mech/i, /mechanical/i, /เครื่องกล/i, /ช่างกล/i] },
-  { id: 'om_gen', label: 'O&M Generator', level: 'staff' as const, patterns: [/o&m gen/i, /generator/i, /เยนเนอเรเตอร์/i] },
-  { id: 'om_spec', label: 'O&M Specialist', level: 'staff' as const, patterns: [/o&m spec/i, /specialist/i, /ช่างทุ่น/i] },
-  { id: 'cargo_sup', label: 'ผู้ควบคุมงานขนถ่ายสินค้า', level: 'staff' as const, patterns: [/ขนถ่ายสินค้า/i, /ขนถ่าย/i, /cargo/i] },
-  { id: 'heavy_sup', label: 'ผู้ควบคุมงานจักรกลหนัก', level: 'staff' as const, patterns: [/ควบคุมงานจักรกล/i, /ควบคุมจักรกล/i, /คุมจักรกล/i, /heavy supervisor/i] },
-  { id: 'eng', label: 'Operation Engineer', level: 'eng' as const, patterns: [/operation engineer/i, /engineer/i, /วิศวกร/i] },
-  { id: 'heavy_op', label: 'พนักงานขับจักรกลหนัก', level: 'staff' as const, patterns: [/พนักงานขับจักรกล/i, /ช่างขับจักรกล/i, /ขับจักรกล/i, /heavy machine operator/i, /คนขับจักรกล/i] },
-  { id: 'crane', label: 'พนักงานขับเครน', level: 'staff' as const, patterns: [/พนักงานขับเครน$/i, /เครน$/i, /crane operator/i] },
-  { id: 'senior_crane', label: 'พนักงานขับเครน ชำนาญการ', level: 'staff' as const, patterns: [/เครน\s*ชำนาญการ/i, /senior crane/i] },
-  { id: 'deck', label: 'ปากเรือ', level: 'staff' as const, patterns: [/^ปากเรือ$/i, /ช่างปากเรือ$/i, /deck/i] },
-  { id: 'senior_deck', label: 'ปากเรือ ชำนาญการ', level: 'staff' as const, patterns: [/ปากเรือ\s*ชำนาญการ/i] },
-  { id: 'mgr', label: 'ผู้จัดการแผนก', level: 'mgr' as const, patterns: [/ผู้จัดการ/i, /manager/i, /incharge/i] }
-];
+// Standard canonical definitions per organizational specification
+export const STANDARD_UNITS = [
+  "INTER 2",
+  "INTER 3",
+  "INTER 5",
+  "INTER 7",
+  "Control Center",
+  "Improvemnet Engineering",
+  "Heavy Machine"
+] as const;
 
-// Helper: Categorize role into level
-function getRoleLevel(role: string, isMgr?: boolean, isEng?: boolean): 'mgr' | 'eng' | 'staff' {
+export const OC_TYPES = ["OLD", "NEW"] as const;
+
+export const MANPOWER_STATUSES = ["Active", "Resigned", "Vacant"] as const;
+
+export const STANDARD_LEVELS = [
+  "Worker - Worker",
+  "Worker - Skill",
+  "Staff",
+  "Officer",
+  "Engineer",
+  "Section Manager",
+  "Department Manager",
+  "Director"
+] as const;
+
+export type StandardLevel = typeof STANDARD_LEVELS[number];
+
+// Helper: Canonical Level resolver
+export function resolvePositionLevel(pos: Partial<ManpowerPosition>): StandardLevel {
+  if (pos.level && (STANDARD_LEVELS as readonly string[]).includes(pos.level)) {
+    return pos.level as StandardLevel;
+  }
+  const role = (pos.role || "").trim();
+  if (pos.isMgr) {
+    if (/director|ผู้อำนวยการ/i.test(role)) return "Director";
+    if (/department|ฝ่าย/i.test(role)) return "Department Manager";
+    return "Section Manager";
+  }
+  if (pos.isEng || /engineer|วิศวกร|วิศว/i.test(role)) return "Engineer";
+  if (/director|ผู้อำนวยการ/i.test(role)) return "Director";
+  if (/ผู้จัดการฝ่าย|department manager/i.test(role)) return "Department Manager";
+  if (/ผู้จัดการ|manager|incharge|incharged/i.test(role)) return "Section Manager";
+  if (/officer|เจ้าหน้าที่/i.test(role)) return "Officer";
+  if (/skill|ช่าง|specialist|ผู้ควบคุม/i.test(role)) return "Worker - Skill";
+  if (/worker|คนงาน|กรรมกร/i.test(role)) return "Worker - Worker";
+  return "Staff";
+}
+
+// Backward-compatible role level mapper
+export function getRoleLevel(role: string, isMgr?: boolean, isEng?: boolean): 'mgr' | 'eng' | 'staff' {
   if (isMgr) return 'mgr';
   if (isEng) return 'eng';
   const r = (role || '').trim();
-  for (const cat of STANDARD_ROLE_CATEGORIES) {
-    for (const pat of cat.patterns) {
-      if (pat.test(r)) return cat.level;
-    }
-  }
-  if (/ผู้จัดการ|manager|incharge|ฝ่ายปฏิบัติการ/i.test(r)) return 'mgr';
+  if (/director|ผู้อำนวยการ|ผู้จัดการ|manager|incharge|ฝ่ายปฏิบัติการ/i.test(r)) return 'mgr';
   if (/engineer|วิศวกร|วิศว/i.test(r)) return 'eng';
   return 'staff';
 }
@@ -109,15 +136,61 @@ function normalizeUnitToDeptId(unit?: string): string {
   if (clean.includes("inter3")) return "inter3";
   if (clean.includes("inter5")) return "inter5";
   if (clean.includes("inter7")) return "inter7";
-  if (clean.includes("heavy")) return "heavy";
+  if (clean.includes("control")) return "ecc";
   if (clean.includes("ecc")) return "ecc";
+  if (clean.includes("heavy")) return "heavy";
+  if (clean.includes("improve")) return "inter2";
   return clean;
+}
+
+function mapEmployeesToPositions(emps: any[]): ManpowerPosition[] {
+  return emps.map((emp, idx) => {
+    const isVacant = emp.employmentStatus === "Vacant" || emp.name === "Vacant" || !emp.name;
+    const posId = emp.positionId || `POS-${String(idx + 1).padStart(3, '0')}`;
+    return {
+      id: posId,
+      empId: isVacant ? "" : (emp.id || ""),
+      name: emp.name || (isVacant ? "Vacant" : "Unassigned"),
+      role: emp.role || "พนักงานปฏิบัติการ",
+      unit: emp.department || emp.unit || "INTER 2",
+      level: emp.level || resolvePositionLevel({ role: emp.role, level: emp.level }),
+      status: isVacant ? "Vacant" : (emp.employmentStatus === "Resigned" ? "Resigned" : "Active"),
+      ocType: emp.ocType || "OLD",
+      isMgr: Boolean(emp.isMgr),
+      isEng: Boolean(emp.isEng),
+      img: emp.avatar || null
+    };
+  });
+}
+
+function mapPositionsToEmployees(positionsList: ManpowerPosition[]): any[] {
+  return positionsList
+    .filter(p => p.status !== "Vacant" && p.name && p.name !== "Vacant")
+    .map(p => ({
+      id: p.empId || `EMP-${p.id.replace(/\D/g, "")}`,
+      name: p.name,
+      deptId: normalizeUnitToDeptId(p.unit),
+      department: p.unit,
+      role: p.role,
+      positionId: p.id,
+      targetOt: 48,
+      actualOt: 0,
+      otPct: 0,
+      status: "On Track",
+      groupName: "Group A",
+      shifts: Array(31).fill("D"),
+      planShifts: Array(31).fill("D"),
+      salary: 20000,
+      division: "ฝ่ายปฏิบัติการท่าเรือ",
+      calendarType: "ปฏิทินกะ 4-on-2-off",
+      employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+    }));
 }
 
 export interface ManpowerDashboardProps {
   employees?: any[];
   onSyncEmployees?: (updatedEmployees: any[]) => void;
-  onRefreshPortalState?: () => Promise<void>;
+  onRefreshPortalState?: (silent?: boolean) => Promise<void>;
 }
 
 export default function ManpowerDashboard({
@@ -126,9 +199,55 @@ export default function ManpowerDashboard({
   onRefreshPortalState
 }: ManpowerDashboardProps = {}) {
   const [shiftMode, setShiftMode] = useState<"3T" | "2T">("3T");
-  const [positions, setPositions] = useState<ManpowerPosition[]>(getInitialPositions);
+  const [positions, setPositions] = useState<ManpowerPosition[]>(() => {
+    if (employees && employees.length > 0) return mapEmployeesToPositions(employees);
+    const local = getInitialPositions();
+    if (local.length > 0) return local;
+    return [];
+  });
   const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "offline">("synced");
   const isFirstSync = useRef(true);
+  const isClearingRef = useRef(false);
+
+  // Custom sleek modal states to replace browser alert/confirm popups
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "danger" | "primary";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {}
+  });
+
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+
+  // Auto-connect with parent employees roster if positions is empty
+  useEffect(() => {
+    if (isClearingRef.current) return;
+    if (positions.length === 0 && employees && employees.length > 0) {
+      const mapped = mapEmployeesToPositions(employees);
+      setPositions(mapped);
+      localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(mapped));
+    }
+  }, [employees, positions.length]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,10 +267,10 @@ export default function ManpowerDashboard({
   const [formEmpId, setFormEmpId] = useState("");
   const [formName, setFormName] = useState("");
   const [formRole, setFormRole] = useState("");
-  const [formUnit, setFormUnit] = useState("");
-  const [formStatus, setFormStatus] = useState<"Active" | "Vacant">("Active");
+  const [formUnit, setFormUnit] = useState<string>(STANDARD_UNITS[0]);
+  const [formStatus, setFormStatus] = useState<"Active" | "Resigned" | "Vacant">("Active");
   const [formOcType, setFormOcType] = useState<"OLD" | "NEW">("OLD");
-  const [formLevel, setFormLevel] = useState<"staff" | "mgr" | "eng">("staff");
+  const [formLevel, setFormLevel] = useState<StandardLevel>("Staff");
 
   // File input ref for trigger from empty state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,15 +298,19 @@ export default function ManpowerDashboard({
             if (data.positions.length > 0) {
               setPositions(data.positions);
               localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(data.positions));
+              if (onSyncEmployees && (!employees || employees.length === 0)) {
+                const empsFromD1 = mapPositionsToEmployees(data.positions);
+                if (empsFromD1.length > 0) onSyncEmployees(empsFromD1);
+              }
             } else {
-              // If remote D1 is empty but localStorage has non-mock items, push them up
-              const local = getInitialPositions();
-              if (local.length > 0) {
-                await fetch("/api/manpower/bulk", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ positions: local })
-                });
+              // If remote D1 is empty:
+              if (employees && employees.length > 0) {
+                const fromEmps = mapEmployeesToPositions(employees);
+                setPositions(fromEmps);
+                localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(fromEmps));
+              } else {
+                setPositions([]);
+                localStorage.removeItem("port_ops_manpower_masterList");
               }
             }
             setSyncStatus("synced");
@@ -226,6 +349,7 @@ export default function ManpowerDashboard({
         });
         if (res.ok) {
           setSyncStatus("synced");
+          onRefreshPortalState?.(true);
         } else {
           setSyncStatus("offline");
         }
@@ -238,31 +362,31 @@ export default function ManpowerDashboard({
     return () => clearTimeout(timer);
   }, [positions]);
 
-  // Dynamic unit list derived directly from data
+  // Dynamic unit list prioritizing standard units
   const availableUnits = useMemo(() => {
     const unitsInMaster = Array.from(new Set(positions.map(p => (p.unit || "").trim()).filter(Boolean)));
-    return unitsInMaster.length > 0
-      ? unitsInMaster
-      : ["INTER 2", "INTER 3", "INTER 5", "INTER 7", "Heavy Machine", "CONTROL", "Improvement", "Management"];
+    return Array.from(new Set([...STANDARD_UNITS, ...unitsInMaster]));
   }, [positions]);
 
   // Standard roles list for suggestions
   const standardRoleNames = useMemo(() => {
     const rolesInMaster = Array.from(new Set(positions.map(p => (p.role || "").trim()).filter(Boolean)));
     const defaultSuggestions = [
-      "O&M Electrical",
-      "O&M Mechanical",
-      "O&M Generator",
-      "O&M Specialist",
-      "ผู้ควบคุมงานขนถ่ายสินค้า",
-      "ผู้ควบคุมงานจักรกลหนัก",
-      "Operation Engineer",
-      "พนักงานขับจักรกลหนัก",
       "พนักงานขับเครน",
-      "พนักงานขับเครน ชำนาญการ",
-      "ปากเรือ",
-      "ปากเรือ ชำนาญการ",
-      "ผู้จัดการแผนก"
+      "ช่างขับจักรกลหนัก",
+      "ผู้ควบคุมงานจักรกลหนัก",
+      "ผู้ควบคุมงานขนถ่ายสินค้า",
+      "ช่างปากเรือ",
+      "O&M Specialist",
+      "O&M Generator",
+      "O&M Mechanical",
+      "O&M Electrical",
+      "เจ้าหน้าที่ศูนย์ควบคุม",
+      "Operation Engineer",
+      "Improvement Engineer",
+      "ผู้จัดการฝ่ายปฏิบัติการ",
+      "ผู้จัดการแผนก",
+      "Maintenance Improvement"
     ];
     return Array.from(new Set([...rolesInMaster, ...defaultSuggestions]));
   }, [positions]);
@@ -273,7 +397,8 @@ export default function ManpowerDashboard({
       const inUnit = positions.filter(p => (p.unit || "").trim() === uKey);
       const total = inUnit.length;
       const vacant = inUnit.filter(p => p.status === "Vacant").length;
-      const active = total - vacant;
+      const resigned = inUnit.filter(p => p.status === "Resigned").length;
+      const active = inUnit.filter(p => p.status === "Active").length;
 
       const oldInUnit = inUnit.filter(p => p.ocType === "OLD").length;
       const newInUnit = inUnit.filter(p => p.ocType === "NEW").length;
@@ -298,6 +423,7 @@ export default function ManpowerDashboard({
         total,
         active,
         vacant,
+        resigned,
         diff,
         fill
       };
@@ -311,11 +437,13 @@ export default function ManpowerDashboard({
       const inRole = positions.filter(p => (p.role || "").trim() === rName);
       if (inRole.length === 0) return null;
 
-      const level = getRoleLevel(rName, inRole.some(p => p.isMgr), inRole.some(p => p.isEng));
+      const firstPos = inRole[0];
+      const level = resolvePositionLevel(firstPos);
 
       const total = inRole.length;
       const vacant = inRole.filter(p => p.status === "Vacant").length;
-      const active = total - vacant;
+      const resigned = inRole.filter(p => p.status === "Resigned").length;
+      const active = inRole.filter(p => p.status === "Active").length;
 
       const oldInRole = inRole.filter(p => p.ocType === "OLD").length;
       const newInRole = inRole.filter(p => p.ocType === "NEW").length;
@@ -341,19 +469,21 @@ export default function ManpowerDashboard({
         total,
         active,
         vacant,
+        resigned,
         diff,
         fill
       };
     }).filter(Boolean) as Array<{
       id: string;
       label: string;
-      level: 'mgr' | 'eng' | 'staff';
+      level: StandardLevel;
       quota2T: number;
       quota3T: number;
       target: number;
       total: number;
       active: number;
       vacant: number;
+      resigned: number;
       diff: number;
       fill: number;
     }>;
@@ -372,10 +502,12 @@ export default function ManpowerDashboard({
     const targetQuota = unitBreakdownData.reduce((acc, u) => acc + u.target, 0);
     const totalInSystem = positions.length;
     const vacantCount = positions.filter(p => p.status === "Vacant").length;
-    const activeCount = totalInSystem - vacantCount;
+    const resignedCount = positions.filter(p => p.status === "Resigned").length;
+    const activeCount = positions.filter(p => p.status === "Active").length;
 
     const fillRate = targetQuota > 0 ? ((activeCount / targetQuota) * 100).toFixed(1) : "0.0";
     const vacantRate = totalInSystem > 0 ? ((vacantCount / totalInSystem) * 100).toFixed(1) : "0.0";
+    const resignedRate = totalInSystem > 0 ? ((resignedCount / totalInSystem) * 100).toFixed(1) : "0.0";
     const activeRate = totalInSystem > 0 ? ((activeCount / totalInSystem) * 100).toFixed(1) : "0.0";
     const diff = totalInSystem - targetQuota;
 
@@ -384,8 +516,10 @@ export default function ManpowerDashboard({
       totalInSystem,
       activeCount,
       vacantCount,
+      resignedCount,
       fillRate,
       vacantRate,
+      resignedRate,
       activeRate,
       diff
     };
@@ -398,13 +532,14 @@ export default function ManpowerDashboard({
       const matchUnit = unitFilter === "ALL" || p.unit === unitFilter;
       const matchStatus = statusFilter === "ALL" || p.status === statusFilter;
       const matchOcType = ocTypeFilter === "ALL" || p.ocType === ocTypeFilter;
-      const pLevel = getRoleLevel(p.role, p.isMgr, p.isEng);
+      const pLevel = resolvePositionLevel(p);
       const matchLevel = levelFilter === "ALL" || pLevel === levelFilter;
 
       const matchQ = !q ||
         p.name.toLowerCase().includes(q) ||
         p.role.toLowerCase().includes(q) ||
         p.unit.toLowerCase().includes(q) ||
+        (p.level && p.level.toLowerCase().includes(q)) ||
         (p.empId && p.empId.toLowerCase().includes(q)) ||
         p.id.toLowerCase().includes(q);
 
@@ -412,60 +547,177 @@ export default function ManpowerDashboard({
     });
   }, [positions, searchQuery, unitFilter, statusFilter, ocTypeFilter, levelFilter]);
 
+  // Helper to immediately push updated positions to parent employees state
+  const syncToEmployees = (updatedPositions: ManpowerPosition[]) => {
+    if (!onSyncEmployees) return;
+    const existingMap = new Map((employees || []).map(e => [String(e.id).trim(), e]));
+    const strippedMap = new Map((employees || []).map(e => [String(e.id).trim().replace(/^EMP-/i, ''), e]));
+    const nameMap = new Map((employees || []).map(e => [e.name, e]));
+
+    const merged = updatedPositions
+      .filter(p => p.status !== "Vacant" && p.name && p.name !== "Vacant")
+      .map(p => {
+        const pEid = (p.empId || "").trim();
+        const ex = (pEid && (existingMap.get(pEid) || strippedMap.get(pEid.replace(/^EMP-/i, '')))) || nameMap.get(p.name);
+        const finalEmpId = ex ? ex.id : (pEid || `EMP-${p.id.replace(/\D/g, "")}`);
+        if (ex) {
+          return {
+            ...ex,
+            id: finalEmpId,
+            empId: finalEmpId,
+            name: p.name,
+            role: p.role,
+            deptId: normalizeUnitToDeptId(p.unit),
+            department: p.unit,
+            positionId: p.id,
+            employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+          };
+        }
+        return {
+          id: finalEmpId,
+          empId: finalEmpId,
+          name: p.name,
+          deptId: normalizeUnitToDeptId(p.unit),
+          department: p.unit,
+          role: p.role,
+          positionId: p.id,
+          targetOt: 48,
+          actualOt: 0,
+          otPct: 0,
+          status: "On Track",
+          groupName: "Group A",
+          shifts: Array(31).fill("D"),
+          planShifts: Array(31).fill("D"),
+          salary: 20000,
+          division: "ฝ่ายปฏิบัติการท่าเรือ",
+          calendarType: "ปฏิทินกะ 4-on-2-off",
+          employmentStatus: p.status === "Resigned" ? "Resigned" : "Active"
+        };
+      });
+
+    onSyncEmployees(merged);
+  };
+
   // Inline sync handlers
   const handleSyncName = (id: string, newName: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const trimmed = newName.trim();
-      if (trimmed.toLowerCase().includes("vacant") || trimmed === "ว่าง" || !trimmed) {
-        return { ...p, name: trimmed || "Vacant", status: "Vacant", empId: "", img: null };
-      }
-      return {
-        ...p,
-        name: trimmed,
-        status: p.status === "Vacant" ? "Active" : p.status,
-        img: p.empId ? getEmpPhotoUrl(p.empId) : p.img
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const trimmed = newName.trim();
+        if (trimmed.toLowerCase().includes("vacant") || trimmed === "ว่าง" || !trimmed) {
+          return { ...p, name: trimmed || "Vacant", status: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          name: trimmed,
+          status: p.status === "Vacant" ? "Active" : p.status,
+          img: p.empId ? getEmpPhotoUrl(p.empId) : p.img
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกชื่อพนักงานเรียบร้อย");
   };
 
   const handleSyncRole = (id: string, newRole: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const level = getRoleLevel(newRole);
-      return {
-        ...p,
-        role: newRole.trim(),
-        isMgr: level === "mgr",
-        isEng: level === "eng"
-      };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const inferredLevel = resolvePositionLevel({ ...p, role: newRole });
+        return {
+          ...p,
+          role: newRole.trim(),
+          level: p.level || inferredLevel,
+          isMgr: ["Director", "Department Manager", "Section Manager"].includes(p.level || inferredLevel),
+          isEng: (p.level || inferredLevel) === "Engineer"
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกตำแหน่งงานเรียบร้อย");
   };
 
+  const handleSyncLevel = (id: string, newLevel: string) => {
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        return {
+          ...p,
+          level: newLevel,
+          isMgr: ["Director", "Department Manager", "Section Manager"].includes(newLevel),
+          isEng: newLevel === "Engineer"
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
+    showToast("บันทึกระดับตำแหน่งเรียบร้อย");
+  };
+
   const handleSyncUnit = (id: string, newUnit: string) => {
-    setPositions(prev => prev.map(p => (p.id === id ? { ...p, unit: newUnit.trim() } : p)));
+    setPositions(prev => {
+      const next = prev.map(p => (p.id === id ? { ...p, unit: newUnit.trim() } : p));
+      syncToEmployees(next);
+      return next;
+    });
     showToast("บันทึกทุ่น/ฝ่ายเรียบร้อย");
   };
 
   const handleToggleOcType = (id: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const nextType = p.ocType === "NEW" ? "OLD" : "NEW";
-      return { ...p, ocType: nextType };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        const nextType = p.ocType === "NEW" ? "OLD" : "NEW";
+        return { ...p, ocType: nextType };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("สลับกรอบอัตรา (OC Type) เรียบร้อย");
   };
 
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        if (newStatus === "Vacant") {
+          return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          status: newStatus,
+          name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
+    showToast(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย`);
+  };
+
   const handleToggleStatus = (id: string) => {
-    setPositions(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      if (p.status === "Active") {
-        return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
-      }
-      return { ...p, status: "Active", name: p.name === "Vacant" ? "พนักงานใหม่" : p.name };
-    }));
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p;
+        let nextStatus = "Active";
+        if (p.status === "Active") nextStatus = "Resigned";
+        else if (p.status === "Resigned") nextStatus = "Vacant";
+        else nextStatus = "Active";
+
+        if (nextStatus === "Vacant") {
+          return { ...p, status: "Vacant", name: "Vacant", empId: "", img: null };
+        }
+        return {
+          ...p,
+          status: nextStatus,
+          name: p.name === "Vacant" ? "พนักงานใหม่" : p.name
+        };
+      });
+      syncToEmployees(next);
+      return next;
+    });
     showToast("สลับสถานะตำแหน่งเรียบร้อย");
   };
 
@@ -477,10 +729,10 @@ export default function ManpowerDashboard({
     setFormEmpId(pos.empId || "");
     setFormName(pos.name);
     setFormRole(pos.role);
-    setFormUnit(pos.unit);
-    setFormStatus(pos.status);
-    setFormOcType(pos.ocType || "OLD");
-    setFormLevel(pos.isMgr ? "mgr" : (pos.isEng ? "eng" : "staff"));
+    setFormUnit(pos.unit || STANDARD_UNITS[0]);
+    setFormStatus((pos.status as any) || "Active");
+    setFormOcType((pos.ocType as any) || "OLD");
+    setFormLevel(resolvePositionLevel(pos));
     setIsEditModalOpen(true);
   };
 
@@ -494,10 +746,10 @@ export default function ManpowerDashboard({
     setFormEmpId("");
     setFormName("");
     setFormRole("ช่างขับจักรกลหนัก");
-    setFormUnit(availableUnits[0] || "INTER 2");
+    setFormUnit(STANDARD_UNITS[0]);
     setFormStatus("Active");
     setFormOcType("OLD");
-    setFormLevel("staff");
+    setFormLevel("Staff");
     setIsEditModalOpen(true);
   };
 
@@ -509,16 +761,20 @@ export default function ManpowerDashboard({
     const finalEmpId = isVacant ? "" : formEmpId.trim();
     const finalImg = isVacant ? null : getEmpPhotoUrl(finalEmpId);
 
+    const isMgr = ["Director", "Department Manager", "Section Manager"].includes(formLevel);
+    const isEng = formLevel === "Engineer";
+
     const record: ManpowerPosition = {
       id: formId,
       empId: finalEmpId,
       name: finalName,
       role: formRole.trim(),
       unit: formUnit.trim(),
-      status: isVacant ? "Vacant" : "Active",
+      level: formLevel,
+      status: formStatus,
       ocType: formOcType,
-      isMgr: formLevel === "mgr",
-      isEng: formLevel === "eng",
+      isMgr,
+      isEng,
       img: finalImg
     };
 
@@ -534,7 +790,7 @@ export default function ManpowerDashboard({
     if (onSyncEmployees && employees) {
       let updatedEmployees = [...employees];
       const mappedDept = normalizeUnitToDeptId(formUnit);
-      if (!isVacant) {
+      if (!isVacant && formStatus === "Active") {
         const empId = finalEmpId || `EMP-${formId.replace(/\D/g, "") || Date.now().toString().slice(-4)}`;
         const existingIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === finalName);
         if (existingIdx !== -1) {
@@ -568,7 +824,15 @@ export default function ManpowerDashboard({
           };
           updatedEmployees.push(newEmp);
         }
-      } else if (finalEmpId) {
+      } else if (formStatus === "Resigned" && finalEmpId) {
+        const existingIdx = updatedEmployees.findIndex(e => e.id === finalEmpId || e.name === finalName);
+        if (existingIdx !== -1) {
+          updatedEmployees[existingIdx] = {
+            ...updatedEmployees[existingIdx],
+            employmentStatus: "Resigned"
+          };
+        }
+      } else if (isVacant && finalEmpId) {
         const existingIdx = updatedEmployees.findIndex(e => e.id === finalEmpId);
         if (existingIdx !== -1) {
           updatedEmployees[existingIdx] = {
@@ -586,45 +850,89 @@ export default function ManpowerDashboard({
   // Delete Position
   const handleDeletePosition = (id: string) => {
     const targetPos = positions.find(p => p.id === id);
-    if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบตำแหน่ง ${id}?`)) {
-      setPositions(prev => prev.filter(p => p.id !== id));
-      if (onSyncEmployees && employees && targetPos && targetPos.empId) {
-        const updated = employees.filter(e => e.id !== targetPos.empId);
-        onSyncEmployees(updated);
+    const posLabel = targetPos ? `${targetPos.role} (${targetPos.name})` : id;
+    setConfirmModal({
+      isOpen: true,
+      title: "ยืนยันการลบตำแหน่งงาน",
+      message: `คุณต้องการลบตำแหน่ง ${posLabel} ออกจากระบบ ใช่หรือไม่?`,
+      confirmText: "ลบตำแหน่งงาน",
+      cancelText: "ยกเลิก",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        const nextPositions = positions.filter(p => p.id !== id);
+        setPositions(nextPositions);
+        localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(nextPositions));
+
+        if (onSyncEmployees && employees) {
+          const updated = employees.filter(e => 
+            (targetPos?.empId ? e.id !== targetPos.empId : true) &&
+            (targetPos?.id ? e.positionId !== targetPos.id : true) &&
+            (targetPos?.name ? e.name !== targetPos.name : true)
+          );
+          onSyncEmployees(updated);
+        }
+
+        try {
+          await fetch(`/api/manpower?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+          onRefreshPortalState?.(true);
+        } catch (err) {
+          console.warn("Failed to delete position from D1:", err);
+        }
+
+        setIsEditModalOpen(false);
+        showToast("ลบตำแหน่งงานเรียบร้อย");
       }
-      setIsEditModalOpen(false);
-      showToast("ลบตำแหน่งเรียบร้อย");
-    }
+    });
   };
 
   // Clear all data (local & remote Cloudflare D1)
-  const handleClearAllData = async () => {
-    if (window.confirm("คุณต้องการล้างข้อมูลตำแหน่งงานทั้งหมดในระบบ ใช่หรือไม่?\n(การดำเนินการนี้จะลบข้อมูลทั้งในเครื่องและ Cloudflare D1)")) {
-      try {
-        setSyncStatus("syncing");
-        await fetch("/api/manpower?clearAll=true", { method: "DELETE" });
-      } catch (err) {
-        console.warn("Failed to clear backend data:", err);
+  const handleClearAllData = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "ยืนยันการล้างข้อมูลตำแหน่งงานทั้งหมด",
+      message: "คุณต้องการล้างข้อมูลตำแหน่งงานทั้งหมดในระบบ ใช่หรือไม่? การดำเนินการนี้จะลบข้อมูลทั้งในเครื่องและ Cloudflare D1 ทั้งหมด และรีเซ็ตโครงสร้างอัตรากำลังเป็นค่าว่าง",
+      confirmText: "ล้างข้อมูลทั้งหมด",
+      cancelText: "ยกเลิก",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        isClearingRef.current = true;
+        setPositions([]);
+        localStorage.removeItem("port_ops_manpower_masterList");
+        if (onSyncEmployees) {
+          onSyncEmployees([]);
+        }
+        try {
+          setSyncStatus("syncing");
+          await fetch("/api/manpower?clearAll=true", { method: "DELETE" });
+          setSyncStatus("synced");
+          onRefreshPortalState?.(true);
+        } catch (err) {
+          console.warn("Failed to clear backend data:", err);
+          setSyncStatus("offline");
+        } finally {
+          setTimeout(() => {
+            isClearingRef.current = false;
+          }, 1000);
+        }
+        showToast("ล้างข้อมูลตำแหน่งงานทั้งหมดเรียบร้อยแล้ว");
       }
-      setPositions([]);
-      localStorage.removeItem("port_ops_manpower_masterList");
-      setSyncStatus("synced");
-      showToast("ล้างข้อมูลตำแหน่งงานทั้งหมดเรียบร้อยแล้ว");
-    }
+    });
   };
 
   // Export CSV
   const handleExportCsv = () => {
-    const headers = ["No", "Employee ID", "Name", "Role", "Unit", "OC Type", "Status", "Level"];
+    const headers = ["No", "Employee ID", "Name", "Role", "Unit", "Level", "OC Type", "Status"];
     const rows = positions.map((p, idx) => [
       idx + 1,
       p.status === "Vacant" ? "" : (p.empId || ""),
       `"${(p.name || "").replace(/"/g, '""')}"`,
       `"${(p.role || "").replace(/"/g, '""')}"`,
       `"${(p.unit || "").replace(/"/g, '""')}"`,
+      `"${resolvePositionLevel(p)}"`,
       p.ocType || "OLD",
-      p.status,
-      p.isMgr ? "Manager" : (p.isEng ? "Engineer" : "Staff")
+      p.status || "Active"
     ]);
 
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
@@ -642,10 +950,12 @@ export default function ManpowerDashboard({
 
   // Download Template
   const handleDownloadTemplate = () => {
-    const headers = ["Employee ID", "Name", "Role", "Unit", "OC Type", "Status", "Level"];
+    const headers = ["Employee ID", "Name", "Role", "Unit", "Level", "OC Type", "Status"];
     const samples = [
-      ["688172", "คุณสมชาย สายตรวจ", "พนักงานขับเครน", "INTER 2", "OLD", "Active", "Staff"],
-      ["", "Vacant", "ช่างขับจักรกลหนัก", "INTER 3", "NEW", "Vacant", "Staff"]
+      ["688172", "คุณสมชาย สายตรวจ", "พนักงานขับเครน", "INTER 2", "Worker - Skill", "OLD", "Active"],
+      ["688173", "คุณวิศวะ นวัตกรรม", "Improvement Engineer", "Improvemnet Engineering", "Engineer", "NEW", "Active"],
+      ["688174", "คุณผู้การ ควบคุม", "ผู้จัดการศูนย์ควบคุม", "Control Center", "Section Manager", "OLD", "Active"],
+      ["", "Vacant", "ช่างขับจักรกลหนัก", "Heavy Machine", "Worker - Skill", "NEW", "Vacant"]
     ];
     const csvContent = "\uFEFF" + [headers.join(","), ...samples.map(r => r.join(","))].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -659,6 +969,55 @@ export default function ManpowerDashboard({
     showToast("ดาวน์โหลดแม่แบบเรียบร้อย");
   };
 
+  const applyImportedPositions = (imported: ManpowerPosition[]) => {
+    setPositions(imported);
+    localStorage.setItem("port_ops_manpower_masterList", JSON.stringify(imported));
+    showToast(`นำเข้าข้อมูล ${imported.length} รายการเรียบร้อย`);
+
+    if (onSyncEmployees && employees) {
+      let updatedEmployees = [...employees];
+      for (const pos of imported) {
+        const isV = pos.status === "Vacant" || !pos.name || pos.name.toLowerCase().includes("vacant") || pos.name === "ว่าง";
+        if (!isV) {
+          const empId = pos.empId || `EMP-${pos.id.replace(/\D/g, "")}`;
+          const mappedDept = normalizeUnitToDeptId(pos.unit);
+          const exIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === pos.name);
+          if (exIdx !== -1) {
+            updatedEmployees[exIdx] = {
+              ...updatedEmployees[exIdx],
+              name: pos.name,
+              role: pos.role,
+              deptId: mappedDept,
+              department: pos.unit,
+              employmentStatus: "Active"
+            };
+          } else {
+            const defaultShifts = Array(31).fill("D");
+            updatedEmployees.push({
+              id: empId,
+              name: pos.name,
+              deptId: mappedDept,
+              department: pos.unit,
+              role: pos.role,
+              targetOt: 48,
+              actualOt: 0,
+              otPct: 0,
+              status: "On Track",
+              groupName: "Group A",
+              shifts: defaultShifts,
+              planShifts: defaultShifts,
+              salary: 20000,
+              division: "ฝ่ายปฏิบัติการท่าเรือ",
+              calendarType: "ปฏิทินกะ 4-on-2-off",
+              employmentStatus: "Active"
+            });
+          }
+        }
+      }
+      onSyncEmployees(updatedEmployees);
+    }
+  };
+
   // Handle CSV file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -667,62 +1026,114 @@ export default function ManpowerDashboard({
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const text = event.target?.result as string;
+        let text = event.target?.result as string;
         if (!text) return;
+
+        // Strip UTF-8 BOM if present
+        text = text.replace(/^\uFEFF/, "");
 
         const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
         if (lines.length <= 1) {
-          alert("ไฟล์ไม่มีข้อมูลหรือมีเพียงหัวตาราง");
+          showAlert("ข้อผิดพลาดของไฟล์", "ไฟล์ไม่มีข้อมูลหรือมีเพียงหัวตาราง กรุณาตรวจสอบไฟล์ CSV อีกครั้ง");
           return;
         }
 
-        const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
+        // Detect delimiter (comma, semicolon, tab)
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const semiCount = (firstLine.match(/;/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+        let delimiter = ",";
+        if (semiCount > commaCount && semiCount > tabCount) delimiter = ";";
+        else if (tabCount > commaCount && tabCount > semiCount) delimiter = "\t";
+
+        const parseLine = (line: string, delim: string) => {
+          if (delim === "\t") return line.split("\t").map(c => c.trim().replace(/^"|"$/g, ""));
+          const res: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delim && !inQuotes) {
+              res.push(current.trim().replace(/^"|"$/g, ""));
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          res.push(current.trim().replace(/^"|"$/g, ""));
+          return res;
+        };
+
+        const headers = parseLine(lines[0], delimiter).map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
         const findIndex = (candidates: string[]) => {
           for (const c of candidates) {
-            const idx = headers.findIndex(h => h.includes(c));
+            const idx = headers.findIndex(h => h.includes(c.toLowerCase()));
             if (idx >= 0) return idx;
           }
           return -1;
         };
 
-        const idIdx = findIndex(["employee id", "รหัสพนักงาน", "id", "รหัส"]);
-        const nameIdx = findIndex(["name", "ชื่อ", "fullname"]);
-        const roleIdx = findIndex(["role", "ตำแหน่ง", "position"]);
-        const unitIdx = findIndex(["unit", "ทุ่น", "ฝ่าย", "สังกัด", "department"]);
-        const ocTypeIdx = findIndex(["oc type", "octype", "type", "กรอบ"]);
-        const statusIdx = findIndex(["status", "สถานะ"]);
-        const levelIdx = findIndex(["level", "ระดับ"]);
+        const idIdx = findIndex(["employee id", "รหัสพนักงาน", "id", "รหัส", "empid"]);
+        const nameIdx = findIndex(["name", "ชื่อ", "fullname", "ชื่อ-สกุล", "ชื่อ - นามสกุล", "ชื่อพนักงาน"]);
+        const roleIdx = findIndex(["role", "ตำแหน่ง", "position", "สายงาน"]);
+        const unitIdx = findIndex(["unit", "ทุ่น", "ฝ่าย", "สังกัด", "department", "หน่วยงาน", "แผนก"]);
+        const levelIdx = findIndex(["level", "ระดับ", "ตำแหน่งระดับ"]);
+        const ocTypeIdx = findIndex(["oc type", "octype", "type", "กรอบ", "กรอบอัตรากำลัง"]);
+        const statusIdx = findIndex(["status", "สถานะ", "สถานะการทำงาน"]);
 
         let nextIdx = 1;
         const imported: ManpowerPosition[] = [];
 
         for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-          const name = nameIdx >= 0 ? cols[nameIdx] : "";
-          const role = roleIdx >= 0 ? cols[roleIdx] : "พนักงานปฏิบัติการ";
-          const unitRaw = unitIdx >= 0 ? cols[unitIdx] : "INTER 2";
-          const empId = idIdx >= 0 ? cols[idIdx] : "";
-          const statusRaw = statusIdx >= 0 ? cols[statusIdx] : "";
-          const ocTypeRaw = ocTypeIdx >= 0 ? cols[ocTypeIdx].toUpperCase() : "OLD";
-          const levelRaw = levelIdx >= 0 ? cols[levelIdx].toLowerCase() : "";
+          const cols = parseLine(lines[i], delimiter);
+          const name = nameIdx >= 0 && cols[nameIdx] ? cols[nameIdx] : "";
+          const role = roleIdx >= 0 && cols[roleIdx] ? cols[roleIdx] : "พนักงานปฏิบัติการ";
+          const unitRaw = unitIdx >= 0 && cols[unitIdx] ? cols[unitIdx] : "INTER 2";
+          const empId = idIdx >= 0 && cols[idIdx] ? cols[idIdx] : "";
+          const levelRaw = levelIdx >= 0 && cols[levelIdx] ? cols[levelIdx] : "";
+          const statusRaw = statusIdx >= 0 && cols[statusIdx] ? cols[statusIdx] : "Active";
+          const ocTypeRaw = ocTypeIdx >= 0 && cols[ocTypeIdx] ? cols[ocTypeIdx].toUpperCase() : "OLD";
 
           if (!name && !role) continue;
 
           let unit = unitRaw;
-          if (/inter\s*2/i.test(unitRaw)) unit = "INTER 2";
-          else if (/inter\s*3/i.test(unitRaw)) unit = "INTER 3";
-          else if (/inter\s*5/i.test(unitRaw)) unit = "INTER 5";
-          else if (/inter\s*7/i.test(unitRaw)) unit = "INTER 7";
-          else if (/heavy|จักรกล/i.test(unitRaw)) unit = "Heavy Machine";
-          else if (/improve|ปรับปรุง/i.test(unitRaw)) unit = "Improvement";
-          else if (/control|ศูนย์/i.test(unitRaw)) unit = "CONTROL";
-          else if (/manage|ฝ่ายปฏิบัติการ/i.test(unitRaw)) unit = "Management";
+          const uNorm = unitRaw.toLowerCase().replace(/\s+/g, "");
+          if (uNorm.includes("inter2")) unit = "INTER 2";
+          else if (uNorm.includes("inter3")) unit = "INTER 3";
+          else if (uNorm.includes("inter5")) unit = "INTER 5";
+          else if (uNorm.includes("inter7")) unit = "INTER 7";
+          else if (uNorm.includes("control") || uNorm.includes("ศูนย์ควบคุม")) unit = "Control Center";
+          else if (uNorm.includes("improve")) unit = "Improvemnet Engineering";
+          else if (uNorm.includes("heavy") || uNorm.includes("จักรกล")) unit = "Heavy Machine";
 
-          const isVacant = statusRaw.toLowerCase() === "vacant" || name.toLowerCase().includes("vacant") || name.includes("ว่าง") || !name;
-          const status = isVacant ? "Vacant" : "Active";
+          // Status: Active, Resigned, Vacant
+          let status = "Active";
+          if (statusRaw.toLowerCase() === "vacant" || name.toLowerCase().includes("vacant") || name.includes("ว่าง") || !name) {
+            status = "Vacant";
+          } else if (statusRaw.toLowerCase().includes("resign") || statusRaw.includes("ลาออก")) {
+            status = "Resigned";
+          } else {
+            status = "Active";
+          }
+
+          // Level matching
+          let level = STANDARD_LEVELS.find(l => l.toLowerCase() === levelRaw.toLowerCase()) || "";
+          if (!level) {
+            level = resolvePositionLevel({ role, level: levelRaw });
+          }
+
+          const isVacant = status === "Vacant";
           const ocType = ocTypeRaw.includes("NEW") || ocTypeRaw.includes("ใหม่") || ocTypeRaw.includes("3") ? "NEW" : "OLD";
-          const isMgr = levelRaw.includes("mgr") || levelRaw.includes("manager") || role.includes("ผู้จัดการ");
-          const isEng = levelRaw.includes("eng") || role.toLowerCase().includes("engineer") || role.includes("วิศวกร");
+          const isMgr = ["Director", "Department Manager", "Section Manager"].includes(level);
+          const isEng = level === "Engineer";
 
           const posId = `POS-${String(nextIdx++).padStart(3, '0')}`;
           const finalEmpId = isVacant ? "" : empId;
@@ -733,6 +1144,7 @@ export default function ManpowerDashboard({
             name: name || (isVacant ? "Vacant" : "Unassigned"),
             role,
             unit,
+            level,
             status,
             ocType,
             isMgr,
@@ -742,62 +1154,31 @@ export default function ManpowerDashboard({
         }
 
         if (imported.length === 0) {
-          alert("ไม่พบข้อมูลที่ตรงกับโครงสร้างคอลัมน์");
+          showAlert("ไม่พบข้อมูล", "ไม่พบข้อมูลที่ตรงกับโครงสร้างคอลัมน์ของระบบ");
           return;
         }
 
-        if (window.confirm(`พบข้อมูลพนักงานทั้งหมด ${imported.length} รายการ ต้องการแทนที่ข้อมูลปัจจุบันหรือไม่?`)) {
-          setPositions(imported);
-          showToast(`นำเข้าข้อมูล ${imported.length} รายการเรียบร้อย`);
-
-          if (onSyncEmployees && employees) {
-            let updatedEmployees = [...employees];
-            for (const pos of imported) {
-              const isV = pos.status === "Vacant" || !pos.name || pos.name.toLowerCase().includes("vacant") || pos.name === "ว่าง";
-              if (!isV) {
-                const empId = pos.empId || `EMP-${pos.id.replace(/\D/g, "")}`;
-                const mappedDept = normalizeUnitToDeptId(pos.unit);
-                const exIdx = updatedEmployees.findIndex(e => e.id === empId || e.name === pos.name);
-                if (exIdx !== -1) {
-                  updatedEmployees[exIdx] = {
-                    ...updatedEmployees[exIdx],
-                    name: pos.name,
-                    role: pos.role,
-                    deptId: mappedDept,
-                    department: pos.unit,
-                    employmentStatus: "Active"
-                  };
-                } else {
-                  const defaultShifts = Array(31).fill("D");
-                  updatedEmployees.push({
-                    id: empId,
-                    name: pos.name,
-                    deptId: mappedDept,
-                    department: pos.unit,
-                    role: pos.role,
-                    targetOt: 48,
-                    actualOt: 0,
-                    otPct: 0,
-                    status: "On Track",
-                    groupName: "Group A",
-                    shifts: defaultShifts,
-                    planShifts: defaultShifts,
-                    salary: 20000,
-                    division: "ฝ่ายปฏิบัติการท่าเรือ",
-                    calendarType: "ปฏิทินกะ 4-on-2-off",
-                    employmentStatus: "Active"
-                  });
-                }
-              }
+        if (positions.length === 0) {
+          applyImportedPositions(imported);
+        } else {
+          setConfirmModal({
+            isOpen: true,
+            title: "นำเข้าข้อมูลพนักงาน (Import CSV)",
+            message: `พบข้อมูลพนักงานทั้งหมด ${imported.length} รายการ คุณต้องการนำเข้าข้อมูลและแทนที่ข้อมูลตำแหน่งงานปัจจุบันหรือไม่?`,
+            confirmText: "แทนที่ข้อมูล",
+            cancelText: "ยกเลิก",
+            variant: "primary",
+            onConfirm: () => {
+              setConfirmModal(prev => ({ ...prev, isOpen: false }));
+              applyImportedPositions(imported);
             }
-            onSyncEmployees(updatedEmployees);
-          }
+          });
         }
       } catch (err: any) {
-        alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err?.message || err}`);
+        showAlert("เกิดข้อผิดพลาดในการอ่านไฟล์", `เกิดข้อผิดพลาด: ${err?.message || err}`);
       }
     };
-    reader.readAsText(file);
+    reader.readAsText(file, "UTF-8");
     e.target.value = "";
   };
 
@@ -855,7 +1236,7 @@ export default function ManpowerDashboard({
                 : "text-[#6A7B87] hover:text-[#0E3A66] hover:bg-white/60"
             }`}
           >
-            3 ทีม (3 Teams - Full OC)
+            3 Teams (Full OC)
           </button>
           <button
             onClick={() => setShiftMode("2T")}
@@ -865,14 +1246,14 @@ export default function ManpowerDashboard({
                 : "text-[#6A7B87] hover:text-[#0E3A66] hover:bg-white/60"
             }`}
           >
-            2 ทีม (2 Teams - Base OC)
+            2 Teams (Base OC)
           </button>
         </div>
       </div>
 
       {/* Empty State Hero Banner when no positions exist */}
       {positions.length === 0 && (
-        <div className="bg-gradient-to-br from-[#F8FAFC] via-white to-[#E8F3FA]/40 border-2 border-dashed border-[#9FCEE8] rounded-2xl p-8 text-center shadow-xs">
+        <div className="bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center shadow-xs">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8F3FA] border border-[#9FCEE8]/60 flex items-center justify-center text-[#17538F] mb-4 shadow-xs">
             <Database className="w-7 h-7" />
           </div>
@@ -1230,9 +1611,9 @@ export default function ManpowerDashboard({
               className="px-2.5 py-1 text-xs border border-[#DCE4EA] rounded-md text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none focus:border-[#2E90CB]"
             >
               <option value="ALL">All Levels (ทุกระดับ)</option>
-              <option value="mgr">Manager (ผู้จัดการ)</option>
-              <option value="eng">Engineer (วิศวกร)</option>
-              <option value="staff">Staff (ปฏิบัติการ)</option>
+              {STANDARD_LEVELS.map(lvl => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
             </select>
           </div>
 
@@ -1267,7 +1648,13 @@ export default function ManpowerDashboard({
                     <td className={`py-2 px-1.5 text-center font-mono font-bold ${r.vacant > 0 ? "text-[#F43F5E]" : "text-[#94A3B8]"}`}>
                       {r.vacant}
                     </td>
-                    <td className="py-2 px-1.5 text-center font-mono font-bold text-[#0E3A66]">{r.fill}%</td>
+                    <td className="py-2 px-1.5 text-center">
+                      <span className={`font-mono font-semibold ${
+                        r.fill >= 100 ? "text-[#1E9C6E]" : r.fill >= 80 ? "text-[#D99B14]" : "text-[#F43F5E]"
+                      }`}>
+                        {r.fill}%
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1278,25 +1665,24 @@ export default function ManpowerDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: ACTION TOOLBAR (Upload / Export / Template / Add) */}
+      {/* SECTION 5: PERSONNEL ACTIONS (Add Position & Export Controls) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
-        {/* Upload Excel / CSV */}
-        <label className="bg-white border-2 border-dashed border-[#DCE4EA] hover:border-[#2E90CB] rounded-xl p-5 flex flex-col items-center justify-center text-center transition cursor-pointer group">
-          <input ref={fileInputRef} type="file" accept=".csv, .txt, .xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-          <Upload className="w-6 h-6 text-[#6A7B87] group-hover:text-[#2E90CB] transition-colors mb-1.5" />
-          <span className="text-xs font-bold text-[#0E3A66]">Upload Headcount (CSV / Excel)</span>
-          <span className="text-[11px] text-[#6A7B87] mt-0.5">คลิกเพื่ออัปโหลดไฟล์โครงสร้างอัตรากำลัง</span>
-        </label>
-
-        {/* Export & Template */}
+        {/* Export & Templates */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Export & Template</span>
-            <p className="text-[11px] text-[#6A7B87]">ส่งออกข้อมูลพนักงานและดาวน์โหลดแบบฟอร์ม</p>
+            <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Import / Export &amp; Template</span>
+            <p className="text-[11px] text-[#6A7B87]">นำเข้า/ส่งออกข้อมูลพนักงาน และดาวน์โหลดแบบฟอร์ม</p>
           </div>
           <div className="flex items-center gap-2 pt-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 px-3 py-1.5 bg-[#17538F] text-white rounded-lg text-xs font-bold hover:bg-[#0E3A66] flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Import CSV</span>
+            </button>
             <button
               onClick={handleExportCsv}
               className="flex-1 px-3 py-1.5 bg-[#0E3A66] text-white rounded-lg text-xs font-bold hover:bg-[#17538F] flex items-center justify-center gap-1.5 transition cursor-pointer"
@@ -1313,7 +1699,7 @@ export default function ManpowerDashboard({
           </div>
         </div>
 
-        {/* Add Person & Clear All */}
+        {/* Add Position & Clear All */}
         <div className="bg-white border border-[#DCE4EA] rounded-xl p-5 flex flex-col justify-between">
           <div>
             <span className="text-xs font-bold text-[#0E3A66] uppercase block mb-1">Add Position / Clear</span>
@@ -1350,7 +1736,7 @@ export default function ManpowerDashboard({
               Personnel Roster ({filteredRoster.length} รายการ)
             </span>
             <span className="text-[11px] text-[#6A7B87]">
-              * แก้ไขชื่อ ตำแหน่ง ทุ่น หรือคลิกสลับ OLD/NEW และ Active/Vacant ได้ทันที
+              * แก้ไขชื่อ ตำแหน่ง ทุ่น หรือคลิกสลับ OLD/NEW และ Active/Resigned/Vacant ได้ทันที
             </span>
           </div>
 
@@ -1361,21 +1747,21 @@ export default function ManpowerDashboard({
               onChange={(e) => setLevelFilter(e.target.value)}
               className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none"
             >
-              <option value="ALL">All Levels</option>
-              <option value="mgr">Manager</option>
-              <option value="eng">Engineer</option>
-              <option value="staff">Staff</option>
+              <option value="ALL">All Levels ({positions.length})</option>
+              {STANDARD_LEVELS.map(lvl => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
             </select>
 
             {/* OC Type Filter */}
             <select
               value={ocTypeFilter}
               onChange={(e) => setOcTypeFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none"
+              className="px-2.5 py-1.5 border border-[#DCE4EA] rounded-md text-xs text-[#333B41] font-medium bg-[#F3F6F8] focus:outline-none font-mono"
             >
               <option value="ALL">All OC Types</option>
-              <option value="OLD">OLD (2T Base)</option>
-              <option value="NEW">NEW (+3T Expansion)</option>
+              <option value="OLD">OLD</option>
+              <option value="NEW">NEW</option>
             </select>
 
             {/* Status Filter */}
@@ -1386,6 +1772,7 @@ export default function ManpowerDashboard({
             >
               <option value="ALL">All Status</option>
               <option value="Active">Active</option>
+              <option value="Resigned">Resigned</option>
               <option value="Vacant">Vacant</option>
             </select>
 
@@ -1423,12 +1810,12 @@ export default function ManpowerDashboard({
                 <th className="py-2 px-1.5 w-[4%] text-center font-semibold">No.</th>
                 <th className="py-2 px-1.5 w-[5%] text-center font-semibold">Photo</th>
                 <th className="py-2 px-2 w-[11%] font-semibold">Employee ID</th>
-                <th className="py-2 px-2 w-[20%] font-semibold">ชื่อ - นามสกุล</th>
+                <th className="py-2 px-2 w-[18%] font-semibold">ชื่อ - นามสกุล</th>
                 <th className="py-2 px-2 w-[18%] font-semibold">ตำแหน่งงาน (Role)</th>
-                <th className="py-2 px-2 w-[12%] font-semibold">ทุ่น / ฝ่าย (Unit)</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">Level</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">OC Type</th>
-                <th className="py-2 px-1.5 w-[8%] text-center font-semibold">Status</th>
+                <th className="py-2 px-2 w-[14%] font-semibold">ทุ่น / ฝ่าย (Unit)</th>
+                <th className="py-2 px-1.5 w-[12%] text-center font-semibold">Level</th>
+                <th className="py-2 px-1.5 w-[7%] text-center font-semibold">OC Type</th>
+                <th className="py-2 px-1.5 w-[9%] text-center font-semibold">Status</th>
                 <th className="py-2 px-1.5 w-[6%] text-center font-semibold">Action</th>
               </tr>
             </thead>
@@ -1436,7 +1823,7 @@ export default function ManpowerDashboard({
               {filteredRoster.map((p, idx) => {
                 const isVacant = p.status === "Vacant";
                 const isNew = p.ocType === "NEW";
-                const pLevel = getRoleLevel(p.role, p.isMgr, p.isEng);
+                const pLevel = resolvePositionLevel(p);
                 const photoUrl = isVacant ? null : (p.img || getEmpPhotoUrl(p.empId));
 
                 return (
@@ -1500,33 +1887,46 @@ export default function ManpowerDashboard({
                       />
                     </td>
 
-                    {/* Unit (Inline Edit with Datalist) */}
+                    {/* Unit (Inline Dropdown with Standard Units) */}
                     <td className="py-2 px-2">
-                      <input
-                        type="text"
-                        list="manpower-unit-datalist"
-                        defaultValue={p.unit}
-                        onBlur={(e) => {
-                          if (e.target.value !== p.unit) handleSyncUnit(p.id, e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                        className="w-full px-1.5 py-1 text-[11px] font-mono font-semibold border border-transparent hover:border-[#DCE4EA] focus:border-[#2E90CB] focus:bg-white rounded transition bg-transparent text-[#0E3A66] truncate"
-                      />
+                      <select
+                        value={p.unit}
+                        onChange={(e) => handleSyncUnit(p.id, e.target.value)}
+                        className="w-full px-1.5 py-1 text-[11px] font-medium border border-transparent hover:border-[#DCE4EA] focus:border-[#2E90CB] focus:bg-white rounded transition bg-transparent text-[#0E3A66] truncate cursor-pointer"
+                      >
+                        {availableUnits.map(u => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
                     </td>
 
-                    {/* Level Badge */}
+                    {/* Level Selector */}
                     <td className="py-2 px-1.5 text-center">
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        pLevel === "mgr"
-                          ? "bg-[#0E3A66] text-white"
-                          : pLevel === "eng"
-                          ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]"
-                          : "bg-[#F3F6F8] text-[#6A7B87]"
-                      }`}>
-                        {pLevel === "mgr" ? "Manager" : (pLevel === "eng" ? "Engineer" : "Staff")}
-                      </span>
+                      <select
+                        value={pLevel}
+                        onChange={(e) => handleSyncLevel(p.id, e.target.value)}
+                        className={`inline-block w-full px-1 py-0.5 rounded text-[10px] font-semibold border cursor-pointer transition ${
+                          pLevel === "Director"
+                            ? "bg-slate-900 text-white border-slate-800"
+                            : pLevel === "Department Manager"
+                            ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                            : pLevel === "Section Manager"
+                            ? "bg-[#17538F] text-white border-[#17538F]"
+                            : pLevel === "Engineer"
+                            ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]"
+                            : pLevel === "Officer"
+                            ? "bg-sky-50 text-sky-800 border-sky-300"
+                            : pLevel === "Worker - Skill"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                            : pLevel === "Worker - Worker"
+                            ? "bg-amber-50 text-amber-800 border-amber-300"
+                            : "bg-[#F3F6F8] text-[#59656D] border-[#DCE4EA]"
+                        }`}
+                      >
+                        {STANDARD_LEVELS.map(lvl => (
+                          <option key={lvl} value={lvl}>{lvl}</option>
+                        ))}
+                      </select>
                     </td>
 
                     {/* OC Type (1-Click Toggle Button) */}
@@ -1534,7 +1934,7 @@ export default function ManpowerDashboard({
                       <button
                         type="button"
                         onClick={() => handleToggleOcType(p.id)}
-                        title="คลิกเพื่อสลับระหว่าง OLD (2T) กับ NEW (+3T)"
+                        title="คลิกเพื่อสลับระหว่าง OLD กับ NEW"
                         className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition ${
                           isNew
                             ? "bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] hover:bg-[#9FCEE8]/40"
@@ -1545,20 +1945,23 @@ export default function ManpowerDashboard({
                       </button>
                     </td>
 
-                    {/* Status (1-Click Toggle Button) */}
+                    {/* Status (Dropdown Selector supporting Active, Resigned, Vacant) */}
                     <td className="py-2 px-1.5 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(p.id)}
-                        title="คลิกเพื่อสลับสถานะ Active ↔ Vacant"
-                        className={`inline-block px-2.5 py-0.5 rounded text-[10.5px] font-semibold cursor-pointer transition ${
-                          isVacant
-                            ? "bg-[#F3F6F8] text-[#F43F5E] border border-[#F43F5E]/30 hover:bg-[#F43F5E]/10"
-                            : "bg-[#0E3A66] text-white hover:bg-[#17538F]"
+                      <select
+                        value={p.status || "Active"}
+                        onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer transition border ${
+                          p.status === "Active"
+                            ? "bg-[#E8F6F0] text-[#1E9C6E] border-[#1E9C6E]/40"
+                            : p.status === "Resigned"
+                            ? "bg-[#FEF3C7] text-[#D97706] border-[#F59E0B]/50"
+                            : "bg-[#FDF2F4] text-[#F43F5E] border-[#F43F5E]/40"
                         }`}
                       >
-                        {p.status}
-                      </button>
+                        <option value="Active">Active</option>
+                        <option value="Resigned">Resigned</option>
+                        <option value="Vacant">Vacant</option>
+                      </select>
                     </td>
 
                     {/* Action */}
@@ -1579,17 +1982,7 @@ export default function ManpowerDashboard({
         </div>
       </div>
 
-      {/* Datalists for autocompletion */}
-      <datalist id="manpower-role-datalist">
-        {standardRoleNames.map(r => (
-          <option key={r} value={r} />
-        ))}
-      </datalist>
-      <datalist id="manpower-unit-datalist">
-        {availableUnits.map(u => (
-          <option key={u} value={u} />
-        ))}
-      </datalist>
+
 
       {/* ========================================================================= */}
       {/* SECTION 7: EDIT / ADD POSITION MODAL */}
@@ -1629,7 +2022,27 @@ export default function ManpowerDashboard({
                     type="text"
                     value={formEmpId}
                     disabled={formStatus === "Vacant"}
-                    onChange={(e) => setFormEmpId(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormEmpId(val);
+                      const trimmed = val.trim();
+                      if (trimmed && employees) {
+                        const matched = employees.find((em: any) => 
+                          String(em.id).trim() === trimmed || 
+                          String(em.empId).trim() === trimmed ||
+                          String(em.id).trim().replace(/^EMP-/i, '') === trimmed.replace(/^EMP-/i, '')
+                        );
+                        if (matched) {
+                          if (matched.name) setFormName(matched.name);
+                          if (matched.role) setFormRole(matched.role);
+                          if (matched.department || matched.unit) {
+                            const u = (matched.department || matched.unit || "").trim();
+                            const std = STANDARD_UNITS.find(su => su.toLowerCase() === u.toLowerCase());
+                            if (std) setFormUnit(std);
+                          }
+                        }
+                      }
+                    }}
                     placeholder={formStatus === "Vacant" ? "ตำแหน่งว่าง" : "เช่น 688172"}
                     className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB] font-mono"
                   />
@@ -1651,26 +2064,33 @@ export default function ManpowerDashboard({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[#6A7B87] font-semibold mb-1">ตำแหน่งงาน (Role)</label>
-                  <input
-                    type="text"
-                    list="manpower-role-datalist"
+                  <select
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
                     required
-                    className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
-                  />
+                    className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
+                  >
+                    {standardRoleNames.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                    {formRole && !standardRoleNames.includes(formRole) && (
+                      <option value={formRole}>{formRole}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-[#6A7B87] font-semibold mb-1">ทุ่น / ฝ่าย (Unit)</label>
-                  <input
-                    type="text"
-                    list="manpower-unit-datalist"
+                  <select
                     value={formUnit}
                     onChange={(e) => setFormUnit(e.target.value)}
                     required
-                    className="w-full px-3 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
-                  />
+                    className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md focus:outline-none focus:border-[#2E90CB]"
+                  >
+                    {availableUnits.map(u => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1682,17 +2102,17 @@ export default function ManpowerDashboard({
                     onChange={(e) => setFormOcType(e.target.value as "OLD" | "NEW")}
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md font-mono"
                   >
-                    <option value="OLD">OLD (2T Base)</option>
-                    <option value="NEW">NEW (+3T Expansion)</option>
+                    <option value="OLD">OLD</option>
+                    <option value="NEW">NEW</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6A7B87] font-semibold mb-1">สถานะ</label>
+                  <label className="block text-[#6A7B87] font-semibold mb-1">สถานะ (Status)</label>
                   <select
                     value={formStatus}
                     onChange={(e) => {
-                      const next = e.target.value as "Active" | "Vacant";
+                      const next = e.target.value as "Active" | "Resigned" | "Vacant";
                       setFormStatus(next);
                       if (next === "Vacant") {
                         setFormEmpId("");
@@ -1702,20 +2122,21 @@ export default function ManpowerDashboard({
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md"
                   >
                     <option value="Active">Active</option>
+                    <option value="Resigned">Resigned</option>
                     <option value="Vacant">Vacant</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[#6A7B87] font-semibold mb-1">ระดับตำแหน่ง</label>
+                  <label className="block text-[#6A7B87] font-semibold mb-1">ระดับตำแหน่ง (Level)</label>
                   <select
                     value={formLevel}
-                    onChange={(e) => setFormLevel(e.target.value as "staff" | "mgr" | "eng")}
+                    onChange={(e) => setFormLevel(e.target.value as StandardLevel)}
                     className="w-full px-2.5 py-1.5 border border-[#DCE4EA] rounded-md"
                   >
-                    <option value="staff">Staff (ปฏิบัติการ)</option>
-                    <option value="mgr">Manager (ผู้จัดการ)</option>
-                    <option value="eng">Engineer (วิศวกร)</option>
+                    {STANDARD_LEVELS.map(lvl => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1761,6 +2182,102 @@ export default function ManpowerDashboard({
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Sleek Custom Confirmation Modal (Executive Maritime Style) */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0E3A66]/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border border-[#DCE4EA] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                  confirmModal.variant === "danger" 
+                    ? "bg-[#FDF2F2] border border-[#F8D7D7] text-[#B3352C]" 
+                    : "bg-[#E8F3FA] border border-[#9FCEE8] text-[#17538F]"
+                }`}>
+                  {confirmModal.variant === "danger" ? (
+                    <Trash2 className="w-5 h-5" />
+                  ) : (
+                    <Info className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-[#0E3A66]">
+                    {confirmModal.title}
+                  </h3>
+                  <p className="text-xs text-[#59656D] mt-1.5 leading-relaxed">
+                    {confirmModal.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-3.5 bg-[#F8FAFC] border-t border-[#DCE4EA] flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 text-xs font-semibold text-[#59656D] bg-white border border-[#DCE4EA] hover:bg-[#F3F6F8] rounded-xl transition cursor-pointer"
+              >
+                {confirmModal.cancelText || "ยกเลิก"}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  confirmModal.variant === "danger"
+                    ? "bg-[#B3352C] hover:bg-[#8F2720]"
+                    : "bg-[#17538F] hover:bg-[#0E3A66]"
+                }`}
+              >
+                {confirmModal.variant === "danger" && <Trash2 className="w-3.5 h-3.5" />}
+                <span>{confirmModal.confirmText || "ยืนยัน"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sleek Custom Alert Modal (Executive Maritime Style) */}
+      {alertModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0E3A66]/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border border-[#DCE4EA] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] text-[#D99B14] flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-[#0E3A66]">
+                    {alertModal.title}
+                  </h3>
+                  <p className="text-xs text-[#59656D] mt-1.5 leading-relaxed">
+                    {alertModal.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-3.5 bg-[#F8FAFC] border-t border-[#DCE4EA] flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#0E3A66] hover:bg-[#17538F] rounded-xl shadow-xs transition cursor-pointer"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input for CSV Import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv,application/vnd.ms-excel"
+        onChange={handleFileUpload}
+        className="hidden"
+        data-testid="manpower-csv-file-input"
+      />
 
     </div>
   );

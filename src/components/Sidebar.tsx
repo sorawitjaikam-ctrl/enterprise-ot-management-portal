@@ -6,15 +6,13 @@ import {
   Settings, 
   HelpCircle, 
   LogOut, 
-  Ship,
-  Anchor,
   ClipboardList,
   FileText,
   ShieldCheck,
   ChevronLeft,
-  TrendingUp,
-  Building2
+  TrendingUp
 } from "lucide-react";
+import { isStrictHrOrAdmin } from "./Navbar";
 
 interface SidebarProps {
   activeTab: string;
@@ -22,27 +20,38 @@ interface SidebarProps {
   onLogout: () => void;
   currentUser: any;
   onToggleSidebar?: () => void;
+  restrictToJvOnly?: boolean;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar }: SidebarProps) {
-  const isHrOrFullAccess = ["HR", "HR Section Manager", "Operation Dir", "Operation Depart", "ผู้ดูแลระบบ", "Admin", "Co-admin", "Co-Admin"].includes(currentUser?.role || "");
+export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar, restrictToJvOnly }: SidebarProps) {
+  const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
+  const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
+  const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+  const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
 
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
     { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
-    { id: "manpower",   label: "โครงสร้างอัตรากำลัง (2-3 ทีม)", icon: Building2 },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
     { id: "employees",  label: "รายชื่อพนักงานหน้าท่า",       icon: Users },
-    ...(isHrOrFullAccess ? [
+    ...(isHrOrAdmin || (!isJvOnlyLocked && isHrOrFullAccess) ? [
       { id: "hr-editor",  label: "จัดการข้อมูล & รายได้ (HR Direct)", icon: FileText },
     ] : []),
     { id: "leave-records", label: "บันทึกวันลา (Leave)",    icon: ClipboardList },
     { id: "shifts",     label: "จัดตารางกะเทียบเรือ (Shifts)", icon: Calendar },
     { id: "ot-records", label: "ประวัติ OT งานหน้าท่าเรือ",  icon: ClipboardList },
-    ...(isHrOrFullAccess ? [
+    ...(isHrOrAdmin || (!isJvOnlyLocked && isHrOrFullAccess) ? [
       { id: "admin-permissions", label: "จัดการสิทธิ์ Admin & ผู้ใช้", icon: ShieldCheck },
     ] : []),
   ];
+
+  const handleMenuClick = (tabId: string) => {
+    if (isJvOnlyLocked && tabId !== "job_value") {
+      setActiveTab("job_value");
+      return;
+    }
+    setActiveTab(tabId);
+  };
 
   return (
     <aside className="fixed left-0 top-0 h-full w-[260px] bg-slate-900 border-r border-slate-800 flex flex-col py-6 px-4 z-40 shadow-xl text-slate-300">
@@ -74,19 +83,30 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
       <nav className="flex-1 space-y-1.5">
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const isTabLocked = isJvOnlyLocked && item.id !== "job_value";
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left text-sm cursor-pointer ${
-                isActive
-                  ? "bg-[#1d3ec7]/20 text-[#a9cdfc] font-extrabold border-l-4 border-[#1d3ec7] shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              aria-disabled={isTabLocked}
+              onClick={() => handleMenuClick(item.id)}
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl transition-all duration-200 text-left text-sm ${
+                isTabLocked
+                  ? "opacity-45 cursor-not-allowed select-none text-slate-500"
+                  : isActive
+                  ? "bg-[#1d3ec7]/20 text-[#a9cdfc] font-extrabold border-l-4 border-[#1d3ec7] shadow-sm cursor-pointer"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 cursor-pointer"
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? "text-[#6d93fc]" : "text-slate-500"}`} />
-              <span>{item.label}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-[#6d93fc]" : "text-slate-500"}`} />
+                <span className="truncate">{item.label}</span>
+              </div>
+              {isTabLocked && (
+                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[9px] font-bold uppercase tracking-wider shrink-0">
+                  Coming Soon
+                </span>
+              )}
             </button>
           );
         })}
@@ -95,7 +115,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
       {/* Bottom Actions */}
       <div className="mt-auto pt-6 border-t border-slate-800 space-y-4">
         <div className="space-y-1">
-          {isHrOrFullAccess && (
+          {(isHrOrAdmin || (!isJvOnlyLocked && isHrOrFullAccess)) && (
             <button
               onClick={() => setActiveTab("settings")}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors cursor-pointer ${activeTab === 'settings' ? 'bg-[#1d3ec7]/20 text-[#a9cdfc] font-bold' : ''}`}
