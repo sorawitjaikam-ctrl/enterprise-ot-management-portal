@@ -1954,6 +1954,70 @@ ${deptsData.map((d: any) => `- **${d.nameTh || d.name}**: ผู้ดูแล 
 });
 
 // ============================================================
+// Realtime Global Tab Visibility (01-08)
+// ============================================================
+let memoryTabVisibility = {
+  restrictNonAdmin: true,
+  enabledTabs: {
+    dashboard: false,
+    reports: false,
+    shifts: false,
+    job_value: true,
+    employees: false,
+    manpower: false,
+    "leave-records": false,
+    "ot-records": false,
+  } as Record<string, boolean>,
+  updatedBy: "system",
+  updatedAt: "2026-10-20T00:00:00.000Z",
+};
+
+app.get("/api/tab-visibility", async (_req, res) => {
+  try {
+    if (isD1Enabled()) {
+      await queryD1("CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT, updatedAt TEXT)");
+      const rows = await queryD1("SELECT value, updatedAt FROM system_settings WHERE key = 'tab_visibility'");
+      if (rows && rows.length > 0 && rows[0].value) {
+        const parsed = JSON.parse(rows[0].value);
+        return res.json({
+          restrictNonAdmin: parsed.restrictNonAdmin ?? true,
+          enabledTabs: { ...memoryTabVisibility.enabledTabs, ...(parsed.enabledTabs || {}) },
+          updatedBy: parsed.updatedBy || "admin",
+          updatedAt: rows[0].updatedAt || parsed.updatedAt || memoryTabVisibility.updatedAt,
+        });
+      }
+    }
+    return res.json(memoryTabVisibility);
+  } catch (err: any) {
+    return res.json(memoryTabVisibility);
+  }
+});
+
+app.post("/api/tab-visibility", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const payload = {
+      restrictNonAdmin: body.restrictNonAdmin !== undefined ? Boolean(body.restrictNonAdmin) : true,
+      enabledTabs: { ...memoryTabVisibility.enabledTabs, ...(body.enabledTabs || {}) },
+      updatedBy: body.updatedBy || "admin",
+      updatedAt: new Date().toISOString(),
+    };
+    memoryTabVisibility = payload;
+
+    if (isD1Enabled()) {
+      await queryD1("CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT, updatedAt TEXT)");
+      await queryD1(
+        "INSERT INTO system_settings (key, value, updatedAt) VALUES ('tab_visibility', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt",
+        [JSON.stringify(payload), payload.updatedAt]
+      );
+    }
+    return res.json({ status: "ok", tabVisibility: payload });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // Vite / Static serve
 // ============================================================
 async function startServer() {

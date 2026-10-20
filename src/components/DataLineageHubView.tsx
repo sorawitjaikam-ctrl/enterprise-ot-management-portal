@@ -15,10 +15,166 @@ import {
   SlidersHorizontal,
   ShieldCheck,
   Check,
-  Search
+  Search,
+  Radio
 } from "lucide-react";
 import { AppState, Employee, LeaveRecord } from "../types";
 import { INITIAL_JOB_VALUE_EXCEL_RECORDS, DetailedJobValueEmployee } from "../data/jobValueExcelData";
+import { OPERATIONAL_TABS_META, DEFAULT_ENABLED_TABS } from "./Navbar";
+
+export interface RealtimeTabVisibilityPanelProps {
+  restrictToJvOnly: boolean;
+  enabledTabs: Record<string, boolean>;
+  onToggleRestrictToJvOnly: (nextValue: boolean) => void;
+  onToggleTabVisibility?: (tabId: string, nextValue: boolean) => void;
+  onSetPreset?: (preset: "jv_only" | "open_all") => void;
+  lastRealtimeSync?: string;
+}
+
+export function RealtimeTabVisibilityPanel({
+  restrictToJvOnly,
+  enabledTabs,
+  onToggleRestrictToJvOnly,
+  onToggleTabVisibility,
+  onSetPreset,
+  lastRealtimeSync,
+}: RealtimeTabVisibilityPanelProps) {
+  const activeCount = OPERATIONAL_TABS_META.filter((t) =>
+    !restrictToJvOnly ? true : Boolean(enabledTabs[t.id])
+  ).length;
+
+  return (
+    <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 font-sans">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3.5 border-b border-[#DCE4EA]">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
+            <h3 className="text-sm font-bold text-[#0E3A66]">
+              แผงควบคุมการเปิด-ปิดหน้าเว็บแบบ Realtime สำหรับทุกคน (01–08 Global Tab Visibility)
+            </h3>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] font-mono text-[10px] font-bold">
+              <Radio className="w-3 h-3" />
+              <span>REALTIME D1 SYNC ({activeCount}/8 หน้าเปิดใช้งาน)</span>
+            </span>
+            {lastRealtimeSync && (
+              <span className="font-mono text-[10px] text-[#64748B]">
+                อัปเดตล่าสุด: {lastRealtimeSync}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#475569]">
+            เมื่อ Admin หรือ HR กดสลับเปิด-ปิดหัวข้อด้านล่าง หน้าจอของผู้ใช้งานทุกคนที่ออนไลน์อยู่จะเปลี่ยนสถานะเป็น{" "}
+            <b className="text-[#15803D]">เปิดใช้งาน (LIVE)</b> หรือ{" "}
+            <b className="text-[#0F172A]">Coming Soon (สีจาง)</b> แบบ Realtime อัตโนมัติภายในไม่กี่วินาทีโดยไม่ต้องรีเฟรชหน้าเว็บ
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onSetPreset && (
+            <>
+              <button
+                type="button"
+                onClick={() => onSetPreset("jv_only")}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  restrictToJvOnly && activeCount === 1 && enabledTabs.job_value
+                    ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                    : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
+                }`}
+              >
+                เปิดเฉพาะ 04 Job Value
+              </button>
+              <button
+                type="button"
+                onClick={() => onSetPreset("open_all")}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                  !restrictToJvOnly || activeCount === 8
+                    ? "bg-[#15803D] text-white border-[#15803D]"
+                    : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
+                }`}
+              >
+                เปิดครบทุกหน้า (01–08)
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => onToggleRestrictToJvOnly(!restrictToJvOnly)}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+              restrictToJvOnly
+                ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
+                : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
+            }`}
+          >
+            {restrictToJvOnly ? "โหมดจำกัดสิทธิ์: เปิดอยู่" : "โหมดจำกัดสิทธิ์: ปิดอยู่"}
+          </button>
+        </div>
+      </div>
+
+      {/* 8 Individual Tab Toggle Cards (01 to 08) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {OPERATIONAL_TABS_META.map((tab) => {
+          const isTabLive = !restrictToJvOnly ? true : Boolean(enabledTabs[tab.id]);
+          return (
+            <div
+              key={tab.id}
+              onClick={() => {
+                if (onToggleTabVisibility) {
+                  onToggleTabVisibility(tab.id, !isTabLive);
+                }
+              }}
+              className={`p-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2.5 select-none ${
+                isTabLive
+                  ? "bg-[#F0F7FF] border-[#0E3A66]"
+                  : "bg-[#F8FAFC] border-[#DCE4EA] opacity-75 hover:opacity-100"
+              }`}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-[#CBD5E1] text-[#0E3A66]">
+                    {tab.num}
+                  </span>
+                  <span className="text-xs font-bold text-[#0F172A] truncate">{tab.label}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-1.5">
+                  {isTabLive ? (
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#15803D]">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>LIVE (เปิดใช้งาน)</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#64748B]">
+                      <span>COMING SOON (สีจาง)</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isTabLive}
+                aria-label={`สลับสถานะ ${tab.num} ${tab.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleTabVisibility) {
+                    onToggleTabVisibility(tab.id, !isTabLive);
+                  }
+                }}
+                className={`px-2.5 py-1.5 rounded font-mono text-[10px] font-bold border transition-all cursor-pointer shrink-0 ${
+                  isTabLive
+                    ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                    : "bg-white text-[#64748B] border-[#CBD5E1]"
+                }`}
+              >
+                {isTabLive ? "ON" : "SOON"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export type DomainId =
   | "departments"
@@ -94,7 +250,11 @@ export interface DataLineageHubViewProps {
   leaveRecords?: LeaveRecord[];
   onReconcileAll?: (updatedState: AppState, summaryText: string) => void;
   restrictToJvOnly?: boolean;
+  enabledTabs?: Record<string, boolean>;
   onToggleRestrictToJvOnly?: (nextValue: boolean) => void;
+  onToggleTabVisibility?: (tabId: string, nextValue: boolean) => void;
+  onSetTabPreset?: (preset: "jv_only" | "open_all") => void;
+  lastRealtimeSync?: string;
 }
 
 const CANONICAL_DEPT_MAP: Record<string, string> = {
@@ -138,7 +298,11 @@ export default function DataLineageHubView({
   leaveRecords = [],
   onReconcileAll,
   restrictToJvOnly,
+  enabledTabs = DEFAULT_ENABLED_TABS,
   onToggleRestrictToJvOnly,
+  onToggleTabVisibility,
+  onSetTabPreset,
+  lastRealtimeSync,
 }: DataLineageHubViewProps) {
   const [syncRules, setSyncRules] = useState<LineageSyncRules>(() => {
     try {
@@ -556,11 +720,6 @@ export default function DataLineageHubView({
     [domainNodes, selectedNodeId]
   );
 
-  const selectedEdge = useMemo(
-    () => domainEdges.find((e) => e.id === selectedEdgeId) || null,
-    [domainEdges, selectedEdgeId]
-  );
-
   const filteredIssues = useMemo(() => {
     return rawIssues.filter((item) => {
       if (issueFilter === "critical" && item.severity !== "critical") return false;
@@ -659,6 +818,18 @@ export default function DataLineageHubView({
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5 font-sans">
+      {/* Realtime Global Tab Visibility Panel (01-08) */}
+      {typeof restrictToJvOnly === "boolean" && onToggleRestrictToJvOnly && (
+        <RealtimeTabVisibilityPanel
+          restrictToJvOnly={restrictToJvOnly}
+          enabledTabs={enabledTabs}
+          onToggleRestrictToJvOnly={onToggleRestrictToJvOnly}
+          onToggleTabVisibility={onToggleTabVisibility}
+          onSetPreset={onSetTabPreset}
+          lastRealtimeSync={lastRealtimeSync}
+        />
+      )}
+
       {/* Executive Header & One-Click Master Sync */}
       <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#DCE4EA]">
@@ -762,45 +933,6 @@ export default function DataLineageHubView({
           </div>
         )}
       </div>
-
-      {/* Access Mode Quick Card (JV-Only Mode for Non-HR/Admin) */}
-      {typeof restrictToJvOnly === "boolean" && onToggleRestrictToJvOnly && (
-        <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
-              <h3 className="text-sm font-bold text-[#0E3A66]">
-                โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value สำหรับผู้ใช้ทั่วไป (JV-Only &amp; Coming Soon Mode)
-              </h3>
-              <span
-                className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                  restrictToJvOnly
-                    ? "bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE]"
-                    : "bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]"
-                }`}
-              >
-                {restrictToJvOnly ? "ACTIVE (เฉพาะ HR & Admin เห็นครบทุกหน้า)" : "OPEN (เห็นครบทุกหน้า)"}
-              </span>
-            </div>
-            <p className="text-xs text-[#475569]">
-              เมื่อเปิดใช้งาน ผู้ใช้งานทุกคนยกเว้น <b>HR</b> และ <b>Admin</b> จะเข้าใช้งานได้เฉพาะหน้า{" "}
-              <b>04 โครงสร้าง Job Value</b> เท่านั้น ส่วนหัวข้ออื่นจะแสดงสีจางพร้อมป้ายกำกับ{" "}
-              <span className="font-mono font-bold text-[#0F172A]">Coming Soon</span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onToggleRestrictToJvOnly(!restrictToJvOnly)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer shrink-0 ${
-              restrictToJvOnly
-                ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
-                : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
-            }`}
-          >
-            {restrictToJvOnly ? "เปิดใช้งานอยู่ (คลิกเพื่อปลดล็อกทุกหน้า)" : "ปิดอยู่ (คลิกเพื่อจำกัดเฉพาะหน้า JV)"}
-          </button>
-        </div>
-      )}
 
       {/* Main Grid: Left = Interactive Relationship Edges & Node Inspector, Right = Configurable Sync Rules */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

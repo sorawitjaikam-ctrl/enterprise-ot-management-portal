@@ -76,10 +76,10 @@ import {
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
-import Navbar, { isStrictHrOrAdmin } from "./components/Navbar";
+import Navbar, { isStrictHrOrAdmin, DEFAULT_ENABLED_TABS, getStoredEnabledTabs, OPERATIONAL_TABS_META } from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
 import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
-import DataLineageHubView from "./components/DataLineageHubView";
+import DataLineageHubView, { RealtimeTabVisibilityPanel } from "./components/DataLineageHubView";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
@@ -3011,20 +3011,137 @@ export default function App() {
     }
   };
 
-  // JV-Only Access Mode ("ให้ทุกคนยกเว้น HR & Admin เห็นแค่หน้า Job Value")
+  // Realtime Global Tab Visibility (01-08) & JV-Only Access Mode
   const [restrictToJvOnly, setRestrictToJvOnly] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("restrictToJvOnly") !== "false";
     }
     return true;
   });
+  const [enabledTabs, setEnabledTabs] = useState<Record<string, boolean>>(() => getStoredEnabledTabs());
+  const [lastRealtimeSync, setLastRealtimeSync] = useState<string>("");
+
+  const persistAndBroadcastTabVisibility = async (
+    nextRestrict: boolean,
+    nextTabs: Record<string, boolean>
+  ) => {
+    const nowTime = new Date().toLocaleTimeString("th-TH", { hour12: false });
+    setLastRealtimeSync(nowTime);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("restrictToJvOnly", nextRestrict ? "true" : "false");
+      localStorage.setItem("enabledTabsConfig", JSON.stringify(nextTabs));
+      try {
+        if ("BroadcastChannel" in window) {
+          const bc = new BroadcastChannel("portal_tab_visibility");
+          bc.postMessage({ restrictNonAdmin: nextRestrict, enabledTabs: nextTabs, updatedAt: nowTime });
+          bc.close();
+        }
+      } catch {
+        // ignore
+      }
+    }
+    try {
+      await fetch("/api/tab-visibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restrictNonAdmin: nextRestrict,
+          enabledTabs: nextTabs,
+          updatedBy: currentUser?.username || "admin",
+        }),
+      });
+    } catch {
+      // offline fallback uses localStorage & BroadcastChannel
+    }
+  };
 
   const handleToggleRestrictToJvOnly = (nextVal: boolean) => {
     setRestrictToJvOnly(nextVal);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("restrictToJvOnly", nextVal ? "true" : "false");
+    persistAndBroadcastTabVisibility(nextVal, enabledTabs);
+  };
+
+  const handleToggleTabVisibility = (tabId: string, nextVal: boolean) => {
+    const nextTabs = { ...enabledTabs, [tabId]: nextVal };
+    // Ensure at least 1 tab remains open if all are turned off
+    const anyOpen = Object.values(nextTabs).some(Boolean);
+    if (!anyOpen) {
+      nextTabs.job_value = true;
+    }
+    setRestrictToJvOnly(true);
+    setEnabledTabs(nextTabs);
+    persistAndBroadcastTabVisibility(true, nextTabs);
+  };
+
+  const handleSetTabPreset = (preset: "jv_only" | "open_all") => {
+    if (preset === "jv_only") {
+      const nextTabs = { ...DEFAULT_ENABLED_TABS, job_value: true };
+      setRestrictToJvOnly(true);
+      setEnabledTabs(nextTabs);
+      persistAndBroadcastTabVisibility(true, nextTabs);
+    } else {
+      const nextTabs: Record<string, boolean> = {};
+      OPERATIONAL_TABS_META.forEach((t) => {
+        nextTabs[t.id] = true;
+      });
+      setRestrictToJvOnly(false);
+      setEnabledTabs(nextTabs);
+      persistAndBroadcastTabVisibility(false, nextTabs);
     }
   };
+
+  // Realtime polling (every 3s) + BroadcastChannel + storage listener across all connected clients
+  useEffect(() => {
+    let isMounted = true;
+    const fetchVisibility = async () => {
+      try {
+        const res = await fetch("/api/tab-visibility");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted || !data) return;
+        if (typeof data.restrictNonAdmin === "boolean") {
+          setRestrictToJvOnly(data.restrictNonAdmin);
+          localStorage.setItem("restrictToJvOnly", data.restrictNonAdmin ? "true" : "false");
+        }
+        if (data.enabledTabs && typeof data.enabledTabs === "object") {
+          const merged = { ...DEFAULT_ENABLED_TABS, ...data.enabledTabs };
+          setEnabledTabs(merged);
+          localStorage.setItem("enabledTabsConfig", JSON.stringify(merged));
+        }
+      } catch {
+        // ignore network errors during background poll
+      }
+    };
+
+    fetchVisibility();
+    const intervalId = window.setInterval(fetchVisibility, 3000);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        bc = new BroadcastChannel("portal_tab_visibility");
+        bc.onmessage = (ev) => {
+          if (!isMounted || !ev.data) return;
+          if (typeof ev.data.restrictNonAdmin === "boolean") {
+            setRestrictToJvOnly(ev.data.restrictNonAdmin);
+          }
+          if (ev.data.enabledTabs) {
+            setEnabledTabs({ ...DEFAULT_ENABLED_TABS, ...ev.data.enabledTabs });
+          }
+          if (ev.data.updatedAt) {
+            setLastRealtimeSync(ev.data.updatedAt);
+          }
+        };
+      }
+    } catch {
+      // ignore
+    }
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      if (bc) bc.close();
+    };
+  }, []);
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const initialTab = getInitialTabFromUrl();
@@ -3033,24 +3150,30 @@ export default function App() {
       localStorage.getItem("restrictToJvOnly") !== "false" &&
       !isStrictHrOrAdmin(currentUser?.role)
     ) {
-      return "job_value";
+      const storedTabs = getStoredEnabledTabs();
+      if (!storedTabs[initialTab]) {
+        const firstAllowed = OPERATIONAL_TABS_META.find((t) => storedTabs[t.id])?.id || "job_value";
+        return firstAllowed;
+      }
     }
     return initialTab;
   });
   useUrlRouting(activeTab, setActiveTab);
 
-  // Enforce JV-Only mode for non-HR/Admin users whenever user or mode changes
+  // Enforce Realtime Tab Visibility for non-HR/Admin users whenever user or allowed tabs change
   useEffect(() => {
     if (
       restrictToJvOnly &&
       !isStrictHrOrAdmin(currentUser?.role) &&
-      activeTab !== "job_value" &&
-      activeTab !== "jobValue" &&
       activeTab !== "profile"
     ) {
-      setActiveTab("job_value");
+      const normalizedActive = activeTab === "jobValue" ? "job_value" : activeTab;
+      if (!enabledTabs[normalizedActive]) {
+        const firstAllowed = OPERATIONAL_TABS_META.find((t) => enabledTabs[t.id])?.id || "job_value";
+        setActiveTab(firstAllowed);
+      }
     }
-  }, [restrictToJvOnly, currentUser, activeTab]);
+  }, [restrictToJvOnly, enabledTabs, currentUser, activeTab]);
 
   // Executive Mode vs Operational Mode State (Requirement R1)
   const [dashboardMode, setDashboardMode] = useState<"executive" | "operational">(() => {
@@ -6638,6 +6761,7 @@ export default function App() {
           onLogout={handleLogout}
           onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
           restrictToJvOnly={restrictToJvOnly}
+          enabledTabs={enabledTabs}
         />
       )}
 
@@ -10985,7 +11109,11 @@ export default function App() {
               state={state}
               onReconcileAll={(updatedState) => setState(updatedState)}
               restrictToJvOnly={restrictToJvOnly}
+              enabledTabs={enabledTabs}
               onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+              onToggleTabVisibility={handleToggleTabVisibility}
+              onSetTabPreset={handleSetTabPreset}
+              lastRealtimeSync={lastRealtimeSync}
             />
           )}
 
@@ -10997,15 +11125,19 @@ export default function App() {
               {/* Header card */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#DCE4EA] shadow-2xs">
                 <h3 className="text-base sm:text-lg font-extrabold text-[#0E3A66]">การตั้งค่านโยบายวันหยุด เครือข่ายข้อมูล และฐานข้อมูลระบบ</h3>
-                <p className="text-xs text-[#475569] mt-1">จัดการผังความเชื่อมโยงเครือข่ายข้อมูลทั้ง 7 โมดูล, โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value, วันหยุดตามประเพณี และนโยบายวันหยุดรายแผนก</p>
+                <p className="text-xs text-[#475569] mt-1">จัดการผังความเชื่อมโยงเครือข่ายข้อมูลทั้ง 7 โมดูล, การเปิด-ปิดหน้าเว็บแบบ Realtime (01–08), วันหยุดตามประเพณี และนโยบายวันหยุดรายแผนก</p>
               </div>
 
-              {/* Interactive Data Network & Lineage Configuration Hub + JV-Only Toggle */}
+              {/* Interactive Data Network & Lineage Configuration Hub + Realtime Tab Visibility */}
               <DataLineageHubView
                 state={state}
                 onReconcileAll={(updatedState) => setState(updatedState)}
                 restrictToJvOnly={restrictToJvOnly}
+                enabledTabs={enabledTabs}
                 onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+                onToggleTabVisibility={handleToggleTabVisibility}
+                onSetTabPreset={handleSetTabPreset}
+                lastRealtimeSync={lastRealtimeSync}
               />
 
               {/* Settings Cards */}
@@ -11261,42 +11393,15 @@ export default function App() {
                 </div>
               </div>
 
-              {/* JV-Only Access Mode Control Banner */}
-              <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
-                    <h4 className="text-sm font-bold text-[#0E3A66]">
-                      โหมดจำกัดการเข้าถึงเฉพาะหน้า Job Value (ให้ทุกคนยกเว้น HR &amp; Admin เห็นแค่ JV)
-                    </h4>
-                    <span
-                      className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                        restrictToJvOnly
-                          ? "bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE]"
-                          : "bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]"
-                      }`}
-                    >
-                      {restrictToJvOnly ? "เปิดใช้งาน (ACTIVE)" : "ปิดใช้งาน (OPEN ALL)"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#475569]">
-                    เมื่อเปิดโหมดนี้ ผู้ใช้ทั่วไปและหัวหน้าแผนกทุกคน (ยกเว้น <b>HR</b> และ <b>Admin</b>) จะเข้าถึงได้เฉพาะหัวข้อ{" "}
-                    <b>04 โครงสร้าง Job Value</b> เท่านั้น ส่วนเมนูอื่น (01, 02, 03, 05, 06, 07, 08) จะแสดงสีจางพร้อมป้าย{" "}
-                    <span className="font-mono font-bold text-[#0F172A]">Coming Soon</span>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleRestrictToJvOnly(!restrictToJvOnly)}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer shrink-0 ${
-                    restrictToJvOnly
-                      ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
-                      : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
-                  }`}
-                >
-                  {restrictToJvOnly ? "เปิดใช้งานอยู่ (คลิกเพื่อปลดล็อกทุกเมนู)" : "ปิดอยู่ (คลิกเพื่อจำกัดเฉพาะหน้า JV)"}
-                </button>
-              </div>
+              {/* Realtime Global Tab Visibility Control Matrix (01-08) */}
+              <RealtimeTabVisibilityPanel
+                restrictToJvOnly={restrictToJvOnly}
+                enabledTabs={enabledTabs}
+                onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+                onToggleTabVisibility={handleToggleTabVisibility}
+                onSetPreset={handleSetTabPreset}
+                lastRealtimeSync={lastRealtimeSync}
+              />
 
               <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
                 <div className="overflow-x-auto no-scrollbar touch-pan-x rounded-2xl border border-slate-100 divide-y divide-slate-100 w-full max-w-full min-w-0">
