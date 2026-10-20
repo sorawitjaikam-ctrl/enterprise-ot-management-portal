@@ -233,7 +233,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
   it("renders Executive Operational Dashboard in JobValueSpreadsheetView without Master Sheet, with Cloudflare D1 Per-Year Upload, Dept/Person filters, 4 KPI cards, 2 charts, and summary table", async () => {
     render(
       <JobValueSpreadsheetView
-        currentUser={{ username: "admin", name: "Admin", role: "Admin" }}
+        currentUser={{ username: "coadmin", name: "Co Admin", role: "Co-admin" }}
         isHrOrFullAccess={true}
       />
     );
@@ -287,18 +287,28 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(screen.getAllByText(/\(0 คน\)/i).length).toBeGreaterThan(0);
   });
 
-  it("strictly restricts Job Value Cloudflare D1 upload and delete to Co-admin and Admin, hiding upload from Section Manager (ผจก)", () => {
+  it("strictly restricts Job Value Cloudflare D1 upload and delete to Co-admin, hiding upload from Admin (เช่น สรวิศ), Section Manager (ผจก) and other roles", () => {
     // 1. Section Manager (ผจก) should NOT see the upload button
-    const { unmount } = render(
+    const { unmount: unmountMgr } = render(
       <JobValueSpreadsheetView
         currentUser={{ username: "mgr", name: "Manager", role: "Section Manager" }}
         isHrOrFullAccess={false}
       />
     );
     expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
-    unmount();
+    unmountMgr();
 
-    // 2. Co-admin role CAN see and access the upload button
+    // 2. Admin (เช่น สรวิศ) should NOT see the upload button (strictly Co-admin only)
+    const { unmount: unmountAdmin } = render(
+      <JobValueSpreadsheetView
+        currentUser={{ username: "sorawit", name: "สรวิศ", role: "Admin" }}
+        isHrOrFullAccess={true}
+      />
+    );
+    expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
+    unmountAdmin();
+
+    // 3. Co-admin role CAN see and access the upload button
     render(
       <JobValueSpreadsheetView
         currentUser={{ username: "coadmin", name: "Co Admin User", role: "Co-admin" }}
