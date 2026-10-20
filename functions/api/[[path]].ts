@@ -1638,6 +1638,107 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return Response.json({ status: "ok", tabVisibility: payload }, { headers: corsHeaders });
     }
 
+    // =========================================================================
+    // Cloudflare D1 Native Storage for Per-Year Job Value Data (/api/job-value-data)
+    // =========================================================================
+    if (path === "/api/job-value-data" && request.method === "GET") {
+      if (db) {
+        try {
+          await db
+            .prepare(
+              "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+            )
+            .run();
+          const resRows: any = await db.prepare("SELECT yearKey, recordsJson, updatedBy, updatedAt FROM job_value_yearly").all();
+          const years: Record<string, any[]> = {};
+          let latestUpdatedAt = "";
+          for (const r of resRows.results || []) {
+            if (r.yearKey && r.recordsJson) {
+              try {
+                years[r.yearKey] = JSON.parse(r.recordsJson);
+                if (r.updatedAt && r.updatedAt > latestUpdatedAt) {
+                  latestUpdatedAt = r.updatedAt;
+                }
+              } catch {
+                // ignore malformed json
+              }
+            }
+          }
+          return Response.json(
+            { status: "ok", years, updatedAt: latestUpdatedAt || null },
+            { headers: corsHeaders }
+          );
+        } catch (e: any) {
+          console.error("D1 GET job_value_yearly error:", e);
+          return Response.json({ status: "ok", years: {}, updatedAt: null }, { headers: corsHeaders });
+        }
+      }
+      return Response.json({ status: "ok", years: {}, updatedAt: null }, { headers: corsHeaders });
+    }
+
+    if (path === "/api/job-value-data" && request.method === "POST") {
+      const body: any = await getBody();
+      const nowIso = new Date().toISOString();
+      const updatedBy = body.updatedBy || "admin";
+
+      if (db) {
+        try {
+          await db
+            .prepare(
+              "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+            )
+            .run();
+
+          if (body.yearKey && Array.isArray(body.records)) {
+            await db
+              .prepare(
+                "INSERT INTO job_value_yearly (yearKey, recordsJson, updatedBy, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(yearKey) DO UPDATE SET recordsJson = excluded.recordsJson, updatedBy = excluded.updatedBy, updatedAt = excluded.updatedAt"
+              )
+              .bind(String(body.yearKey), JSON.stringify(body.records), updatedBy, nowIso)
+              .run();
+          } else if (body.yearsMap && typeof body.yearsMap === "object") {
+            for (const [yKey, recs] of Object.entries(body.yearsMap)) {
+              if (Array.isArray(recs)) {
+                await db
+                  .prepare(
+                    "INSERT INTO job_value_yearly (yearKey, recordsJson, updatedBy, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(yearKey) DO UPDATE SET recordsJson = excluded.recordsJson, updatedBy = excluded.updatedBy, updatedAt = excluded.updatedAt"
+                  )
+                  .bind(String(yKey), JSON.stringify(recs), updatedBy, nowIso)
+                  .run();
+              }
+            }
+          }
+        } catch (e: any) {
+          console.error("D1 POST job_value_yearly error:", e);
+          return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
+        }
+      }
+
+      return Response.json({ status: "ok", updatedAt: nowIso }, { headers: corsHeaders });
+    }
+
+    if (path === "/api/job-value-data" && request.method === "DELETE") {
+      const body: any = await getBody();
+      const targetYear = body.yearKey ? String(body.yearKey) : null;
+      if (db) {
+        try {
+          await db
+            .prepare(
+              "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+            )
+            .run();
+          if (targetYear) {
+            await db.prepare("DELETE FROM job_value_yearly WHERE yearKey = ?").bind(targetYear).run();
+          } else {
+            await db.prepare("DELETE FROM job_value_yearly").run();
+          }
+        } catch (e: any) {
+          console.error("D1 DELETE job_value_yearly error:", e);
+        }
+      }
+      return Response.json({ status: "ok" }, { headers: corsHeaders });
+    }
+
     // Default 404 response for unhandled API paths
     return Response.json({ error: "Endpoint not found" }, { status: 404, headers: corsHeaders });
 
