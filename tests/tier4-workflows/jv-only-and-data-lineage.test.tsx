@@ -239,7 +239,8 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     );
 
     expect(screen.getByText("Executive Operational Dashboard")).toBeDefined();
-    expect(screen.getByText(/Cloudflare D1 Storage/i)).toBeDefined();
+    expect(screen.queryByText(/Cloudflare D1 Storage/i)).toBeNull();
+    expect(screen.queryByText(/ซิงก์ล่าสุด/i)).toBeNull();
     expect(screen.queryByText(/มาสเตอร์ชีตเต็ม/i)).toBeNull();
     expect(screen.getByText(/Revenue \(Avg\)/i)).toBeDefined();
     expect(screen.getByText(/Expenses \(Avg\)/i)).toBeDefined();
