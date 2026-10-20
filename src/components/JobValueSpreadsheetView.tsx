@@ -157,14 +157,13 @@ export function normalizeDeptString(d?: string): string {
 }
 
 function loadInitialYearlyStore(): Record<string, YearlyJobValueRecord[]> {
-  const defaults = buildDefaultYearlyDatabase();
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_JV_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") {
-          const result: Record<string, YearlyJobValueRecord[]> = { ...defaults };
+          const result: Record<string, YearlyJobValueRecord[]> = {};
           for (const k of Object.keys(parsed)) {
             result[k] = Array.isArray(parsed[k]) ? parsed[k] : [];
           }
@@ -175,7 +174,7 @@ function loadInitialYearlyStore(): Record<string, YearlyJobValueRecord[]> {
       // ignore
     }
   }
-  return defaults;
+  return buildDefaultYearlyDatabase();
 }
 
 interface SummaryRowItem {
@@ -275,21 +274,20 @@ export default function JobValueSpreadsheetView({
           const remoteKeys = Object.keys(remoteYears);
           if (remoteKeys.length > 0) {
             setYearlyStore((prev) => {
-              const merged = { ...prev, ...remoteYears };
-              if (typeof window !== "undefined") {
-                localStorage.setItem(LOCAL_STORAGE_JV_KEY, JSON.stringify(merged));
+              const updated = { ...prev };
+              for (const [k, v] of Object.entries(remoteYears)) {
+                updated[k] = Array.isArray(v) ? (v as YearlyJobValueRecord[]) : [];
               }
-              return merged;
+              if (typeof window !== "undefined") {
+                localStorage.setItem(LOCAL_STORAGE_JV_KEY, JSON.stringify(updated));
+              }
+              return updated;
             });
-            setLastD1SyncTime(
-              data.updatedAt
-                ? new Date(data.updatedAt).toLocaleTimeString("th-TH", { hour12: false })
-                : new Date().toLocaleTimeString("th-TH", { hour12: false })
-            );
-          } else {
-            // Seed initial 2568 & 2569 data into Cloudflare D1 automatically
-            const initialStore = loadInitialYearlyStore();
-            await persistYearToCloudflareD1(initialStore);
+            if (data.updatedAt) {
+              setLastD1SyncTime(
+                new Date(data.updatedAt).toLocaleTimeString("th-TH", { hour12: false })
+              );
+            }
           }
         }
       }
@@ -385,10 +383,46 @@ export default function JobValueSpreadsheetView({
 
     filteredData.forEach((d) => {
       const compRec = compareYearMap.get(d.empId) || compareYearMap.get(d.name?.trim());
-      const avgRev = Math.round(d.avgRevenue || 0);
-      const avgProf = Math.round(d.avgProfit || 0);
-      const avgCost = Math.round(d.avgCost !== undefined ? d.avgCost : avgRev - avgProf);
-      const profComp = Math.round(compRec?.avgProfit || 0);
+      
+      const mRevArr = d.monthlyRevenue || new Array(12).fill(0);
+      const mCostArr = d.monthlyCost || new Array(12).fill(0);
+
+      // Months with recorded activity
+      const activeMonths =
+        mRevArr.filter((rv, m) => (rv || 0) !== 0 || (mCostArr[m] || 0) !== 0).length || 12;
+
+      // Auto-compute average revenue, cost, and profit (No manual user entry required)
+      const avgRev = Math.round(
+        d.avgRevenue !== undefined && d.avgRevenue !== null && d.avgRevenue !== 0
+          ? d.avgRevenue
+          : mRevArr.reduce((a, b) => a + (b || 0), 0) / activeMonths
+      );
+      const avgCost = Math.round(
+        d.avgCost !== undefined && d.avgCost !== null && d.avgCost !== 0
+          ? d.avgCost
+          : mCostArr.reduce((a, b) => a + (b || 0), 0) / activeMonths
+      );
+      const avgProf = Math.round(avgRev - avgCost);
+
+      // Compare year profit (Auto-computed)
+      let profComp = 0;
+      if (compRec) {
+        const cRevArr = compRec.monthlyRevenue || new Array(12).fill(0);
+        const cCostArr = compRec.monthlyCost || new Array(12).fill(0);
+        const cActiveMonths =
+          cRevArr.filter((rv, m) => (rv || 0) !== 0 || (cCostArr[m] || 0) !== 0).length || 12;
+        const cAvgRev = Math.round(
+          compRec.avgRevenue !== undefined && compRec.avgRevenue !== null && compRec.avgRevenue !== 0
+            ? compRec.avgRevenue
+            : cRevArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+        );
+        const cAvgCost = Math.round(
+          compRec.avgCost !== undefined && compRec.avgCost !== null && compRec.avgCost !== 0
+            ? compRec.avgCost
+            : cCostArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+        );
+        profComp = Math.round(cAvgRev - cAvgCost);
+      }
 
       sumRev += avgRev;
       sumCost += avgCost;
@@ -396,14 +430,9 @@ export default function JobValueSpreadsheetView({
       sumProfitCompare += profComp;
 
       for (let m = 0; m < 12; m++) {
-        const revM = Math.round(d.monthlyRevenue?.[m] || 0);
-        const profM = Math.round(d.monthlyProfit?.[m] || 0);
-        const costM =
-          d.monthlyCost?.[m] !== undefined
-            ? Math.round(d.monthlyCost[m])
-            : revM === 0 && profM === 0
-            ? 0
-            : Math.round(revM - profM);
+        const revM = Math.round(mRevArr[m] || 0);
+        const costM = Math.round(mCostArr[m] || 0);
+        const profM = Math.round(revM - costM);
         mRev[m] = (mRev[m] || 0) + revM;
         mCost[m] = (mCost[m] || 0) + costM;
         mProfit[m] = (mProfit[m] || 0) + profM;
@@ -424,7 +453,7 @@ export default function JobValueSpreadsheetView({
           profit: 0,
           profitCompare: 0,
           count: 0,
-          status: isAllDepts ? "" : d.status,
+          status: "",
         };
       }
 
@@ -451,15 +480,9 @@ export default function JobValueSpreadsheetView({
 
     const summaryArray = Object.values(summaryMap)
       .map((item) => {
-        if (!item.status) {
-          const diffItem = item.profit - item.profitCompare;
-          item.status =
-            diffItem > 0 && item.profit > 0
-              ? "ต่อยอดกำไร"
-              : item.profit > 0
-              ? "มีกำไร"
-              : "เฝ้าระวัง";
-        }
+        // Dynamic comparison: กำไรปีปัจจุบัน > กำไรปีก่อนหน้า -> "ต่อยอด", ต่ำกว่าหรือเท่ากัน -> "ไม่ต่อยอด"
+        const isGrowth = item.profit > item.profitCompare;
+        item.status = isGrowth ? "ต่อยอด" : "ไม่ต่อยอด";
         return item;
       })
       .sort((a, b) => b.profit - a.profit);
@@ -481,29 +504,26 @@ export default function JobValueSpreadsheetView({
     };
   }, [currentYearRecords, compareYearMap, deptFilter, empFilter]);
 
-  // Overall status evaluation
+  // Overall status evaluation: ประเมินภาพรวม "ต่อยอด" หากผลงาน (กำไร) สูงกว่าปีก่อนหน้า, "ไม่ต่อยอด" หากต่ำกว่าหรือเท่ากัน
   const statusEvaluation = useMemo(() => {
     let statusText = "ไม่มีข้อมูล";
     if (processedData.empCount === 0) {
       statusText = "ยังไม่มีข้อมูลปีนี้";
-    } else if (processedData.viewMode === "PERSON" && processedData.summaryData.length > 0) {
-      const empStatus = processedData.summaryData[0].status;
-      statusText = empStatus || (processedData.totalProfit > 0 ? "ต่อยอดกำไรได้" : "ต้องปรับปรุง");
     } else {
-      if (processedData.totalProfit > 0) statusText = "ภาพรวมมีกำไร";
-      else if (processedData.totalProfit < 0) statusText = "ภาพรวมขาดทุน";
-      else statusText = "เท่าทุน";
+      const isGrowth = processedData.totalProfit > processedData.totalProfitCompare;
+      statusText = isGrowth ? "ต่อยอด" : "ไม่ต่อยอด";
     }
 
     const isNegative =
+      statusText === "ไม่ต่อยอด" ||
       statusText.includes("ขาดทุน") ||
       statusText.includes("ไม่") ||
       statusText.includes("ปรับปรุง") ||
       statusText.includes("เฝ้าระวัง") ||
       statusText.includes("ยังไม่มี");
     const isPositive =
-      !isNegative &&
-      (statusText.includes("กำไร") || statusText.includes("ต่อยอด") || statusText.includes("Pass"));
+      statusText === "ต่อยอด" ||
+      (!isNegative && (statusText.includes("กำไร") || statusText.includes("ต่อยอด") || statusText.includes("Pass")));
 
     return { statusText, isNegative, isPositive };
   }, [processedData]);
@@ -533,6 +553,7 @@ export default function JobValueSpreadsheetView({
   };
 
   // Download Single-Year CSV Template for easy per-year upload
+  // ไม่ต้องมีคอลัมน์ค่าเฉลี่ยหรือสถานะ ให้ระบบคำนวณอัตโนมัติเอง
   const handleDownloadYearlyTemplate = (yearToDownload: string) => {
     const existingForYear = yearlyStore[yearToDownload] || yearlyStore["2569"] || [];
     const headers = [
@@ -542,10 +563,7 @@ export default function JobValueSpreadsheetView({
       "กลุ่มสายงาน",
       "ตำแหน่ง",
       ...SHORT_MONTH_LABELS.map((m) => `รายได้_${m}`),
-      ...SHORT_MONTH_LABELS.map((m) => `กำไร_${m}`),
-      "รายได้เฉลี่ย",
-      "กำไรเฉลี่ย",
-      "สถานะ",
+      ...SHORT_MONTH_LABELS.map((m) => `ต้นทุน_${m}`),
     ];
 
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
@@ -557,10 +575,7 @@ export default function JobValueSpreadsheetView({
         `"${r.group}"`,
         `"${r.role}"`,
         ...(r.monthlyRevenue || new Array(12).fill(0)).map((v) => Math.round(v || 0)),
-        ...(r.monthlyProfit || new Array(12).fill(0)).map((v) => Math.round(v || 0)),
-        Math.round(r.avgRevenue || 0),
-        Math.round(r.avgProfit || 0),
-        `"${r.status || "กำไรต่อยอด"}"`,
+        ...(r.monthlyCost || new Array(12).fill(0)).map((v) => Math.round(v || 0)),
       ];
       csvContent += row.join(",") + "\n";
     });
@@ -591,7 +606,7 @@ export default function JobValueSpreadsheetView({
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
 
     processedData.summaryData.forEach((item, idx) => {
-      const displayStatus = item.status || (item.profit > 0 ? "ต่อยอดกำไร" : "เฝ้าระวัง");
+      const displayStatus = item.status;
       const row = [
         idx + 1,
         `"${item.name.replace(/"/g, '""')}"`,
@@ -640,10 +655,16 @@ export default function JobValueSpreadsheetView({
         const headerRow0 = (sheetData[0] || []).map((c) => String(c || "").trim());
         const isSingleYearTemplate =
           headerRow0.includes("รหัสพนักงาน") &&
-          (headerRow0.some((h) => h.startsWith("รายได้_")) || headerRow0.includes("รายได้เฉลี่ย"));
+          (headerRow0.some((h) => h.startsWith("รายได้_")) ||
+            headerRow0.some((h) => h.startsWith("ต้นทุน_")) ||
+            headerRow0.some((h) => h.startsWith("กำไร_")) ||
+            headerRow0.includes("รายได้เฉลี่ย"));
 
         if (isSingleYearTemplate) {
           const parsedSingleYear: YearlyJobValueRecord[] = [];
+          const col17Header = headerRow0[17] || "";
+          const isCostCol = col17Header.includes("ต้นทุน");
+
           for (let r = 1; r < sheetData.length; r++) {
             const row = sheetData[r];
             if (!row || !row[0]) continue;
@@ -654,24 +675,31 @@ export default function JobValueSpreadsheetView({
             const role = String(row[4] || "Operator").trim();
 
             const mRev: number[] = [];
+            const mCost: number[] = [];
             const mProf: number[] = [];
-            for (let m = 0; m < 12; m++) mRev.push(Math.round(Number(row[5 + m]) || 0));
-            for (let m = 0; m < 12; m++) mProf.push(Math.round(Number(row[17 + m]) || 0));
-            const mCost = mRev.map((rv, idx) =>
-              rv === 0 && mProf[idx] === 0 ? 0 : Math.round(rv - mProf[idx])
-            );
 
-            const activeMonths = mRev.filter((rv, idx) => rv !== 0 || mProf[idx] !== 0).length || 12;
-            const avgRev =
-              row[29] !== undefined && row[29] !== ""
-                ? Math.round(Number(row[29]) || 0)
-                : Math.round(mRev.reduce((a, b) => a + b, 0) / activeMonths);
-            const avgProf =
-              row[30] !== undefined && row[30] !== ""
-                ? Math.round(Number(row[30]) || 0)
-                : Math.round(mProf.reduce((a, b) => a + b, 0) / activeMonths);
-            const avgCost = Math.round(avgRev - avgProf);
-            const status = String(row[31] || (avgProf > 0 ? "กำไรต่อยอด" : "ไม่ต่อยอด")).trim();
+            for (let m = 0; m < 12; m++) {
+              mRev.push(Math.round(Number(row[5 + m]) || 0));
+            }
+
+            for (let m = 0; m < 12; m++) {
+              const val17 = Math.round(Number(row[17 + m]) || 0);
+              if (isCostCol) {
+                mCost.push(val17);
+                mProf.push(Math.round(mRev[m] - val17));
+              } else {
+                mProf.push(val17);
+                mCost.push(mRev[m] === 0 && val17 === 0 ? 0 : Math.round(mRev[m] - val17));
+              }
+            }
+
+            // ระบบคำนวณค่าเฉลี่ยอัตโนมัติเองทั้งหมด ไม่ต้องให้ผู้ใช้กรอก
+            const activeMonths =
+              mRev.filter((rv, idx) => rv !== 0 || mCost[idx] !== 0).length || 12;
+            const avgRev = Math.round(mRev.reduce((a, b) => a + b, 0) / activeMonths);
+            const avgCost = Math.round(mCost.reduce((a, b) => a + b, 0) / activeMonths);
+            const avgProf = Math.round(avgRev - avgCost);
+            const status = avgProf > 0 ? "ต่อยอด" : "ไม่ต่อยอด";
 
             parsedSingleYear.push({
               empId,
@@ -1298,16 +1326,27 @@ export default function JobValueSpreadsheetView({
             </select>
           </div>
 
-          {/* Reset Filters Button */}
-          <div className="lg:col-span-2 flex justify-end">
+          {/* Action Buttons: Reset Filters & Delete Year Data */}
+          <div className="lg:col-span-2 flex flex-col gap-1.5 justify-end">
             <button
               type="button"
               onClick={handleResetFilters}
-              className="w-full px-4 py-2.5 bg-white hover:bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full px-3 py-2 bg-white hover:bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <RotateCcw className="w-4 h-4 text-[#475569]" />
+              <RotateCcw className="w-3.5 h-3.5 text-[#475569]" />
               <span>ล้างค่า</span>
             </button>
+            {canManageD1Upload && currentYearRecords.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleDeleteYearData(selectedYear)}
+                className="w-full px-3 py-2 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#BE123C] border border-[#FDA4AF] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                title={`ลบข้อมูลปี ${selectedYear} ให้กลายเป็น 0`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>ลบข้อมูลปี {selectedYear} (เคลียร์เป็น 0)</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
