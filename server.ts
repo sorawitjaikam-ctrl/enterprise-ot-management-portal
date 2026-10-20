@@ -1954,7 +1954,7 @@ ${deptsData.map((d: any) => `- **${d.nameTh || d.name}**: ผู้ดูแล 
 });
 
 // ============================================================
-// Realtime Global Tab Visibility (01-08)
+// Realtime Global & Per-User Tab Visibility (01-08: open | coming_soon | hidden)
 // ============================================================
 let memoryTabVisibility = {
   restrictNonAdmin: true,
@@ -1968,6 +1968,17 @@ let memoryTabVisibility = {
     "leave-records": false,
     "ot-records": false,
   } as Record<string, boolean>,
+  globalTabModes: {
+    dashboard: "coming_soon",
+    reports: "coming_soon",
+    shifts: "coming_soon",
+    job_value: "open",
+    employees: "coming_soon",
+    manpower: "coming_soon",
+    "leave-records": "coming_soon",
+    "ot-records": "coming_soon",
+  } as Record<string, string>,
+  userTabOverrides: {} as Record<string, Record<string, string>>,
   updatedBy: "system",
   updatedAt: "2026-10-20T00:00:00.000Z",
 };
@@ -1982,6 +1993,8 @@ app.get("/api/tab-visibility", async (_req, res) => {
         return res.json({
           restrictNonAdmin: parsed.restrictNonAdmin ?? true,
           enabledTabs: { ...memoryTabVisibility.enabledTabs, ...(parsed.enabledTabs || {}) },
+          globalTabModes: { ...memoryTabVisibility.globalTabModes, ...(parsed.globalTabModes || {}) },
+          userTabOverrides: parsed.userTabOverrides || {},
           updatedBy: parsed.updatedBy || "admin",
           updatedAt: rows[0].updatedAt || parsed.updatedAt || memoryTabVisibility.updatedAt,
         });
@@ -1999,6 +2012,8 @@ app.post("/api/tab-visibility", async (req, res) => {
     const payload = {
       restrictNonAdmin: body.restrictNonAdmin !== undefined ? Boolean(body.restrictNonAdmin) : true,
       enabledTabs: { ...memoryTabVisibility.enabledTabs, ...(body.enabledTabs || {}) },
+      globalTabModes: { ...memoryTabVisibility.globalTabModes, ...(body.globalTabModes || {}) },
+      userTabOverrides: body.userTabOverrides && typeof body.userTabOverrides === "object" ? body.userTabOverrides : memoryTabVisibility.userTabOverrides,
       updatedBy: body.updatedBy || "admin",
       updatedAt: new Date().toISOString(),
     };

@@ -76,7 +76,17 @@ import {
 import loginBg from "./assets/login-bg.jpg";
 import Sidebar from "./components/Sidebar";
 import MasterDataSettings from "./components/MasterDataSettings";
-import Navbar, { isStrictHrOrAdmin, DEFAULT_ENABLED_TABS, getStoredEnabledTabs, OPERATIONAL_TABS_META } from "./components/Navbar";
+import Navbar, {
+  isStrictHrOrAdmin,
+  DEFAULT_ENABLED_TABS,
+  DEFAULT_GLOBAL_TAB_MODES,
+  getStoredEnabledTabs,
+  getStoredGlobalTabModes,
+  getStoredUserTabOverrides,
+  resolveTabAccessMode,
+  OPERATIONAL_TABS_META,
+  TabAccessMode,
+} from "./components/Navbar";
 import ManpowerDashboard from "./components/ManpowerDashboard";
 import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
 import DataLineageHubView, { RealtimeTabVisibilityPanel } from "./components/DataLineageHubView";
@@ -3019,21 +3029,36 @@ export default function App() {
     return true;
   });
   const [enabledTabs, setEnabledTabs] = useState<Record<string, boolean>>(() => getStoredEnabledTabs());
+  const [globalTabModes, setGlobalTabModes] = useState<Record<string, TabAccessMode>>(() => getStoredGlobalTabModes());
+  const [userTabOverrides, setUserTabOverrides] = useState<Record<string, Record<string, TabAccessMode>>>(() =>
+    getStoredUserTabOverrides()
+  );
+  const [selectedVisibilityTargetUser, setSelectedVisibilityTargetUser] = useState<string>("__GLOBAL__");
   const [lastRealtimeSync, setLastRealtimeSync] = useState<string>("");
 
   const persistAndBroadcastTabVisibility = async (
     nextRestrict: boolean,
-    nextTabs: Record<string, boolean>
+    nextTabs: Record<string, boolean>,
+    nextGlobalModes: Record<string, TabAccessMode> = globalTabModes,
+    nextUserOverrides: Record<string, Record<string, TabAccessMode>> = userTabOverrides
   ) => {
     const nowTime = new Date().toLocaleTimeString("th-TH", { hour12: false });
     setLastRealtimeSync(nowTime);
     if (typeof window !== "undefined") {
       localStorage.setItem("restrictToJvOnly", nextRestrict ? "true" : "false");
       localStorage.setItem("enabledTabsConfig", JSON.stringify(nextTabs));
+      localStorage.setItem("globalTabModesConfig", JSON.stringify(nextGlobalModes));
+      localStorage.setItem("userTabOverridesConfig", JSON.stringify(nextUserOverrides));
       try {
         if ("BroadcastChannel" in window) {
           const bc = new BroadcastChannel("portal_tab_visibility");
-          bc.postMessage({ restrictNonAdmin: nextRestrict, enabledTabs: nextTabs, updatedAt: nowTime });
+          bc.postMessage({
+            restrictNonAdmin: nextRestrict,
+            enabledTabs: nextTabs,
+            globalTabModes: nextGlobalModes,
+            userTabOverrides: nextUserOverrides,
+            updatedAt: nowTime,
+          });
           bc.close();
         }
       } catch {
@@ -3047,6 +3072,8 @@ export default function App() {
         body: JSON.stringify({
           restrictNonAdmin: nextRestrict,
           enabledTabs: nextTabs,
+          globalTabModes: nextGlobalModes,
+          userTabOverrides: nextUserOverrides,
           updatedBy: currentUser?.username || "admin",
         }),
       });
@@ -3057,35 +3084,104 @@ export default function App() {
 
   const handleToggleRestrictToJvOnly = (nextVal: boolean) => {
     setRestrictToJvOnly(nextVal);
-    persistAndBroadcastTabVisibility(nextVal, enabledTabs);
+    persistAndBroadcastTabVisibility(nextVal, enabledTabs, globalTabModes, userTabOverrides);
   };
 
   const handleToggleTabVisibility = (tabId: string, nextVal: boolean) => {
     const nextTabs = { ...enabledTabs, [tabId]: nextVal };
-    // Ensure at least 1 tab remains open if all are turned off
+    const nextGlobalModes: Record<string, TabAccessMode> = {
+      ...globalTabModes,
+      [tabId]: nextVal ? "open" : "coming_soon",
+    };
     const anyOpen = Object.values(nextTabs).some(Boolean);
     if (!anyOpen) {
       nextTabs.job_value = true;
+      nextGlobalModes.job_value = "open";
     }
     setRestrictToJvOnly(true);
     setEnabledTabs(nextTabs);
-    persistAndBroadcastTabVisibility(true, nextTabs);
+    setGlobalTabModes(nextGlobalModes);
+    persistAndBroadcastTabVisibility(true, nextTabs, nextGlobalModes, userTabOverrides);
   };
 
-  const handleSetTabPreset = (preset: "jv_only" | "open_all") => {
-    if (preset === "jv_only") {
-      const nextTabs = { ...DEFAULT_ENABLED_TABS, job_value: true };
-      setRestrictToJvOnly(true);
-      setEnabledTabs(nextTabs);
-      persistAndBroadcastTabVisibility(true, nextTabs);
-    } else {
+  const handleSetTabMode = (targetUser: string, tabId: string, mode: TabAccessMode) => {
+    if (!targetUser || targetUser === "__GLOBAL__") {
+      const nextGlobalModes: Record<string, TabAccessMode> = {
+        ...globalTabModes,
+        [tabId]: mode,
+      };
+      // Ensure at least 1 tab remains open globally
+      const anyOpen = OPERATIONAL_TABS_META.some((t) => nextGlobalModes[t.id] === "open");
+      if (!anyOpen) {
+        nextGlobalModes.job_value = "open";
+      }
       const nextTabs: Record<string, boolean> = {};
       OPERATIONAL_TABS_META.forEach((t) => {
-        nextTabs[t.id] = true;
+        nextTabs[t.id] = nextGlobalModes[t.id] === "open";
       });
-      setRestrictToJvOnly(false);
+      setRestrictToJvOnly(true);
       setEnabledTabs(nextTabs);
-      persistAndBroadcastTabVisibility(false, nextTabs);
+      setGlobalTabModes(nextGlobalModes);
+      persistAndBroadcastTabVisibility(true, nextTabs, nextGlobalModes, userTabOverrides);
+    } else {
+      const existingForUser = userTabOverrides[targetUser] || {};
+      const nextForUser: Record<string, TabAccessMode> = {
+        ...existingForUser,
+        [tabId]: mode,
+      };
+      // Ensure user has at least 1 open tab
+      const anyOpenForUser = OPERATIONAL_TABS_META.some((t) => {
+        const m = nextForUser[t.id] ?? globalTabModes[t.id] ?? "coming_soon";
+        return m === "open";
+      });
+      if (!anyOpenForUser) {
+        nextForUser.job_value = "open";
+      }
+      const nextUserOverrides = {
+        ...userTabOverrides,
+        [targetUser]: nextForUser,
+      };
+      setUserTabOverrides(nextUserOverrides);
+      persistAndBroadcastTabVisibility(restrictToJvOnly, enabledTabs, globalTabModes, nextUserOverrides);
+    }
+  };
+
+  const handleClearUserOverride = (username: string) => {
+    const nextUserOverrides = { ...userTabOverrides };
+    delete nextUserOverrides[username];
+    setUserTabOverrides(nextUserOverrides);
+    persistAndBroadcastTabVisibility(restrictToJvOnly, enabledTabs, globalTabModes, nextUserOverrides);
+  };
+
+  const handleSetTabPreset = (preset: "jv_only" | "jv_only_hidden" | "open_all", targetUser: string = "__GLOBAL__") => {
+    const targetModes: Record<string, TabAccessMode> = {};
+    OPERATIONAL_TABS_META.forEach((t) => {
+      if (preset === "open_all") {
+        targetModes[t.id] = "open";
+      } else if (preset === "jv_only_hidden") {
+        targetModes[t.id] = t.id === "job_value" ? "open" : "hidden";
+      } else {
+        targetModes[t.id] = t.id === "job_value" ? "open" : "coming_soon";
+      }
+    });
+
+    if (!targetUser || targetUser === "__GLOBAL__") {
+      const nextTabs: Record<string, boolean> = {};
+      OPERATIONAL_TABS_META.forEach((t) => {
+        nextTabs[t.id] = targetModes[t.id] === "open";
+      });
+      const nextRestrict = preset !== "open_all";
+      setRestrictToJvOnly(nextRestrict);
+      setEnabledTabs(nextTabs);
+      setGlobalTabModes(targetModes);
+      persistAndBroadcastTabVisibility(nextRestrict, nextTabs, targetModes, userTabOverrides);
+    } else {
+      const nextUserOverrides = {
+        ...userTabOverrides,
+        [targetUser]: targetModes,
+      };
+      setUserTabOverrides(nextUserOverrides);
+      persistAndBroadcastTabVisibility(restrictToJvOnly, enabledTabs, globalTabModes, nextUserOverrides);
     }
   };
 
@@ -3107,6 +3203,15 @@ export default function App() {
           setEnabledTabs(merged);
           localStorage.setItem("enabledTabsConfig", JSON.stringify(merged));
         }
+        if (data.globalTabModes && typeof data.globalTabModes === "object") {
+          const mergedModes = { ...DEFAULT_GLOBAL_TAB_MODES, ...data.globalTabModes };
+          setGlobalTabModes(mergedModes);
+          localStorage.setItem("globalTabModesConfig", JSON.stringify(mergedModes));
+        }
+        if (data.userTabOverrides && typeof data.userTabOverrides === "object") {
+          setUserTabOverrides(data.userTabOverrides);
+          localStorage.setItem("userTabOverridesConfig", JSON.stringify(data.userTabOverrides));
+        }
       } catch {
         // ignore network errors during background poll
       }
@@ -3127,6 +3232,12 @@ export default function App() {
           if (ev.data.enabledTabs) {
             setEnabledTabs({ ...DEFAULT_ENABLED_TABS, ...ev.data.enabledTabs });
           }
+          if (ev.data.globalTabModes) {
+            setGlobalTabModes({ ...DEFAULT_GLOBAL_TAB_MODES, ...ev.data.globalTabModes });
+          }
+          if (ev.data.userTabOverrides) {
+            setUserTabOverrides(ev.data.userTabOverrides);
+          }
           if (ev.data.updatedAt) {
             setLastRealtimeSync(ev.data.updatedAt);
           }
@@ -3145,14 +3256,26 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const initialTab = getInitialTabFromUrl();
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("restrictToJvOnly") !== "false" &&
-      !isStrictHrOrAdmin(currentUser?.role)
-    ) {
+    if (typeof window !== "undefined") {
+      const storedGlobal = getStoredGlobalTabModes();
+      const storedOverrides = getStoredUserTabOverrides();
+      const storedRestrict = localStorage.getItem("restrictToJvOnly") !== "false";
       const storedTabs = getStoredEnabledTabs();
-      if (!storedTabs[initialTab]) {
-        const firstAllowed = OPERATIONAL_TABS_META.find((t) => storedTabs[t.id])?.id || "job_value";
+      const mode = resolveTabAccessMode(
+        initialTab,
+        currentUser,
+        storedRestrict,
+        storedTabs,
+        storedGlobal,
+        storedOverrides
+      );
+      if (mode !== "open" && initialTab !== "profile") {
+        const firstAllowed =
+          OPERATIONAL_TABS_META.find(
+            (t) =>
+              resolveTabAccessMode(t.id, currentUser, storedRestrict, storedTabs, storedGlobal, storedOverrides) ===
+              "open"
+          )?.id || "job_value";
         return firstAllowed;
       }
     }
@@ -3160,20 +3283,28 @@ export default function App() {
   });
   useUrlRouting(activeTab, setActiveTab);
 
-  // Enforce Realtime Tab Visibility for non-HR/Admin users whenever user or allowed tabs change
+  // Enforce Realtime Tab Visibility (Global + Per-Person) whenever user or allowed tabs change
   useEffect(() => {
-    if (
-      restrictToJvOnly &&
-      !isStrictHrOrAdmin(currentUser?.role) &&
-      activeTab !== "profile"
-    ) {
-      const normalizedActive = activeTab === "jobValue" ? "job_value" : activeTab;
-      if (!enabledTabs[normalizedActive]) {
-        const firstAllowed = OPERATIONAL_TABS_META.find((t) => enabledTabs[t.id])?.id || "job_value";
+    if (activeTab !== "profile") {
+      const currentMode = resolveTabAccessMode(
+        activeTab,
+        currentUser,
+        restrictToJvOnly,
+        enabledTabs,
+        globalTabModes,
+        userTabOverrides
+      );
+      if (currentMode !== "open") {
+        const firstAllowed =
+          OPERATIONAL_TABS_META.find(
+            (t) =>
+              resolveTabAccessMode(t.id, currentUser, restrictToJvOnly, enabledTabs, globalTabModes, userTabOverrides) ===
+              "open"
+          )?.id || "job_value";
         setActiveTab(firstAllowed);
       }
     }
-  }, [restrictToJvOnly, enabledTabs, currentUser, activeTab]);
+  }, [restrictToJvOnly, enabledTabs, globalTabModes, userTabOverrides, currentUser, activeTab]);
 
   // Executive Mode vs Operational Mode State (Requirement R1)
   const [dashboardMode, setDashboardMode] = useState<"executive" | "operational">(() => {
@@ -6762,6 +6893,8 @@ export default function App() {
           onOpenCsvTemplateHub={() => setIsCsvTemplateHubOpen(true)}
           restrictToJvOnly={restrictToJvOnly}
           enabledTabs={enabledTabs}
+          globalTabModes={globalTabModes}
+          userTabOverrides={userTabOverrides}
         />
       )}
 
@@ -11110,8 +11243,15 @@ export default function App() {
               onReconcileAll={(updatedState) => setState(updatedState)}
               restrictToJvOnly={restrictToJvOnly}
               enabledTabs={enabledTabs}
+              globalTabModes={globalTabModes}
+              userTabOverrides={userTabOverrides}
+              accounts={accounts}
+              selectedTargetUser={selectedVisibilityTargetUser}
+              onSelectTargetUser={setSelectedVisibilityTargetUser}
               onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
               onToggleTabVisibility={handleToggleTabVisibility}
+              onSetTabMode={handleSetTabMode}
+              onClearUserOverride={handleClearUserOverride}
               onSetTabPreset={handleSetTabPreset}
               lastRealtimeSync={lastRealtimeSync}
             />
@@ -11134,8 +11274,15 @@ export default function App() {
                 onReconcileAll={(updatedState) => setState(updatedState)}
                 restrictToJvOnly={restrictToJvOnly}
                 enabledTabs={enabledTabs}
+                globalTabModes={globalTabModes}
+                userTabOverrides={userTabOverrides}
+                accounts={accounts}
+                selectedTargetUser={selectedVisibilityTargetUser}
+                onSelectTargetUser={setSelectedVisibilityTargetUser}
                 onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
                 onToggleTabVisibility={handleToggleTabVisibility}
+                onSetTabMode={handleSetTabMode}
+                onClearUserOverride={handleClearUserOverride}
                 onSetTabPreset={handleSetTabPreset}
                 lastRealtimeSync={lastRealtimeSync}
               />
@@ -11393,15 +11540,24 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Realtime Global Tab Visibility Control Matrix (01-08) */}
-              <RealtimeTabVisibilityPanel
-                restrictToJvOnly={restrictToJvOnly}
-                enabledTabs={enabledTabs}
-                onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
-                onToggleTabVisibility={handleToggleTabVisibility}
-                onSetPreset={handleSetTabPreset}
-                lastRealtimeSync={lastRealtimeSync}
-              />
+              {/* Realtime Global & Per-User Tab Visibility Control Matrix (01-08) */}
+              <div id="realtime-tab-visibility-panel-anchor">
+                <RealtimeTabVisibilityPanel
+                  restrictToJvOnly={restrictToJvOnly}
+                  enabledTabs={enabledTabs}
+                  globalTabModes={globalTabModes}
+                  userTabOverrides={userTabOverrides}
+                  accounts={accounts}
+                  selectedTargetUser={selectedVisibilityTargetUser}
+                  onSelectTargetUser={setSelectedVisibilityTargetUser}
+                  onToggleRestrictToJvOnly={handleToggleRestrictToJvOnly}
+                  onToggleTabVisibility={handleToggleTabVisibility}
+                  onSetTabMode={handleSetTabMode}
+                  onClearUserOverride={handleClearUserOverride}
+                  onSetPreset={handleSetTabPreset}
+                  lastRealtimeSync={lastRealtimeSync}
+                />
+              </div>
 
               <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
                 <div className="overflow-x-auto no-scrollbar touch-pan-x rounded-2xl border border-slate-100 divide-y divide-slate-100 w-full max-w-full min-w-0">
@@ -11415,84 +11571,121 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#DCE4EA]">
-                      {accounts.map((acc) => (
-                        <tr key={acc.username} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-4 flex items-center gap-3">
-                            <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
-                            <div>
-                              <div className="font-bold text-slate-800">{acc.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <select 
-                              value={
-                                ["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)
-                                  ? "Admin"
-                                  : ["Co-admin", "Co-Admin", "co_admin", "ผู้ช่วยดูแลระบบ"].includes(acc.role)
-                                  ? "Co-admin"
-                                  : "User"
-                              }
-                              onChange={(e) => {
-                                const nextRole = e.target.value;
-                                const nextDept = nextRole === "Admin" ? "all" : acc.deptId;
-                                handleUpdateAccountPermission(acc.username, nextRole, nextDept);
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-bold"
-                            >
-                              <option value="Admin">Admin</option>
-                              <option value="Co-admin">Co-admin</option>
-                              <option value="User">User</option>
-                            </select>
-                          </td>
-                          <td className="p-4">
-                            <select
-                              disabled={["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)}
-                              value={acc.deptId}
-                              onChange={(e) => {
-                                handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
-                            >
-                              <option value="all">ทุกแผนก (All)</option>
-                              {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
-                          </td>
-                          <td className="p-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditAccountOriginalUsername(acc.username);
-                                  setEditAccountUsername(acc.username);
-                                  setEditAccountName(acc.name);
-                                  setEditAccountRole(acc.role);
-                                  setEditAccountDeptId(acc.deptId);
-                                  setEditAccountAvatar(acc.avatar || "");
-                                  setEditAccountCanBackup(acc.canBackup === 1);
-                                  setShowEditAccountModal(true);
+                      {accounts.map((acc) => {
+                        const hasCustomVisibility =
+                          Boolean(userTabOverrides[acc.username]) &&
+                          Object.keys(userTabOverrides[acc.username] || {}).length > 0;
+                        return (
+                          <tr
+                            key={acc.username}
+                            className={`transition-colors ${
+                              selectedVisibilityTargetUser === acc.username
+                                ? "bg-[#E8F3FA]/50"
+                                : "hover:bg-slate-50/50"
+                            }`}
+                          >
+                            <td className="p-4 flex items-center gap-3">
+                              <EmployeeAvatar empId={acc.username} empName={acc.name} avatarUrl={acc.avatar} className="w-8 h-8 flex-shrink-0" />
+                              <div>
+                                <div className="font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                                  <span>{acc.name}</span>
+                                  {hasCustomVisibility && (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#0E3A66]/30 text-[9px] font-bold">
+                                      ตั้งค่ารายคนแล้ว
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">{acc.username}</div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <select 
+                                value={
+                                  ["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)
+                                    ? "Admin"
+                                    : ["Co-admin", "Co-Admin", "co_admin", "ผู้ช่วยดูแลระบบ"].includes(acc.role)
+                                    ? "Co-admin"
+                                    : "User"
+                                }
+                                onChange={(e) => {
+                                  const nextRole = e.target.value;
+                                  const nextDept = nextRole === "Admin" ? "all" : acc.deptId;
+                                  handleUpdateAccountPermission(acc.username, nextRole, nextDept);
                                 }}
-                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer flex items-center gap-1"
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-bold"
                               >
-                                <Edit2 className="w-3 h-3 text-amber-600" />
-                                <span>แก้ไขข้อมูล</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setResetTargetUsername(acc.username);
-                                  setNewResetPassword("");
-                                  setShowResetPasswordModal(true);
+                                <option value="Admin">Admin</option>
+                                <option value="Co-admin">Co-admin</option>
+                                <option value="User">User</option>
+                              </select>
+                            </td>
+                            <td className="p-4">
+                              <select
+                                disabled={["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)}
+                                value={acc.deptId}
+                                onChange={(e) => {
+                                  handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
                                 }}
-                                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer flex items-center gap-1"
+                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
                               >
-                                <Key className="w-3 h-3 text-blue-600" />
-                                <span>รีเซ็ตรหัสผ่าน</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                <option value="all">ทุกแผนก (All)</option>
+                                {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                              </select>
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="flex flex-wrap items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedVisibilityTargetUser(acc.username);
+                                    const panelEl = document.getElementById("realtime-tab-visibility-panel-anchor");
+                                    if (panelEl && typeof panelEl.scrollIntoView === "function") {
+                                      panelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 border ${
+                                    selectedVisibilityTargetUser === acc.username
+                                      ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                                      : "bg-[#F8FAFC] hover:bg-[#E8F3FA] text-[#0E3A66] border-[#DCE4EA]"
+                                  }`}
+                                >
+                                  <ShieldCheck className="w-3 h-3" />
+                                  <span>กำหนดหน้าที่เห็น (รายคน)</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditAccountOriginalUsername(acc.username);
+                                    setEditAccountUsername(acc.username);
+                                    setEditAccountName(acc.name);
+                                    setEditAccountRole(acc.role);
+                                    setEditAccountDeptId(acc.deptId);
+                                    setEditAccountAvatar(acc.avatar || "");
+                                    setEditAccountCanBackup(acc.canBackup === 1);
+                                    setShowEditAccountModal(true);
+                                  }}
+                                  className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-700 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Edit2 className="w-3 h-3 text-amber-600" />
+                                  <span>แก้ไขข้อมูล</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResetTargetUsername(acc.username);
+                                    setNewResetPassword("");
+                                    setShowResetPasswordModal(true);
+                                  }}
+                                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-bold text-blue-700 transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  <Key className="w-3 h-3 text-blue-600" />
+                                  <span>รีเซ็ตรหัสผ่าน</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
