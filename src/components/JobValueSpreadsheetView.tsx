@@ -139,17 +139,17 @@ export function buildDefaultYearlyDatabase(
 
 const LOCAL_STORAGE_JV_KEY = "cloudflare_d1_job_value_years_v1";
 
-export const isCoAdminOrAdmin = (role?: string): boolean => {
+export const isStrictlyCoAdmin = (role?: string): boolean => {
   const normalized = (role || "").trim().toLowerCase();
   return (
     normalized === "co-admin" ||
     normalized === "co_admin" ||
     normalized === "coadmin" ||
-    normalized === "ผู้ช่วยดูแลระบบ" ||
-    normalized === "admin" ||
-    normalized === "ผู้ดูแลระบบ"
+    normalized === "ผู้ช่วยดูแลระบบ"
   );
 };
+
+export const isCoAdminOrAdmin = isStrictlyCoAdmin;
 
 export function normalizeDeptString(d?: string): string {
   if (!d) return "";
