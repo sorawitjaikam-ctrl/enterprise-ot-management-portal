@@ -1535,6 +1535,84 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // Realtime Global Tab Visibility (01-08) via Cloudflare D1 system_settings
+    if (path === "/api/tab-visibility" && request.method === "GET") {
+      const defaultVisibility = {
+        restrictNonAdmin: true,
+        enabledTabs: {
+          dashboard: false,
+          reports: false,
+          shifts: false,
+          job_value: true,
+          employees: false,
+          manpower: false,
+          "leave-records": false,
+          "ot-records": false,
+        },
+        updatedBy: "system",
+        updatedAt: "2026-10-20T00:00:00.000Z",
+      };
+
+      if (db) {
+        try {
+          await db.prepare("CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT, updatedAt TEXT)").run();
+          const row: any = await db.prepare("SELECT value, updatedAt FROM system_settings WHERE key = 'tab_visibility'").first();
+          if (row && row.value) {
+            const parsed = JSON.parse(row.value);
+            return Response.json(
+              {
+                restrictNonAdmin: parsed.restrictNonAdmin ?? true,
+                enabledTabs: { ...defaultVisibility.enabledTabs, ...(parsed.enabledTabs || {}) },
+                updatedBy: parsed.updatedBy || "admin",
+                updatedAt: row.updatedAt || parsed.updatedAt || defaultVisibility.updatedAt,
+              },
+              { headers: corsHeaders }
+            );
+          }
+        } catch (e) {
+          console.error("D1 GET tab_visibility error:", e);
+        }
+      }
+
+      return Response.json(defaultVisibility, { headers: corsHeaders });
+    }
+
+    if (path === "/api/tab-visibility" && request.method === "POST") {
+      const body: any = await getBody();
+      const defaultTabs = {
+        dashboard: false,
+        reports: false,
+        shifts: false,
+        job_value: true,
+        employees: false,
+        manpower: false,
+        "leave-records": false,
+        "ot-records": false,
+      };
+      const payload = {
+        restrictNonAdmin: body.restrictNonAdmin !== undefined ? Boolean(body.restrictNonAdmin) : true,
+        enabledTabs: { ...defaultTabs, ...(body.enabledTabs || {}) },
+        updatedBy: body.updatedBy || "admin",
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (db) {
+        try {
+          await db.prepare("CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT, updatedAt TEXT)").run();
+          await db
+            .prepare(
+              "INSERT INTO system_settings (key, value, updatedAt) VALUES ('tab_visibility', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt"
+            )
+            .bind(JSON.stringify(payload), payload.updatedAt)
+            .run();
+        } catch (e) {
+          console.error("D1 POST tab_visibility error:", e);
+        }
+      }
+
+      return Response.json({ status: "ok", tabVisibility: payload }, { headers: corsHeaders });
+    }
+
     // Default 404 response for unhandled API paths
     return Response.json({ error: "Endpoint not found" }, { status: 404, headers: corsHeaders });
 

@@ -15,8 +15,7 @@ import {
   BarChart3,
   ShieldCheck,
   Settings,
-  Building2,
-  Lock
+  Building2
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
@@ -35,6 +34,42 @@ export const isStrictHrOrAdmin = (role?: string): boolean => {
   ].includes(normalized);
 };
 
+export const DEFAULT_ENABLED_TABS: Record<string, boolean> = {
+  dashboard: false,
+  reports: false,
+  shifts: false,
+  job_value: true,
+  employees: false,
+  manpower: false,
+  "leave-records": false,
+  "ot-records": false,
+};
+
+export const OPERATIONAL_TABS_META = [
+  { id: "dashboard", num: "01", label: "ภาพรวม Dashboard" },
+  { id: "reports", num: "02", label: "รายงานรายแผนก" },
+  { id: "shifts", num: "03", label: "ตารางจัดกะพนักงาน" },
+  { id: "job_value", num: "04", label: "โครงสร้าง Job Value" },
+  { id: "employees", num: "05", label: "รายชื่อพนักงาน" },
+  { id: "manpower", num: "06", label: "โครงสร้างอัตรากำลัง" },
+  { id: "leave-records", num: "07", label: "บันทึกวันลา" },
+  { id: "ot-records", num: "08", label: "ประวัติ OT จากกะ" },
+] as const;
+
+export const getStoredEnabledTabs = (): Record<string, boolean> => {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("enabledTabsConfig");
+      if (raw) {
+        return { ...DEFAULT_ENABLED_TABS, ...JSON.parse(raw) };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { ...DEFAULT_ENABLED_TABS };
+};
+
 export interface NavbarProps {
   title: string;
   searchQuery: string;
@@ -50,6 +85,7 @@ export interface NavbarProps {
   complianceNotifications?: Array<{ emp: any; alerts: any[] }>;
   onOpenComplianceModal?: (item: { emp: any; alerts: any[] }) => void;
   restrictToJvOnly?: boolean;
+  enabledTabs?: Record<string, boolean>;
 }
 
 export default function Navbar({ 
@@ -65,12 +101,26 @@ export default function Navbar({
   setIsNavbarCollapsed,
   complianceNotifications = [],
   onOpenComplianceModal,
-  restrictToJvOnly
+  restrictToJvOnly,
+  enabledTabs
 }: NavbarProps) {
   const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
   const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
   const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+  const effectiveEnabledTabs = enabledTabs ?? getStoredEnabledTabs();
   const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
+
+  const isTabAllowedForUser = (tabId: string): boolean => {
+    if (!isJvOnlyLocked) return true;
+    return Boolean(effectiveEnabledTabs[tabId]);
+  };
+
+  const getFirstAllowedTab = (): string => {
+    for (const t of OPERATIONAL_TABS_META) {
+      if (effectiveEnabledTabs[t.id]) return t.id;
+    }
+    return "job_value";
+  };
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -103,8 +153,8 @@ export default function Navbar({
   }, []);
 
   const handleTabSelect = (tabId: string) => {
-    if (isJvOnlyLocked && tabId !== "job_value") {
-      setActiveTab("job_value");
+    if (!isTabAllowedForUser(tabId)) {
+      setActiveTab(getFirstAllowedTab());
       setIsMobileMenuOpen(false);
       setIsMobileSearchOpen(false);
       return;
@@ -153,7 +203,7 @@ export default function Navbar({
               </button>
 
               <div 
-                onClick={() => handleTabSelect(isJvOnlyLocked ? "job_value" : "dashboard")}
+                onClick={() => handleTabSelect(isTabAllowedForUser("dashboard") ? "dashboard" : getFirstAllowedTab())}
                 className="cursor-pointer select-none shrink-0"
               >
                 <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · INTER STEVEDORING</span>
@@ -291,7 +341,7 @@ export default function Navbar({
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
-              const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
+              const isTabLocked = !isTabAllowedForUser(tab.id);
               const isActive = activeTab === tab.id;
               const isHovered = hoveredTabId === tab.id;
               // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover (or when locked to show Coming Soon)
@@ -375,7 +425,7 @@ export default function Navbar({
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {tabsList.map((tab) => {
             const Icon = tab.icon;
-            const isTabLocked = isJvOnlyLocked && tab.id !== "job_value";
+            const isTabLocked = !isTabAllowedForUser(tab.id);
             const isActive = activeTab === tab.id;
             return (
               <button

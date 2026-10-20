@@ -12,7 +12,7 @@ import {
   ChevronLeft,
   TrendingUp
 } from "lucide-react";
-import { isStrictHrOrAdmin } from "./Navbar";
+import { isStrictHrOrAdmin, getStoredEnabledTabs, OPERATIONAL_TABS_META } from "./Navbar";
 
 interface SidebarProps {
   activeTab: string;
@@ -21,13 +21,27 @@ interface SidebarProps {
   currentUser: any;
   onToggleSidebar?: () => void;
   restrictToJvOnly?: boolean;
+  enabledTabs?: Record<string, boolean>;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar, restrictToJvOnly }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar, restrictToJvOnly, enabledTabs }: SidebarProps) {
   const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
   const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
   const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+  const effectiveEnabledTabs = enabledTabs ?? getStoredEnabledTabs();
   const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
+
+  const isTabAllowedForUser = (tabId: string): boolean => {
+    if (!isJvOnlyLocked) return true;
+    return Boolean(effectiveEnabledTabs[tabId]);
+  };
+
+  const getFirstAllowedTab = (): string => {
+    for (const t of OPERATIONAL_TABS_META) {
+      if (effectiveEnabledTabs[t.id]) return t.id;
+    }
+    return "job_value";
+  };
 
   const menuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
@@ -46,8 +60,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
   ];
 
   const handleMenuClick = (tabId: string) => {
-    if (isJvOnlyLocked && tabId !== "job_value") {
-      setActiveTab("job_value");
+    if (!isTabAllowedForUser(tabId)) {
+      setActiveTab(getFirstAllowedTab());
       return;
     }
     setActiveTab(tabId);
@@ -83,7 +97,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
       <nav className="flex-1 space-y-1.5">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isTabLocked = isJvOnlyLocked && item.id !== "job_value";
+          const isTabLocked = !isTabAllowedForUser(item.id);
           const isActive = activeTab === item.id;
           return (
             <button

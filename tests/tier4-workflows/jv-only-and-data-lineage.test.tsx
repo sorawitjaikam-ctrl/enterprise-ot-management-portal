@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
-import Navbar, { isStrictHrOrAdmin } from "../../src/components/Navbar";
+import Navbar, { isStrictHrOrAdmin, DEFAULT_ENABLED_TABS } from "../../src/components/Navbar";
 import Sidebar from "../../src/components/Sidebar";
-import DataLineageHubView from "../../src/components/DataLineageHubView";
+import DataLineageHubView, { RealtimeTabVisibilityPanel } from "../../src/components/DataLineageHubView";
 
-describe("JV-Only Access Mode & Data Lineage Hub Verification", () => {
+describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub Verification", () => {
   beforeEach(() => {
     localStorage.clear();
   });
@@ -35,6 +35,7 @@ describe("JV-Only Access Mode & Data Lineage Hub Verification", () => {
         setActiveTab={setActiveTab}
         onLogout={() => {}}
         restrictToJvOnly={true}
+        enabledTabs={{ ...DEFAULT_ENABLED_TABS, job_value: true }}
       />
     );
 
@@ -50,6 +51,29 @@ describe("JV-Only Access Mode & Data Lineage Hub Verification", () => {
     const jvTabs = screen.getAllByRole("tab", { name: /โครงสร้าง Job Value/i });
     fireEvent.click(jvTabs[0]);
     expect(setActiveTab).toHaveBeenCalledWith("job_value");
+  });
+
+  it("dynamically unlocks individual tabs (01-08) in Realtime when Admin enables them in enabledTabs", () => {
+    const setActiveTab = vi.fn();
+    render(
+      <Navbar
+        title="Job Value"
+        searchQuery=""
+        setSearchQuery={() => {}}
+        currentUser={{ name: "Section Manager INTER2", role: "Section Manager" }}
+        onOpenProfile={() => {}}
+        activeTab="job_value"
+        setActiveTab={setActiveTab}
+        onLogout={() => {}}
+        restrictToJvOnly={true}
+        enabledTabs={{ ...DEFAULT_ENABLED_TABS, job_value: true, shifts: true }}
+      />
+    );
+
+    // Shifts (03) is now unlocked in Realtime, so clicking it navigates to "shifts"
+    const shiftsTabs = screen.getAllByRole("tab", { name: /ตารางจัดกะพนักงาน/i });
+    fireEvent.click(shiftsTabs[0]);
+    expect(setActiveTab).toHaveBeenCalledWith("shifts");
   });
 
   it("allows HR and Admin users full access to all tabs without Coming Soon badges even when restrictToJvOnly is true", () => {
@@ -72,6 +96,24 @@ describe("JV-Only Access Mode & Data Lineage Hub Verification", () => {
     const shiftsTabs = screen.getAllByRole("tab", { name: /ตารางจัดกะพนักงาน/i });
     fireEvent.click(shiftsTabs[0]);
     expect(setActiveTab).toHaveBeenCalledWith("shifts");
+  });
+
+  it("renders RealtimeTabVisibilityPanel and triggers per-tab toggle callbacks", () => {
+    const onToggleTabVisibility = vi.fn();
+    const onSetPreset = vi.fn();
+    render(
+      <RealtimeTabVisibilityPanel
+        restrictToJvOnly={true}
+        enabledTabs={{ ...DEFAULT_ENABLED_TABS, job_value: true }}
+        onToggleRestrictToJvOnly={() => {}}
+        onToggleTabVisibility={onToggleTabVisibility}
+        onSetPreset={onSetPreset}
+      />
+    );
+
+    const switchBtn = screen.getByRole("switch", { name: /สลับสถานะ 03 ตารางจัดกะพนักงาน/i });
+    fireEvent.click(switchBtn);
+    expect(onToggleTabVisibility).toHaveBeenCalledWith("shifts", true);
   });
 
   it("renders Sidebar with Coming Soon badges for non-HR/Admin users when restrictToJvOnly is true", () => {
