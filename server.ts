@@ -2033,6 +2033,111 @@ app.post("/api/tab-visibility", async (req, res) => {
 });
 
 // ============================================================
+// Cloudflare D1 Native Storage for Per-Year Job Value Data (/api/job-value-data)
+// ============================================================
+const memoryJobValueYears: Record<string, any[]> = {};
+let memoryJobValueUpdatedAt: string | null = null;
+
+app.get("/api/job-value-data", async (_req, res) => {
+  try {
+    if (isD1Enabled()) {
+      await queryD1(
+        "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+      );
+      const rows = await queryD1("SELECT yearKey, recordsJson, updatedBy, updatedAt FROM job_value_yearly");
+      const years: Record<string, any[]> = {};
+      let latestUpdatedAt = "";
+      for (const r of rows || []) {
+        if (r.yearKey && r.recordsJson) {
+          try {
+            years[r.yearKey] = JSON.parse(r.recordsJson);
+            if (r.updatedAt && r.updatedAt > latestUpdatedAt) {
+              latestUpdatedAt = r.updatedAt;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+      return res.json({ status: "ok", years, updatedAt: latestUpdatedAt || null });
+    }
+    return res.json({ status: "ok", years: memoryJobValueYears, updatedAt: memoryJobValueUpdatedAt });
+  } catch (err: any) {
+    return res.json({ status: "ok", years: memoryJobValueYears, updatedAt: memoryJobValueUpdatedAt });
+  }
+});
+
+app.post("/api/job-value-data", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const nowIso = new Date().toISOString();
+    const updatedBy = body.updatedBy || "admin";
+
+    if (body.yearKey && Array.isArray(body.records)) {
+      memoryJobValueYears[String(body.yearKey)] = body.records;
+      memoryJobValueUpdatedAt = nowIso;
+    } else if (body.yearsMap && typeof body.yearsMap === "object") {
+      for (const [yKey, recs] of Object.entries(body.yearsMap)) {
+        if (Array.isArray(recs)) {
+          memoryJobValueYears[String(yKey)] = recs;
+        }
+      }
+      memoryJobValueUpdatedAt = nowIso;
+    }
+
+    if (isD1Enabled()) {
+      await queryD1(
+        "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+      );
+      if (body.yearKey && Array.isArray(body.records)) {
+        await queryD1(
+          "INSERT INTO job_value_yearly (yearKey, recordsJson, updatedBy, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(yearKey) DO UPDATE SET recordsJson = excluded.recordsJson, updatedBy = excluded.updatedBy, updatedAt = excluded.updatedAt",
+          [String(body.yearKey), JSON.stringify(body.records), updatedBy, nowIso]
+        );
+      } else if (body.yearsMap && typeof body.yearsMap === "object") {
+        for (const [yKey, recs] of Object.entries(body.yearsMap)) {
+          if (Array.isArray(recs)) {
+            await queryD1(
+              "INSERT INTO job_value_yearly (yearKey, recordsJson, updatedBy, updatedAt) VALUES (?, ?, ?, ?) ON CONFLICT(yearKey) DO UPDATE SET recordsJson = excluded.recordsJson, updatedBy = excluded.updatedBy, updatedAt = excluded.updatedAt",
+              [String(yKey), JSON.stringify(recs), updatedBy, nowIso]
+            );
+          }
+        }
+      }
+    }
+
+    return res.json({ status: "ok", updatedAt: nowIso });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/job-value-data", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const targetYear = body.yearKey ? String(body.yearKey) : null;
+    if (targetYear) {
+      delete memoryJobValueYears[targetYear];
+    } else {
+      for (const k of Object.keys(memoryJobValueYears)) delete memoryJobValueYears[k];
+    }
+    if (isD1Enabled()) {
+      await queryD1(
+        "CREATE TABLE IF NOT EXISTS job_value_yearly (yearKey TEXT PRIMARY KEY, recordsJson TEXT, updatedBy TEXT, updatedAt TEXT)"
+      );
+      if (targetYear) {
+        await queryD1("DELETE FROM job_value_yearly WHERE yearKey = ?", [targetYear]);
+      } else {
+        await queryD1("DELETE FROM job_value_yearly");
+      }
+    }
+    return res.json({ status: "ok" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // Vite / Static serve
 // ============================================================
 async function startServer() {

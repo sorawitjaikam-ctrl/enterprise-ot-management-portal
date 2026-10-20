@@ -230,7 +230,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(onReconcileAll).toHaveBeenCalledTimes(1);
   });
 
-  it("renders Executive Operational Dashboard in JobValueSpreadsheetView with Dept/Person filters, 4 KPI cards, 2 charts, and summary table without decimals", () => {
+  it("renders Executive Operational Dashboard in JobValueSpreadsheetView without Master Sheet, with Cloudflare D1 Per-Year Upload, Dept/Person filters, 4 KPI cards, 2 charts, and summary table", () => {
     render(
       <JobValueSpreadsheetView
         currentUser={{ username: "admin", name: "Admin", role: "Admin" }}
@@ -239,13 +239,23 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     );
 
     expect(screen.getByText("Executive Operational Dashboard")).toBeDefined();
+    expect(screen.getByText(/Cloudflare D1 Storage/i)).toBeDefined();
+    expect(screen.queryByText(/มาสเตอร์ชีตเต็ม/i)).toBeNull();
     expect(screen.getByText(/Revenue \(Avg\)/i)).toBeDefined();
     expect(screen.getByText(/Expenses \(Avg\)/i)).toBeDefined();
-    expect(screen.getByText(/Gross Profit \(2026\)/i)).toBeDefined();
+    expect(screen.getByText(/Gross Profit \(2569\)/i)).toBeDefined();
     expect(screen.getByText(/Performance Status/i)).toBeDefined();
-    expect(screen.getByText(/แนวโน้มกำไรรายเดือน \(Monthly Trend\)/i)).toBeDefined();
+    expect(screen.getByText(/แนวโน้มกำไรรายเดือน/i)).toBeDefined();
     expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();
     expect(screen.getByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeDefined();
+
+    // Open Per-Year Upload Panel (Cloudflare D1)
+    const uploadPanelBtn = screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i });
+    fireEvent.click(uploadPanelBtn);
+    expect(screen.getByText(/ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี/i)).toBeDefined();
+    const uploadYearSelect = screen.getByRole("combobox", { name: /เลือกปีที่ต้องการอัปโหลดเข้าฐานข้อมูล/i });
+    fireEvent.change(uploadYearSelect, { target: { value: "2570" } });
+    expect((uploadYearSelect as HTMLSelectElement).value).toBe("2570");
 
     // Filter by department INTER 3
     const deptSelect = screen.getByRole("combobox", { name: /หน่วยงาน \/ แผนก/i });
