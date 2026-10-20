@@ -16,158 +16,320 @@ import {
   ShieldCheck,
   Check,
   Search,
-  Radio
+  Radio,
+  Eye,
+  EyeOff,
+  Clock,
+  UserCheck
 } from "lucide-react";
 import { AppState, Employee, LeaveRecord } from "../types";
 import { INITIAL_JOB_VALUE_EXCEL_RECORDS, DetailedJobValueEmployee } from "../data/jobValueExcelData";
-import { OPERATIONAL_TABS_META, DEFAULT_ENABLED_TABS } from "./Navbar";
+import {
+  OPERATIONAL_TABS_META,
+  DEFAULT_ENABLED_TABS,
+  DEFAULT_GLOBAL_TAB_MODES,
+  TabAccessMode
+} from "./Navbar";
+
+export interface AccountSummaryItem {
+  username: string;
+  name: string;
+  role: string;
+  deptId?: string;
+}
 
 export interface RealtimeTabVisibilityPanelProps {
   restrictToJvOnly: boolean;
   enabledTabs: Record<string, boolean>;
+  globalTabModes?: Record<string, TabAccessMode>;
+  userTabOverrides?: Record<string, Record<string, TabAccessMode>>;
+  accounts?: AccountSummaryItem[];
+  selectedTargetUser?: string;
+  onSelectTargetUser?: (usernameOrGlobal: string) => void;
   onToggleRestrictToJvOnly: (nextValue: boolean) => void;
   onToggleTabVisibility?: (tabId: string, nextValue: boolean) => void;
-  onSetPreset?: (preset: "jv_only" | "open_all") => void;
+  onSetTabMode?: (targetUser: string, tabId: string, mode: TabAccessMode) => void;
+  onSetPreset?: (preset: "jv_only" | "jv_only_hidden" | "open_all", targetUser?: string) => void;
+  onClearUserOverride?: (username: string) => void;
   lastRealtimeSync?: string;
 }
 
 export function RealtimeTabVisibilityPanel({
   restrictToJvOnly,
   enabledTabs,
+  globalTabModes = DEFAULT_GLOBAL_TAB_MODES,
+  userTabOverrides = {},
+  accounts = [],
+  selectedTargetUser: externalTargetUser,
+  onSelectTargetUser,
   onToggleRestrictToJvOnly,
   onToggleTabVisibility,
+  onSetTabMode,
   onSetPreset,
+  onClearUserOverride,
   lastRealtimeSync,
 }: RealtimeTabVisibilityPanelProps) {
-  const activeCount = OPERATIONAL_TABS_META.filter((t) =>
-    !restrictToJvOnly ? true : Boolean(enabledTabs[t.id])
-  ).length;
+  const [internalTargetUser, setInternalTargetUser] = useState<string>("__GLOBAL__");
+  const targetUser = externalTargetUser ?? internalTargetUser;
+
+  const handleTargetChange = (nextTarget: string) => {
+    setInternalTargetUser(nextTarget);
+    onSelectTargetUser?.(nextTarget);
+  };
+
+  const isGlobalTarget = targetUser === "__GLOBAL__";
+  const currentUserOverrides = !isGlobalTarget ? userTabOverrides[targetUser] || {} : {};
+  const hasCustomOverrideForTarget = !isGlobalTarget && Object.keys(currentUserOverrides).length > 0;
+
+  const getEffectiveModeForDisplay = (tabId: string): TabAccessMode => {
+    if (!isGlobalTarget && currentUserOverrides[tabId]) {
+      return currentUserOverrides[tabId];
+    }
+    if (!restrictToJvOnly) return "open";
+    if (globalTabModes && globalTabModes[tabId]) {
+      return globalTabModes[tabId];
+    }
+    return enabledTabs[tabId] ? "open" : "coming_soon";
+  };
+
+  const openCount = OPERATIONAL_TABS_META.filter((t) => getEffectiveModeForDisplay(t.id) === "open").length;
+  const comingSoonCount = OPERATIONAL_TABS_META.filter((t) => getEffectiveModeForDisplay(t.id) === "coming_soon").length;
+  const hiddenCount = OPERATIONAL_TABS_META.filter((t) => getEffectiveModeForDisplay(t.id) === "hidden").length;
+
+  const handleModeChange = (tabId: string, mode: TabAccessMode) => {
+    if (onSetTabMode) {
+      onSetTabMode(targetUser, tabId, mode);
+    } else if (onToggleTabVisibility) {
+      onToggleTabVisibility(tabId, mode === "open");
+    }
+  };
+
+  const selectedAccountObj = accounts.find((a) => a.username === targetUser);
 
   return (
     <div className="bg-white border border-[#DCE4EA] rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 font-sans">
+      {/* Top Header & Target Selector */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3.5 border-b border-[#DCE4EA]">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#0E3A66]" />
             <h3 className="text-sm font-bold text-[#0E3A66]">
-              แผงควบคุมการเปิด-ปิดหน้าเว็บแบบ Realtime สำหรับทุกคน (01–08 Global Tab Visibility)
+              ระบบกำหนดสิทธิ์การมองเห็นหน้าเว็บแบบ Realtime (ตั้งค่าได้ทั้งระบบ หรือแยกตามรายบุคคล)
             </h3>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] font-mono text-[10px] font-bold">
               <Radio className="w-3 h-3" />
-              <span>REALTIME D1 SYNC ({activeCount}/8 หน้าเปิดใช้งาน)</span>
+              <span>REALTIME D1 SYNC</span>
             </span>
             {lastRealtimeSync && (
               <span className="font-mono text-[10px] text-[#64748B]">
-                อัปเดตล่าสุด: {lastRealtimeSync}
+                ซิงก์ล่าสุด: {lastRealtimeSync}
               </span>
             )}
           </div>
           <p className="text-xs text-[#475569]">
-            เมื่อ Admin หรือ HR กดสลับเปิด-ปิดหัวข้อด้านล่าง หน้าจอของผู้ใช้งานทุกคนที่ออนไลน์อยู่จะเปลี่ยนสถานะเป็น{" "}
-            <b className="text-[#15803D]">เปิดใช้งาน (LIVE)</b> หรือ{" "}
-            <b className="text-[#0F172A]">Coming Soon (สีจาง)</b> แบบ Realtime อัตโนมัติภายในไม่กี่วินาทีโดยไม่ต้องรีเฟรชหน้าเว็บ
+            เลือกกำหนดได้ทั้ง <b>ค่าเริ่มต้นทุกคน</b> หรือ <b>เจาะจงรายบุคคล (Per-Account)</b> โดยแต่ละหัวข้อ (`01`–`08`) เลือกได้ 3 สถานะ:{" "}
+            <b className="text-[#15803D]">เปิดใช้งาน (Open)</b>,{" "}
+            <b className="text-[#B45309]">สีจาง (Coming Soon)</b>, หรือ{" "}
+            <b className="text-[#BE123C]">ซ่อนไปเลย (Hidden)</b>
           </p>
         </div>
 
+        {/* Quick Mode Presets */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {onSetPreset && (
             <>
               <button
                 type="button"
-                onClick={() => onSetPreset("jv_only")}
-                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                  restrictToJvOnly && activeCount === 1 && enabledTabs.job_value
-                    ? "bg-[#0E3A66] text-white border-[#0E3A66]"
-                    : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
-                }`}
+                onClick={() => onSetPreset("jv_only_hidden", targetUser)}
+                className="px-3 py-2 rounded-lg text-xs font-bold border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#FFE4E6] hover:text-[#BE123C] hover:border-[#FDA4AF] text-[#0F172A] transition-all cursor-pointer"
               >
-                เปิดเฉพาะ 04 Job Value
+                เห็นเฉพาะ 04 JV (ซ่อนหน้าอื่นทั้งหมด)
               </button>
               <button
                 type="button"
-                onClick={() => onSetPreset("open_all")}
-                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                  !restrictToJvOnly || activeCount === 8
-                    ? "bg-[#15803D] text-white border-[#15803D]"
-                    : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
-                }`}
+                onClick={() => onSetPreset("jv_only", targetUser)}
+                className="px-3 py-2 rounded-lg text-xs font-bold border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#FEF3C7] hover:text-[#B45309] hover:border-[#FCD34D] text-[#0F172A] transition-all cursor-pointer"
               >
-                เปิดครบทุกหน้า (01–08)
+                เห็นเฉพาะ 04 JV (หน้าอื่น Coming Soon)
+              </button>
+              <button
+                type="button"
+                onClick={() => onSetPreset("open_all", targetUser)}
+                className="px-3 py-2 rounded-lg text-xs font-bold border border-[#B7E4CE] bg-[#EBF7F2] hover:bg-[#15803D] hover:text-white text-[#15803D] transition-all cursor-pointer"
+              >
+                เปิดให้เห็นครบทุกหน้า (01–08)
               </button>
             </>
           )}
-          <button
-            type="button"
-            onClick={() => onToggleRestrictToJvOnly(!restrictToJvOnly)}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-              restrictToJvOnly
-                ? "bg-[#0E3A66] text-white border-[#0E3A66] hover:bg-[#17538F]"
-                : "bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#E2E8F0]"
-            }`}
-          >
-            {restrictToJvOnly ? "โหมดจำกัดสิทธิ์: เปิดอยู่" : "โหมดจำกัดสิทธิ์: ปิดอยู่"}
-          </button>
         </div>
       </div>
 
-      {/* 8 Individual Tab Toggle Cards (01 to 08) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      {/* Target User Selector Bar (Global vs Individual Account) */}
+      <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#DCE4EA] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#0E3A66]">
+            <UserCheck className="w-4 h-4 text-[#0E3A66]" />
+            <span>กำลังตั้งค่าการมองเห็นของ:</span>
+          </div>
+
+          <select
+            aria-label="เลือกผู้ใช้งานที่ต้องการกำหนดการมองเห็น"
+            value={targetUser}
+            onChange={(e) => handleTargetChange(e.target.value)}
+            className="px-3 py-1.5 bg-white border border-[#0E3A66] rounded-lg text-xs font-bold text-[#0E3A66] cursor-pointer shadow-2xs"
+          >
+            <option value="__GLOBAL__">ทุกคน (ค่าเริ่มต้นทั้งระบบ - ยกเว้น HR &amp; Admin)</option>
+            {accounts.map((acc) => {
+              const hasOverride = Boolean(
+                userTabOverrides[acc.username] && Object.keys(userTabOverrides[acc.username]).length > 0
+              );
+              return (
+                <option key={acc.username} value={acc.username}>
+                  รายบุคคล: {acc.name} ({acc.username} · {acc.role})
+                  {hasOverride ? " [ตั้งค่าเฉพาะบุคคลแล้ว]" : ""}
+                </option>
+              );
+            })}
+          </select>
+
+          {!isGlobalTarget && selectedAccountObj && (
+            <span className="px-2.5 py-1 rounded bg-[#F0F7FF] border border-[#93C5FD] text-[11px] font-bold text-[#0E3A66]">
+              กำลังแก้ไขสิทธิ์เฉพาะของ: {selectedAccountObj.name} ({selectedAccountObj.username})
+            </span>
+          )}
+
+          {hasCustomOverrideForTarget && onClearUserOverride && (
+            <button
+              type="button"
+              onClick={() => onClearUserOverride(targetUser)}
+              className="px-2.5 py-1 rounded bg-white hover:bg-[#FFE4E6] text-[#BE123C] border border-[#FDA4AF] text-[11px] font-bold transition-colors cursor-pointer"
+            >
+              รีเซ็ตคนนี้ให้ใช้ค่ากลาง
+            </button>
+          )}
+        </div>
+
+        {/* Summary Counters for Current Target */}
+        <div className="flex items-center gap-2 text-[11px] font-mono font-bold shrink-0">
+          <span className="px-2 py-0.5 rounded bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE]">
+            เปิดเห็น: {openCount}
+          </span>
+          <span className="px-2 py-0.5 rounded bg-[#FEF3C7] text-[#B45309] border border-[#FCD34D]">
+            Coming Soon: {comingSoonCount}
+          </span>
+          <span className="px-2 py-0.5 rounded bg-[#FFE4E6] text-[#BE123C] border border-[#FDA4AF]">
+            ซ่อนไปเลย: {hiddenCount}
+          </span>
+        </div>
+      </div>
+
+      {/* 8 Individual Tab Cards with 3-State Segmented Control (Open | Coming Soon | Hidden) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {OPERATIONAL_TABS_META.map((tab) => {
-          const isTabLive = !restrictToJvOnly ? true : Boolean(enabledTabs[tab.id]);
+          const mode = getEffectiveModeForDisplay(tab.id);
+          const isOpen = mode === "open";
+          const isComingSoon = mode === "coming_soon";
+          const isHidden = mode === "hidden";
+
           return (
             <div
               key={tab.id}
-              onClick={() => {
-                if (onToggleTabVisibility) {
-                  onToggleTabVisibility(tab.id, !isTabLive);
-                }
-              }}
-              className={`p-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2.5 select-none ${
-                isTabLive
+              className={`p-3.5 rounded-lg border transition-all flex flex-col justify-between gap-3 ${
+                isOpen
                   ? "bg-[#F0F7FF] border-[#0E3A66]"
-                  : "bg-[#F8FAFC] border-[#DCE4EA] opacity-75 hover:opacity-100"
+                  : isComingSoon
+                  ? "bg-[#F8FAFC] border-[#DCE4EA]"
+                  : "bg-[#FFF1F2]/60 border-[#FECDD3]"
               }`}
             >
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-[#CBD5E1] text-[#0E3A66]">
-                    {tab.num}
-                  </span>
-                  <span className="text-xs font-bold text-[#0F172A] truncate">{tab.label}</span>
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  {isTabLive ? (
-                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#15803D]">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>LIVE (เปิดใช้งาน)</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-[#CBD5E1] text-[#0E3A66]">
+                      {tab.num}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#64748B]">
-                      <span>COMING SOON (สีจาง)</span>
-                    </span>
-                  )}
+                    <span className="text-xs font-bold text-[#0F172A] truncate">{tab.label}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    {isOpen && (
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#15803D]">
+                        <Eye className="w-3 h-3" />
+                        <span>เปิดใช้งาน (เห็นและกดได้)</span>
+                      </span>
+                    )}
+                    {isComingSoon && (
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#B45309]">
+                        <Clock className="w-3 h-3" />
+                        <span>แสดงสีจาง (Coming Soon)</span>
+                      </span>
+                    )}
+                    {isHidden && (
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#BE123C]">
+                        <EyeOff className="w-3 h-3" />
+                        <span>ซ่อนหัวข้อนี้ไปเลย (ไม่แสดง)</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Legacy compatibility switch for quick toggle between Open and Coming Soon */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isOpen}
+                  aria-label={`สลับสถานะ ${tab.num} ${tab.label}`}
+                  onClick={() => handleModeChange(tab.id, isOpen ? "coming_soon" : "open")}
+                  className={`px-2 py-1 rounded font-mono text-[9px] font-bold border transition-all cursor-pointer shrink-0 ${
+                    isOpen
+                      ? "bg-[#15803D] text-white border-[#15803D]"
+                      : isHidden
+                      ? "bg-[#BE123C] text-white border-[#BE123C]"
+                      : "bg-white text-[#64748B] border-[#CBD5E1]"
+                  }`}
+                >
+                  {isOpen ? "OPEN" : isHidden ? "HIDDEN" : "SOON"}
+                </button>
               </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={isTabLive}
-                aria-label={`สลับสถานะ ${tab.num} ${tab.label}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onToggleTabVisibility) {
-                    onToggleTabVisibility(tab.id, !isTabLive);
-                  }
-                }}
-                className={`px-2.5 py-1.5 rounded font-mono text-[10px] font-bold border transition-all cursor-pointer shrink-0 ${
-                  isTabLive
-                    ? "bg-[#0E3A66] text-white border-[#0E3A66]"
-                    : "bg-white text-[#64748B] border-[#CBD5E1]"
-                }`}
-              >
-                {isTabLive ? "ON" : "SOON"}
-              </button>
+              {/* 3-State Action Bar: เปิดเห็น | Coming Soon | ซ่อนไปเลย */}
+              <div className="grid grid-cols-3 gap-1 pt-2 border-t border-[#E2E8F0]">
+                <button
+                  type="button"
+                  aria-label={`ตั้งค่า ${tab.num} ${tab.label} เป็น เปิดเห็น`}
+                  onClick={() => handleModeChange(tab.id, "open")}
+                  className={`py-1.5 px-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer text-center ${
+                    isOpen
+                      ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                      : "bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F1F5F9]"
+                  }`}
+                >
+                  เปิดเห็น
+                </button>
+                <button
+                  type="button"
+                  aria-label={`ตั้งค่า ${tab.num} ${tab.label} เป็น Coming Soon`}
+                  onClick={() => handleModeChange(tab.id, "coming_soon")}
+                  className={`py-1.5 px-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer text-center ${
+                    isComingSoon
+                      ? "bg-[#B45309] text-white border-[#B45309]"
+                      : "bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#FEF3C7]"
+                  }`}
+                >
+                  Coming Soon
+                </button>
+                <button
+                  type="button"
+                  aria-label={`ตั้งค่า ${tab.num} ${tab.label} เป็น ซ่อนไปเลย`}
+                  onClick={() => handleModeChange(tab.id, "hidden")}
+                  className={`py-1.5 px-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer text-center ${
+                    isHidden
+                      ? "bg-[#BE123C] text-white border-[#BE123C]"
+                      : "bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#FFE4E6]"
+                  }`}
+                >
+                  ซ่อนไปเลย
+                </button>
+              </div>
             </div>
           );
         })}
@@ -251,9 +413,14 @@ export interface DataLineageHubViewProps {
   onReconcileAll?: (updatedState: AppState, summaryText: string) => void;
   restrictToJvOnly?: boolean;
   enabledTabs?: Record<string, boolean>;
+  globalTabModes?: Record<string, TabAccessMode>;
+  userTabOverrides?: Record<string, Record<string, TabAccessMode>>;
+  accounts?: AccountSummaryItem[];
   onToggleRestrictToJvOnly?: (nextValue: boolean) => void;
   onToggleTabVisibility?: (tabId: string, nextValue: boolean) => void;
-  onSetTabPreset?: (preset: "jv_only" | "open_all") => void;
+  onSetTabMode?: (targetUser: string, tabId: string, mode: TabAccessMode) => void;
+  onSetTabPreset?: (preset: "jv_only" | "jv_only_hidden" | "open_all", targetUser?: string) => void;
+  onClearUserOverride?: (username: string) => void;
   lastRealtimeSync?: string;
 }
 
@@ -299,9 +466,14 @@ export default function DataLineageHubView({
   onReconcileAll,
   restrictToJvOnly,
   enabledTabs = DEFAULT_ENABLED_TABS,
+  globalTabModes = DEFAULT_GLOBAL_TAB_MODES,
+  userTabOverrides = {},
+  accounts = [],
   onToggleRestrictToJvOnly,
   onToggleTabVisibility,
+  onSetTabMode,
   onSetTabPreset,
+  onClearUserOverride,
   lastRealtimeSync,
 }: DataLineageHubViewProps) {
   const [syncRules, setSyncRules] = useState<LineageSyncRules>(() => {
@@ -818,14 +990,19 @@ export default function DataLineageHubView({
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5 font-sans">
-      {/* Realtime Global Tab Visibility Panel (01-08) */}
+      {/* Realtime Global & Per-User Tab Visibility Panel (01-08) */}
       {typeof restrictToJvOnly === "boolean" && onToggleRestrictToJvOnly && (
         <RealtimeTabVisibilityPanel
           restrictToJvOnly={restrictToJvOnly}
           enabledTabs={enabledTabs}
+          globalTabModes={globalTabModes}
+          userTabOverrides={userTabOverrides}
+          accounts={accounts}
           onToggleRestrictToJvOnly={onToggleRestrictToJvOnly}
           onToggleTabVisibility={onToggleTabVisibility}
+          onSetTabMode={onSetTabMode}
           onSetPreset={onSetTabPreset}
+          onClearUserOverride={onClearUserOverride}
           lastRealtimeSync={lastRealtimeSync}
         />
       )}

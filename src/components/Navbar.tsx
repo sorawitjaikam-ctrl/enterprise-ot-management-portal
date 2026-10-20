@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { PWAInstallButton, PWAOfflineBadge } from "./PWAComponents";
 
+export type TabAccessMode = "open" | "coming_soon" | "hidden";
+
 export const isStrictHrOrAdmin = (role?: string): boolean => {
   const normalized = (role || "").trim();
   return [
@@ -43,6 +45,17 @@ export const DEFAULT_ENABLED_TABS: Record<string, boolean> = {
   manpower: false,
   "leave-records": false,
   "ot-records": false,
+};
+
+export const DEFAULT_GLOBAL_TAB_MODES: Record<string, TabAccessMode> = {
+  dashboard: "coming_soon",
+  reports: "coming_soon",
+  shifts: "coming_soon",
+  job_value: "open",
+  employees: "coming_soon",
+  manpower: "coming_soon",
+  "leave-records": "coming_soon",
+  "ot-records": "coming_soon",
 };
 
 export const OPERATIONAL_TABS_META = [
@@ -70,6 +83,85 @@ export const getStoredEnabledTabs = (): Record<string, boolean> => {
   return { ...DEFAULT_ENABLED_TABS };
 };
 
+export const getStoredGlobalTabModes = (): Record<string, TabAccessMode> => {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("globalTabModesConfig");
+      if (raw) {
+        return { ...DEFAULT_GLOBAL_TAB_MODES, ...JSON.parse(raw) };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { ...DEFAULT_GLOBAL_TAB_MODES };
+};
+
+export const getStoredUserTabOverrides = (): Record<string, Record<string, TabAccessMode>> => {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("userTabOverridesConfig");
+      if (raw) {
+        return JSON.parse(raw) || {};
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return {};
+};
+
+export const resolveTabAccessMode = (
+  tabId: string,
+  currentUser: any,
+  restrictToJvOnly?: boolean,
+  enabledTabs?: Record<string, boolean>,
+  globalTabModes?: Record<string, TabAccessMode>,
+  userTabOverrides?: Record<string, Record<string, TabAccessMode>>
+): TabAccessMode => {
+  if (tabId === "admin-permissions" || tabId === "settings" || tabId === "hr-editor") {
+    return isStrictHrOrAdmin(currentUser?.role) ? "open" : "hidden";
+  }
+
+  // 1. Check explicit per-user override first (by username or name)
+  const usernameKey = (currentUser?.username || "").trim();
+  const nameKey = (currentUser?.name || "").trim();
+  const overridesMap = userTabOverrides ?? getStoredUserTabOverrides();
+  const userSpecific =
+    (usernameKey && overridesMap[usernameKey]?.[tabId]) ||
+    (nameKey && overridesMap[nameKey]?.[tabId]);
+
+  if (userSpecific === "open" || userSpecific === "coming_soon" || userSpecific === "hidden") {
+    return userSpecific;
+  }
+
+  // 2. HR and Admin roles see all tabs as open unless overridden per-user
+  const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
+  const effectiveRestrict =
+    restrictToJvOnly ??
+    (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
+
+  if (isHrOrAdmin || !effectiveRestrict) {
+    return "open";
+  }
+
+  // 3. Check explicit globalTabModes or enabledTabs
+  if (globalTabModes && globalTabModes[tabId]) {
+    return globalTabModes[tabId];
+  }
+  if (enabledTabs && typeof enabledTabs[tabId] === "boolean") {
+    return enabledTabs[tabId] ? "open" : "coming_soon";
+  }
+
+  const storedModes = getStoredGlobalTabModes();
+  if (storedModes[tabId]) {
+    return storedModes[tabId];
+  }
+
+  const storedEnabled = getStoredEnabledTabs();
+  return storedEnabled[tabId] ? "open" : "coming_soon";
+};
+
 export interface NavbarProps {
   title: string;
   searchQuery: string;
@@ -86,6 +178,8 @@ export interface NavbarProps {
   onOpenComplianceModal?: (item: { emp: any; alerts: any[] }) => void;
   restrictToJvOnly?: boolean;
   enabledTabs?: Record<string, boolean>;
+  globalTabModes?: Record<string, TabAccessMode>;
+  userTabOverrides?: Record<string, Record<string, TabAccessMode>>;
 }
 
 export default function Navbar({ 
@@ -102,22 +196,21 @@ export default function Navbar({
   complianceNotifications = [],
   onOpenComplianceModal,
   restrictToJvOnly,
-  enabledTabs
+  enabledTabs,
+  globalTabModes,
+  userTabOverrides
 }: NavbarProps) {
   const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
   const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
   const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
-  const effectiveEnabledTabs = enabledTabs ?? getStoredEnabledTabs();
   const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
 
-  const isTabAllowedForUser = (tabId: string): boolean => {
-    if (!isJvOnlyLocked) return true;
-    return Boolean(effectiveEnabledTabs[tabId]);
-  };
+  const getTabMode = (tabId: string): TabAccessMode =>
+    resolveTabAccessMode(tabId, currentUser, restrictToJvOnly, enabledTabs, globalTabModes, userTabOverrides);
 
   const getFirstAllowedTab = (): string => {
     for (const t of OPERATIONAL_TABS_META) {
-      if (effectiveEnabledTabs[t.id]) return t.id;
+      if (getTabMode(t.id) === "open") return t.id;
     }
     return "job_value";
   };
@@ -153,7 +246,7 @@ export default function Navbar({
   }, []);
 
   const handleTabSelect = (tabId: string) => {
-    if (!isTabAllowedForUser(tabId)) {
+    if (getTabMode(tabId) !== "open") {
       setActiveTab(getFirstAllowedTab());
       setIsMobileMenuOpen(false);
       setIsMobileSearchOpen(false);
@@ -165,7 +258,7 @@ export default function Navbar({
   };
 
   // Structured tab list with sequential numbering matching the editorial template
-  const tabsList = [
+  const rawTabsList = [
     { id: "dashboard", num: "01", label: "ภาพรวม Dashboard", icon: LayoutDashboard },
     { id: "reports", num: "02", label: "รายงานรายแผนก", icon: BarChart3 },
     { id: "shifts", num: "03", label: "ตารางจัดกะพนักงาน", icon: Calendar },
@@ -179,6 +272,9 @@ export default function Navbar({
       { id: "settings", num: "10", label: "ตั้งค่าระบบ", icon: Settings },
     ] : [])
   ];
+
+  // Filter out any tab whose mode is "hidden" (ซ่อนหัวข้อนี้ไปเลย)
+  const tabsList = rawTabsList.filter((tab) => getTabMode(tab.id) !== "hidden");
 
   return (
     <>
@@ -203,7 +299,7 @@ export default function Navbar({
               </button>
 
               <div 
-                onClick={() => handleTabSelect(isTabAllowedForUser("dashboard") ? "dashboard" : getFirstAllowedTab())}
+                onClick={() => handleTabSelect(getTabMode("dashboard") === "open" ? "dashboard" : getFirstAllowedTab())}
                 className="cursor-pointer select-none shrink-0"
               >
                 <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · INTER STEVEDORING</span>
@@ -341,7 +437,8 @@ export default function Navbar({
           <nav className="folder-tabs" role="tablist">
             {tabsList.map((tab) => {
               const Icon = tab.icon;
-              const isTabLocked = !isTabAllowedForUser(tab.id);
+              const tabMode = getTabMode(tab.id);
+              const isTabLocked = tabMode === "coming_soon";
               const isActive = activeTab === tab.id;
               const isHovered = hoveredTabId === tab.id;
               // Active tab always has full title. Inactive tabs show icon/logo only, and expand on hover (or when locked to show Coming Soon)
@@ -425,7 +522,8 @@ export default function Navbar({
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {tabsList.map((tab) => {
             const Icon = tab.icon;
-            const isTabLocked = !isTabAllowedForUser(tab.id);
+            const tabMode = getTabMode(tab.id);
+            const isTabLocked = tabMode === "coming_soon";
             const isActive = activeTab === tab.id;
             return (
               <button

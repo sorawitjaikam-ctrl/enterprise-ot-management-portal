@@ -12,7 +12,12 @@ import {
   ChevronLeft,
   TrendingUp
 } from "lucide-react";
-import { isStrictHrOrAdmin, getStoredEnabledTabs, OPERATIONAL_TABS_META } from "./Navbar";
+import {
+  isStrictHrOrAdmin,
+  OPERATIONAL_TABS_META,
+  TabAccessMode,
+  resolveTabAccessMode
+} from "./Navbar";
 
 interface SidebarProps {
   activeTab: string;
@@ -22,28 +27,37 @@ interface SidebarProps {
   onToggleSidebar?: () => void;
   restrictToJvOnly?: boolean;
   enabledTabs?: Record<string, boolean>;
+  globalTabModes?: Record<string, TabAccessMode>;
+  userTabOverrides?: Record<string, Record<string, TabAccessMode>>;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser, onToggleSidebar, restrictToJvOnly, enabledTabs }: SidebarProps) {
+export default function Sidebar({
+  activeTab,
+  setActiveTab,
+  onLogout,
+  currentUser,
+  onToggleSidebar,
+  restrictToJvOnly,
+  enabledTabs,
+  globalTabModes,
+  userTabOverrides
+}: SidebarProps) {
   const isHrOrAdmin = isStrictHrOrAdmin(currentUser?.role);
   const isHrOrFullAccess = isHrOrAdmin || ["Operation Dir", "Operation Depart"].includes((currentUser?.role || "").trim());
   const effectiveRestrictToJvOnly = restrictToJvOnly ?? (typeof window !== "undefined" ? localStorage.getItem("restrictToJvOnly") !== "false" : true);
-  const effectiveEnabledTabs = enabledTabs ?? getStoredEnabledTabs();
   const isJvOnlyLocked = !isHrOrAdmin && effectiveRestrictToJvOnly;
 
-  const isTabAllowedForUser = (tabId: string): boolean => {
-    if (!isJvOnlyLocked) return true;
-    return Boolean(effectiveEnabledTabs[tabId]);
-  };
+  const getTabMode = (tabId: string): TabAccessMode =>
+    resolveTabAccessMode(tabId, currentUser, restrictToJvOnly, enabledTabs, globalTabModes, userTabOverrides);
 
   const getFirstAllowedTab = (): string => {
     for (const t of OPERATIONAL_TABS_META) {
-      if (effectiveEnabledTabs[t.id]) return t.id;
+      if (getTabMode(t.id) === "open") return t.id;
     }
     return "job_value";
   };
 
-  const menuItems = [
+  const rawMenuItems = [
     { id: "dashboard",  label: "หน้าแรก Dashboard",        icon: LayoutDashboard },
     { id: "job_value",  label: "คุณค่าตำแหน่งงาน & ผลตอบแทน", icon: TrendingUp },
     { id: "reports",    label: "รายงานข้อมูลรายแผนก",      icon: BarChart3 },
@@ -59,8 +73,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
     ] : []),
   ];
 
+  const menuItems = rawMenuItems.filter((item) => getTabMode(item.id) !== "hidden");
+
   const handleMenuClick = (tabId: string) => {
-    if (!isTabAllowedForUser(tabId)) {
+    if (getTabMode(tabId) !== "open") {
       setActiveTab(getFirstAllowedTab());
       return;
     }
@@ -97,7 +113,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, currentUser
       <nav className="flex-1 space-y-1.5">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isTabLocked = !isTabAllowedForUser(item.id);
+          const isTabLocked = getTabMode(item.id) === "coming_soon";
           const isActive = activeTab === item.id;
           return (
             <button

@@ -1535,7 +1535,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Realtime Global Tab Visibility (01-08) via Cloudflare D1 system_settings
+    // Realtime Global & Per-User Tab Visibility (01-08: open | coming_soon | hidden) via Cloudflare D1 system_settings
     if (path === "/api/tab-visibility" && request.method === "GET") {
       const defaultVisibility = {
         restrictNonAdmin: true,
@@ -1549,6 +1549,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           "leave-records": false,
           "ot-records": false,
         },
+        globalTabModes: {
+          dashboard: "coming_soon",
+          reports: "coming_soon",
+          shifts: "coming_soon",
+          job_value: "open",
+          employees: "coming_soon",
+          manpower: "coming_soon",
+          "leave-records": "coming_soon",
+          "ot-records": "coming_soon",
+        },
+        userTabOverrides: {},
         updatedBy: "system",
         updatedAt: "2026-10-20T00:00:00.000Z",
       };
@@ -1563,6 +1574,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               {
                 restrictNonAdmin: parsed.restrictNonAdmin ?? true,
                 enabledTabs: { ...defaultVisibility.enabledTabs, ...(parsed.enabledTabs || {}) },
+                globalTabModes: { ...defaultVisibility.globalTabModes, ...(parsed.globalTabModes || {}) },
+                userTabOverrides: parsed.userTabOverrides || {},
                 updatedBy: parsed.updatedBy || "admin",
                 updatedAt: row.updatedAt || parsed.updatedAt || defaultVisibility.updatedAt,
               },
@@ -1589,9 +1602,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         "leave-records": false,
         "ot-records": false,
       };
+      const defaultModes = {
+        dashboard: "coming_soon",
+        reports: "coming_soon",
+        shifts: "coming_soon",
+        job_value: "open",
+        employees: "coming_soon",
+        manpower: "coming_soon",
+        "leave-records": "coming_soon",
+        "ot-records": "coming_soon",
+      };
       const payload = {
         restrictNonAdmin: body.restrictNonAdmin !== undefined ? Boolean(body.restrictNonAdmin) : true,
         enabledTabs: { ...defaultTabs, ...(body.enabledTabs || {}) },
+        globalTabModes: { ...defaultModes, ...(body.globalTabModes || {}) },
+        userTabOverrides: body.userTabOverrides && typeof body.userTabOverrides === "object" ? body.userTabOverrides : {},
         updatedBy: body.updatedBy || "admin",
         updatedAt: new Date().toISOString(),
       };

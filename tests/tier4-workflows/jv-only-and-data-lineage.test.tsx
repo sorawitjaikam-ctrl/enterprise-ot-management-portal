@@ -98,22 +98,70 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(setActiveTab).toHaveBeenCalledWith("shifts");
   });
 
-  it("renders RealtimeTabVisibilityPanel and triggers per-tab toggle callbacks", () => {
-    const onToggleTabVisibility = vi.fn();
-    const onSetPreset = vi.fn();
+  it("renders RealtimeTabVisibilityPanel and triggers 3-state mode (open / coming_soon / hidden) and per-person target user selection", () => {
+    const onSetTabMode = vi.fn();
+    const onSelectTargetUser = vi.fn();
     render(
       <RealtimeTabVisibilityPanel
         restrictToJvOnly={true}
         enabledTabs={{ ...DEFAULT_ENABLED_TABS, job_value: true }}
         onToggleRestrictToJvOnly={() => {}}
-        onToggleTabVisibility={onToggleTabVisibility}
-        onSetPreset={onSetPreset}
+        onSetTabMode={onSetTabMode}
+        selectedTargetUser="__GLOBAL__"
+        onSelectTargetUser={onSelectTargetUser}
+        accounts={[
+          { username: "op_dir", name: "Operation Dir", role: "Operation Dir", deptId: "all" },
+          { username: "inter2_mgr", name: "INTER2 Manager", role: "Section Manager", deptId: "inter2" },
+        ]}
       />
     );
 
-    const switchBtn = screen.getByRole("switch", { name: /สลับสถานะ 03 ตารางจัดกะพนักงาน/i });
-    fireEvent.click(switchBtn);
-    expect(onToggleTabVisibility).toHaveBeenCalledWith("shifts", true);
+    // Select a specific user ("op_dir")
+    const userSelect = screen.getByRole("combobox", { name: /เลือกผู้ใช้งานที่ต้องการกำหนดการมองเห็น/i });
+    fireEvent.change(userSelect, { target: { value: "op_dir" } });
+    expect(onSelectTargetUser).toHaveBeenCalledWith("op_dir");
+
+    // Click "ซ่อนไปเลย" for 03 ตารางจัดกะพนักงาน
+    const hideShiftsBtn = screen.getByRole("button", { name: /ตั้งค่า 03 ตารางจัดกะพนักงาน เป็น ซ่อนไปเลย/i });
+    fireEvent.click(hideShiftsBtn);
+    expect(onSetTabMode).toHaveBeenCalledWith("__GLOBAL__", "shifts", "hidden");
+  });
+
+  it("completely hides tabs set to 'hidden' (ซ่อนไปเลย) and applies per-person userTabOverrides in Navbar and Sidebar", () => {
+    const setActiveTab = vi.fn();
+    const userOverrides = {
+      inter2_mgr: {
+        dashboard: "hidden" as const,
+        manpower: "hidden" as const,
+        shifts: "open" as const,
+        job_value: "open" as const,
+        employees: "coming_soon" as const,
+      },
+    };
+
+    render(
+      <Navbar
+        title="Job Value"
+        searchQuery=""
+        setSearchQuery={() => {}}
+        currentUser={{ username: "inter2_mgr", name: "INTER2 Manager", role: "Section Manager" }}
+        onOpenProfile={() => {}}
+        activeTab="job_value"
+        setActiveTab={setActiveTab}
+        onLogout={() => {}}
+        restrictToJvOnly={true}
+        userTabOverrides={userOverrides}
+      />
+    );
+
+    // "dashboard" and "manpower" are set to "hidden" for inter2_mgr -> completely removed from DOM!
+    expect(screen.queryByRole("tab", { name: /ภาพรวม Dashboard/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /วิเคราะห์อัตรากำลัง/i })).toBeNull();
+
+    // "shifts" is set to "open" for inter2_mgr -> visible and clickable!
+    const shiftsTabs = screen.getAllByRole("tab", { name: /ตารางจัดกะพนักงาน/i });
+    fireEvent.click(shiftsTabs[0]);
+    expect(setActiveTab).toHaveBeenCalledWith("shifts");
   });
 
   it("renders Sidebar with Coming Soon badges for non-HR/Admin users when restrictToJvOnly is true", () => {
