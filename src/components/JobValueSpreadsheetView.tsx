@@ -953,18 +953,9 @@ export default function JobValueSpreadsheetView({
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
               Executive Operational Dashboard
             </h1>
-            <span className="px-3 py-1 rounded-full bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold font-mono flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-[#0E3A66]" />
-              <span>Cloudflare D1 Storage · ปี {selectedYear}</span>
-            </span>
-            {lastD1SyncTime && (
-              <span className="px-2.5 py-1 rounded-full bg-[#EBF7F2] border border-[#B7E4CE] text-[#15803D] text-[11px] font-mono font-bold">
-                ซิงก์ล่าสุด {lastD1SyncTime}
-              </span>
-            )}
           </div>
           <p className="text-sm text-[#334155] mt-1">
-            รายงานมูลค่า Job Value และประสิทธิภาพการทำงาน ปี {selectedYear} (จัดเก็บข้อมูลบนฐานข้อมูล Cloudflare D1 แยกตามรายปี)
+            รายงานมูลค่า Job Value และประสิทธิภาพการทำงาน ปี {selectedYear}
           </p>
         </div>
 
