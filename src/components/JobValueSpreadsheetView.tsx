@@ -139,6 +139,18 @@ export function buildDefaultYearlyDatabase(
 
 const LOCAL_STORAGE_JV_KEY = "cloudflare_d1_job_value_years_v1";
 
+export const isCoAdminOrAdmin = (role?: string): boolean => {
+  const normalized = (role || "").trim().toLowerCase();
+  return (
+    normalized === "co-admin" ||
+    normalized === "co_admin" ||
+    normalized === "coadmin" ||
+    normalized === "ผู้ช่วยดูแลระบบ" ||
+    normalized === "admin" ||
+    normalized === "ผู้ดูแลระบบ"
+  );
+};
+
 function loadInitialYearlyStore(): Record<string, YearlyJobValueRecord[]> {
   const defaults = buildDefaultYearlyDatabase();
   if (typeof window !== "undefined") {
@@ -146,8 +158,12 @@ function loadInitialYearlyStore(): Record<string, YearlyJobValueRecord[]> {
       const raw = localStorage.getItem(LOCAL_STORAGE_JV_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
-          return { ...defaults, ...parsed };
+        if (parsed && typeof parsed === "object") {
+          const result: Record<string, YearlyJobValueRecord[]> = { ...defaults };
+          for (const k of Object.keys(parsed)) {
+            result[k] = Array.isArray(parsed[k]) ? parsed[k] : [];
+          }
+          return result;
         }
       }
     } catch {
@@ -194,6 +210,7 @@ export default function JobValueSpreadsheetView({
   const [hoveredBarIdx, setHoveredBarIdx] = useState<number | null>(null);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [importStatusMsg, setImportStatusMsg] = useState<string>("");
+  const canManageD1Upload = isCoAdminOrAdmin(currentUser?.role);
 
   // Save to localStorage + Cloudflare D1 (/api/job-value-data)
   const persistYearToCloudflareD1 = useCallback(
@@ -786,33 +803,44 @@ export default function JobValueSpreadsheetView({
     reader.readAsBinaryString(file);
   };
 
-  // Delete or reset a specific year in Cloudflare D1
+  // Delete a specific year in Cloudflare D1 (strictly Co-Admin / Admin only)
   const handleDeleteYearData = async (yearKeyToDelete: string) => {
-    const defaults = buildDefaultYearlyDatabase();
-    const nextStore = { ...yearlyStore };
-    if (defaults[yearKeyToDelete]) {
-      nextStore[yearKeyToDelete] = defaults[yearKeyToDelete];
-      setYearlyStore(nextStore);
-      await persistYearToCloudflareD1(nextStore, yearKeyToDelete, defaults[yearKeyToDelete]);
-      setImportStatusMsg(`รีเซ็ตข้อมูลปี ${yearKeyToDelete} กลับเป็นค่าเริ่มต้นบน Cloudflare D1 แล้ว`);
-    } else {
-      delete nextStore[yearKeyToDelete];
-      setYearlyStore(nextStore);
-      if (typeof window !== "undefined") {
-        localStorage.setItem(LOCAL_STORAGE_JV_KEY, JSON.stringify(nextStore));
-      }
+    // 1. Immediately set the records of this year to empty array [] so it becomes 0 people
+    const nextStore = { ...yearlyStore, [yearKeyToDelete]: [] };
+    setYearlyStore(nextStore);
+
+    if (typeof window !== "undefined") {
       try {
-        await fetch("/api/job-value-data", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ yearKey: yearKeyToDelete }),
-        });
+        localStorage.setItem(LOCAL_STORAGE_JV_KEY, JSON.stringify(nextStore));
       } catch {
         // ignore
       }
-      if (selectedYear === yearKeyToDelete) setSelectedYear("2569");
-      setImportStatusMsg(`ลบข้อมูลปี ${yearKeyToDelete} ออกจาก Cloudflare D1 แล้ว`);
     }
+
+    // 2. Persist deletion to Cloudflare D1 backend
+    try {
+      await fetch("/api/job-value-data", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ yearKey: yearKeyToDelete }),
+      });
+      // Also overwrite D1 key with empty array so auto-reseed doesn't trigger on refresh
+      await fetch("/api/job-value-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yearKey: yearKeyToDelete,
+          records: [],
+          updatedBy: currentUser?.username || currentUser?.name || "co-admin",
+        }),
+      });
+      const nowStr = new Date().toLocaleTimeString("th-TH", { hour12: false });
+      setLastD1SyncTime(nowStr);
+    } catch {
+      // ignore
+    }
+
+    setImportStatusMsg(`ลบข้อมูลปี ${yearKeyToDelete} ออกจาก Cloudflare D1 เรียบร้อยแล้ว (0 คน)`);
   };
 
   // ============================================================================
@@ -979,26 +1007,28 @@ export default function JobValueSpreadsheetView({
             <span>รีเฟรชข้อมูล</span>
           </button>
 
-          {/* Per-Year Upload & Cloudflare D1 Storage Panel Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowUploadPanel((prev) => !prev)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
-              showUploadPanel
-                ? "bg-[#0E3A66] text-white border-[#0E3A66]"
-                : "bg-[#15803D] hover:bg-[#166534] text-white border-[#15803D]"
-            }`}
-          >
-            <Upload className="w-4 h-4" />
-            <span>อัปโหลดข้อมูลแยกปี (Cloudflare D1)</span>
-          </button>
+          {/* Per-Year Upload & Cloudflare D1 Storage Panel Toggle - strictly Co-Admin / Admin only */}
+          {canManageD1Upload && (
+            <button
+              type="button"
+              onClick={() => setShowUploadPanel((prev) => !prev)}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                showUploadPanel
+                  ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                  : "bg-[#15803D] hover:bg-[#166534] text-white border-[#15803D]"
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              <span>อัปโหลดข้อมูลแยกปี (Cloudflare D1)</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* ===================================================================== */}
       {/* PER-YEAR UPLOAD & CLOUDFLARE D1 MANAGEMENT PANEL                      */}
       {/* ===================================================================== */}
-      {showUploadPanel && (
+      {canManageD1Upload && showUploadPanel && (
         <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-[#0E3A66] shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
             <div>
@@ -1120,12 +1150,12 @@ export default function JobValueSpreadsheetView({
                       <span>ปี {yKey}</span>
                       <span className="font-mono text-[10px] opacity-85">({count} คน)</span>
                     </button>
-                    {count > 0 && isHrOrFullAccess && (
+                    {count > 0 && canManageD1Upload && (
                       <button
                         type="button"
                         onClick={() => handleDeleteYearData(yKey)}
                         className="ml-1 hover:text-[#FDA4AF] cursor-pointer"
-                        title={`รีเซ็ตหรือลบข้อมูลปี ${yKey}`}
+                        title={`ลบข้อมูลปี ${yKey} (0 คน)`}
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -1844,7 +1874,10 @@ export default function JobValueSpreadsheetView({
                 {processedData.summaryData.length === 0 && (
                   <tr>
                     <td colSpan={7} className="py-10 text-center text-sm font-bold text-[#64748B]">
-                      ยังไม่มีข้อมูลของปี {selectedYear} — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี (Cloudflare D1)&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}
+                      ยังไม่มีข้อมูลของปี {selectedYear}
+                      {canManageD1Upload && (
+                        <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี (Cloudflare D1)&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
+                      )}
                     </td>
                   </tr>
                 )}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 import Navbar, { isStrictHrOrAdmin, DEFAULT_ENABLED_TABS } from "../../src/components/Navbar";
 import Sidebar from "../../src/components/Sidebar";
@@ -230,7 +230,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(onReconcileAll).toHaveBeenCalledTimes(1);
   });
 
-  it("renders Executive Operational Dashboard in JobValueSpreadsheetView without Master Sheet, with Cloudflare D1 Per-Year Upload, Dept/Person filters, 4 KPI cards, 2 charts, and summary table", () => {
+  it("renders Executive Operational Dashboard in JobValueSpreadsheetView without Master Sheet, with Cloudflare D1 Per-Year Upload, Dept/Person filters, 4 KPI cards, 2 charts, and summary table", async () => {
     render(
       <JobValueSpreadsheetView
         currentUser={{ username: "admin", name: "Admin", role: "Admin" }}
@@ -273,5 +273,38 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     const resetBtn = screen.getByRole("button", { name: /ล้างค่า/i });
     fireEvent.click(resetBtn);
     expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();
+
+    // Verify delete actually empties year 2568 data (0 people) instead of resetting back to 27
+    if (!screen.queryByText(/ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี/i)) {
+      fireEvent.click(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i }));
+    }
+    const deleteBtn2568 = screen.getByTitle(/ลบข้อมูลปี 2568/i);
+    fireEvent.click(deleteBtn2568);
+    await waitFor(() => {
+      expect(screen.getByText(/ลบข้อมูลปี 2568 ออกจาก Cloudflare D1 เรียบร้อยแล้ว \(0 คน\)/i)).toBeDefined();
+    });
+    expect(screen.getAllByText(/ปี 2568/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\(0 คน\)/i).length).toBeGreaterThan(0);
+  });
+
+  it("strictly restricts Job Value Cloudflare D1 upload and delete to Co-admin and Admin, hiding upload from Section Manager (ผจก)", () => {
+    // 1. Section Manager (ผจก) should NOT see the upload button
+    const { unmount } = render(
+      <JobValueSpreadsheetView
+        currentUser={{ username: "mgr", name: "Manager", role: "Section Manager" }}
+        isHrOrFullAccess={false}
+      />
+    );
+    expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
+    unmount();
+
+    // 2. Co-admin role CAN see and access the upload button
+    render(
+      <JobValueSpreadsheetView
+        currentUser={{ username: "coadmin", name: "Co Admin User", role: "Co-admin" }}
+        isHrOrFullAccess={true}
+      />
+    );
+    expect(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeDefined();
   });
 });
