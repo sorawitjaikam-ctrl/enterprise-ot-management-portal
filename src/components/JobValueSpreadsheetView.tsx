@@ -1278,7 +1278,7 @@ export default function JobValueSpreadsheetView({
       {/* ===================================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Revenue (Avg) */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#EBF7F2] text-[#15803D] flex items-center justify-center mb-4 border border-[#B7E4CE]">
               <DollarSign className="w-6 h-6" />
@@ -1299,7 +1299,7 @@ export default function JobValueSpreadsheetView({
         </div>
 
         {/* Card 2: Expenses (Avg) */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#FFE4E6] text-[#BE123C] flex items-center justify-center mb-4 border border-[#FDA4AF]">
               <ShoppingBag className="w-6 h-6" />
@@ -1320,7 +1320,7 @@ export default function JobValueSpreadsheetView({
         </div>
 
         {/* Card 3: Gross Profit */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] border-l-4 border-l-[#0E3A66] shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] border-l-4 border-l-[#0E3A66] shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#E8F3FA] text-[#0E3A66] flex items-center justify-center mb-4 border border-[#9FCEE8]">
               <BarChart3 className="w-6 h-6" />
@@ -1359,7 +1359,7 @@ export default function JobValueSpreadsheetView({
         </div>
 
         {/* Card 4: Performance Status (การต่อยอด) */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
           <div>
             <div
               id="kpi-status-icon"
@@ -1404,11 +1404,7 @@ export default function JobValueSpreadsheetView({
       {/* ===================================================================== */}
       {/* 4. CHARTS GRID (Monthly Trend Line Chart + Yearly Comparison Chart)   */}
       {/* ===================================================================== */}
-      <div
-        className={`grid grid-cols-1 ${
-          processedData.viewMode === "PERSON" ? "lg:grid-cols-1" : "lg:grid-cols-2"
-        } gap-6`}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Chart: แนวโน้มกำไรรายเดือน (Monthly Trend) */}
         <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
@@ -1561,29 +1557,36 @@ export default function JobValueSpreadsheetView({
                       {mLabel}
                     </text>
                     <rect
-                      x={x - 20}
+                      x={x - (lineChartGeometry.plotW / 12) / 2}
                       y={lineChartGeometry.padTop}
-                      width={40}
-                      height={lineChartGeometry.plotH}
+                      width={lineChartGeometry.plotW / 12}
+                      height={lineChartGeometry.plotH + 20}
                       fill="transparent"
+                      pointerEvents="all"
                     />
                   </g>
                 );
               })}
             </svg>
 
-            {hoveredMonthIdx !== null && processedData.monthlyRevenue[hoveredMonthIdx] !== null && (
-              <div className="mt-2 p-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex flex-wrap items-center justify-between gap-3 font-mono">
-                <span className="font-sans font-bold text-[#93C5FD]">
-                  เดือน {SHORT_MONTH_LABELS[hoveredMonthIdx]} (ปี {selectedYear})
+            <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex items-center justify-between gap-3 font-mono h-11 min-h-[44px]">
+              {hoveredMonthIdx !== null && processedData.monthlyRevenue[hoveredMonthIdx] !== null ? (
+                <>
+                  <span className="font-sans font-bold text-[#93C5FD]">
+                    เดือน {SHORT_MONTH_LABELS[hoveredMonthIdx]} (ปี {selectedYear})
+                  </span>
+                  <span>รายได้: {formatInt(processedData.monthlyRevenue[hoveredMonthIdx])} บาท</span>
+                  <span>ต้นทุน: {formatInt(processedData.monthlyCost[hoveredMonthIdx])} บาท</span>
+                  <span className="font-bold text-[#6EE7B7]">
+                    กำไรสุทธิ: {formatInt(processedData.monthlyProfit[hoveredMonthIdx])} บาท
+                  </span>
+                </>
+              ) : (
+                <span className="font-sans text-xs text-[#94A3B8]">
+                  เลื่อนเมาส์บนเส้นกราฟเพื่อดูรายละเอียดรายได้ ต้นทุน และกำไรสุทธิแต่ละเดือน
                 </span>
-                <span>รายได้: {formatInt(processedData.monthlyRevenue[hoveredMonthIdx])} บาท</span>
-                <span>ต้นทุน: {formatInt(processedData.monthlyCost[hoveredMonthIdx])} บาท</span>
-                <span className="font-bold text-[#6EE7B7]">
-                  กำไรสุทธิ: {formatInt(processedData.monthlyProfit[hoveredMonthIdx])} บาท
-                </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -1593,109 +1596,119 @@ export default function JobValueSpreadsheetView({
             id="compare-container"
             className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col"
           >
-            <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
-                <BarChart3 className="w-5 h-5 text-[#0E3A66]" />
-                <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-bold">
-                <span className="flex items-center gap-1.5 text-[#64748B]">
-                  <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
-                  <span>กำไร {compareYear.slice(-2)}</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-[#0E3A66]">
-                  <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
-                  <span>กำไร {selectedYear.slice(-2)}</span>
-                </span>
-              </div>
+          <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
+              <BarChart3 className="w-5 h-5 text-[#0E3A66]" />
+              <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
             </div>
+            <div className="flex items-center gap-4 text-xs font-bold">
+              <span className="flex items-center gap-1.5 text-[#64748B]">
+                <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
+                <span>กำไร {compareYear.slice(-2)}</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[#0E3A66]">
+                <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
+                <span>กำไร {selectedYear.slice(-2)}</span>
+              </span>
+            </div>
+          </div>
 
-            <div className="p-5 relative">
-              <svg
-                viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
-                className="w-full h-[270px] overflow-visible select-none"
-                role="img"
-                aria-label="กราฟเปรียบเทียบกำไรรายปี"
-              >
-                {barChartGeometry.ticks.map((t, idx) => (
-                  <g key={idx}>
-                    <line
-                      x1={barChartGeometry.padLeft}
-                      y1={t.y}
-                      x2={barChartGeometry.width - barChartGeometry.padRight}
-                      y2={t.y}
-                      stroke={t.val === 0 ? "#94A3B8" : "#E2E8F0"}
-                      strokeDasharray={t.val === 0 ? "none" : "3,3"}
-                      strokeWidth={t.val === 0 ? 1.5 : 1}
+          <div className="p-5 relative">
+            <svg
+              viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
+              className="w-full h-[270px] overflow-visible select-none"
+              role="img"
+              aria-label="กราฟเปรียบเทียบกำไรรายปี"
+            >
+              {barChartGeometry.ticks.map((t, idx) => (
+                <g key={idx}>
+                  <line
+                    x1={barChartGeometry.padLeft}
+                    y1={t.y}
+                    x2={barChartGeometry.width - barChartGeometry.padRight}
+                    y2={t.y}
+                    stroke={t.val === 0 ? "#94A3B8" : "#E2E8F0"}
+                    strokeDasharray={t.val === 0 ? "none" : "3,3"}
+                    strokeWidth={t.val === 0 ? 1.5 : 1}
+                  />
+                  <text
+                    x={barChartGeometry.padLeft - 8}
+                    y={t.y + 4}
+                    textAnchor="end"
+                    className="fill-[#64748B] font-mono text-[10px]"
+                  >
+                    {formatInt(t.val)}
+                  </text>
+                </g>
+              ))}
+
+              {barChartGeometry.items.map((item, idx) => {
+                const count = Math.max(barChartGeometry.items.length, 1);
+                const groupW = barChartGeometry.plotW / count;
+                const centerX = barChartGeometry.padLeft + idx * groupW + groupW / 2;
+                const barW = Math.min(22, Math.max(8, groupW * 0.32));
+
+                const yComp = barChartGeometry.getY(item.profitCompare);
+                const yCurr = barChartGeometry.getY(item.profit);
+                const zeroY = barChartGeometry.zeroY;
+
+                const topComp = Math.min(yComp, zeroY);
+                const hComp = Math.max(2, Math.abs(zeroY - yComp));
+
+                const topCurr = Math.min(yCurr, zeroY);
+                const hCurr = Math.max(2, Math.abs(zeroY - yCurr));
+
+                const shortLabel =
+                  item.name.length > 12 ? item.name.slice(0, 11) + ".." : item.name;
+
+                return (
+                  <g
+                    key={item.key}
+                    onMouseEnter={() => setHoveredBarIdx(idx)}
+                    onMouseLeave={() => setHoveredBarIdx(null)}
+                    className="cursor-pointer"
+                  >
+                    {/* Transparent full-column hit target */}
+                    <rect
+                      x={barChartGeometry.padLeft + idx * groupW}
+                      y={barChartGeometry.padTop}
+                      width={groupW}
+                      height={barChartGeometry.plotH + 20}
+                      fill="transparent"
+                      pointerEvents="all"
+                    />
+                    <rect
+                      x={centerX - barW - 2}
+                      y={topComp}
+                      width={barW}
+                      height={hComp}
+                      rx={2}
+                      fill="#94A3B8"
+                    />
+                    <rect
+                      x={centerX + 2}
+                      y={topCurr}
+                      width={barW}
+                      height={hCurr}
+                      rx={2}
+                      fill={item.profit >= 0 ? "#0E3A66" : "#BE123C"}
                     />
                     <text
-                      x={barChartGeometry.padLeft - 8}
-                      y={t.y + 4}
-                      textAnchor="end"
-                      className="fill-[#64748B] font-mono text-[10px]"
+                      x={centerX}
+                      y={barChartGeometry.height - 14}
+                      textAnchor="middle"
+                      className="fill-[#334155] font-sans text-[10px] font-bold"
                     >
-                      {formatInt(t.val)}
+                      {shortLabel}
                     </text>
                   </g>
-                ))}
+                );
+              })}
+            </svg>
 
-                {barChartGeometry.items.map((item, idx) => {
-                  const count = Math.max(barChartGeometry.items.length, 1);
-                  const groupW = barChartGeometry.plotW / count;
-                  const centerX = barChartGeometry.padLeft + idx * groupW + groupW / 2;
-                  const barW = Math.min(22, Math.max(8, groupW * 0.32));
-
-                  const yComp = barChartGeometry.getY(item.profitCompare);
-                  const yCurr = barChartGeometry.getY(item.profit);
-                  const zeroY = barChartGeometry.zeroY;
-
-                  const topComp = Math.min(yComp, zeroY);
-                  const hComp = Math.max(2, Math.abs(zeroY - yComp));
-
-                  const topCurr = Math.min(yCurr, zeroY);
-                  const hCurr = Math.max(2, Math.abs(zeroY - yCurr));
-
-                  const shortLabel =
-                    item.name.length > 12 ? item.name.slice(0, 11) + ".." : item.name;
-
-                  return (
-                    <g
-                      key={item.key}
-                      onMouseEnter={() => setHoveredBarIdx(idx)}
-                      onMouseLeave={() => setHoveredBarIdx(null)}
-                      className="cursor-pointer"
-                    >
-                      <rect
-                        x={centerX - barW - 2}
-                        y={topComp}
-                        width={barW}
-                        height={hComp}
-                        rx={2}
-                        fill="#94A3B8"
-                      />
-                      <rect
-                        x={centerX + 2}
-                        y={topCurr}
-                        width={barW}
-                        height={hCurr}
-                        rx={2}
-                        fill={item.profit >= 0 ? "#0E3A66" : "#BE123C"}
-                      />
-                      <text
-                        x={centerX}
-                        y={barChartGeometry.height - 14}
-                        textAnchor="middle"
-                        className="fill-[#334155] font-sans text-[10px] font-bold"
-                      >
-                        {shortLabel}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {hoveredBarIdx !== null && barChartGeometry.items[hoveredBarIdx] && (
-                <div className="mt-2 p-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex flex-wrap items-center justify-between gap-3 font-mono">
+            <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex items-center justify-between gap-3 font-mono h-11 min-h-[44px]">
+              {hoveredBarIdx !== null && barChartGeometry.items[hoveredBarIdx] ? (
+                <>
                   <span className="font-sans font-bold text-[#93C5FD]">
                     {barChartGeometry.items[hoveredBarIdx].name}
                   </span>
@@ -1705,12 +1718,17 @@ export default function JobValueSpreadsheetView({
                   <span className="font-bold text-[#6EE7B7]">
                     กำไรปี {selectedYear}: {formatInt(barChartGeometry.items[hoveredBarIdx].profit)} บาท
                   </span>
-                </div>
+                </>
+              ) : (
+                <span className="font-sans text-xs text-[#94A3B8]">
+                  เลื่อนเมาส์บนแท่งกราฟเพื่อดูรายละเอียดเปรียบเทียบกำไรรายปี
+                </span>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
       {/* ===================================================================== */}
       {/* 5. SUMMARY TABLE CARD (รายละเอียดผลงานตามกลุ่มตัวอย่าง)                  */}
@@ -1720,17 +1738,19 @@ export default function JobValueSpreadsheetView({
           id="table-container"
           className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden"
         >
-          <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">
-                รายละเอียดผลงานตามกลุ่มตัวอย่าง
-              </h2>
-              <p className="text-xs text-[#64748B]">
-                {processedData.viewMode === "DEPT"
-                  ? `แสดงรายชื่อพนักงานในกลุ่มที่เลือก (${processedData.summaryData.length} คน)`
-                  : `สรุปภาพรวมแยกตามแผนก (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`}
-              </p>
-            </div>
+        <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">
+              รายละเอียดผลงานตามกลุ่มตัวอย่าง
+            </h2>
+            <p className="text-xs text-[#64748B]">
+              {processedData.viewMode === "PERSON"
+                ? `แสดงข้อมูลพนักงานที่เลือก: ${processedData.summaryData[0]?.name || empFilter}`
+                : processedData.viewMode === "DEPT"
+                ? `แสดงรายชื่อพนักงานในกลุ่มที่เลือก (${processedData.summaryData.length} คน)`
+                : `สรุปภาพรวมแยกตามแผนก (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`}
+            </p>
+          </div>
             <button
               type="button"
               onClick={handleDownloadSummaryCsv}
