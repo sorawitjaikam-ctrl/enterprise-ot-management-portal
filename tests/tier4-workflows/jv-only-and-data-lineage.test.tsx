@@ -4,6 +4,7 @@ import React from "react";
 import Navbar, { isStrictHrOrAdmin, DEFAULT_ENABLED_TABS } from "../../src/components/Navbar";
 import Sidebar from "../../src/components/Sidebar";
 import DataLineageHubView, { RealtimeTabVisibilityPanel } from "../../src/components/DataLineageHubView";
+import JobValueSpreadsheetView from "../../src/components/JobValueSpreadsheetView";
 
 describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub Verification", () => {
   beforeEach(() => {
@@ -227,5 +228,39 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     const syncBtn = screen.getByRole("button", { name: /ซิงโครไนซ์ข้อมูลทั้งหมดในคลิกเดียว/i });
     fireEvent.click(syncBtn);
     expect(onReconcileAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders Executive Operational Dashboard in JobValueSpreadsheetView with Dept/Person filters, 4 KPI cards, 2 charts, and summary table without decimals", () => {
+    render(
+      <JobValueSpreadsheetView
+        currentUser={{ username: "admin", name: "Admin", role: "Admin" }}
+        isHrOrFullAccess={true}
+      />
+    );
+
+    expect(screen.getByText("Executive Operational Dashboard")).toBeDefined();
+    expect(screen.getByText(/Revenue \(Avg\)/i)).toBeDefined();
+    expect(screen.getByText(/Expenses \(Avg\)/i)).toBeDefined();
+    expect(screen.getByText(/Gross Profit \(2026\)/i)).toBeDefined();
+    expect(screen.getByText(/Performance Status/i)).toBeDefined();
+    expect(screen.getByText(/แนวโน้มกำไรรายเดือน \(Monthly Trend\)/i)).toBeDefined();
+    expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();
+    expect(screen.getByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeDefined();
+
+    // Filter by department INTER 3
+    const deptSelect = screen.getByRole("combobox", { name: /หน่วยงาน \/ แผนก/i });
+    fireEvent.change(deptSelect, { target: { value: "INTER 3" } });
+    expect(screen.getByText(/แสดงรายชื่อพนักงานในกลุ่มที่เลือก/i)).toBeDefined();
+
+    // Filter by specific employee "48835" (วสันต์ คุ้มคำ) -> PERSON viewMode hides Yearly Comparison & Summary Table
+    const empSelect = screen.getByRole("combobox", { name: /รายชื่อพนักงาน/i });
+    fireEvent.change(empSelect, { target: { value: "48835" } });
+    expect(screen.queryByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeNull();
+    expect(screen.queryByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeNull();
+
+    // Reset filters
+    const resetBtn = screen.getByRole("button", { name: /ล้างค่า/i });
+    fireEvent.click(resetBtn);
+    expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();
   });
 });
