@@ -1245,13 +1245,13 @@ export default function JobValueSpreadsheetView({
   return (
     <div className="w-full max-w-full min-w-0 space-y-6 font-sans text-[#0F172A]">
       {/* ===================================================================== */}
-      {/* 1. EXECUTIVE OPERATIONAL DASHBOARD HEADER                             */}
+      {/* 1. DASHBOARD HEADER                                                   */}
       {/* ===================================================================== */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-              Executive Operational Dashboard
+              Dashboard รายงาน ต้นทุน รายได้ และกำไรต่อยอด Job value MARINE Logistics
             </h1>
           </div>
           <p className="text-sm text-[#334155] mt-1">
@@ -1269,7 +1269,7 @@ export default function JobValueSpreadsheetView({
             <span>พนักงาน</span>
           </div>
 
-          {/* Refresh Data from Cloudflare D1 */}
+          {/* Refresh Data */}
           <button
             type="button"
             onClick={fetchFromCloudflareD1}
@@ -1279,7 +1279,7 @@ export default function JobValueSpreadsheetView({
             <span>รีเฟรชข้อมูล</span>
           </button>
 
-          {/* Per-Year Upload & Cloudflare D1 Storage Panel Toggle - strictly Co-Admin / Admin only */}
+          {/* Per-Year Upload Panel Toggle - strictly Co-Admin / Admin only */}
           {canManageD1Upload && (
             <button
               type="button"
@@ -1291,14 +1291,14 @@ export default function JobValueSpreadsheetView({
               }`}
             >
               <Upload className="w-4 h-4" />
-              <span>อัปโหลดข้อมูลแยกปี (Cloudflare D1)</span>
+              <span>อัปโหลดข้อมูลแยกปี</span>
             </button>
           )}
         </div>
       </header>
 
       {/* ===================================================================== */}
-      {/* PER-YEAR UPLOAD & CLOUDFLARE D1 MANAGEMENT PANEL                      */}
+      {/* PER-YEAR UPLOAD & STORAGE MANAGEMENT PANEL                           */}
       {/* ===================================================================== */}
       {canManageD1Upload && showUploadPanel && (
         <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-[#0E3A66] shadow-xs space-y-4">
@@ -1307,11 +1307,11 @@ export default function JobValueSpreadsheetView({
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-[#0E3A66]" />
                 <h2 className="text-sm sm:text-base font-extrabold text-[#0E3A66]">
-                  ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี (Cloudflare D1 Database)
+                  ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี
                 </h2>
               </div>
               <p className="text-xs text-[#475569] mt-0.5">
-                เลือกปีที่ต้องการอัปโหลดไฟล์ Excel (.xlsx) หรือ CSV ระบบจะจัดเก็บแยกตามปีลงบน Cloudflare D1 โดยไม่ต้องเชื่อมต่อ Google Sheets
+                เลือกปีที่ต้องการอัปโหลดไฟล์ Excel (.xlsx) หรือ CSV ระบบจะจัดเก็บแยกตามปีโดยไม่ต้องเชื่อมต่อ Google Sheets
               </p>
             </div>
             <button
@@ -1373,13 +1373,13 @@ export default function JobValueSpreadsheetView({
             {/* Step 3: Upload Excel / CSV File for Selected Year */}
             <div className="lg:col-span-4">
               <label className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1.5">
-                3. เลือกไฟล์เพื่อบันทึกลง Cloudflare D1
+                3. เลือกไฟล์เพื่อบันทึกข้อมูล
               </label>
               <label className="w-full px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-2xs">
                 <Upload className="w-4 h-4 text-white" />
                 <span>
                   {isImporting
-                    ? "กำลังบันทึกเข้า Cloudflare D1..."
+                    ? "กำลังบันทึกข้อมูล..."
                     : `เลือกไฟล์อัปโหลดลงปี ${
                         uploadTargetYear === "BOTH_2568_2569" ? "2568+2569" : uploadTargetYear
                       }`}
@@ -1582,27 +1582,16 @@ export default function JobValueSpreadsheetView({
             </select>
           </div>
 
-          {/* Action Buttons: Reset Filters & Delete Year Data */}
+          {/* Action Buttons: Reset Filters */}
           <div className="lg:col-span-2 flex flex-col gap-1.5 justify-end">
             <button
               type="button"
               onClick={handleResetFilters}
-              className="w-full px-3 py-2 bg-white hover:bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full px-3 py-2.5 bg-white hover:bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
             >
               <RotateCcw className="w-3.5 h-3.5 text-[#475569]" />
               <span>ล้างค่า</span>
             </button>
-            {canManageD1Upload && currentYearRecords.length > 0 && (
-              <button
-                type="button"
-                onClick={() => handleDeleteYearData(selectedYear)}
-                className="w-full px-3 py-2 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#BE123C] border border-[#FDA4AF] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                title={`ลบข้อมูลปี ${selectedYear} ให้กลายเป็น 0`}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>ลบข้อมูลปี {selectedYear} (เคลียร์เป็น 0)</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -2273,7 +2262,7 @@ export default function JobValueSpreadsheetView({
                     <td colSpan={7} className="py-10 text-center text-sm font-bold text-[#64748B]">
                       ยังไม่มีข้อมูลของปี {selectedYear}
                       {canManageD1Upload && (
-                        <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี (Cloudflare D1)&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
+                        <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
                       )}
                     </td>
                   </tr>
