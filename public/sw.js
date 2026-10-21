@@ -10,7 +10,7 @@
  *  - API Requests (/api/*): Network-First with offline JSON fallback (ot-portal-v1-data)
  */
 
-const CACHE_VERSION = 'v26';
+const CACHE_VERSION = 'v27';
 const SHELL_CACHE_NAME = `ot-portal-${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE_NAME = `ot-portal-${CACHE_VERSION}-runtime`;
 const FONT_CACHE_NAME = `ot-portal-${CACHE_VERSION}-fonts`;
@@ -216,6 +216,10 @@ self.addEventListener('fetch', (event) => {
 
   // 4. SPA Navigation (App Shell Fallback)
   if (request.mode === 'navigate') {
+    if (url.hostname.includes('enterprise-ot-management-portal') || url.hostname.includes('its-ot-management')) {
+      event.respondWith(Response.redirect(`https://marine-hrmanagement.pages.dev${url.pathname}${url.search}`, 301));
+      return;
+    }
     event.respondWith(networkFirst(request, SHELL_CACHE_NAME, '/index.html'));
     return;
   }

@@ -2567,6 +2567,16 @@ function HrDirectEditorView({
 }
 
 export default function App() {
+  // Ensure automatic redirection if accessed via legacy domain
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      if (h && (h.includes("enterprise-ot-management-portal") || h.includes("its-ot-management"))) {
+        window.location.replace("https://marine-hrmanagement.pages.dev" + window.location.pathname + window.location.search + window.location.hash);
+      }
+    }
+  }, []);
+
   // Ensure tab title always reflects MARINE link branding
   useEffect(() => {
     document.title = "MARINE link - HR Management Portal";
