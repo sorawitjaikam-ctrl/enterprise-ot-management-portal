@@ -287,7 +287,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(screen.getAllByText(/\(0 คน\)/i).length).toBeGreaterThan(0);
   });
 
-  it("strictly restricts Job Value Cloudflare D1 upload and delete to Co-admin, hiding upload from Admin (เช่น สรวิศ), Section Manager (ผจก) and other roles", () => {
+  it("strictly restricts Job Value Cloudflare D1 upload and delete to Co-admin and Admin, hiding upload from Section Manager (ผจก) and other non-admin roles", () => {
     // 1. Section Manager (ผจก) should NOT see the upload button
     const { unmount: unmountMgr } = render(
       <JobValueSpreadsheetView
@@ -298,14 +298,14 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
     unmountMgr();
 
-    // 2. Admin (เช่น สรวิศ) should NOT see the upload button (strictly Co-admin only)
+    // 2. Admin role CAN see and access the upload button
     const { unmount: unmountAdmin } = render(
       <JobValueSpreadsheetView
         currentUser={{ username: "sorawit", name: "สรวิศ", role: "Admin" }}
         isHrOrFullAccess={true}
       />
     );
-    expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeDefined();
     unmountAdmin();
 
     // 3. Co-admin role CAN see and access the upload button
