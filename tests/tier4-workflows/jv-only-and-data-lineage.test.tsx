@@ -238,7 +238,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
       />
     );
 
-    expect(screen.getByText(/Dashboard รายงาน ต้นทุน รายได้ และกำไรต่อยอด Job value MARINE Logistics/i)).toBeDefined();
+    expect(screen.getByText(/Marine Logistics JV Performance/i)).toBeDefined();
     expect(screen.queryByText(/Cloudflare D1 Storage/i)).toBeNull();
     expect(screen.queryByText(/ซิงก์ล่าสุด/i)).toBeNull();
     expect(screen.queryByText(/มาสเตอร์ชีตเต็ม/i)).toBeNull();

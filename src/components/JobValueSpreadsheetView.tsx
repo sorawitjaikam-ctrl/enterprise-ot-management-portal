@@ -1534,7 +1534,7 @@ export default function JobValueSpreadsheetView({
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-              Dashboard รายงาน ต้นทุน รายได้ และกำไรต่อยอด Job value MARINE Logistics
+              Marine Logistics JV Performance
             </h1>
           </div>
           <p className="text-sm text-[#334155] mt-1">
