@@ -238,7 +238,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
       />
     );
 
-    expect(screen.getByText("Executive Operational Dashboard")).toBeDefined();
+    expect(screen.getByText(/Dashboard รายงาน ต้นทุน รายได้ และกำไรต่อยอด Job value MARINE Logistics/i)).toBeDefined();
     expect(screen.queryByText(/Cloudflare D1 Storage/i)).toBeNull();
     expect(screen.queryByText(/ซิงก์ล่าสุด/i)).toBeNull();
     expect(screen.queryByText(/มาสเตอร์ชีตเต็ม/i)).toBeNull();
@@ -250,8 +250,8 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();
     expect(screen.getByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeDefined();
 
-    // Open Per-Year Upload Panel (Cloudflare D1)
-    const uploadPanelBtn = screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i });
+    // Open Per-Year Upload Panel
+    const uploadPanelBtn = screen.getByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i });
     fireEvent.click(uploadPanelBtn);
     expect(screen.getByText(/ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี/i)).toBeDefined();
     const uploadYearSelect = screen.getByRole("combobox", { name: /เลือกปีที่ต้องการอัปโหลดเข้าฐานข้อมูล/i });
@@ -276,12 +276,12 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
 
     // Verify delete actually empties year 2568 data (0 people) instead of resetting back to 27
     if (!screen.queryByText(/ระบบจัดเก็บและอัปโหลดข้อมูล Job Value แยกตามปี/i)) {
-      fireEvent.click(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i }));
     }
     const deleteBtn2568 = screen.getByTitle(/ลบข้อมูลปี 2568/i);
     fireEvent.click(deleteBtn2568);
     await waitFor(() => {
-      expect(screen.getByText(/ลบข้อมูลปี 2568 ออกจาก Cloudflare D1 เรียบร้อยแล้ว \(0 คน\)/i)).toBeDefined();
+      expect(screen.getByText(/ลบข้อมูลปี 2568 ออกจาก/i)).toBeDefined();
     });
     expect(screen.getAllByText(/ปี 2568/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/\(0 คน\)/i).length).toBeGreaterThan(0);
@@ -295,7 +295,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
         isHrOrFullAccess={false}
       />
     );
-    expect(screen.queryByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i })).toBeNull();
     unmountMgr();
 
     // 2. Admin role CAN see and access the upload button
@@ -305,7 +305,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
         isHrOrFullAccess={true}
       />
     );
-    expect(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i })).toBeDefined();
     unmountAdmin();
 
     // 3. Co-admin role CAN see and access the upload button
@@ -315,6 +315,6 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
         isHrOrFullAccess={true}
       />
     );
-    expect(screen.getByRole("button", { name: /อัปโหลดข้อมูลแยกปี \(Cloudflare D1\)/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i })).toBeDefined();
   });
 });
