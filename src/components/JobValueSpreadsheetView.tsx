@@ -980,12 +980,13 @@ export default function JobValueSpreadsheetView({
 
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
     existingForYear.forEach((r) => {
+      const pos = getEmployeePositionLabel(r);
       const row = [
         `"${r.empId}"`,
         `"${r.name.replace(/"/g, '""')}"`,
         `"${r.dept}"`,
         `"${r.group}"`,
-        `"${r.role}"`,
+        `"${pos}"`,
         ...(r.monthlyRevenue || new Array(12).fill(0)).map((v) => Math.round(v || 0)),
         ...(r.monthlyCost || new Array(12).fill(0)).map((v) => Math.round(v || 0)),
       ];
@@ -1633,7 +1634,7 @@ export default function JobValueSpreadsheetView({
             {/* Step 2: Download Template for Target Year */}
             <div className="lg:col-span-4">
               <label className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1.5">
-                2. แม่แบบไฟล์รายปี (CSV Template)
+                2. ดาวน์โหลดไฟล์ข้อมูลเดิม / แม่แบบ (นำมาแก้ไขได้ทันที)
               </label>
               <button
                 type="button"
@@ -1644,9 +1645,9 @@ export default function JobValueSpreadsheetView({
                 }
                 className="w-full px-4 py-2.5 bg-[#F8FAFC] hover:bg-[#E8F3FA] text-[#0E3A66] border border-[#CBD5E1] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                <FileSpreadsheet className="w-4 h-4 text-[#0E3A66]" />
+                <Download className="w-4 h-4 text-[#0E3A66]" />
                 <span>
-                  ดาวน์โหลดแม่แบบ CSV ปี{" "}
+                  ดาวน์โหลดไฟล์ข้อมูล CSV ปี{" "}
                   {uploadTargetYear === "BOTH_2568_2569" ? selectedYear : uploadTargetYear}
                 </span>
               </button>
@@ -1697,18 +1698,31 @@ export default function JobValueSpreadsheetView({
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedYear(yKey)}
+                      onClick={() => {
+                        setSelectedYear(yKey);
+                        setUploadTargetYear(yKey);
+                      }}
                       className="cursor-pointer flex items-center gap-1"
                     >
                       <Calendar className="w-3 h-3" />
                       <span>ปี {yKey}</span>
                       <span className="font-mono text-[10px] opacity-85">({count} คน)</span>
                     </button>
+                    {count > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadYearlyTemplate(yKey)}
+                        className="ml-1 hover:text-[#93C5FD] cursor-pointer"
+                        title={`ดาวน์โหลดไฟล์ CSV ข้อมูลเดิมปี ${yKey} เพื่อนำมาแก้ไข`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     {count > 0 && canManageD1Upload && (
                       <button
                         type="button"
                         onClick={() => handleDeleteYearData(yKey)}
-                        className="ml-1 hover:text-[#FDA4AF] cursor-pointer"
+                        className="ml-0.5 hover:text-[#FDA4AF] cursor-pointer"
                         title={`ลบข้อมูลปี ${yKey} (0 คน)`}
                       >
                         <Trash2 className="w-3 h-3" />
