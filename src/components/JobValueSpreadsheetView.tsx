@@ -330,46 +330,62 @@ export default function JobValueSpreadsheetView({
     return getScopedRecordsForYear(selectedYear);
   }, [getScopedRecordsForYear, selectedYear]);
 
+  const compareYearRecords = useMemo(() => {
+    return getScopedRecordsForYear(compareYear);
+  }, [getScopedRecordsForYear, compareYear]);
+
   const compareYearMap = useMemo(() => {
-    const raw = getScopedRecordsForYear(compareYear);
     const map = new Map<string, YearlyJobValueRecord>();
-    raw.forEach((r) => {
+    compareYearRecords.forEach((r) => {
       map.set(r.empId, r);
       if (r.name) map.set(r.name.trim(), r);
     });
     return map;
-  }, [getScopedRecordsForYear, compareYear]);
+  }, [compareYearRecords]);
+
+  // Combined pool of records to ensure department & employee filters remain populated even if selected year is empty
+  const basePoolRecords = useMemo(() => {
+    if (currentYearRecords.length > 0) return currentYearRecords;
+    if (compareYearRecords.length > 0) return compareYearRecords;
+    const all = Object.values(yearlyStore).flat();
+    return all.length > 0 ? all : [];
+  }, [currentYearRecords, compareYearRecords, yearlyStore]);
 
   // Distinct departments list for #filter-dept
   const departmentOptions = useMemo(() => {
-    const depts = Array.from(new Set(currentYearRecords.map((r) => r.dept).filter(Boolean)));
+    const depts = Array.from(new Set(basePoolRecords.map((r) => r.dept).filter(Boolean)));
     depts.sort();
     return depts;
-  }, [currentYearRecords]);
+  }, [basePoolRecords]);
 
   // Employees list for #filter-emp based on deptFilter
   const employeeOptions = useMemo(() => {
-    if (deptFilter === "ALL") return currentYearRecords;
+    if (deptFilter === "ALL") return basePoolRecords;
     if (deptFilter.startsWith("GROUP:")) {
       const gName = deptFilter.replace("GROUP:", "");
-      return currentYearRecords.filter((d) => d.group === gName);
+      return basePoolRecords.filter((d) => d.group === gName);
     }
-    return currentYearRecords.filter((d) => d.dept === deptFilter);
-  }, [currentYearRecords, deptFilter]);
+    return basePoolRecords.filter((d) => d.dept === deptFilter);
+  }, [basePoolRecords, deptFilter]);
 
   // Core processData(deptFilter, empFilter) for selectedYear vs compareYear
   const processedData = useMemo(() => {
-    let filteredData = currentYearRecords;
+    let filteredCurrent = currentYearRecords;
+    let filteredCompare = compareYearRecords;
+
     if (deptFilter !== "ALL") {
       if (deptFilter.startsWith("GROUP:")) {
         const gName = deptFilter.replace("GROUP:", "");
-        filteredData = filteredData.filter((d) => d.group === gName);
+        filteredCurrent = filteredCurrent.filter((d) => d.group === gName);
+        filteredCompare = filteredCompare.filter((d) => d.group === gName);
       } else {
-        filteredData = filteredData.filter((d) => d.dept === deptFilter);
+        filteredCurrent = filteredCurrent.filter((d) => d.dept === deptFilter);
+        filteredCompare = filteredCompare.filter((d) => d.dept === deptFilter);
       }
     }
     if (empFilter !== "ALL") {
-      filteredData = filteredData.filter((d) => d.empId === empFilter);
+      filteredCurrent = filteredCurrent.filter((d) => d.empId === empFilter);
+      filteredCompare = filteredCompare.filter((d) => d.empId === empFilter);
     }
 
     let sumRev = 0;
@@ -379,9 +395,21 @@ export default function JobValueSpreadsheetView({
     const mRev: (number | null)[] = new Array(12).fill(0);
     const mCost: (number | null)[] = new Array(12).fill(0);
     const mProfit: (number | null)[] = new Array(12).fill(0);
+    const mProfitCompare: (number | null)[] = new Array(12).fill(0);
     const summaryMap: Record<string, SummaryRowItem> = {};
 
-    filteredData.forEach((d) => {
+    // Calculate monthly profit for compare year
+    filteredCompare.forEach((d) => {
+      const cRev = d.monthlyRevenue || new Array(12).fill(0);
+      const cCost = d.monthlyCost || new Array(12).fill(0);
+      for (let m = 0; m < 12; m++) {
+        const r = Math.round(cRev[m] || 0);
+        const c = Math.round(cCost[m] || 0);
+        mProfitCompare[m] = (mProfitCompare[m] || 0) + (r - c);
+      }
+    });
+
+    filteredCurrent.forEach((d) => {
       const compRec = compareYearMap.get(d.empId) || compareYearMap.get(d.name?.trim());
       
       const mRevArr = d.monthlyRevenue || new Array(12).fill(0);
@@ -464,7 +492,46 @@ export default function JobValueSpreadsheetView({
       summaryMap[key].count += 1;
     });
 
-    // Trim trailing months with all zeros (unrecorded future months)
+    // Also include entities from compare year if current year has 0 records or entity is absent in current year
+    filteredCompare.forEach((d) => {
+      const isAllDepts = deptFilter === "ALL";
+      const key = isAllDepts ? d.dept : d.empId;
+      const displayName = isAllDepts ? d.dept : d.name;
+
+      const cRevArr = d.monthlyRevenue || new Array(12).fill(0);
+      const cCostArr = d.monthlyCost || new Array(12).fill(0);
+      const cActiveMonths =
+        cRevArr.filter((rv, m) => (rv || 0) !== 0 || (cCostArr[m] || 0) !== 0).length || 12;
+      const cAvgRev = Math.round(
+        d.avgRevenue !== undefined && d.avgRevenue !== null && d.avgRevenue !== 0
+          ? d.avgRevenue
+          : cRevArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+      );
+      const cAvgCost = Math.round(
+        d.avgCost !== undefined && d.avgCost !== null && d.avgCost !== 0
+          ? d.avgCost
+          : cCostArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+      );
+      const compProf = Math.round(cAvgRev - cAvgCost);
+
+      if (!summaryMap[key]) {
+        summaryMap[key] = {
+          key,
+          name: displayName,
+          empId: isAllDepts ? undefined : d.empId,
+          dept: d.dept,
+          revenue: 0,
+          cost: 0,
+          profit: 0,
+          profitCompare: compProf,
+          count: 1,
+          status: "ไม่ต่อยอด",
+        };
+        sumProfitCompare += compProf;
+      }
+    });
+
+    // Trim trailing months with all zeros for current year
     let lastDataIndex = 11;
     while (
       lastDataIndex >= 0 &&
@@ -476,6 +543,13 @@ export default function JobValueSpreadsheetView({
       mCost[lastDataIndex] = null;
       mProfit[lastDataIndex] = null;
       lastDataIndex--;
+    }
+
+    // Trim trailing months with all zeros for compare year
+    let lastCompDataIndex = 11;
+    while (lastCompDataIndex >= 0 && mProfitCompare[lastCompDataIndex] === 0) {
+      mProfitCompare[lastCompDataIndex] = null;
+      lastCompDataIndex--;
     }
 
     const summaryArray = Object.values(summaryMap)
@@ -491,7 +565,7 @@ export default function JobValueSpreadsheetView({
       empFilter !== "ALL" ? "PERSON" : deptFilter !== "ALL" ? "DEPT" : "ALL";
 
     return {
-      empCount: filteredData.length,
+      empCount: filteredCurrent.length,
       totalRevenue: Math.round(sumRev),
       totalCost: Math.round(sumCost),
       totalProfit: Math.round(sumProfit),
@@ -499,10 +573,11 @@ export default function JobValueSpreadsheetView({
       monthlyRevenue: mRev,
       monthlyCost: mCost,
       monthlyProfit: mProfit,
+      monthlyProfitCompare: mProfitCompare,
       summaryData: summaryArray,
       viewMode,
     };
-  }, [currentYearRecords, compareYearMap, deptFilter, empFilter]);
+  }, [currentYearRecords, compareYearRecords, compareYearMap, deptFilter, empFilter]);
 
   // Overall status evaluation: ประเมินภาพรวม "ต่อยอด" หากผลงาน (กำไร) สูงกว่าปีก่อนหน้า, "ไม่ต่อยอด" หากต่ำกว่าหรือเท่ากัน
   const statusEvaluation = useMemo(() => {
@@ -550,6 +625,30 @@ export default function JobValueSpreadsheetView({
   const handleResetFilters = () => {
     setDeptFilter("ALL");
     setEmpFilter("ALL");
+  };
+
+  // Synchronized Year Filter Handlers: prevent identical year collision and auto-link comparison
+  const handleSelectedYearChange = (newYear: string) => {
+    setSelectedYear(newYear);
+    if (compareYear === newYear) {
+      const priorYearNum = Number(newYear) - 1;
+      const priorYearStr = String(priorYearNum);
+      const fallbackYear =
+        storedYearKeys.find((y) => y === priorYearStr) ||
+        storedYearKeys.find((y) => y !== newYear) ||
+        newYear;
+      setCompareYear(fallbackYear);
+    }
+  };
+
+  const handleCompareYearChange = (newCompYear: string) => {
+    setCompareYear(newCompYear);
+    if (newCompYear === selectedYear) {
+      const altYear =
+        storedYearKeys.find((y) => y !== newCompYear) ||
+        String(Number(newCompYear) + 1);
+      setSelectedYear(altYear);
+    }
   };
 
   // Download Single-Year CSV Template for easy per-year upload
@@ -904,6 +1003,9 @@ export default function JobValueSpreadsheetView({
       if (processedData.monthlyRevenue[i] !== null) allVals.push(processedData.monthlyRevenue[i]!);
       if (processedData.monthlyCost[i] !== null) allVals.push(processedData.monthlyCost[i]!);
       if (processedData.monthlyProfit[i] !== null) allVals.push(processedData.monthlyProfit[i]!);
+      if (processedData.monthlyProfitCompare && processedData.monthlyProfitCompare[i] !== null) {
+        allVals.push(processedData.monthlyProfitCompare[i]!);
+      }
     }
 
     const rawMin = Math.min(...allVals, 0);
@@ -942,6 +1044,7 @@ export default function JobValueSpreadsheetView({
     const revSeries = buildPath(processedData.monthlyRevenue);
     const costSeries = buildPath(processedData.monthlyCost);
     const profSeries = buildPath(processedData.monthlyProfit);
+    const compProfSeries = buildPath(processedData.monthlyProfitCompare || []);
 
     const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
       const val = Math.round(minVal + t * range);
@@ -961,6 +1064,7 @@ export default function JobValueSpreadsheetView({
       revSeries,
       costSeries,
       profSeries,
+      compProfSeries,
       ticks,
       getX,
     };
@@ -1241,7 +1345,7 @@ export default function JobValueSpreadsheetView({
               id="filter-year"
               aria-label="ปีที่วิเคราะห์หลัก"
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
+              onChange={(e) => handleSelectedYearChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0E3A66] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
               {storedYearKeys.map((y) => {
@@ -1267,14 +1371,17 @@ export default function JobValueSpreadsheetView({
               id="filter-compare-year"
               aria-label="เทียบกับปี"
               value={compareYear}
-              onChange={(e) => setCompareYear(e.target.value)}
+              onChange={(e) => handleCompareYearChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#334155] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              {storedYearKeys.map((y) => (
-                <option key={y} value={y}>
-                  ปี {y}
-                </option>
-              ))}
+              {storedYearKeys.map((y) => {
+                const count = getScopedRecordsForYear(y).length;
+                return (
+                  <option key={y} value={y}>
+                    ปี {y} ({count} คน){y === selectedYear ? " [ปีหลัก]" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -1488,21 +1595,30 @@ export default function JobValueSpreadsheetView({
           <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
               <LineChartIcon className="w-5 h-5 text-[#0E3A66]" />
-              <span>แนวโน้มกำไรรายเดือน (Monthly Trend · ปี {selectedYear})</span>
+              <span>
+                แนวโน้มกำไรรายเดือน (Monthly Trend · ปี {selectedYear}
+                {selectedYear !== compareYear ? ` เทียบ ปี ${compareYear}` : ""})
+              </span>
             </div>
             <div className="flex items-center gap-4 text-xs font-bold">
               <span className="flex items-center gap-1.5 text-[#15803D]">
                 <span className="w-3 h-1 rounded bg-[#15803D] inline-block" />
-                <span>รายได้</span>
+                <span>รายได้ ({selectedYear.slice(-2)})</span>
               </span>
               <span className="flex items-center gap-1.5 text-[#BE123C]">
                 <span className="w-3 h-0.5 border-b-2 border-dashed border-[#BE123C] inline-block" />
-                <span>ต้นทุน</span>
+                <span>ต้นทุน ({selectedYear.slice(-2)})</span>
               </span>
               <span className="flex items-center gap-1.5 text-[#0E3A66]">
                 <span className="w-3 h-1.5 rounded bg-[#0E3A66] inline-block" />
-                <span>กำไรสุทธิ</span>
+                <span>กำไรสุทธิ ({selectedYear.slice(-2)})</span>
               </span>
+              {selectedYear !== compareYear && (
+                <span className="flex items-center gap-1.5 text-[#64748B]">
+                  <span className="w-3 h-0.5 border-b-2 border-dashed border-[#94A3B8] inline-block" />
+                  <span>กำไร ({compareYear.slice(-2)})</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -1542,6 +1658,16 @@ export default function JobValueSpreadsheetView({
                 />
               )}
 
+              {lineChartGeometry.compProfSeries?.path && selectedYear !== compareYear && (
+                <path
+                  d={lineChartGeometry.compProfSeries.path}
+                  fill="none"
+                  stroke="#94A3B8"
+                  strokeWidth={2}
+                  strokeDasharray="4,4"
+                />
+              )}
+
               {lineChartGeometry.revSeries.path && (
                 <path
                   d={lineChartGeometry.revSeries.path}
@@ -1575,6 +1701,7 @@ export default function JobValueSpreadsheetView({
                 const revPt = lineChartGeometry.revSeries.pts.find((p) => p.idx === idx);
                 const costPt = lineChartGeometry.costSeries.pts.find((p) => p.idx === idx);
                 const profPt = lineChartGeometry.profSeries.pts.find((p) => p.idx === idx);
+                const compProfPt = lineChartGeometry.compProfSeries?.pts.find((p) => p.idx === idx);
                 const isHovered = hoveredMonthIdx === idx;
 
                 return (
@@ -1592,6 +1719,16 @@ export default function JobValueSpreadsheetView({
                         y2={lineChartGeometry.height - lineChartGeometry.padBottom}
                         stroke="#CBD5E1"
                         strokeWidth={1}
+                      />
+                    )}
+                    {compProfPt && selectedYear !== compareYear && (
+                      <circle
+                        cx={compProfPt.x}
+                        cy={compProfPt.y}
+                        r={isHovered ? 4.5 : 2.5}
+                        fill="#94A3B8"
+                        stroke="#FFFFFF"
+                        strokeWidth={1.5}
                       />
                     )}
                     {revPt && (
@@ -1648,20 +1785,36 @@ export default function JobValueSpreadsheetView({
             </svg>
 
             <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex items-center justify-between gap-3 font-mono h-11 min-h-[44px]">
-              {hoveredMonthIdx !== null && processedData.monthlyRevenue[hoveredMonthIdx] !== null ? (
+              {hoveredMonthIdx !== null &&
+              (processedData.monthlyRevenue[hoveredMonthIdx] !== null ||
+                (processedData.monthlyProfitCompare &&
+                  processedData.monthlyProfitCompare[hoveredMonthIdx] !== null)) ? (
                 <>
                   <span className="font-sans font-bold text-[#93C5FD]">
-                    เดือน {SHORT_MONTH_LABELS[hoveredMonthIdx]} (ปี {selectedYear})
+                    เดือน {SHORT_MONTH_LABELS[hoveredMonthIdx]}
                   </span>
-                  <span>รายได้: {formatInt(processedData.monthlyRevenue[hoveredMonthIdx])} บาท</span>
-                  <span>ต้นทุน: {formatInt(processedData.monthlyCost[hoveredMonthIdx])} บาท</span>
+                  <span>
+                    รายได้ {selectedYear.slice(-2)}:{" "}
+                    {formatInt(processedData.monthlyRevenue[hoveredMonthIdx])}
+                  </span>
+                  <span>
+                    ต้นทุน {selectedYear.slice(-2)}:{" "}
+                    {formatInt(processedData.monthlyCost[hoveredMonthIdx])}
+                  </span>
                   <span className="font-bold text-[#6EE7B7]">
-                    กำไรสุทธิ: {formatInt(processedData.monthlyProfit[hoveredMonthIdx])} บาท
+                    กำไร {selectedYear.slice(-2)}:{" "}
+                    {formatInt(processedData.monthlyProfit[hoveredMonthIdx])}
                   </span>
+                  {selectedYear !== compareYear && (
+                    <span className="text-[#CBD5E1]">
+                      กำไร {compareYear.slice(-2)}:{" "}
+                      {formatInt(processedData.monthlyProfitCompare[hoveredMonthIdx])}
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className="font-sans text-xs text-[#94A3B8]">
-                  เลื่อนเมาส์บนเส้นกราฟเพื่อดูรายละเอียดรายได้ ต้นทุน และกำไรสุทธิแต่ละเดือน
+                  เลื่อนเมาส์บนเส้นกราฟเพื่อดูรายละเอียดเปรียบเทียบรายได้ ต้นทุน และกำไรสุทธิแต่ละเดือน
                 </span>
               )}
             </div>
@@ -1742,6 +1895,17 @@ export default function JobValueSpreadsheetView({
                 return (
                   <g
                     key={item.key}
+                    onClick={() => {
+                      if (processedData.viewMode === "ALL") {
+                        handleDeptChange(item.name);
+                      } else if (item.empId) {
+                        if (onOpenEmployeeDetails) {
+                          onOpenEmployeeDetails({ empId: item.empId, name: item.name });
+                        } else {
+                          handleEmpChange(item.empId);
+                        }
+                      }
+                    }}
                     onMouseEnter={() => setHoveredBarIdx(idx)}
                     onMouseLeave={() => setHoveredBarIdx(null)}
                     className="cursor-pointer"
