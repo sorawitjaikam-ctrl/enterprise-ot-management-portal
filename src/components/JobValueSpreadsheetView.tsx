@@ -1400,7 +1400,7 @@ export default function JobValueSpreadsheetView({
               onChange={(e) => handleDeptChange(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0F172A] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              <option value="ALL">ทุกแผนก (Corporate Overview)</option>
+              <option value="ALL">ทุกแผนก</option>
               {departmentOptions.map((dept) => (
                 <option key={dept} value={dept}>
                   {dept}
@@ -1424,7 +1424,7 @@ export default function JobValueSpreadsheetView({
               onChange={(e) => handleEmpChange(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0F172A] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              <option value="ALL">ทุกคนในกลุ่มที่เลือก (Group View)</option>
+              <option value="ALL">ทุกคนในกลุ่มที่เลือก</option>
               {employeeOptions.map((emp) => (
                 <option key={emp.empId} value={emp.empId}>
                   {emp.name} ({emp.empId} · {emp.dept})
