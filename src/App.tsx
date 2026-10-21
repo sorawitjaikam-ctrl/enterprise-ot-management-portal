@@ -5063,8 +5063,8 @@ export default function App() {
           </div>
 
           {/* Central MARINE link Logo */}
-          <div className="w-56 h-20 rounded-2xl bg-[#1e2578] flex items-center justify-center p-3 mb-5 shadow-sm border border-slate-200 overflow-hidden">
-            <img src="/marine-link-logo.png" alt="MARINE link" className="max-h-full max-w-full object-contain" />
+          <div className="w-20 h-20 rounded-2xl bg-[#1e2578] flex items-center justify-center p-2 mb-5 shadow-sm border border-slate-200 overflow-hidden">
+            <img src="/marine-link-icon.png" alt="MARINE link" className="w-full h-full object-contain rounded-xl" />
           </div>
 
           {/* Headings */}
@@ -6810,8 +6810,8 @@ export default function App() {
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded p-8 shadow-lg relative z-10 text-white">
           <div className="text-center mb-8">
-            <div className="bg-[#1e2578] p-3 rounded-2xl inline-block mx-auto mb-4 shadow-lg shadow-black/20 border border-white/20">
-              <img src="/marine-link-logo.png" alt="MARINE link" className="h-12 object-contain" />
+            <div className="w-20 h-20 rounded-2xl bg-[#1e2578] mx-auto mb-4 p-2 shadow-lg shadow-black/20 border border-white/20 flex items-center justify-center overflow-hidden">
+              <img src="/marine-link-icon.png" alt="MARINE link" className="w-full h-full object-contain rounded-xl" />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">MARINE link</h1>
             <p className="text-xs text-sky-200 mt-1 font-bold uppercase tracking-wider">Port & Berth Operations OT Portal</p>
