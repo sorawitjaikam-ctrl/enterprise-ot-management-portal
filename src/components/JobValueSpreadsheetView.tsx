@@ -1676,18 +1676,20 @@ export default function JobValueSpreadsheetView({
       {/* ===================================================================== */}
       {/* 4. CHARTS GRID (Monthly Trend Line Chart + Yearly Comparison Chart)   */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* Left Chart: แนวโน้มกำไรรายเดือน (Monthly Trend) */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
-              <LineChartIcon className="w-5 h-5 text-[#0E3A66]" />
-              <span>
-                แนวโน้มกำไรรายเดือน (Monthly Trend · ปี {selectedYear}
-                {selectedYear !== compareYear ? ` เทียบ ปี ${compareYear}` : ""})
-              </span>
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col h-full">
+          <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
+                <LineChartIcon className="w-5 h-5 text-[#0E3A66] shrink-0" />
+                <span>
+                  แนวโน้มกำไรรายเดือน (Monthly Trend · ปี {selectedYear}
+                  {selectedYear !== compareYear ? ` เทียบ ปี ${compareYear}` : ""})
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs font-bold">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
               <span className="flex items-center gap-1.5 text-[#15803D]">
                 <span className="w-3 h-1 rounded bg-[#15803D] inline-block" />
                 <span>รายได้ ({selectedYear.slice(-2)})</span>
@@ -1709,7 +1711,7 @@ export default function JobValueSpreadsheetView({
             </div>
           </div>
 
-          <div className="p-5 relative">
+          <div className="p-5 relative flex-1 flex flex-col justify-between">
             <svg
               viewBox={`0 0 ${lineChartGeometry.width} ${lineChartGeometry.height}`}
               className="w-full h-[270px] overflow-visible select-none"
@@ -1900,7 +1902,7 @@ export default function JobValueSpreadsheetView({
                   )}
                 </>
               ) : (
-                <span className="font-sans text-xs text-[#94A3B8]">
+                <span className="font-sans text-xs text-[#94A3B8] truncate">
                   เลื่อนเมาส์บนเส้นกราฟเพื่อดูรายละเอียดเปรียบเทียบรายได้ ต้นทุน และกำไรสุทธิแต่ละเดือน
                 </span>
               )}
@@ -1912,32 +1914,34 @@ export default function JobValueSpreadsheetView({
         {processedData.viewMode !== "PERSON" && (
           <div
             id="compare-container"
-            className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col"
+            className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col h-full"
           >
-          <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
-              <BarChart3 className="w-5 h-5 text-[#0E3A66]" />
-              <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
+            <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
+                  <BarChart3 className="w-5 h-5 text-[#0E3A66] shrink-0" />
+                  <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
+                <span className="flex items-center gap-1.5 text-[#64748B]">
+                  <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
+                  <span>กำไร {compareYear.slice(-2)}</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-[#0E3A66]">
+                  <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
+                  <span>กำไร {selectedYear.slice(-2)}</span>
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs font-bold">
-              <span className="flex items-center gap-1.5 text-[#64748B]">
-                <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
-                <span>กำไร {compareYear.slice(-2)}</span>
-              </span>
-              <span className="flex items-center gap-1.5 text-[#0E3A66]">
-                <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
-                <span>กำไร {selectedYear.slice(-2)}</span>
-              </span>
-            </div>
-          </div>
 
-          <div className="p-5 relative">
-            <svg
-              viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
-              className="w-full h-[270px] overflow-visible select-none"
-              role="img"
-              aria-label="กราฟเปรียบเทียบกำไรรายปี"
-            >
+            <div className="p-5 relative flex-1 flex flex-col justify-between">
+              <svg
+                viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
+                className="w-full h-[270px] overflow-visible select-none"
+                role="img"
+                aria-label="กราฟเปรียบเทียบกำไรรายปี"
+              >
               {barChartGeometry.ticks.map((t, idx) => (
                 <g key={idx}>
                   <line
@@ -2049,7 +2053,7 @@ export default function JobValueSpreadsheetView({
                   </span>
                 </>
               ) : (
-                <span className="font-sans text-xs text-[#94A3B8]">
+                <span className="font-sans text-xs text-[#94A3B8] truncate">
                   เลื่อนเมาส์บนแท่งกราฟเพื่อดูรายละเอียดเปรียบเทียบกำไรรายปี
                 </span>
               )}
