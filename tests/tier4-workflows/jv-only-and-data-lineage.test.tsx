@@ -263,11 +263,13 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     fireEvent.change(deptSelect, { target: { value: "INTER 3" } });
     expect(screen.getByText(/แสดงรายชื่อพนักงานในกลุ่มที่เลือก/i)).toBeDefined();
 
-    // Filter by specific employee "48835" (วสันต์ คุ้มคำ) -> PERSON viewMode hides Yearly Comparison & Summary Table
+    // Filter by specific employee "48835" (วสันต์ คุ้มคำ) -> PERSON viewMode keeps Yearly Comparison & Summary Table visible and displays Rank in Dept & Agency
     const empSelect = screen.getByRole("combobox", { name: /รายชื่อพนักงาน/i });
     fireEvent.change(empSelect, { target: { value: "48835" } });
-    expect(screen.queryByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeNull();
-    expect(screen.queryByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeNull();
+    expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison/i)).toBeDefined();
+    expect(screen.getByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeDefined();
+    expect(screen.getByText(/อันดับกำไรในแผนกเดียวกัน/i)).toBeDefined();
+    expect(screen.getByText(/อันดับกำไรในหน่วยงาน/i)).toBeDefined();
 
     // Reset filters
     const resetBtn = screen.getByRole("button", { name: /ล้างค่า/i });
