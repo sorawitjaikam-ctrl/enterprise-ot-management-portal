@@ -244,7 +244,7 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     expect(screen.queryByText(/มาสเตอร์ชีตเต็ม/i)).toBeNull();
     expect(screen.getByText(/Revenue \(Avg\)/i)).toBeDefined();
     expect(screen.getByText(/Expenses \(Avg\)/i)).toBeDefined();
-    expect(screen.getByText(/Gross Profit \(2569\)/i)).toBeDefined();
+    expect(screen.getByText(/Profit \(Avg\)/i)).toBeDefined();
     expect(screen.getByText(/Performance Status/i)).toBeDefined();
     expect(screen.getByText(/แนวโน้มกำไรรายเดือน/i)).toBeDefined();
     expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison\)/i)).toBeDefined();

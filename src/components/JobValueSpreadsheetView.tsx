@@ -1591,14 +1591,14 @@ export default function JobValueSpreadsheetView({
           </div>
         </div>
 
-        {/* Card 3: Gross Profit */}
+        {/* Card 3: Profit (Avg) */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] border-l-4 border-l-[#0E3A66] shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#E8F3FA] text-[#0E3A66] flex items-center justify-center mb-4 border border-[#9FCEE8]">
               <BarChart3 className="w-6 h-6" />
             </div>
             <div className="text-xs font-bold text-[#475569] uppercase tracking-wider mb-1">
-              Gross Profit ({selectedYear})
+              Profit (Avg)
             </div>
             <div
               id="kpi-total-profit"
