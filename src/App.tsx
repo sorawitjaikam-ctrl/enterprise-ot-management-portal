@@ -2577,9 +2577,19 @@ export default function App() {
     }
   }, []);
 
-  // Ensure tab title always reflects MARINE link branding
+  // Ensure tab title and favicon always reflect MARINE link branding
   useEffect(() => {
     document.title = "MARINE link - HR Management Portal";
+    try {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.type = "image/png";
+      link.href = "/marine-link-icon.png?t=" + Date.now();
+    } catch (e) {}
   }, []);
 
   // Login & Session States
