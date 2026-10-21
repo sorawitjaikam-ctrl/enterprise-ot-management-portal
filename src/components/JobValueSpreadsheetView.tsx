@@ -2519,9 +2519,6 @@ export default function JobValueSpreadsheetView({
                     ? "แผนก"
                     : "หน่วยงาน (สายงาน)"}
                 </th>
-                {(deptFilter !== "ALL" || processedData.viewMode === "PERSON") && (
-                  <th className="py-3.5 px-5 text-center">อันดับกำไร (กลุ่มแผนก / หน่วยงาน)</th>
-                )}
                 <th className="py-3.5 px-5 text-right">รายได้ (เฉลี่ย)</th>
                 <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
                 <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {compareYear}</th>
@@ -2572,28 +2569,6 @@ export default function JobValueSpreadsheetView({
                         )}
                       </div>
                     </td>
-                    {(deptFilter !== "ALL" || processedData.viewMode === "PERSON") && (
-                      <td className="py-3.5 px-5 text-center">
-                        {item.deptRank ? (
-                          <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
-                            <span
-                              className="px-2.5 py-0.5 rounded-md bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] text-xs font-extrabold font-mono"
-                              title={`อันดับที่ ${item.deptRank} จาก ${item.deptTotal} คน ในแผนก ${item.dept}`}
-                            >
-                              กลุ่ม {item.dept}: ที่ {item.deptRank}/{item.deptTotal}
-                            </span>
-                            <span
-                              className="px-2.5 py-0.5 rounded-md bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] text-xs font-extrabold font-mono"
-                              title={`อันดับที่ ${item.groupRank} จาก ${item.groupTotal} คน ในหน่วยงาน ${item.group}`}
-                            >
-                              หน่วยงาน {item.group}: ที่ {item.groupRank}/{item.groupTotal}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-[#94A3B8]">-</span>
-                        )}
-                      </td>
-                    )}
                     <td className="py-3.5 px-5 text-right font-mono font-bold text-[#15803D] tabular-nums">
                       {formatInt(item.revenue)}
                     </td>
