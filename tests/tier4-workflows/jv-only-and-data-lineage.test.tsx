@@ -317,4 +317,35 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     );
     expect(screen.getByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i })).toBeDefined();
   });
+
+  it("Job Value drill-down back button allows hierarchical navigation between division, department and overview", async () => {
+    render(
+      <JobValueSpreadsheetView
+        currentUser={{ username: "sorawit", name: "สรวิศ", role: "Admin" }}
+        isHrOrFullAccess={true}
+      />
+    );
+
+    // Initial overview state: Back button exists and is disabled
+    const backBtn = screen.getByRole("button", { name: /ย้อนกลับ/i });
+    expect(backBtn).toBeDefined();
+    expect(backBtn).toBeDisabled();
+
+    // Drill down to department INTER 3
+    const deptSelect = screen.getByRole("combobox", { name: /หน่วยงาน \/ แผนก/i });
+    fireEvent.change(deptSelect, { target: { value: "INTER 3" } });
+
+    // Now drilled down: subtitle shows selected group personnel, back button is enabled
+    await waitFor(() => {
+      expect(screen.getByText(/แสดงรายชื่อพนักงานในกลุ่มที่เลือก/i)).toBeDefined();
+      expect(backBtn).not.toBeDisabled();
+    });
+
+    // Click back button: returns to overview
+    fireEvent.click(backBtn);
+    await waitFor(() => {
+      expect(screen.getByText(/สรุปภาพรวมแยกตามหน่วยงาน/i)).toBeDefined();
+      expect(backBtn).toBeDisabled();
+    });
+  });
 });

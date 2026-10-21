@@ -19,6 +19,7 @@ import {
   Calendar,
   FileSpreadsheet,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import {
   DetailedJobValueEmployee,
@@ -694,6 +695,18 @@ export default function JobValueSpreadsheetView({
     setGroupFilter("ALL");
     setDeptFilter("ALL");
     setEmpFilter("ALL");
+  };
+
+  const isDrilledDown = groupFilter !== "ALL" || deptFilter !== "ALL" || empFilter !== "ALL";
+
+  const handleGoBack = () => {
+    if (empFilter !== "ALL") {
+      setEmpFilter("ALL");
+    } else if (deptFilter !== "ALL") {
+      setDeptFilter("ALL");
+    } else if (groupFilter !== "ALL") {
+      setGroupFilter("ALL");
+    }
   };
 
   // Synchronized Year Filter Handlers: prevent identical year collision and auto-link comparison
@@ -2165,6 +2178,30 @@ export default function JobValueSpreadsheetView({
             </p>
           </div>
             <div className="flex flex-wrap items-center gap-2">
+              {/* Back Button (ย้อนกลับ) */}
+              <button
+                type="button"
+                onClick={handleGoBack}
+                disabled={!isDrilledDown}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-2xs ${
+                  isDrilledDown
+                    ? "bg-white hover:bg-[#F1F5F9] text-[#0E3A66] border border-[#CBD5E1] cursor-pointer"
+                    : "bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] cursor-not-allowed opacity-50"
+                }`}
+                title={
+                  isDrilledDown
+                    ? empFilter !== "ALL"
+                      ? `ย้อนกลับไปแผนก ${deptFilter}`
+                      : deptFilter !== "ALL"
+                      ? `ย้อนกลับไปสายงาน ${groupFilter}`
+                      : "ย้อนกลับไปภาพรวมหน่วยงาน"
+                    : "อยู่ที่ระดับภาพรวมสูงสุดแล้ว"
+                }
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>ย้อนกลับ</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleDownloadSummaryCsv}
