@@ -88,12 +88,12 @@ export default function Sidebar({
       {/* Brand Logo & Manual Close Button */}
       <div className="mb-8 flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
-          <div className="bg-[#1e2578] rounded-xl flex items-center justify-center p-1.5 shadow-md flex-shrink-0 w-10 h-10 border border-white/20">
-            <img src="/marine-favicon.png" alt="MARINE link" className="w-full h-full object-contain" />
+          <div className="bg-[#1e2578] rounded-xl flex items-center justify-center p-1 shadow-md flex-shrink-0 w-10 h-10 border border-white/20 overflow-hidden">
+            <img src="/marine-link-square.png" alt="MARINE link" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-extrabold text-white leading-tight text-sm tracking-tight">MARINE link</h1>
-            <p className="text-[10px] font-bold text-[#a9cdfc] tracking-wider uppercase">Port & Logistics OT</p>
+            <p className="text-[10px] font-bold text-[#a9cdfc] tracking-wider uppercase">DOUBLE A TERMINAL</p>
           </div>
         </div>
 
