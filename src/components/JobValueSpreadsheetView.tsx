@@ -1806,23 +1806,6 @@ export default function JobValueSpreadsheetView({
         </div>
       )}
 
-      {/* Section Manager / Unit Scope Notice Banner */}
-      {isScopedUser && (
-        <div className="p-3.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-xl text-xs font-bold text-[#0E3A66] flex flex-wrap items-center justify-between gap-2 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#0E3A66] shrink-0" />
-            <span>
-              สิทธิ์ผู้จัดการแผนก ({currentUser?.role || "Section Manager"}): ระบบจำกัดการแสดงผลเฉพาะ{" "}
-              {userScope?.groups && !userScope.groups.includes("all") ? `หน่วยงาน ${userScope.groups.join(", ")} · ` : ""}
-              แผนก {departmentOptions.length > 0 ? departmentOptions.join(", ") : "ที่ได้รับมอบหมาย"}
-            </span>
-          </div>
-          <span className="font-mono text-[11px] bg-white px-2.5 py-1 rounded-md border border-[#9FCEE8]">
-            {currentUser?.name || currentUser?.username}
-          </span>
-        </div>
-      )}
-
       {/* ===================================================================== */}
       {/* 2. FILTERS BAR CARD (ปีที่แสดงผล + หน่วยงาน/แผนก + รายชื่อพนักงาน + ล้างค่า) */}
       {/* ===================================================================== */}

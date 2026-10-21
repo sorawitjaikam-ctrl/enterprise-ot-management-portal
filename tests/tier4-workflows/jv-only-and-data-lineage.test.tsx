@@ -364,9 +364,8 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
       />
     );
 
-    // 1. Shows Section Manager scope banner
-    expect(screen.getByText(/สิทธิ์ผู้จัดการแผนก/i)).toBeDefined();
-    expect(screen.getByText(/ผู้จัดการ INTER 2/i)).toBeDefined();
+    // 1. Silent scoping: does not display distracting scope banner to user
+    expect(screen.queryByText(/สิทธิ์ผู้จัดการแผนก/i)).toBeNull();
 
     // 2. Department selector is scoped to INTER 2 only
     const deptSelect = screen.getByRole("combobox", { name: /หน่วยงาน \/ แผนก/i });
