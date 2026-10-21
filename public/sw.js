@@ -31,6 +31,7 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/favicon.ico',
   '/marine-favicon.png',
+  '/marine-link-square.png',
   '/marine-link-logo.png',
   '/login-bg.jpg',
   '/icons/icon-192x192.png',

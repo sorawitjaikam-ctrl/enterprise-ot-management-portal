@@ -5049,7 +5049,7 @@ export default function App() {
 
           {/* Headings */}
           <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 mb-1.5 flex items-center gap-2">
-            <span>ระบบบริหารเวลา OT และจัดกะหน้าท่า</span>
+            <span>ระบบวางแผนและจัดการตารางกะพนักงาน</span>
           </h2>
           
           <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6 max-w-xs">

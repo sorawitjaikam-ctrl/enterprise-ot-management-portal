@@ -302,16 +302,13 @@ export default function Navbar({
                 onClick={() => handleTabSelect(getTabMode("dashboard") === "open" ? "dashboard" : getFirstAllowedTab())}
                 className="cursor-pointer select-none shrink-0 flex items-center gap-2.5"
               >
-                <div className="w-9 h-9 rounded-xl bg-[#1e2578] flex items-center justify-center p-1.5 border border-[#DCE4EA] shrink-0 shadow-2xs">
-                  <img src="/marine-favicon.png" alt="MARINE link" className="w-full h-full object-contain" />
+                <div className="w-10 h-10 rounded-xl bg-[#1e2578] flex items-center justify-center p-1 border border-[#1e2578] shrink-0 shadow-xs overflow-hidden">
+                  <img src="/marine-link-square.png" alt="MARINE link" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <span className="eyebrow block tracking-wider">DOUBLE A TERMINAL · MARINE LINK</span>
-                  <h1 className="text-base sm:text-lg font-bold text-[#0E3A66] leading-tight tracking-tight flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-bold text-[#0E3A66] leading-tight tracking-tight">
                     <span className="text-balance">ระบบวางแผนและจัดการตารางกะพนักงาน</span>
-                    <span className="hidden sm:inline-block border border-[#DCE4EA] rounded px-2 py-0.5 font-mono text-[11px] font-normal text-[#6A7B87] bg-[#F3F6F8] tabular-nums">
-                      รอบเดือน ส.ค. 2569
-                    </span>
                   </h1>
                 </div>
               </div>
