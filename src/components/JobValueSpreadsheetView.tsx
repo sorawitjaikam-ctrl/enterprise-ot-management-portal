@@ -25,6 +25,7 @@ import {
   INITIAL_JOB_VALUE_EXCEL_RECORDS,
 } from "../data/jobValueExcelData";
 import * as XLSX from "xlsx";
+import { parseAccountScope, isRecordAuthorizedByScope } from "../utils/accountScope";
 
 interface JobValueSpreadsheetViewProps {
   currentUser: any;
@@ -313,18 +314,15 @@ export default function JobValueSpreadsheetView({
     return Array.from(keys).sort();
   }, [yearlyStore]);
 
-  // Scoped records per year based on user permissions with proper department normalization
+  // Scoped records per year based on user permissions with multi-agency and multi-department scope
   const getScopedRecordsForYear = useCallback(
     (yearKey: string): YearlyJobValueRecord[] => {
       const raw = yearlyStore[yearKey] || [];
       if (!currentUser?.deptId || currentUser.deptId === "all" || isHrOrFullAccess) {
         return raw;
       }
-      const uDeptNorm = normalizeDeptString(currentUser.deptId);
-      const scoped = raw.filter((emp) => {
-        const empDeptNorm = normalizeDeptString(emp.dept);
-        return empDeptNorm.includes(uDeptNorm) || uDeptNorm.includes(empDeptNorm);
-      });
+      const scope = parseAccountScope(currentUser.deptId);
+      const scoped = raw.filter((emp) => isRecordAuthorizedByScope(scope, emp.dept, emp.group));
       return scoped.length > 0 ? scoped : raw;
     },
     [yearlyStore, currentUser, isHrOrFullAccess]
