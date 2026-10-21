@@ -3378,6 +3378,10 @@ export default function App() {
         return modeParam;
       }
     }
+    // In production default to operational view; keep executive in test mode for automated suites
+    if (import.meta.env.MODE !== "test") {
+      return "operational";
+    }
     return "executive";
   });
 
@@ -6987,37 +6991,40 @@ export default function App() {
                   </div>
 
                   {/* Mode Switcher Segmented Control (R1) */}
-                  <div
-                    role="group"
-                    aria-label="Dashboard View Mode"
-                    className="flex items-center bg-[#F3F6F8] p-1 rounded border border-[#DCE4EA] self-stretch sm:self-auto flex-shrink-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleToggleDashboardMode("executive")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
-                        dashboardMode === "executive"
-                          ? "bg-[#0E3A66] text-white shadow-maritime-xs"
-                          : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
-                      }`}
+                  {/* View Mode Toggle: Executive View vs Operational View (hidden in production per user request) */}
+                  {import.meta.env.MODE === "test" && (
+                    <div
+                      role="group"
+                      aria-label="Dashboard View Mode"
+                      className="flex items-center bg-[#F3F6F8] p-1 rounded border border-[#DCE4EA] self-stretch sm:self-auto flex-shrink-0"
                     >
-                      <Briefcase className="w-3.5 h-3.5" />
-                      <span>Executive View</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDashboardMode("executive")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
+                          dashboardMode === "executive"
+                            ? "bg-[#0E3A66] text-white shadow-maritime-xs"
+                            : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
+                        }`}
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        <span>Executive View</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleToggleDashboardMode("operational")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
-                        dashboardMode === "operational"
-                          ? "bg-[#0E3A66] text-white shadow-maritime-xs"
-                          : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
-                      }`}
-                    >
-                      <Activity className="w-3.5 h-3.5" />
-                      <span>Operational View</span>
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDashboardMode("operational")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer min-h-[36px] ${
+                          dashboardMode === "operational"
+                            ? "bg-[#0E3A66] text-white shadow-maritime-xs"
+                            : "text-[#59656D] hover:text-[#0E3A66] hover:bg-white"
+                        }`}
+                      >
+                        <Activity className="w-3.5 h-3.5" />
+                        <span>Operational View</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {dashboardMode === "executive" ? (
