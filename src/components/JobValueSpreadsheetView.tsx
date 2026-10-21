@@ -654,7 +654,10 @@ export default function JobValueSpreadsheetView({
   // Download Single-Year CSV Template for easy per-year upload
   // ไม่ต้องมีคอลัมน์ค่าเฉลี่ยหรือสถานะ ให้ระบบคำนวณอัตโนมัติเอง
   const handleDownloadYearlyTemplate = (yearToDownload: string) => {
-    const existingForYear = yearlyStore[yearToDownload] || yearlyStore["2569"] || [];
+    const existingForYear =
+      yearlyStore[yearToDownload] && yearlyStore[yearToDownload].length > 0
+        ? yearlyStore[yearToDownload]
+        : yearlyStore["2568"] || yearlyStore["2569"] || [];
     const headers = [
       "รหัสพนักงาน",
       "ชื่อ-พนักงาน",
@@ -683,37 +686,118 @@ export default function JobValueSpreadsheetView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Job_Value_Template_Year_${yearToDownload}.csv`);
+    link.setAttribute("download", `Job value ปี${yearToDownload}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  // Download Summary CSV matching downloadCSV() in user's HTML
+  // Export full monthly Job Value data (รายเดือน 12 เดือน รายได้ ต้นทุน กำไร พร้อมค่าเฉลี่ยและสถานะต่อยอด)
   const handleDownloadSummaryCsv = () => {
-    const isDeptView = processedData.viewMode === "DEPT";
     const headers = [
       "ลำดับ",
-      isDeptView ? "ชื่อพนักงาน" : "แผนก",
-      "รายได้ (เฉลี่ย)",
-      "ต้นทุน (เฉลี่ย)",
-      `กำไรปี ${compareYear}`,
-      `กำไรปี ${selectedYear}`,
-      "Status",
+      "รหัสพนักงาน",
+      "ชื่อ-พนักงาน",
+      "แผนก",
+      "กลุ่มสายงาน",
+      "ตำแหน่ง",
+      ...SHORT_MONTH_LABELS.map((m) => `รายได้_${m}`),
+      ...SHORT_MONTH_LABELS.map((m) => `ต้นทุน_${m}`),
+      ...SHORT_MONTH_LABELS.map((m) => `กำไร_${m}`),
+      "รายได้เฉลี่ย",
+      "ต้นทุนเฉลี่ย",
+      `กำไรเฉลี่ยปี ${selectedYear}`,
+      `กำไรเฉลี่ยปี ${compareYear}`,
+      "สถานะต่อยอด",
     ];
     let csvContent = "\uFEFF" + headers.join(",") + "\n";
 
-    processedData.summaryData.forEach((item, idx) => {
-      const displayStatus = item.status;
+    // Primary records for selected year (or fallback to personnel structure if empty)
+    const rawList =
+      currentYearRecords.length > 0
+        ? currentYearRecords
+        : yearlyStore[selectedYear] && yearlyStore[selectedYear].length > 0
+        ? yearlyStore[selectedYear]
+        : compareYearRecords.length > 0
+        ? compareYearRecords.map((r) => ({
+            ...r,
+            monthlyRevenue: new Array(12).fill(0),
+            monthlyCost: new Array(12).fill(0),
+            monthlyProfit: new Array(12).fill(0),
+            avgRevenue: 0,
+            avgCost: 0,
+            avgProfit: 0,
+          }))
+        : [];
+
+    let exportList = rawList;
+    if (deptFilter !== "ALL") {
+      if (deptFilter.startsWith("GROUP:")) {
+        const gName = deptFilter.replace("GROUP:", "");
+        exportList = exportList.filter((d) => d.group === gName);
+      } else {
+        exportList = exportList.filter((d) => d.dept === deptFilter);
+      }
+    }
+    if (empFilter !== "ALL") {
+      exportList = exportList.filter((d) => d.empId === empFilter);
+    }
+
+    exportList.forEach((r, idx) => {
+      const compRec = compareYearMap.get(r.empId) || compareYearMap.get(r.name?.trim());
+      const mRev = (r.monthlyRevenue || new Array(12).fill(0)).map((v) => Math.round(Number(v) || 0));
+      const mCost = (r.monthlyCost || new Array(12).fill(0)).map((v) => Math.round(Number(v) || 0));
+      const mProf = mRev.map((rv, i) => Math.round(rv - (mCost[i] || 0)));
+
+      const activeMonths = mRev.filter((rv, i) => rv !== 0 || mCost[i] !== 0).length || 12;
+      const avgRev = Math.round(
+        r.avgRevenue !== undefined && r.avgRevenue !== null && r.avgRevenue !== 0
+          ? r.avgRevenue
+          : mRev.reduce((a, b) => a + b, 0) / activeMonths
+      );
+      const avgCost = Math.round(
+        r.avgCost !== undefined && r.avgCost !== null && r.avgCost !== 0
+          ? r.avgCost
+          : mCost.reduce((a, b) => a + b, 0) / activeMonths
+      );
+      const avgProf = Math.round(avgRev - avgCost);
+
+      let compAvgProf = 0;
+      if (compRec) {
+        const cRev = (compRec.monthlyRevenue || new Array(12).fill(0)).map((v) => Math.round(Number(v) || 0));
+        const cCost = (compRec.monthlyCost || new Array(12).fill(0)).map((v) => Math.round(Number(v) || 0));
+        const cActiveMonths = cRev.filter((rv, i) => rv !== 0 || cCost[i] !== 0).length || 12;
+        const cAvgRev = Math.round(
+          compRec.avgRevenue !== undefined && compRec.avgRevenue !== null && compRec.avgRevenue !== 0
+            ? compRec.avgRevenue
+            : cRev.reduce((a, b) => a + b, 0) / cActiveMonths
+        );
+        const cAvgCost = Math.round(
+          compRec.avgCost !== undefined && compRec.avgCost !== null && compRec.avgCost !== 0
+            ? compRec.avgCost
+            : cCost.reduce((a, b) => a + b, 0) / cActiveMonths
+        );
+        compAvgProf = Math.round(cAvgRev - cAvgCost);
+      }
+
+      const status = avgProf > compAvgProf ? "ต่อยอด" : "ไม่ต่อยอด";
+
       const row = [
         idx + 1,
-        `"${item.name.replace(/"/g, '""')}"`,
-        Math.round(item.revenue),
-        Math.round(item.cost),
-        Math.round(item.profitCompare),
-        Math.round(item.profit),
-        `"${displayStatus}"`,
+        `"${r.empId}"`,
+        `"${r.name.replace(/"/g, '""')}"`,
+        `"${r.dept}"`,
+        `"${r.group}"`,
+        `"${r.role}"`,
+        ...mRev,
+        ...mCost,
+        ...mProf,
+        avgRev,
+        avgCost,
+        avgProf,
+        compAvgProf,
+        `"${status}"`,
       ];
       csvContent += row.join(",") + "\n";
     });
@@ -722,7 +806,7 @@ export default function JobValueSpreadsheetView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Financial_Analysis_${selectedYear}_vs_${compareYear}.csv`);
+    link.setAttribute("download", `Job value ปี${selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1999,7 +2083,7 @@ export default function JobValueSpreadsheetView({
               className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
             >
               <Download className="w-4 h-4" />
-              <span>Export CSV</span>
+              <span>Export Job Value ปี {selectedYear}</span>
             </button>
           </div>
 
