@@ -193,6 +193,12 @@ interface SummaryRowItem {
   profitCompare: number;
   count: number;
   status: string;
+  deptRank?: number;
+  deptTotal?: number;
+  groupRank?: number;
+  groupTotal?: number;
+  overallRank?: number;
+  overallTotal?: number;
 }
 
 export default function JobValueSpreadsheetView({
@@ -392,6 +398,197 @@ export default function JobValueSpreadsheetView({
     return pool;
   }, [basePoolRecords, groupFilter, deptFilter]);
 
+  // Precompute profit rankings for every employee across their Department (กลุ่ม/แผนก) and Agency (หน่วยงาน/สายงาน)
+  const employeeRankings = useMemo(() => {
+    const empItems: {
+      empId: string;
+      name: string;
+      dept: string;
+      group: string;
+      revenue: number;
+      cost: number;
+      profit: number;
+      profitCompare: number;
+      status: string;
+    }[] = currentYearRecords.map((d) => {
+      const compRec = compareYearMap.get(d.empId) || compareYearMap.get(d.name?.trim());
+      const mRevArr = d.monthlyRevenue || new Array(12).fill(0);
+      const mCostArr = d.monthlyCost || new Array(12).fill(0);
+      const activeMonths =
+        mRevArr.filter((rv, m) => (rv || 0) !== 0 || (mCostArr[m] || 0) !== 0).length || 12;
+
+      const avgRev = Math.round(
+        d.avgRevenue !== undefined && d.avgRevenue !== null && d.avgRevenue !== 0
+          ? d.avgRevenue
+          : mRevArr.reduce((a, b) => a + (b || 0), 0) / activeMonths
+      );
+      const avgCost = Math.round(
+        d.avgCost !== undefined && d.avgCost !== null && d.avgCost !== 0
+          ? d.avgCost
+          : mCostArr.reduce((a, b) => a + (b || 0), 0) / activeMonths
+      );
+      const avgProf = Math.round(avgRev - avgCost);
+
+      let profComp = 0;
+      if (compRec) {
+        const cRevArr = compRec.monthlyRevenue || new Array(12).fill(0);
+        const cCostArr = compRec.monthlyCost || new Array(12).fill(0);
+        const cActiveMonths =
+          cRevArr.filter((rv, m) => (rv || 0) !== 0 || (cCostArr[m] || 0) !== 0).length || 12;
+        const cAvgRev = Math.round(
+          compRec.avgRevenue !== undefined && compRec.avgRevenue !== null && compRec.avgRevenue !== 0
+            ? compRec.avgRevenue
+            : cRevArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+        );
+        const cAvgCost = Math.round(
+          compRec.avgCost !== undefined && compRec.avgCost !== null && compRec.avgCost !== 0
+            ? compRec.avgCost
+            : cCostArr.reduce((a, b) => a + (b || 0), 0) / cActiveMonths
+        );
+        profComp = Math.round(cAvgRev - cAvgCost);
+      }
+
+      const grpName = d.group?.trim() || d.dept;
+      return {
+        empId: d.empId,
+        name: d.name,
+        dept: d.dept,
+        group: grpName,
+        revenue: avgRev,
+        cost: avgCost,
+        profit: avgProf,
+        profitCompare: profComp,
+        status: avgProf > profComp ? "ต่อยอด" : "ไม่ต่อยอด",
+      };
+    });
+
+    const byDept = new Map<string, typeof empItems>();
+    const byGroup = new Map<string, typeof empItems>();
+
+    empItems.forEach((item) => {
+      if (!byDept.has(item.dept)) byDept.set(item.dept, []);
+      byDept.get(item.dept)!.push(item);
+
+      if (!byGroup.has(item.group)) byGroup.set(item.group, []);
+      byGroup.get(item.group)!.push(item);
+    });
+
+    byDept.forEach((list) => list.sort((a, b) => b.profit - a.profit));
+    byGroup.forEach((list) => list.sort((a, b) => b.profit - a.profit));
+    const allSorted = [...empItems].sort((a, b) => b.profit - a.profit);
+
+    const deptNames = Array.from(byDept.keys()).sort();
+    const groupNames = Array.from(byGroup.keys()).sort();
+
+    const rankMap = new Map<
+      string,
+      {
+        empId: string;
+        name: string;
+        dept: string;
+        group: string;
+        profit: number;
+        profitCompare: number;
+        deptRank: number;
+        deptTotal: number;
+        groupRank: number;
+        groupTotal: number;
+        overallRank: number;
+        overallTotal: number;
+        deptPeers: SummaryRowItem[];
+        crossDeptRanks: { dept: string; rank: number; total: number; isOwnDept: boolean }[];
+        crossGroupRanks: { group: string; rank: number; total: number; isOwnGroup: boolean }[];
+      }
+    >();
+
+    empItems.forEach((item) => {
+      const deptList = byDept.get(item.dept) || [];
+      const groupList = byGroup.get(item.group) || [];
+
+      const deptRank = deptList.findIndex((x) => x.empId === item.empId) + 1;
+      const groupRank = groupList.findIndex((x) => x.empId === item.empId) + 1;
+      const overallRank = allSorted.findIndex((x) => x.empId === item.empId) + 1;
+
+      const crossDeptRanks = deptNames.map((dName) => {
+        const list = byDept.get(dName) || [];
+        if (dName === item.dept) {
+          return {
+            dept: dName,
+            rank: deptRank,
+            total: list.length,
+            isOwnDept: true,
+          };
+        }
+        const higherCount = list.filter((p) => p.profit > item.profit).length;
+        return {
+          dept: dName,
+          rank: higherCount + 1,
+          total: list.length + 1,
+          isOwnDept: false,
+        };
+      });
+
+      const crossGroupRanks = groupNames.map((gName) => {
+        const list = byGroup.get(gName) || [];
+        if (gName === item.group) {
+          return {
+            group: gName,
+            rank: groupRank,
+            total: list.length,
+            isOwnGroup: true,
+          };
+        }
+        const higherCount = list.filter((p) => p.profit > item.profit).length;
+        return {
+          group: gName,
+          rank: higherCount + 1,
+          total: list.length + 1,
+          isOwnGroup: false,
+        };
+      });
+
+      const deptPeers: SummaryRowItem[] = deptList.map((peer, idx) => ({
+        key: peer.empId,
+        name: peer.name,
+        empId: peer.empId,
+        dept: peer.dept,
+        group: peer.group,
+        revenue: peer.revenue,
+        cost: peer.cost,
+        profit: peer.profit,
+        profitCompare: peer.profitCompare,
+        count: 1,
+        status: peer.status,
+        deptRank: idx + 1,
+        deptTotal: deptList.length,
+        groupRank: (byGroup.get(peer.group) || []).findIndex((x) => x.empId === peer.empId) + 1,
+        groupTotal: (byGroup.get(peer.group) || []).length,
+        overallRank: allSorted.findIndex((x) => x.empId === peer.empId) + 1,
+        overallTotal: allSorted.length,
+      }));
+
+      rankMap.set(item.empId, {
+        empId: item.empId,
+        name: item.name,
+        dept: item.dept,
+        group: item.group,
+        profit: item.profit,
+        profitCompare: item.profitCompare,
+        deptRank,
+        deptTotal: deptList.length,
+        groupRank,
+        groupTotal: groupList.length,
+        overallRank,
+        overallTotal: allSorted.length,
+        deptPeers,
+        crossDeptRanks,
+        crossGroupRanks,
+      });
+    });
+
+    return rankMap;
+  }, [currentYearRecords, compareYearMap]);
+
   // Core processData(groupFilter, deptFilter, empFilter) for selectedYear vs compareYear
   const processedData = useMemo(() => {
     let filteredCurrent = currentYearRecords;
@@ -498,8 +695,8 @@ export default function JobValueSpreadsheetView({
       let displayName = d.name;
       let isPerson = true;
 
-      if (deptFilter !== "ALL") {
-        // Specific department selected -> show employees in this department
+      if (empFilter !== "ALL" || deptFilter !== "ALL") {
+        // Specific employee or department selected -> show employees
         key = d.empId;
         displayName = d.name;
         isPerson = true;
@@ -516,19 +713,27 @@ export default function JobValueSpreadsheetView({
         isPerson = false;
       }
 
+      const rInfo = isPerson ? employeeRankings.get(d.empId) : undefined;
+
       if (!summaryMap[key]) {
         summaryMap[key] = {
           key,
           name: displayName,
           empId: isPerson ? d.empId : undefined,
           dept: isPerson ? d.dept : d.dept,
-          group: d.group,
+          group: d.group?.trim() || d.dept,
           revenue: 0,
           cost: 0,
           profit: 0,
           profitCompare: 0,
           count: 0,
           status: "",
+          deptRank: rInfo?.deptRank,
+          deptTotal: rInfo?.deptTotal,
+          groupRank: rInfo?.groupRank,
+          groupTotal: rInfo?.groupTotal,
+          overallRank: rInfo?.overallRank,
+          overallTotal: rInfo?.overallTotal,
         };
       }
 
@@ -545,7 +750,7 @@ export default function JobValueSpreadsheetView({
       let displayName = d.name;
       let isPerson = true;
 
-      if (deptFilter !== "ALL") {
+      if (empFilter !== "ALL" || deptFilter !== "ALL") {
         key = d.empId;
         displayName = d.name;
         isPerson = true;
@@ -582,7 +787,7 @@ export default function JobValueSpreadsheetView({
           name: displayName,
           empId: isPerson ? d.empId : undefined,
           dept: isPerson ? d.dept : d.dept,
-          group: d.group,
+          group: d.group?.trim() || d.dept,
           revenue: 0,
           cost: 0,
           profit: 0,
@@ -640,7 +845,7 @@ export default function JobValueSpreadsheetView({
       summaryData: summaryArray,
       viewMode,
     };
-  }, [currentYearRecords, compareYearRecords, compareYearMap, groupFilter, deptFilter, empFilter]);
+  }, [currentYearRecords, compareYearRecords, compareYearMap, groupFilter, deptFilter, empFilter, employeeRankings]);
 
   // Overall status evaluation: ประเมินภาพรวม "ต่อยอด" หากผลงาน (กำไร) สูงกว่าปีก่อนหน้า, "ไม่ต่อยอด" หากต่ำกว่าหรือเท่ากัน
   const statusEvaluation = useMemo(() => {
@@ -1239,17 +1444,27 @@ export default function JobValueSpreadsheetView({
     };
   }, [processedData]);
 
+  const selectedPersonRank = useMemo(() => {
+    if (processedData.viewMode === "PERSON" && empFilter !== "ALL") {
+      return employeeRankings.get(empFilter);
+    }
+    return undefined;
+  }, [processedData.viewMode, empFilter, employeeRankings]);
+
   const barChartGeometry = useMemo(() => {
     const width = 620;
     const height = 260;
     const padLeft = 66;
     const padRight = 20;
-    const padTop = 24;
+    const padTop = 28;
     const padBottom = 34;
     const plotW = width - padLeft - padRight;
     const plotH = height - padTop - padBottom;
 
-    const items = processedData.summaryData;
+    const items =
+      processedData.viewMode === "PERSON" && selectedPersonRank && selectedPersonRank.deptPeers.length > 0
+        ? selectedPersonRank.deptPeers
+        : processedData.summaryData;
     const allVals: number[] = [0];
     items.forEach((d) => {
       allVals.push(d.profitCompare, d.profit);
@@ -1257,7 +1472,7 @@ export default function JobValueSpreadsheetView({
 
     const rawMin = Math.min(...allVals, 0);
     const rawMax = Math.max(...allVals, 10000);
-    const padding = (rawMax - rawMin) * 0.12 || 10000;
+    const padding = (rawMax - rawMin) * 0.14 || 10000;
     const minVal = rawMin < 0 ? rawMin - padding * 0.5 : 0;
     const maxVal = rawMax + padding;
     const range = Math.max(maxVal - minVal, 1);
@@ -1284,7 +1499,7 @@ export default function JobValueSpreadsheetView({
       ticks,
       getY,
     };
-  }, [processedData]);
+  }, [processedData, selectedPersonRank]);
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-6 font-sans text-[#0F172A]">
@@ -1999,38 +2214,116 @@ export default function JobValueSpreadsheetView({
           </div>
         </div>
 
-        {/* Right Chart: เปรียบเทียบกำไร (Yearly Comparison) - hidden when viewMode === 'PERSON' */}
-        {processedData.viewMode !== "PERSON" && (
-          <div
-            id="compare-container"
-            className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col h-full"
-          >
-            <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
-                  <BarChart3 className="w-5 h-5 text-[#0E3A66] shrink-0" />
-                  <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-                <span className="flex items-center gap-1.5 text-[#64748B]">
-                  <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
-                  <span>กำไร {compareYear.slice(-2)}</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-[#0E3A66]">
-                  <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
-                  <span>กำไร {selectedYear.slice(-2)}</span>
+        {/* Right Chart: เปรียบเทียบกำไร (Yearly Comparison) - Always visible including PERSON mode */}
+        <div
+          id="compare-container"
+          className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col h-full"
+        >
+          <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
+                <BarChart3 className="w-5 h-5 text-[#0E3A66] shrink-0" />
+                <span>
+                  {selectedPersonRank
+                    ? `เปรียบเทียบกำไร (Yearly Comparison · เทียบในกลุ่ม ${selectedPersonRank.dept})`
+                    : "เปรียบเทียบกำไร (Yearly Comparison)"}
                 </span>
               </div>
+              {selectedPersonRank && (
+                <span className="px-2.5 py-1 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] text-xs font-extrabold font-mono">
+                  {selectedPersonRank.name}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
+              <span className="flex items-center gap-1.5 text-[#64748B]">
+                <span className="w-3 h-3 rounded-xs bg-[#94A3B8] inline-block" />
+                <span>กำไร {compareYear.slice(-2)}</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[#0E3A66]">
+                <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
+                <span>กำไร {selectedYear.slice(-2)}</span>
+              </span>
+              {selectedPersonRank && (
+                <span className="text-[#475569] font-medium">
+                  (ไฮไลต์พนักงานที่เลือกเทียบกับเพื่อนร่วมแผนก {selectedPersonRank.dept})
+                </span>
+              )}
             </div>
 
-            <div className="p-5 relative flex-1 flex flex-col justify-between">
-              <svg
-                viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
-                className="w-full h-[270px] overflow-visible select-none"
-                role="img"
-                aria-label="กราฟเปรียบเทียบกำไรรายปี"
+            {/* Individual Profit Rank Banner when viewing a specific person */}
+            {selectedPersonRank && (
+              <div
+                id="person-rank-summary"
+                className="mt-2 p-3 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] space-y-2"
               >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] font-bold text-[#64748B]">
+                        อันดับกำไรในแผนกเดียวกัน (กลุ่ม {selectedPersonRank.dept})
+                      </div>
+                      <div className="text-sm font-extrabold text-[#0E3A66]">
+                        อันดับที่ {selectedPersonRank.deptRank}{" "}
+                        <span className="text-xs font-bold text-[#475569]">
+                          จาก {selectedPersonRank.deptTotal} คน ของกลุ่ม {selectedPersonRank.dept}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-[#0E3A66] text-white font-mono text-xs font-extrabold">
+                      #{selectedPersonRank.deptRank}/{selectedPersonRank.deptTotal}
+                    </span>
+                  </div>
+
+                  <div className="px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-between">
+                    <div>
+                      <div className="text-[11px] font-bold text-[#64748B]">
+                        อันดับกำไรในหน่วยงาน ({selectedPersonRank.group})
+                      </div>
+                      <div className="text-sm font-extrabold text-[#15803D]">
+                        อันดับที่ {selectedPersonRank.groupRank}{" "}
+                        <span className="text-xs font-bold text-[#475569]">
+                          จาก {selectedPersonRank.groupTotal} คน ของหน่วยงาน {selectedPersonRank.group}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] font-mono text-xs font-extrabold">
+                      #{selectedPersonRank.groupRank}/{selectedPersonRank.groupTotal}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cross-Department Rank Comparison across every sub-department / unit */}
+                {selectedPersonRank.crossDeptRanks.length > 1 && (
+                  <div className="pt-1.5 border-t border-[#E2E8F0] flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="font-bold text-[#475569]">
+                      เทียบอันดับกำไรกับแต่ละแผนก/หน่วยงานย่อย:
+                    </span>
+                    {selectedPersonRank.crossDeptRanks.map((cd) => (
+                      <span
+                        key={cd.dept}
+                        className={`px-2 py-0.5 rounded-md font-mono font-bold border ${
+                          cd.isOwnDept
+                            ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]"
+                            : "bg-white text-[#334155] border-[#E2E8F0]"
+                        }`}
+                      >
+                        {cd.dept}: ที่ {cd.rank}/{cd.total}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 relative flex-1 flex flex-col justify-between">
+            <svg
+              viewBox={`0 0 ${barChartGeometry.width} ${barChartGeometry.height}`}
+              className="w-full h-[270px] overflow-visible select-none"
+              role="img"
+              aria-label="กราฟเปรียบเทียบกำไรรายปี"
+            >
               {barChartGeometry.ticks.map((t, idx) => (
                 <g key={idx}>
                   <line
@@ -2069,22 +2362,31 @@ export default function JobValueSpreadsheetView({
                 const topCurr = Math.min(yCurr, zeroY);
                 const hCurr = Math.max(2, Math.abs(zeroY - yCurr));
 
+                const isSelectedPerson =
+                  processedData.viewMode === "PERSON" && item.empId === empFilter;
+                const barOpacity =
+                  processedData.viewMode === "PERSON" && !isSelectedPerson ? 0.42 : 1;
+
+                const rawLabel =
+                  processedData.viewMode === "PERSON" || deptFilter !== "ALL"
+                    ? `#${idx + 1} ${item.name.split(" ")[0]}`
+                    : item.name;
                 const shortLabel =
-                  item.name.length > 12 ? item.name.slice(0, 11) + ".." : item.name;
+                  rawLabel.length > 12 ? rawLabel.slice(0, 11) + ".." : rawLabel;
 
                 return (
                   <g
                     key={item.key}
                     onClick={() => {
-                      if (deptFilter === "ALL" && groupFilter === "ALL") {
+                      if (deptFilter === "ALL" && groupFilter === "ALL" && !item.empId) {
                         handleGroupChange(item.name);
-                      } else if (deptFilter === "ALL") {
+                      } else if (deptFilter === "ALL" && !item.empId) {
                         handleDeptChange(item.name);
                       } else if (item.empId) {
-                        if (onOpenEmployeeDetails) {
-                          onOpenEmployeeDetails({ empId: item.empId, name: item.name });
-                        } else {
+                        if (empFilter !== item.empId) {
                           handleEmpChange(item.empId);
+                        } else if (onOpenEmployeeDetails) {
+                          onOpenEmployeeDetails({ empId: item.empId, name: item.name });
                         }
                       }
                     }}
@@ -2092,6 +2394,21 @@ export default function JobValueSpreadsheetView({
                     onMouseLeave={() => setHoveredBarIdx(null)}
                     className="cursor-pointer"
                   >
+                    {/* Highlight backdrop when this bar belongs to the selected person */}
+                    {isSelectedPerson && (
+                      <rect
+                        x={barChartGeometry.padLeft + idx * groupW + 2}
+                        y={barChartGeometry.padTop - 6}
+                        width={Math.max(groupW - 4, 16)}
+                        height={barChartGeometry.plotH + 24}
+                        rx={6}
+                        fill="#E8F3FA"
+                        stroke="#0E3A66"
+                        strokeWidth={1.5}
+                        strokeDasharray="3,2"
+                      />
+                    )}
+
                     {/* Transparent full-column hit target */}
                     <rect
                       x={barChartGeometry.padLeft + idx * groupW}
@@ -2108,6 +2425,7 @@ export default function JobValueSpreadsheetView({
                       height={hComp}
                       rx={2}
                       fill="#94A3B8"
+                      opacity={barOpacity}
                     />
                     <rect
                       x={centerX + 2}
@@ -2116,12 +2434,27 @@ export default function JobValueSpreadsheetView({
                       height={hCurr}
                       rx={2}
                       fill={item.profit >= 0 ? "#0E3A66" : "#BE123C"}
+                      opacity={barOpacity}
                     />
+                    {isSelectedPerson && (
+                      <text
+                        x={centerX}
+                        y={Math.min(topCurr, topComp) - 6}
+                        textAnchor="middle"
+                        className="fill-[#0E3A66] font-mono text-[10px] font-extrabold"
+                      >
+                        #{idx + 1}
+                      </text>
+                    )}
                     <text
                       x={centerX}
                       y={barChartGeometry.height - 10}
                       textAnchor="middle"
-                      className="fill-[#334155] font-sans text-[10px] font-bold"
+                      className={`font-sans text-[10px] ${
+                        isSelectedPerson
+                          ? "fill-[#0E3A66] font-extrabold"
+                          : "fill-[#334155] font-bold"
+                      }`}
                     >
                       {shortLabel}
                     </text>
@@ -2134,6 +2467,9 @@ export default function JobValueSpreadsheetView({
               {hoveredBarIdx !== null && barChartGeometry.items[hoveredBarIdx] ? (
                 <>
                   <span className="font-sans font-bold text-[#93C5FD]">
+                    {barChartGeometry.items[hoveredBarIdx].deptRank
+                      ? `อันดับ #${barChartGeometry.items[hoveredBarIdx].deptRank} · `
+                      : ""}
                     {barChartGeometry.items[hoveredBarIdx].name}
                   </span>
                   <span>
@@ -2145,218 +2481,242 @@ export default function JobValueSpreadsheetView({
                 </>
               ) : (
                 <span className="font-sans text-xs text-[#94A3B8] truncate">
-                  เลื่อนเมาส์บนแท่งกราฟเพื่อดูรายละเอียดเปรียบเทียบกำไรรายปี
+                  {selectedPersonRank
+                    ? `พนักงาน ${selectedPersonRank.name}: อันดับที่ ${selectedPersonRank.deptRank}/${selectedPersonRank.deptTotal} ในแผนก ${selectedPersonRank.dept} · อันดับที่ ${selectedPersonRank.groupRank}/${selectedPersonRank.groupTotal} ในหน่วยงาน ${selectedPersonRank.group}`
+                    : "เลื่อนเมาส์บนแท่งกราฟเพื่อดูรายละเอียดเปรียบเทียบกำไรรายปี"}
                 </span>
               )}
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
 
       {/* ===================================================================== */}
       {/* 5. SUMMARY TABLE CARD (รายละเอียดผลงานตามกลุ่มตัวอย่าง)                  */}
       {/* ===================================================================== */}
-      {processedData.viewMode !== "PERSON" && (
-        <div
-          id="table-container"
-          className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden"
-        >
+      <div
+        id="table-container"
+        className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden"
+      >
         <div className="px-5 py-4 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-[#0F172A]">
               รายละเอียดผลงานตามกลุ่มตัวอย่าง
             </h2>
             <p className="text-xs text-[#64748B]">
-              {processedData.viewMode === "PERSON"
-                ? `แสดงข้อมูลพนักงานที่เลือก: ${processedData.summaryData[0]?.name || empFilter}`
+              {processedData.viewMode === "PERSON" && selectedPersonRank
+                ? `แสดงข้อมูลพนักงานที่เลือก: ${selectedPersonRank.name} — อันดับที่ ${selectedPersonRank.deptRank}/${selectedPersonRank.deptTotal} ของกลุ่มแผนก ${selectedPersonRank.dept} และอันดับที่ ${selectedPersonRank.groupRank}/${selectedPersonRank.groupTotal} ของหน่วยงาน ${selectedPersonRank.group}`
                 : deptFilter !== "ALL"
-                ? `แสดงรายชื่อพนักงานในกลุ่มที่เลือก (${processedData.summaryData.length} คน)`
+                ? `แสดงรายชื่อพนักงานในกลุ่มที่เลือก (${processedData.summaryData.length} คน) — คลิกที่แถวพนักงานเพื่อดูเปรียบเทียบและอันดับรายบุคคล`
                 : groupFilter !== "ALL"
                 ? `แสดงสรุปแยกตามแผนกย่อยใน ${groupFilter} (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`
                 : `สรุปภาพรวมแยกตามหน่วยงาน (${processedData.summaryData.length} หน่วยงาน) — คลิกที่แถวหน่วยงานเพื่อดูแผนกย่อย`}
             </p>
           </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Back Button (ย้อนกลับ) */}
-              <button
-                type="button"
-                onClick={handleGoBack}
-                disabled={!isDrilledDown}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-2xs ${
-                  isDrilledDown
-                    ? "bg-white hover:bg-[#F1F5F9] text-[#0E3A66] border border-[#CBD5E1] cursor-pointer"
-                    : "bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] cursor-not-allowed opacity-50"
-                }`}
-                title={
-                  isDrilledDown
-                    ? empFilter !== "ALL"
-                      ? `ย้อนกลับไปแผนก ${deptFilter}`
-                      : deptFilter !== "ALL"
-                      ? `ย้อนกลับไปสายงาน ${groupFilter}`
-                      : "ย้อนกลับไปภาพรวมหน่วยงาน"
-                    : "อยู่ที่ระดับภาพรวมสูงสุดแล้ว"
-                }
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>ย้อนกลับ</span>
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Back Button (ย้อนกลับ) */}
+            <button
+              type="button"
+              onClick={handleGoBack}
+              disabled={!isDrilledDown}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-2xs ${
+                isDrilledDown
+                  ? "bg-white hover:bg-[#F1F5F9] text-[#0E3A66] border border-[#CBD5E1] cursor-pointer"
+                  : "bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] cursor-not-allowed opacity-50"
+              }`}
+              title={
+                isDrilledDown
+                  ? empFilter !== "ALL"
+                    ? `ย้อนกลับไปแผนก ${deptFilter !== "ALL" ? deptFilter : selectedPersonRank?.dept || ""}`
+                    : deptFilter !== "ALL"
+                    ? `ย้อนกลับไปสายงาน ${groupFilter}`
+                    : "ย้อนกลับไปภาพรวมหน่วยงาน"
+                  : "อยู่ที่ระดับภาพรวมสูงสุดแล้ว"
+              }
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>ย้อนกลับ</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={handleDownloadSummaryCsv}
-                className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export Job Value ปี {selectedYear}</span>
-              </button>
+            <button
+              type="button"
+              onClick={handleDownloadSummaryCsv}
+              className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Job Value ปี {selectedYear}</span>
+            </button>
 
-              {/* Direct Import Button right alongside Export Button */}
-              {canManageD1Upload && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadTargetYear(selectedYear);
-                      fileInputDirectRef.current?.click();
-                    }}
-                    className="px-4 py-2.5 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
-                    title={`นำเข้าข้อมูลไฟล์ Excel หรือ CSV เข้าปี ${selectedYear}`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span>Import Job Value ปี {selectedYear}</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputDirectRef}
-                    accept=".xlsx, .xls, .csv"
-                    onChange={handleFileUploadForYear}
-                    className="hidden"
-                  />
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#F8FAFC] border-b-2 border-[#E2E8F0] text-xs font-bold text-[#334155] uppercase tracking-wider">
-                  <th className="py-3.5 px-5 text-center w-20">ลำดับ</th>
-                  <th className="py-3.5 px-5">
-                    {deptFilter !== "ALL"
-                      ? "ชื่อพนักงาน"
-                      : groupFilter !== "ALL"
-                      ? "แผนก"
-                      : "หน่วยงาน (สายงาน)"}
-                  </th>
-                  <th className="py-3.5 px-5 text-right">รายได้ (เฉลี่ย)</th>
-                  <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
-                  <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {compareYear}</th>
-                  <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {selectedYear}</th>
-                  <th className="py-3.5 px-5 text-right">ผลต่าง (ปี {selectedYear} - {compareYear})</th>
-                  <th className="py-3.5 px-5 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2E8F0] text-sm">
-                {processedData.summaryData.map((item, idx) => {
-                  const displayStatus =
-                    item.status || (item.profit > 0 ? "ต่อยอดกำไร" : "เฝ้าระวัง");
-                  const isDanger =
-                    displayStatus.includes("ไม่ต่อยอด") ||
-                    displayStatus.includes("ไม่") ||
-                    displayStatus.includes("ขาดทุน") ||
-                    displayStatus.includes("เฝ้าระวัง");
-
-                  return (
-                    <tr
-                      key={item.key}
-                      onClick={() => {
-                        if (deptFilter === "ALL" && groupFilter === "ALL") {
-                          handleGroupChange(item.name);
-                        } else if (deptFilter === "ALL") {
-                          handleDeptChange(item.name);
-                        } else if (item.empId) {
-                          if (onOpenEmployeeDetails) {
-                            onOpenEmployeeDetails({ empId: item.empId, name: item.name });
-                          } else {
-                            handleEmpChange(item.empId);
-                          }
-                        }
-                      }}
-                      className="even:bg-[#F8FAFC] hover:bg-[#E8F3FA]/60 transition-colors cursor-pointer"
-                    >
-                      <td className="py-3.5 px-5 text-center font-mono text-[#334155]">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3.5 px-5 font-bold text-[#0F172A]">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span>{item.name}</span>
-                          {/* แสดงจำนวนคนเฉพาะตอนลงดีเทลแต่ละแผนก */}
-                          {groupFilter !== "ALL" && deptFilter === "ALL" && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#E2E8F0] text-[#334155] text-[11px] font-mono">
-                              {item.count} คน
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-5 text-right font-mono font-bold text-[#15803D] tabular-nums">
-                        {formatInt(item.revenue)}
-                      </td>
-                      <td className="py-3.5 px-5 text-right font-mono font-bold text-[#BE123C] tabular-nums">
-                        {formatInt(item.cost)}
-                      </td>
-                      <td className="py-3.5 px-5 text-right font-mono text-[#334155] tabular-nums">
-                        {formatInt(item.profitCompare)}
-                      </td>
-                      <td className="py-3.5 px-5 text-right font-mono font-extrabold text-[#0E3A66] tabular-nums">
-                        {formatInt(item.profit)}
-                      </td>
-                      {(() => {
-                        const diff = item.profit - item.profitCompare;
-                        return (
-                          <td
-                            className={`py-3.5 px-5 text-right font-mono font-bold tabular-nums ${
-                              diff > 0
-                                ? "text-[#15803D]"
-                                : diff < 0
-                                ? "text-[#BE123C]"
-                                : "text-[#64748B]"
-                            }`}
-                          >
-                            {formatSignedInt(diff)}
-                          </td>
-                        );
-                      })()}
-                      <td className="py-3.5 px-5 text-center">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
-                            isDanger
-                              ? "bg-[#FFE4E6] text-[#BE123C]"
-                              : "bg-[#EBF7F2] text-[#15803D]"
-                          }`}
-                        >
-                          {displayStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {processedData.summaryData.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-10 text-center text-sm font-bold text-[#64748B]">
-                      ยังไม่มีข้อมูลของปี {selectedYear}
-                      {canManageD1Upload && (
-                        <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            {/* Direct Import Button right alongside Export Button */}
+            {canManageD1Upload && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadTargetYear(selectedYear);
+                    fileInputDirectRef.current?.click();
+                  }}
+                  className="px-4 py-2.5 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+                  title={`นำเข้าข้อมูลไฟล์ Excel หรือ CSV เข้าปี ${selectedYear}`}
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Import Job Value ปี {selectedYear}</span>
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputDirectRef}
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleFileUploadForYear}
+                  className="hidden"
+                />
+              </>
+            )}
           </div>
         </div>
-      )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#F8FAFC] border-b-2 border-[#E2E8F0] text-xs font-bold text-[#334155] uppercase tracking-wider">
+                <th className="py-3.5 px-5 text-center w-20">ลำดับ</th>
+                <th className="py-3.5 px-5">
+                  {deptFilter !== "ALL" || processedData.viewMode === "PERSON"
+                    ? "ชื่อพนักงาน"
+                    : groupFilter !== "ALL"
+                    ? "แผนก"
+                    : "หน่วยงาน (สายงาน)"}
+                </th>
+                {(deptFilter !== "ALL" || processedData.viewMode === "PERSON") && (
+                  <th className="py-3.5 px-5 text-center">อันดับกำไร (กลุ่มแผนก / หน่วยงาน)</th>
+                )}
+                <th className="py-3.5 px-5 text-right">รายได้ (เฉลี่ย)</th>
+                <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
+                <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {compareYear}</th>
+                <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {selectedYear}</th>
+                <th className="py-3.5 px-5 text-right">ผลต่าง (ปี {selectedYear} - {compareYear})</th>
+                <th className="py-3.5 px-5 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E2E8F0] text-sm">
+              {processedData.summaryData.map((item, idx) => {
+                const displayStatus =
+                  item.status || (item.profit > 0 ? "ต่อยอดกำไร" : "เฝ้าระวัง");
+                const isDanger =
+                  displayStatus.includes("ไม่ต่อยอด") ||
+                  displayStatus.includes("ไม่") ||
+                  displayStatus.includes("ขาดทุน") ||
+                  displayStatus.includes("เฝ้าระวัง");
+
+                return (
+                  <tr
+                    key={item.key}
+                    onClick={() => {
+                      if (deptFilter === "ALL" && groupFilter === "ALL" && !item.empId) {
+                        handleGroupChange(item.name);
+                      } else if (deptFilter === "ALL" && !item.empId) {
+                        handleDeptChange(item.name);
+                      } else if (item.empId) {
+                        if (empFilter !== item.empId) {
+                          handleEmpChange(item.empId);
+                        } else if (onOpenEmployeeDetails) {
+                          onOpenEmployeeDetails({ empId: item.empId, name: item.name });
+                        }
+                      }
+                    }}
+                    className="even:bg-[#F8FAFC] hover:bg-[#E8F3FA]/60 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3.5 px-5 text-center font-mono text-[#334155]">
+                      {item.deptRank || idx + 1}
+                    </td>
+                    <td className="py-3.5 px-5 font-bold text-[#0F172A]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{item.name}</span>
+                        {/* แสดงจำนวนคนเฉพาะตอนลงดีเทลแต่ละแผนก */}
+                        {groupFilter !== "ALL" && deptFilter === "ALL" && !item.empId && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#E2E8F0] text-[#334155] text-[11px] font-mono">
+                            {item.count} คน
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    {(deptFilter !== "ALL" || processedData.viewMode === "PERSON") && (
+                      <td className="py-3.5 px-5 text-center">
+                        {item.deptRank ? (
+                          <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+                            <span
+                              className="px-2.5 py-0.5 rounded-md bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] text-xs font-extrabold font-mono"
+                              title={`อันดับที่ ${item.deptRank} จาก ${item.deptTotal} คน ในแผนก ${item.dept}`}
+                            >
+                              กลุ่ม {item.dept}: ที่ {item.deptRank}/{item.deptTotal}
+                            </span>
+                            <span
+                              className="px-2.5 py-0.5 rounded-md bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] text-xs font-extrabold font-mono"
+                              title={`อันดับที่ ${item.groupRank} จาก ${item.groupTotal} คน ในหน่วยงาน ${item.group}`}
+                            >
+                              หน่วยงาน {item.group}: ที่ {item.groupRank}/{item.groupTotal}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[#94A3B8]">-</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-[#15803D] tabular-nums">
+                      {formatInt(item.revenue)}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-[#BE123C] tabular-nums">
+                      {formatInt(item.cost)}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono text-[#334155] tabular-nums">
+                      {formatInt(item.profitCompare)}
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-extrabold text-[#0E3A66] tabular-nums">
+                      {formatInt(item.profit)}
+                    </td>
+                    {(() => {
+                      const diff = item.profit - item.profitCompare;
+                      return (
+                        <td
+                          className={`py-3.5 px-5 text-right font-mono font-bold tabular-nums ${
+                            diff > 0
+                              ? "text-[#15803D]"
+                              : diff < 0
+                              ? "text-[#BE123C]"
+                              : "text-[#64748B]"
+                          }`}
+                        >
+                          {formatSignedInt(diff)}
+                        </td>
+                      );
+                    })()}
+                    <td className="py-3.5 px-5 text-center">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
+                          isDanger
+                            ? "bg-[#FFE4E6] text-[#BE123C]"
+                            : "bg-[#EBF7F2] text-[#15803D]"
+                        }`}
+                      >
+                        {displayStatus}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {processedData.summaryData.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-10 text-center text-sm font-bold text-[#64748B]">
+                    ยังไม่มีข้อมูลของปี {selectedYear}
+                    {canManageD1Upload && (
+                      <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
