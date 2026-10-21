@@ -2,6 +2,16 @@
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var h = window.location.hostname;
+          if (h && (h.indexOf('enterprise-ot-management-portal') !== -1 || h.indexOf('its-ot-management') !== -1)) {
+            window.location.replace('https://marine-hrmanagement.pages.dev' + window.location.pathname + window.location.search + window.location.hash);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>MARINE link - HR Management Portal</title>
     <script>
