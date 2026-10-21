@@ -350,4 +350,32 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
       expect(backBtn).toBeDisabled();
     });
   });
+
+  it("strictly scopes Job Value records and filters for Section Manager to their assigned department", async () => {
+    render(
+      <JobValueSpreadsheetView
+        currentUser={{
+          username: "inter2_mgr",
+          name: "ผู้จัดการ INTER 2",
+          role: "Section Manager",
+          deptId: "inter2",
+        }}
+        isHrOrFullAccess={false}
+      />
+    );
+
+    // 1. Shows Section Manager scope banner
+    expect(screen.getByText(/สิทธิ์ผู้จัดการแผนก/i)).toBeDefined();
+    expect(screen.getByText(/ผู้จัดการ INTER 2/i)).toBeDefined();
+
+    // 2. Department selector is scoped to INTER 2 only
+    const deptSelect = screen.getByRole("combobox", { name: /หน่วยงาน \/ แผนก/i });
+    const options = Array.from((deptSelect as HTMLSelectElement).options).map((o) => o.value);
+    expect(options).toContain("INTER 2");
+    expect(options).not.toContain("INTER 3");
+    expect(options).not.toContain("INTER 5");
+
+    // 3. Upload button is hidden from Section Manager
+    expect(screen.queryByRole("button", { name: /^อัปโหลดข้อมูลแยกปี$/i })).toBeNull();
+  });
 });

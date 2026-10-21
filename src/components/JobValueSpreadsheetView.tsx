@@ -20,6 +20,7 @@ import {
   FileSpreadsheet,
   Trash2,
   ArrowLeft,
+  ShieldCheck,
 } from "lucide-react";
 import {
   DetailedJobValueEmployee,
@@ -344,18 +345,23 @@ export default function JobValueSpreadsheetView({
     return Array.from(keys).sort();
   }, [yearlyStore]);
 
+  // User scope resolution: Section Manager / Agency Manager permissions
+  const userScopeRaw = currentUser?.deptId || currentUser?.department || currentUser?.dept;
+  const isScopedUser = !isHrOrFullAccess && Boolean(userScopeRaw && userScopeRaw !== "all");
+  const userScope = useMemo(() => {
+    return isScopedUser ? parseAccountScope(userScopeRaw) : null;
+  }, [isScopedUser, userScopeRaw]);
+
   // Scoped records per year based on user permissions with multi-agency and multi-department scope
   const getScopedRecordsForYear = useCallback(
     (yearKey: string): YearlyJobValueRecord[] => {
       const raw = yearlyStore[yearKey] || [];
-      if (!currentUser?.deptId || currentUser.deptId === "all" || isHrOrFullAccess) {
+      if (!isScopedUser || !userScope) {
         return raw;
       }
-      const scope = parseAccountScope(currentUser.deptId);
-      const scoped = raw.filter((emp) => isRecordAuthorizedByScope(scope, emp.dept, emp.group));
-      return scoped.length > 0 ? scoped : raw;
+      return raw.filter((emp) => isRecordAuthorizedByScope(userScope, emp.dept, emp.group));
     },
-    [yearlyStore, currentUser, isHrOrFullAccess]
+    [yearlyStore, isScopedUser, userScope]
   );
 
   // Active year records & compare year records
@@ -380,9 +386,9 @@ export default function JobValueSpreadsheetView({
   const basePoolRecords = useMemo(() => {
     if (currentYearRecords.length > 0) return currentYearRecords;
     if (compareYearRecords.length > 0) return compareYearRecords;
-    const all = Object.values(yearlyStore).flat();
-    return all.length > 0 ? all : [];
-  }, [currentYearRecords, compareYearRecords, yearlyStore]);
+    const allScoped = Object.keys(yearlyStore).flatMap((k) => getScopedRecordsForYear(k));
+    return allScoped.length > 0 ? allScoped : [];
+  }, [currentYearRecords, compareYearRecords, yearlyStore, getScopedRecordsForYear]);
 
   // Distinct groups list for #filter-group (ดึงจากคอลัมน์กลุ่มสายงานที่อัปโหลด เช่น สายงาน ITS)
   const groupOptions = useMemo(() => {
@@ -919,9 +925,26 @@ export default function JobValueSpreadsheetView({
     setEmpFilter(nextEmpId);
   };
 
+  // Auto-lock filters for Section Managers / Scoped users
+  useEffect(() => {
+    if (isScopedUser) {
+      if (departmentOptions.length === 1 && deptFilter === "ALL") {
+        setDeptFilter(departmentOptions[0]);
+      }
+      if (groupOptions.length === 1 && groupFilter === "ALL") {
+        setGroupFilter(groupOptions[0]);
+      }
+    }
+  }, [isScopedUser, departmentOptions, groupOptions, deptFilter, groupFilter]);
+
   const handleResetFilters = () => {
-    setGroupFilter("ALL");
-    setDeptFilter("ALL");
+    if (isScopedUser) {
+      setGroupFilter(groupOptions.length === 1 ? groupOptions[0] : "ALL");
+      setDeptFilter(departmentOptions.length === 1 ? departmentOptions[0] : "ALL");
+    } else {
+      setGroupFilter("ALL");
+      setDeptFilter("ALL");
+    }
     setEmpFilter("ALL");
   };
 
@@ -1780,6 +1803,23 @@ export default function JobValueSpreadsheetView({
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Section Manager / Unit Scope Notice Banner */}
+      {isScopedUser && (
+        <div className="p-3.5 bg-[#E8F3FA] border border-[#9FCEE8] rounded-xl text-xs font-bold text-[#0E3A66] flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#0E3A66] shrink-0" />
+            <span>
+              สิทธิ์ผู้จัดการแผนก ({currentUser?.role || "Section Manager"}): ระบบจำกัดการแสดงผลเฉพาะ{" "}
+              {userScope?.groups && !userScope.groups.includes("all") ? `หน่วยงาน ${userScope.groups.join(", ")} · ` : ""}
+              แผนก {departmentOptions.length > 0 ? departmentOptions.join(", ") : "ที่ได้รับมอบหมาย"}
+            </span>
+          </div>
+          <span className="font-mono text-[11px] bg-white px-2.5 py-1 rounded-md border border-[#9FCEE8]">
+            {currentUser?.name || currentUser?.username}
+          </span>
         </div>
       )}
 

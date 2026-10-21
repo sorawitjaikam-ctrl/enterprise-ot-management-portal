@@ -101,7 +101,7 @@ export function isRecordAuthorizedByScope(
     return true;
   }
 
-  const cleanDept = (recordDept || "").trim().toLowerCase();
+  const cleanDept = (recordDept || "").trim().toLowerCase().replace(/[\s\-_]/g, "");
   const cleanGroup = (recordGroup || "").trim().toLowerCase();
 
   const groupAuthorized =
@@ -114,9 +114,16 @@ export function isRecordAuthorizedByScope(
   const deptAuthorized =
     scope.depts.includes("all") ||
     scope.depts.some(d => {
-      const dClean = d.trim().toLowerCase();
-      const mapped = getDeptDisplayName(d).trim().toLowerCase();
-      return cleanDept.includes(dClean) || dClean.includes(cleanDept) || cleanDept.includes(mapped) || mapped.includes(cleanDept);
+      const dClean = d.trim().toLowerCase().replace(/[\s\-_]/g, "");
+      const mapped = getDeptDisplayName(d).trim().toLowerCase().replace(/[\s\-_]/g, "");
+      return (
+        cleanDept === dClean ||
+        cleanDept.includes(dClean) ||
+        dClean.includes(cleanDept) ||
+        cleanDept === mapped ||
+        cleanDept.includes(mapped) ||
+        mapped.includes(cleanDept)
+      );
     });
 
   return groupAuthorized && deptAuthorized;
