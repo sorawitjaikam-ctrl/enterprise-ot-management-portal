@@ -1163,7 +1163,7 @@ export default function JobValueSpreadsheetView({
     const padLeft = 66;
     const padRight = 20;
     const padTop = 24;
-    const padBottom = 44;
+    const padBottom = 34;
     const plotW = width - padLeft - padRight;
     const plotH = height - padTop - padBottom;
 
@@ -2024,7 +2024,7 @@ export default function JobValueSpreadsheetView({
                     />
                     <text
                       x={centerX}
-                      y={barChartGeometry.height - 14}
+                      y={barChartGeometry.height - 10}
                       textAnchor="middle"
                       className="fill-[#334155] font-sans text-[10px] font-bold"
                     >
