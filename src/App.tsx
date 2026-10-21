@@ -5033,13 +5033,13 @@ export default function App() {
           
           {/* Maritime Brand Pill Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[#0E3A66] text-xs font-bold uppercase tracking-wider mb-6">
-            <span className="w-2 h-2 rounded-full bg-[#0E3A66]" />
-            <span>Double A Terminal • Port & Logistics</span>
+            <span className="w-2 h-2 rounded-full bg-[#1e2578]" />
+            <span>DOUBLE A TERMINAL • PORT & LOGISTICS</span>
           </div>
 
-          {/* Central Port Icon */}
-          <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[#0E3A66] mb-5 shadow-2xs">
-            <Ship className="w-8 h-8 text-[#0E3A66]" />
+          {/* Central MARINE link Logo */}
+          <div className="w-56 h-20 rounded-2xl bg-[#1e2578] flex items-center justify-center p-3 mb-5 shadow-sm border border-slate-200 overflow-hidden">
+            <img src="/marine-link-logo.png" alt="MARINE link" className="max-h-full max-w-full object-contain" />
           </div>
 
           {/* Headings */}
@@ -5053,13 +5053,13 @@ export default function App() {
 
           {/* Calm Minimalist Progress Bar */}
           <div className="w-full max-w-xs bg-slate-100 border border-slate-200 rounded-full h-2 p-0.5 overflow-hidden mb-5">
-            <div className="h-full bg-[#0E3A66] rounded-full w-2/3 animate-pulse" />
+            <div className="h-full bg-[#1e2578] rounded-full w-2/3 animate-pulse" />
           </div>
 
           {/* Footer Terminal Metadata */}
           <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-mono tracking-wider">
             <span className="text-[#0E3A66] flex items-center gap-1 font-semibold">
-              <Ship className="w-3 h-3 text-[#0E3A66] inline" /> Maritime Port Sync
+              <Ship className="w-3 h-3 text-[#0E3A66] inline" /> MARINE link Sync
             </span>
             <span>•</span>
             <span>Real-time Operations</span>
@@ -6785,10 +6785,10 @@ export default function App() {
         {/* Card wrapper */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded p-8 shadow-lg relative z-10 text-white">
           <div className="text-center mb-8">
-            <div className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl inline-block mx-auto mb-4 shadow-lg shadow-black/20 border border-white/40">
-              <img src="https://doubleapaper.com/DA-logo.png" alt="Double A" className="h-12 object-contain" />
+            <div className="bg-[#1e2578] p-3 rounded-2xl inline-block mx-auto mb-4 shadow-lg shadow-black/20 border border-white/20">
+              <img src="/marine-link-logo.png" alt="MARINE link" className="h-12 object-contain" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Double A Terminal</h1>
+            <h1 className="text-2xl font-black tracking-tight text-white">MARINE link</h1>
             <p className="text-xs text-sky-200 mt-1 font-bold uppercase tracking-wider">Port & Berth Operations OT Portal</p>
             <p className="text-[11px] text-slate-300 mt-1 font-medium">เข้าสู่ระบบเพื่อจัดการเวลาการทำงานเทียบเรือและโอทีหน้าท่า</p>
           </div>
