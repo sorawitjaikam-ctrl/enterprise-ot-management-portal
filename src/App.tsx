@@ -33,6 +33,7 @@ import {
   EyeOff,
   User,
   UserPlus,
+  FolderTree,
   Anchor,
   Ship,
   Search,
@@ -91,6 +92,15 @@ import ManpowerDashboard from "./components/ManpowerDashboard";
 import JobValueSpreadsheetView from "./components/JobValueSpreadsheetView";
 import DataLineageHubView, { RealtimeTabVisibilityPanel } from "./components/DataLineageHubView";
 import CsvTemplateHubModal from "./components/CsvTemplateHubModal";
+import {
+  parseAccountScope,
+  serializeAccountScope,
+  AVAILABLE_AGENCIES,
+  AVAILABLE_DEPARTMENTS,
+  getAgencyDisplayName,
+  getDeptDisplayName,
+  isRecordAuthorizedByScope,
+} from "./utils/accountScope";
 import { CircadianTimelineModal } from "./components/CircadianTimelineModal";
 import { ShiftRadialPicker } from "./components/ShiftRadialPicker";
 import { PremiumShiftTimePickerModal } from "./components/PremiumShiftTimePickerModal";
@@ -2651,6 +2661,8 @@ export default function App() {
   const [newAccountName, setNewAccountName] = useState<string>("");
   const [newAccountRole, setNewAccountRole] = useState<string>("User");
   const [newAccountDeptId, setNewAccountDeptId] = useState<string>("all");
+  const [newAccountGroups, setNewAccountGroups] = useState<string[]>(["all"]);
+  const [newAccountDepts, setNewAccountDepts] = useState<string[]>(["all"]);
   const [newAccountAvatar, setNewAccountAvatar] = useState<string>("");
   const [newAccountCanBackup, setNewAccountCanBackup] = useState<boolean>(false);
   const [newAccountPreset, setNewAccountPreset] = useState<"default" | "open_all" | "jv_only" | "jv_only_hidden">("default");
@@ -2660,9 +2672,20 @@ export default function App() {
   const [editAccountUsername, setEditAccountUsername] = useState<string>("");
   const [editAccountName, setEditAccountName] = useState<string>("");
   const [editAccountRole, setEditAccountRole] = useState<string>("");
-  const [editAccountDeptId, setEditAccountDeptId] = useState<string>("");
+  const [editAccountDeptId, setEditAccountDeptId] = useState<string>("all");
+  const [editAccountGroups, setEditAccountGroups] = useState<string[]>(["all"]);
+  const [editAccountDepts, setEditAccountDepts] = useState<string[]>(["all"]);
   const [editAccountAvatar, setEditAccountAvatar] = useState<string>("");
   const [editAccountCanBackup, setEditAccountCanBackup] = useState<boolean>(false);
+
+  const [scopeModalAccount, setScopeModalAccount] = useState<{
+    username: string;
+    name: string;
+    role: string;
+    groups: string[];
+    depts: string[];
+    activeTab: "groups" | "depts";
+  } | null>(null);
 
   const handleAutoPullEmployeePhoto = (empKey: string, mode: "edit" | "add") => {
     if (!empKey) return;
@@ -2814,12 +2837,13 @@ export default function App() {
       return;
     }
 
+    const finalDeptId = serializeAccountScope(newAccountGroups, newAccountDepts);
     const newAcc = {
       username: newAccountUsername,
       password: newAccountPassword || "123456",
       name: newAccountName,
       role: newAccountRole,
-      deptId: newAccountDeptId,
+      deptId: finalDeptId,
       avatar: newAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${newAccountUsername}.jpg`,
       canBackup: newAccountCanBackup ? 1 : 0
     };
@@ -2900,6 +2924,7 @@ export default function App() {
     }
     try {
       setEditAccountLoading(true);
+      const finalDeptId = serializeAccountScope(editAccountGroups, editAccountDepts);
       const finalAvatar = editAccountAvatar || `https://intranet.advanceagro.net/employeecard/empimages/${editAccountUsername}.jpg`;
       const res = await fetch("/api/update-account", {
         method: "POST",
@@ -2909,7 +2934,7 @@ export default function App() {
           username: editAccountUsername,
           name: editAccountName,
           role: editAccountRole,
-          deptId: editAccountDeptId,
+          deptId: finalDeptId,
           avatar: finalAvatar,
           canBackup: editAccountCanBackup ? 1 : 0
         })
@@ -2922,7 +2947,7 @@ export default function App() {
               username: editAccountUsername,
               name: editAccountName,
               role: editAccountRole,
-              deptId: editAccountDeptId,
+              deptId: finalDeptId,
               avatar: finalAvatar,
               canBackup: editAccountCanBackup ? 1 : 0
             };
@@ -2939,7 +2964,7 @@ export default function App() {
             username: editAccountUsername,
             name: editAccountName,
             role: editAccountRole,
-            deptId: editAccountDeptId,
+            deptId: finalDeptId,
             avatar: finalAvatar,
             canBackup: editAccountCanBackup ? 1 : 0
           };
@@ -2956,6 +2981,13 @@ export default function App() {
     } finally {
       setEditAccountLoading(false);
     }
+  };
+
+  const handleSaveScopeModal = async () => {
+    if (!scopeModalAccount) return;
+    const finalDeptId = serializeAccountScope(scopeModalAccount.groups, scopeModalAccount.depts);
+    await handleUpdateAccountPermission(scopeModalAccount.username, scopeModalAccount.role, finalDeptId);
+    setScopeModalAccount(null);
   };
 
   const DEFAULT_ACCOUNTS = [
@@ -11613,6 +11645,7 @@ export default function App() {
                       <tr>
                         <th className="p-4">ผู้ใช้งาน (Username)</th>
                         <th className="p-4">บทบาทสิทธิ์ (Role)</th>
+                        <th className="p-4">หน่วยงานที่รับผิดชอบ</th>
                         <th className="p-4">แผนกที่รับผิดชอบ</th>
                         <th className="p-4 text-center">จัดการการทำงาน</th>
                       </tr>
@@ -11675,18 +11708,81 @@ export default function App() {
                                 <option value="Operation Dir">Operation Dir</option>
                               </select>
                             </td>
+
+                            {/* Column 3: หน่วยงานที่รับผิดชอบ */}
                             <td className="p-4">
-                              <select
-                                disabled={["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role)}
-                                value={acc.deptId}
-                                onChange={(e) => {
-                                  handleUpdateAccountPermission(acc.username, acc.role, e.target.value);
-                                }}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 disabled:opacity-50 disabled:bg-slate-100 font-medium"
-                              >
-                                <option value="all">ทุกแผนก (All)</option>
-                                {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                              </select>
+                              {["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role) ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
+                                  <Building2 className="w-3.5 h-3.5" />
+                                  <span>ทุกหน่วยงาน (All)</span>
+                                </span>
+                              ) : (() => {
+                                const scope = parseAccountScope(acc.deptId);
+                                const isAll = scope.groups.includes("all");
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setScopeModalAccount({
+                                        username: acc.username,
+                                        name: acc.name,
+                                        role: acc.role,
+                                        groups: scope.groups,
+                                        depts: scope.depts,
+                                        activeTab: "groups",
+                                      });
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-bold text-[#0E3A66] flex items-center gap-1.5 cursor-pointer max-w-[200px] transition-colors shadow-2xs group"
+                                    title="คลิกเพื่อแก้ไขหน่วยงานที่รับผิดชอบ (เลือกได้หลายหน่วยงาน)"
+                                  >
+                                    <Building2 className="w-3.5 h-3.5 text-[#0E3A66] shrink-0" />
+                                    <span className="truncate">
+                                      {isAll
+                                        ? "ทุกหน่วยงาน (All)"
+                                        : scope.groups.map(g => getAgencyDisplayName(g)).join(", ")}
+                                    </span>
+                                    <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-auto group-hover:text-[#0E3A66]" />
+                                  </button>
+                                );
+                              })()}
+                            </td>
+
+                            {/* Column 4: แผนกที่รับผิดชอบ */}
+                            <td className="p-4">
+                              {["Admin", "ผู้ดูแลระบบ", "admin"].includes(acc.role) ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">
+                                  <FolderTree className="w-3.5 h-3.5" />
+                                  <span>ทุกแผนก (All)</span>
+                                </span>
+                              ) : (() => {
+                                const scope = parseAccountScope(acc.deptId);
+                                const isAll = scope.depts.includes("all");
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setScopeModalAccount({
+                                        username: acc.username,
+                                        name: acc.name,
+                                        role: acc.role,
+                                        groups: scope.groups,
+                                        depts: scope.depts,
+                                        activeTab: "depts",
+                                      });
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-bold text-[#0E3A66] flex items-center gap-1.5 cursor-pointer max-w-[220px] transition-colors shadow-2xs group"
+                                    title="คลิกเพื่อแก้ไขแผนกที่รับผิดชอบ (เลือกได้หลายแผนก)"
+                                  >
+                                    <FolderTree className="w-3.5 h-3.5 text-[#0E3A66] shrink-0" />
+                                    <span className="truncate">
+                                      {isAll
+                                        ? "ทุกแผนก (All)"
+                                        : scope.depts.map(d => getDeptDisplayName(d)).join(", ")}
+                                    </span>
+                                    <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-auto group-hover:text-[#0E3A66]" />
+                                  </button>
+                                );
+                              })()}
                             </td>
                             <td className="p-4 text-center">
                               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -11716,6 +11812,9 @@ export default function App() {
                                     setEditAccountName(acc.name);
                                     setEditAccountRole(acc.role);
                                     setEditAccountDeptId(acc.deptId);
+                                    const parsed = parseAccountScope(acc.deptId);
+                                    setEditAccountGroups(parsed.groups);
+                                    setEditAccountDepts(parsed.depts);
                                     setEditAccountAvatar(acc.avatar || "");
                                     setEditAccountCanBackup(acc.canBackup === 1);
                                     setShowEditAccountModal(true);
@@ -13450,6 +13549,201 @@ export default function App() {
       )}
 
       {/* ======================================= */}
+      {/* OVERLAY / MODAL: ASSIGN SCOPE (AGENCIES & DEPTS) */}
+      {/* ======================================= */}
+      {scopeModalAccount && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150 max-h-[90vh]">
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 bg-[#F8FAFC] flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-extrabold text-[#0E3A66] flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#0E3A66]" />
+                  <span>กำหนดหน่วยงานและแผนกที่รับผิดชอบ</span>
+                </h3>
+                <p className="text-xs text-[#475569] mt-0.5">
+                  สำหรับผู้ใช้: <b className="text-[#0F172A]">{scopeModalAccount.name}</b> ({scopeModalAccount.username})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScopeModalAccount(null)}
+                className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Sub-Tabs / Mode Switcher */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setScopeModalAccount(prev => prev ? { ...prev, activeTab: "groups" } : null)}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  scopeModalAccount.activeTab === "groups"
+                    ? "bg-[#0E3A66] text-white shadow-2xs"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span>หน่วยงาน ({scopeModalAccount.groups.includes("all") ? "ทุกหน่วยงาน" : `${scopeModalAccount.groups.length} หน่วยงาน`})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScopeModalAccount(prev => prev ? { ...prev, activeTab: "depts" } : null)}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  scopeModalAccount.activeTab === "depts"
+                    ? "bg-[#0E3A66] text-white shadow-2xs"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+              >
+                <FolderTree className="w-4 h-4" />
+                <span>แผนก ({scopeModalAccount.depts.includes("all") ? "ทุกแผนก" : `${scopeModalAccount.depts.length} แผนก`})</span>
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[50vh]">
+              {scopeModalAccount.activeTab === "groups" ? (
+                <div className="space-y-3">
+                  <div className="text-xs text-[#475569]">
+                    สามารถเลือกได้มากกว่า 1 หน่วยงาน หรือเลือก <b>&ldquo;ทุกหน่วยงาน&rdquo;</b> เพื่อให้เข้าถึงได้ทั้งหมด
+                  </div>
+                  <div className="space-y-2">
+                    {/* All Agencies Option */}
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      scopeModalAccount.groups.includes("all")
+                        ? "bg-[#E8F3FA] border-[#0E3A66] text-[#0E3A66] font-bold"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={scopeModalAccount.groups.includes("all")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setScopeModalAccount(prev => prev ? { ...prev, groups: ["all"] } : null);
+                          } else {
+                            setScopeModalAccount(prev => prev ? { ...prev, groups: ["ITS"] } : null);
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-[#0E3A66] focus:ring-[#0E3A66]"
+                      />
+                      <span>ทุกหน่วยงาน (All Agencies)</span>
+                    </label>
+
+                    {AVAILABLE_AGENCIES.filter(a => a.id !== "all").map(ag => {
+                      const isChecked = !scopeModalAccount.groups.includes("all") && scopeModalAccount.groups.includes(ag.id);
+                      return (
+                        <label key={ag.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-[#EBF7F2] border-[#15803D] text-[#15803D] font-bold"
+                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              let nextGroups = scopeModalAccount.groups.filter(g => g !== "all");
+                              if (e.target.checked) {
+                                nextGroups.push(ag.id);
+                              } else {
+                                nextGroups = nextGroups.filter(g => g !== ag.id);
+                              }
+                              if (nextGroups.length === 0) nextGroups = ["all"];
+                              setScopeModalAccount(prev => prev ? { ...prev, groups: nextGroups } : null);
+                            }}
+                            className="w-4 h-4 rounded text-[#15803D] focus:ring-[#15803D]"
+                          />
+                          <span>{ag.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-xs text-[#475569]">
+                    สามารถเลือกได้มากกว่า 1 แผนก หรือเลือก <b>&ldquo;ทุกแผนก&rdquo;</b> เพื่อให้เข้าถึงได้ทุกแผนกในระบบ
+                  </div>
+                  <div className="space-y-2">
+                    {/* All Depts Option */}
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      scopeModalAccount.depts.includes("all")
+                        ? "bg-[#E8F3FA] border-[#0E3A66] text-[#0E3A66] font-bold"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={scopeModalAccount.depts.includes("all")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setScopeModalAccount(prev => prev ? { ...prev, depts: ["all"] } : null);
+                          } else {
+                            setScopeModalAccount(prev => prev ? { ...prev, depts: ["inter2"] } : null);
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-[#0E3A66] focus:ring-[#0E3A66]"
+                      />
+                      <span>ทุกแผนก (All Departments)</span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {AVAILABLE_DEPARTMENTS.filter(d => d.id !== "all").map(dp => {
+                        const isChecked = !scopeModalAccount.depts.includes("all") && scopeModalAccount.depts.map(d => d.toLowerCase()).includes(dp.id.toLowerCase());
+                        return (
+                          <label key={dp.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-[#EBF7F2] border-[#15803D] text-[#15803D] font-bold"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                let nextDepts = scopeModalAccount.depts.filter(d => d !== "all");
+                                if (e.target.checked) {
+                                  nextDepts.push(dp.id);
+                                } else {
+                                  nextDepts = nextDepts.filter(d => d.toLowerCase() !== dp.id.toLowerCase());
+                                }
+                                if (nextDepts.length === 0) nextDepts = ["all"];
+                                setScopeModalAccount(prev => prev ? { ...prev, depts: nextDepts } : null);
+                              }}
+                              className="w-4 h-4 rounded text-[#15803D] focus:ring-[#15803D]"
+                            />
+                            <span>{dp.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-4 border-t border-slate-100 bg-[#F8FAFC] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setScopeModalAccount(null)}
+                className="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-white cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveScopeModal}
+                className="px-5 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>บันทึกสิทธิ์การรับผิดชอบ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
       {/* OVERLAY / MODAL: ADD NEW USER ACCOUNT / PERMISSIONS */}
       {/* ======================================= */}
       {showAddAccountModal && (
@@ -13556,7 +13850,11 @@ export default function App() {
                       setNewAccountRole(r);
                       if (r === "Admin" || r === "Co-admin") {
                         setNewAccountCanBackup(true);
-                        if (r === "Admin") setNewAccountDeptId("all");
+                        if (r === "Admin") {
+                          setNewAccountDeptId("all");
+                          setNewAccountGroups(["all"]);
+                          setNewAccountDepts(["all"]);
+                        }
                       }
                     }}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#0F172A] font-bold focus:ring-2 focus:ring-blue-500/20"
@@ -13571,16 +13869,104 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกที่รับผิดชอบ</label>
-                  <select 
-                    disabled={newAccountRole === "Admin"}
-                    value={newAccountDeptId}
-                    onChange={(e) => setNewAccountDeptId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:bg-slate-100"
-                  >
-                    <option value="all">ทุกแผนก (All)</option>
-                    {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">สรุปสิทธิ์สังกัด</label>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#0E3A66] truncate">
+                    {newAccountRole === "Admin"
+                      ? "ทุกหน่วยงาน & ทุกแผนก (Admin)"
+                      : `${newAccountGroups.includes("all") ? "ทุกหน่วยงาน" : newAccountGroups.join(", ")} | ${newAccountDepts.includes("all") ? "ทุกแผนก" : `${newAccountDepts.length} แผนก`}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Agency Selection */}
+              <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>หน่วยงานที่รับผิดชอบ (เลือกได้มากกว่า 1 หน่วยงาน)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {newAccountGroups.includes("all") ? "ทุกหน่วยงาน" : `${newAccountGroups.length} หน่วยงาน`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVAILABLE_AGENCIES.map(ag => {
+                    const isSelected = ag.id === "all" ? newAccountGroups.includes("all") : (!newAccountGroups.includes("all") && newAccountGroups.includes(ag.id));
+                    return (
+                      <button
+                        key={ag.id}
+                        type="button"
+                        disabled={newAccountRole === "Admin"}
+                        onClick={() => {
+                          if (ag.id === "all") {
+                            setNewAccountGroups(["all"]);
+                          } else {
+                            let next = newAccountGroups.filter(g => g !== "all");
+                            if (next.includes(ag.id)) {
+                              next = next.filter(g => g !== ag.id);
+                            } else {
+                              next.push(ag.id);
+                            }
+                            if (next.length === 0) next = ["all"];
+                            setNewAccountGroups(next);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                          isSelected
+                            ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {ag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Multi-Department Selection */}
+              <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5">
+                    <FolderTree className="w-3.5 h-3.5" />
+                    <span>แผนกที่รับผิดชอบ (เลือกได้มากกว่า 1 แผนก)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {newAccountDepts.includes("all") ? "ทุกแผนก" : `${newAccountDepts.length} แผนก`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVAILABLE_DEPARTMENTS.map(dp => {
+                    const isSelected = dp.id === "all" ? newAccountDepts.includes("all") : (!newAccountDepts.includes("all") && newAccountDepts.map(d => d.toLowerCase()).includes(dp.id.toLowerCase()));
+                    return (
+                      <button
+                        key={dp.id}
+                        type="button"
+                        disabled={newAccountRole === "Admin"}
+                        onClick={() => {
+                          if (dp.id === "all") {
+                            setNewAccountDepts(["all"]);
+                          } else {
+                            let next = newAccountDepts.filter(d => d !== "all");
+                            if (next.map(d => d.toLowerCase()).includes(dp.id.toLowerCase())) {
+                              next = next.filter(d => d.toLowerCase() !== dp.id.toLowerCase());
+                            } else {
+                              next.push(dp.id);
+                            }
+                            if (next.length === 0) next = ["all"];
+                            setNewAccountDepts(next);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                          isSelected
+                            ? "bg-[#15803D] text-white border-[#15803D]"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {dp.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -13752,13 +14138,23 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">บทบาท (Role)</label>
                   <select 
                     value={editAccountRole}
-                    onChange={(e) => setEditAccountRole(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                    onChange={(e) => {
+                      const r = e.target.value;
+                      setEditAccountRole(r);
+                      if (r === "Admin") {
+                        setEditAccountGroups(["all"]);
+                        setEditAccountDepts(["all"]);
+                        setEditAccountCanBackup(true);
+                      } else if (r === "Co-admin") {
+                        setEditAccountCanBackup(true);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-bold"
                   >
                     <option value="Admin">Admin (ผู้ดูแลระบบสูงสุด)</option>
                     <option value="Co-admin">Co-admin (ผู้ช่วยดูแลระบบ / Job Value D1)</option>
@@ -13770,15 +14166,104 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกที่รับผิดชอบ</label>
-                  <select 
-                    value={editAccountDeptId}
-                    onChange={(e) => setEditAccountDeptId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  >
-                    <option value="all">ทุกแผนก (All)</option>
-                    {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">สรุปสิทธิ์สังกัด</label>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#0E3A66] truncate">
+                    {editAccountRole === "Admin"
+                      ? "ทุกหน่วยงาน & ทุกแผนก (Admin)"
+                      : `${editAccountGroups.includes("all") ? "ทุกหน่วยงาน" : editAccountGroups.join(", ")} | ${editAccountDepts.includes("all") ? "ทุกแผนก" : `${editAccountDepts.length} แผนก`}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Agency Selection */}
+              <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>หน่วยงานที่รับผิดชอบ (เลือกได้มากกว่า 1 หน่วยงาน)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {editAccountGroups.includes("all") ? "ทุกหน่วยงาน" : `${editAccountGroups.length} หน่วยงาน`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVAILABLE_AGENCIES.map(ag => {
+                    const isSelected = ag.id === "all" ? editAccountGroups.includes("all") : (!editAccountGroups.includes("all") && editAccountGroups.includes(ag.id));
+                    return (
+                      <button
+                        key={ag.id}
+                        type="button"
+                        disabled={editAccountRole === "Admin"}
+                        onClick={() => {
+                          if (ag.id === "all") {
+                            setEditAccountGroups(["all"]);
+                          } else {
+                            let next = editAccountGroups.filter(g => g !== "all");
+                            if (next.includes(ag.id)) {
+                              next = next.filter(g => g !== ag.id);
+                            } else {
+                              next.push(ag.id);
+                            }
+                            if (next.length === 0) next = ["all"];
+                            setEditAccountGroups(next);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                          isSelected
+                            ? "bg-[#0E3A66] text-white border-[#0E3A66]"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {ag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Multi-Department Selection */}
+              <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0E3A66] flex items-center gap-1.5">
+                    <FolderTree className="w-3.5 h-3.5" />
+                    <span>แผนกที่รับผิดชอบ (เลือกได้มากกว่า 1 แผนก)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {editAccountDepts.includes("all") ? "ทุกแผนก" : `${editAccountDepts.length} แผนก`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVAILABLE_DEPARTMENTS.map(dp => {
+                    const isSelected = dp.id === "all" ? editAccountDepts.includes("all") : (!editAccountDepts.includes("all") && editAccountDepts.map(d => d.toLowerCase()).includes(dp.id.toLowerCase()));
+                    return (
+                      <button
+                        key={dp.id}
+                        type="button"
+                        disabled={editAccountRole === "Admin"}
+                        onClick={() => {
+                          if (dp.id === "all") {
+                            setEditAccountDepts(["all"]);
+                          } else {
+                            let next = editAccountDepts.filter(d => d !== "all");
+                            if (next.map(d => d.toLowerCase()).includes(dp.id.toLowerCase())) {
+                              next = next.filter(d => d.toLowerCase() !== dp.id.toLowerCase());
+                            } else {
+                              next.push(dp.id);
+                            }
+                            if (next.length === 0) next = ["all"];
+                            setEditAccountDepts(next);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                          isSelected
+                            ? "bg-[#15803D] text-white border-[#15803D]"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {dp.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
