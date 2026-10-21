@@ -2182,8 +2182,8 @@ export default function JobValueSpreadsheetView({
                   </th>
                   <th className="py-3.5 px-5 text-right">รายได้ (เฉลี่ย)</th>
                   <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
-                  <th className="py-3.5 px-5 text-right">กำไรปี {compareYear}</th>
-                  <th className="py-3.5 px-5 text-right">กำไรปี {selectedYear}</th>
+                  <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {compareYear}</th>
+                  <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {selectedYear}</th>
                   <th className="py-3.5 px-5 text-center">Status</th>
                 </tr>
               </thead>
