@@ -10,7 +10,7 @@
  *  - API Requests (/api/*): Network-First with offline JSON fallback (ot-portal-v1-data)
  */
 
-const CACHE_VERSION = 'v24';
+const CACHE_VERSION = 'v26';
 const SHELL_CACHE_NAME = `ot-portal-${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE_NAME = `ot-portal-${CACHE_VERSION}-runtime`;
 const FONT_CACHE_NAME = `ot-portal-${CACHE_VERSION}-fonts`;
@@ -30,6 +30,8 @@ const PRECACHE_URLS = [
   '/manifest.webmanifest',
   '/manifest.json',
   '/favicon.ico',
+  '/marine-favicon.png',
+  '/marine-link-logo.png',
   '/login-bg.jpg',
   '/icons/icon-192x192.png',
   '/icons/icon-192x192-maskable.png',
@@ -47,6 +49,7 @@ const PRECACHE_URLS = [
 // Lifecycle: install
 // ------------------------------------------------------------
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(SHELL_CACHE_NAME).then(async (cache) => {
       // Use Promise.allSettled for resilient pre-caching

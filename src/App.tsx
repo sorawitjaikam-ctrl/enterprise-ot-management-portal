@@ -2567,6 +2567,11 @@ function HrDirectEditorView({
 }
 
 export default function App() {
+  // Ensure tab title always reflects MARINE link branding
+  useEffect(() => {
+    document.title = "MARINE link - HR Management Portal";
+  }, []);
+
   // Login & Session States
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("adminLoggedIn") === "true"
