@@ -1506,14 +1506,11 @@ export default function JobValueSpreadsheetView({
               onChange={(e) => handleSelectedYearChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0E3A66] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              {storedYearKeys.map((y) => {
-                const count = getScopedRecordsForYear(y).length;
-                return (
-                  <option key={y} value={y}>
-                    ปี {y} ({count} คน)
-                  </option>
-                );
-              })}
+              {storedYearKeys.map((y) => (
+                <option key={y} value={y}>
+                  ปี {y}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -1532,14 +1529,11 @@ export default function JobValueSpreadsheetView({
               onChange={(e) => handleCompareYearChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#334155] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
-              {storedYearKeys.map((y) => {
-                const count = getScopedRecordsForYear(y).length;
-                return (
-                  <option key={y} value={y}>
-                    ปี {y} ({count} คน){y === selectedYear ? " [ปีหลัก]" : ""}
-                  </option>
-                );
-              })}
+              {storedYearKeys.map((y) => (
+                <option key={y} value={y}>
+                  ปี {y}{y === selectedYear ? " [ปีหลัก]" : ""}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -2262,12 +2256,8 @@ export default function JobValueSpreadsheetView({
                       <td className="py-3.5 px-5 font-bold text-[#0F172A]">
                         <div className="flex flex-wrap items-center gap-2">
                           <span>{item.name}</span>
-                          {item.group && groupFilter !== "ALL" && (
-                            <span className="px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#475569] text-[10px] font-semibold border border-[#E2E8F0]">
-                              {item.group}
-                            </span>
-                          )}
-                          {deptFilter === "ALL" && (
+                          {/* แสดงจำนวนคนเฉพาะตอนลงดีเทลแต่ละแผนก */}
+                          {groupFilter !== "ALL" && deptFilter === "ALL" && (
                             <span className="px-2 py-0.5 rounded-full bg-[#E2E8F0] text-[#334155] text-[11px] font-mono">
                               {item.count} คน
                             </span>
