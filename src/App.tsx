@@ -7742,177 +7742,7 @@ export default function App() {
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* ROW 5: CAUSE-AND-EFFECT DRIVER TREE (F3.1) (lg:col-span-12)                */}
-                    {/* ========================================================================= */}
-                    {(() => {
-                      let stdM8 = 0, stdA8 = 0, stdN8 = 0;
-                      let otM12 = 0, otN12 = 0, otM16 = 0, otM24 = 0, otOND = 0;
-                      let offDays = 0;
-
-                      dashboardEmployees.forEach(emp => {
-                        activeMonthsList.forEach(mKey => {
-                          const shifts = getEmpShiftsArray(emp.shifts, mKey, emp.calendarType);
-                          shifts.forEach(s => {
-                            const sc = (s || "O").trim().toUpperCase();
-                            if (sc === "M8" || sc === "D") stdM8++;
-                            else if (sc === "A8") stdA8++;
-                            else if (sc === "N8") stdN8++;
-                            else if (sc === "M12") otM12++;
-                            else if (sc === "N12") otN12++;
-                            else if (sc === "M16") otM16++;
-                            else if (sc === "M24") otM24++;
-                            else if (sc === "OND") otOND++;
-                            else if (sc === "O" || sc === "OFF") offDays++;
-                          });
-                        });
-                      });
-
-                      const totalStandardShifts = stdM8 + stdA8 + stdN8;
-                      const totalOtShifts = otM12 + otN12 + otM16 + otM24 + otOND;
-                      const totalWorkingShifts = totalStandardShifts + totalOtShifts;
-                      const totalNormalOtHours = (otM12 * 4) + (otN12 * 4) + (otM16 * 8) + (otM24 * 16);
-                      const totalHolidayOtHours = (otOND * 8);
-
-                      return (
-                        <div className="col-span-1 md:col-span-2 lg:col-span-12 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="tag t-b font-mono">โครงสร้างต้นทุน</span>
-                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">โครงสร้างต้นทุนและปัจจัยขับเคลื่อนค่าล่วงเวลา</h3>
-                              </div>
-                              <p className="text-xs text-[#59656D] mt-0.5">
-                                วิเคราะห์ปัจจัยขับเคลื่อน: รูปแบบการจัดกะ &rarr; ชั่วโมง OT สะสม &rarr; ยอดเบิกจ่ายจริง
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-[#6A7B87]">อัตรากะทำงาน OT:</span>
-                              <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums">
-                                {totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}% ของกะทั้งหมด
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Visual Driver Hierarchy Strip */}
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            {/* Tier 1: Shift Distribution */}
-                            <div className="p-3.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] flex flex-col justify-between">
-                              <div>
-                                <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider block">ระดับ 1: สัดส่วนกะทำงาน</span>
-                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
-                                  {totalWorkingShifts.toLocaleString()} กะ
-                                </div>
-                                <div className="space-y-1.5 mt-2.5 text-[11px]">
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>กะปกติ 8 ชั่วโมง:</span>
-                                    <span className="font-mono font-bold">{totalStandardShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalStandardShifts / totalWorkingShifts) * 100) : 0}%)</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะล่วงเวลา 12-24 ชั่วโมง:</span>
-                                    <span className="font-mono">{totalOtShifts.toLocaleString()} ({totalWorkingShifts > 0 ? Math.round((totalOtShifts / totalWorkingShifts) * 100) : 0}%)</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#6A7B87]">
-                                    <span>วันหยุดประจำสัปดาห์:</span>
-                                    <span className="font-mono">{offDays.toLocaleString()} วัน</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="pt-2 border-t border-[#DCE4EA] mt-3 text-[10px] text-[#17538F] font-bold flex items-center gap-1">
-                                <span>ส่งผลต่อชั่วโมง OT</span>
-                                <ArrowRight className="w-3 h-3 text-[#17538F]" />
-                              </div>
-                            </div>
-
-                            {/* Tier 2: OT Hours Generated */}
-                            <div className="p-3.5 rounded bg-[#E8F3FA]/70 border border-[#9FCEE8] flex flex-col justify-between">
-                              <div>
-                                <span className="text-[10px] font-bold text-[#17538F] uppercase tracking-wider block">ระดับ 2: ชั่วโมง OT สะสม</span>
-                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
-                                  {totalOtHrs.toLocaleString()} ชม.
-                                </div>
-                                <div className="space-y-1.5 mt-2.5 text-[11px]">
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>กะ 12 ชั่วโมง (+4 ชม.):</span>
-                                    <span className="font-mono font-bold">{((otM12 + otN12) * 4).toLocaleString()} ชม.</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>กะยาว 16-24 ชั่วโมง:</span>
-                                    <span className="font-mono font-bold">{(otM16 * 8 + otM24 * 16).toLocaleString()} ชม.</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>กะวันหยุด (+8 ชม.):</span>
-                                    <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="pt-2 border-t border-[#9FCEE8] mt-3 text-[10px] text-[#0E3A66] font-bold flex items-center gap-1">
-                                <span>คูณตัวคูณอัตราจ้าง</span>
-                                <ArrowRight className="w-3 h-3 text-[#0E3A66]" />
-                              </div>
-                            </div>
-
-                            {/* Tier 3: Multiplier Engine */}
-                            <div className="p-3.5 rounded bg-[#F3F6F8] border border-[#DCE4EA] flex flex-col justify-between">
-                              <div>
-                                <span className="text-[10px] font-bold text-[#6A7B87] uppercase tracking-wider block">ระดับ 3: กลไกตัวคูณกฎหมาย</span>
-                                <div className="text-lg font-black text-[#333B41] font-mono tabular-nums mt-1">
-                                  3 อัตราหลัก
-                                </div>
-                                <div className="space-y-1.5 mt-2.5 text-[11px]">
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>OT วันทำงานปกติ 1.5 เท่า:</span>
-                                    <span className="font-mono font-bold">{totalNormalOtHours.toLocaleString()} ชม.</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#0E3A66] font-bold">
-                                    <span>OT วันหยุด 3.0 เท่า:</span>
-                                    <span className="font-mono">{totalHolidayOtHours.toLocaleString()} ชม.</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#1E9C6E]">
-                                    <span>ทำงานวันหยุด 1.0 เท่า:</span>
-                                    <span className="font-mono font-bold">{(otOND * 8).toLocaleString()} ชม.</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="pt-2 border-t border-[#DCE4EA] mt-3 text-[10px] text-[#0E3A66] font-bold flex items-center gap-1">
-                                <span>แปลงเป็นมูลค่าการเงิน</span>
-                                <ArrowRight className="w-3 h-3 text-[#0E3A66]" />
-                              </div>
-                            </div>
-
-                            {/* Tier 4: Total Financial Outlay */}
-                            <div className="p-3.5 rounded bg-[#FCF3DE]/70 border border-[#F3D98F] flex flex-col justify-between">
-                              <div>
-                                <span className="text-[10px] font-bold text-[#D99B14] uppercase tracking-wider block">ระดับ 4: ต้นทุนจ่ายจริงรวม</span>
-                                <div className="text-lg font-black text-[#0E3A66] font-mono tabular-nums mt-1">
-                                  ฿{totalSpent.toLocaleString()}
-                                </div>
-                                <div className="space-y-1.5 mt-2.5 text-[11px]">
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>เฉลี่ยต่อพนักงาน:</span>
-                                    <span className="font-mono font-bold">฿{activeEmps > 0 ? Math.round(totalSpent / activeEmps).toLocaleString() : 0}</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#333B41]">
-                                    <span>สัดส่วนต่องบเงินเดือน:</span>
-                                    <span className="font-mono font-bold">{otSalaryPct}%</span>
-                                  </div>
-                                  <div className="flex justify-between text-[#D99B14] font-bold">
-                                    <span>สถานะงบประมาณ:</span>
-                                    <span>{otSalaryPct > 25 ? "เตือนงบเกิน 25%" : "อยู่ในเกณฑ์ปกติ"}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="pt-2 border-t border-[#F3D98F] mt-3 text-[10px] text-[#333B41] flex items-center justify-between">
-                                <span>ฐานเงินเดือนเฉลี่ย/240</span>
-                                <span className="font-mono font-bold">฿{(totalBaseSalary / (dashboardEmployees.length || 1) / 240).toFixed(1)}/ชม.</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* ========================================================================= */}
-                    {/* ROW 6: DEPARTMENT COST DRIVERS (6 cols) + COVERAGE SENSITIVITY (6 cols)   */}
+                    {/* ROW 6: DEPARTMENT COST DRIVERS RANKING (12 cols)                          */}
                     {/* ========================================================================= */}
                     {(() => {
                       const deptDriverStats = (state?.departments || []).map(dept => {
@@ -7950,174 +7780,71 @@ export default function App() {
                       }).sort((a, b) => b.actualSpendThb - a.actualSpendThb);
 
                       return (
-                        <>
-                          {/* Card 6.1: Department Cost Driver Ranking (6 cols) */}
-                          <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
-                            <div>
-                              <div className="flex justify-between items-start mb-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">จัดอันดับแผนก</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">อันดับแผนกที่มีค่าล่วงเวลาสูงสุด</h3>
-                                </div>
-                                <span className="text-[10px] text-[#6A7B87] font-mono">เรียงตามยอดใช้จ่ายสูงสุด</span>
+                        <div className="col-span-1 md:col-span-2 lg:col-span-12 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="tag t-b font-mono">จัดอันดับแผนก</span>
+                                <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">อันดับแผนกที่มีค่าล่วงเวลาสูงสุด</h3>
                               </div>
-                              <p className="text-xs text-[#59656D] mb-4">
-                                เปรียบเทียบแผนจัดกะกับผลการทำงานจริง และส่วนต่างงบประมาณ
-                              </p>
-
-                              <div className="space-y-2.5">
-                                {deptDriverStats.map((item, idx) => {
-                                  const isOverBudget = item.varianceSpendThb > 0;
-                                  return (
-                                    <div key={item.dept.id} className="p-3 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
-                                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          <span className="w-5 h-5 rounded-full bg-[#E8F3FA] text-[#0E3A66] text-[11px] font-mono font-bold flex items-center justify-center shrink-0">
-                                            {idx + 1}
-                                          </span>
-                                          <span className="text-xs font-bold text-[#333B41] truncate">{getDeptName(item.dept.id, state?.departments)}</span>
-                                          <span className="text-[10px] text-[#6A7B87]">({item.empCount} คน)</span>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                          <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums">
-                                            ฿{item.actualSpendThb.toLocaleString()}
-                                          </span>
-                                          <span className={`ml-2 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                                            isOverBudget ? "bg-[#FBEAEA] text-[#B3352C]" : "bg-[#E8F6F0] text-[#1E9C6E]"
-                                          }`}>
-                                            {item.variancePct >= 0 ? `+${item.variancePct}%` : `${item.variancePct}%`}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      <div className="grid grid-cols-3 gap-2 text-[10px] pt-1.5 border-t border-[#DCE4EA]/60 text-[#59656D]">
-                                        <div>
-                                          <span>ชั่วโมงจริง: </span>
-                                          <span className="font-mono font-bold text-[#333B41]">{item.actualOtHours} ชม.</span>
-                                        </div>
-                                        <div>
-                                          <span>งบเป้าหมาย: </span>
-                                          <span className="font-mono">฿{item.plannedBudgetThb.toLocaleString()}</span>
-                                        </div>
-                                        <div className="text-right">
-                                          <span>ส่วนต่าง: </span>
-                                          <span className={`font-mono font-bold ${isOverBudget ? "text-[#B3352C]" : "text-[#1E9C6E]"}`}>
-                                            {item.varianceSpendThb >= 0 ? `+฿${item.varianceSpendThb.toLocaleString()}` : `-฿${Math.abs(item.varianceSpendThb).toLocaleString()}`}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                              <span className="text-[10px] text-[#6A7B87] font-mono">เรียงตามยอดใช้จ่ายสูงสุด</span>
                             </div>
+                            <p className="text-xs text-[#59656D] mb-4">
+                              เปรียบเทียบแผนจัดกะกับผลการทำงานจริง และส่วนต่างงบประมาณ
+                            </p>
 
-                            <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
-                              <span>คำนวณจากกะจริงเทียบเป้าหมาย 48 ชม./คน</span>
-                              <span className="font-mono font-bold text-[#0E3A66]">รวม ฿{totalSpent.toLocaleString()} THB</span>
-                            </div>
-                          </div>
-
-                          {/* Card 6.2: Coverage Gap & Fatigue Sensitivity Analysis (6 cols) */}
-                          <div className="col-span-1 md:col-span-2 lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-5 sm:p-6 shadow-maritime-xs flex flex-col justify-between">
-                            <div>
-                              <div className="flex justify-between items-start mb-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="tag t-b font-mono">วิเคราะห์ความเสี่ยง</span>
-                                  <h3 className="text-xs font-bold text-[#0E3A66] tracking-wider uppercase">การวิเคราะห์ความเสี่ยงด้านอัตรากำลังและความล้าสะสม</h3>
-                                </div>
-                                <span className="tag t-y font-mono">ความปลอดภัยแรงงาน</span>
-                              </div>
-                              <p className="text-xs text-[#59656D] mb-4">
-                                ประเมินความสัมพันธ์: การขาดอัตรากำลัง &rarr; พนักงานทำงานเกินเกณฑ์ความล้าสะสมมากกว่า 36 ชั่วโมงต่อสัปดาห์
-                              </p>
-
-                              <div className="space-y-3">
-                                {deptDriverStats.map((item) => {
-                                  const requiredHeadcount = Math.max(item.empCount, 8);
-                                  const staffingGap = Math.max(0, requiredHeadcount - item.empCount);
-                                  const coverageIndex = requiredHeadcount > 0 ? Math.round((item.empCount / requiredHeadcount) * 100) : 100;
-                                  
-                                  let hazardLevel: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" = "LOW";
-                                  let hazardTagClass = "tag t-g";
-                                  if (item.fatigueRate > 30 || coverageIndex < 70) {
-                                    hazardLevel = "CRITICAL";
-                                    hazardTagClass = "tag t-r";
-                                  } else if (item.fatigueRate > 15 || coverageIndex < 85) {
-                                    hazardLevel = "HIGH";
-                                    hazardTagClass = "tag t-y";
-                                  } else if (item.fatigueRate > 0) {
-                                    hazardLevel = "MODERATE";
-                                    hazardTagClass = "tag t-b";
-                                  }
-
-                                  return (
-                                    <div key={item.dept.id} className="p-3 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
-                                      <div className="flex justify-between items-center mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-bold text-[#333B41]">{getDeptName(item.dept.id, state?.departments)}</span>
-                                          <span className={hazardTagClass}>ความเสี่ยง {hazardLevel}</span>
-                                        </div>
-                                        <span className="text-[11px] font-mono text-[#59656D]">
-                                          ความพร้อมกำลังพล {coverageIndex}%
+                            <div className="space-y-2.5">
+                              {deptDriverStats.map((item, idx) => {
+                                const isOverBudget = item.varianceSpendThb > 0;
+                                return (
+                                  <div key={item.dept.id} className="p-3 rounded bg-[#F3F6F8] border border-[#DCE4EA] hover:border-[#9FCEE8] transition-colors">
+                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className="w-5 h-5 rounded-full bg-[#E8F3FA] text-[#0E3A66] text-[11px] font-mono font-bold flex items-center justify-center shrink-0">
+                                          {idx + 1}
+                                        </span>
+                                        <span className="text-xs font-bold text-[#333B41] truncate">{getDeptName(item.dept.id, state?.departments)}</span>
+                                        <span className="text-[10px] text-[#6A7B87]">({item.empCount} คน)</span>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <span className="text-xs font-bold font-mono text-[#0E3A66] tabular-nums">
+                                          ฿{item.actualSpendThb.toLocaleString()}
+                                        </span>
+                                        <span className={`ml-2 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                          isOverBudget ? "bg-[#FBEAEA] text-[#B3352C]" : "bg-[#E8F6F0] text-[#1E9C6E]"
+                                        }`}>
+                                          {item.variancePct >= 0 ? `+${item.variancePct}%` : `${item.variancePct}%`}
                                         </span>
                                       </div>
+                                    </div>
 
-                                      <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <div>
-                                          <div className="flex justify-between text-[10px] text-[#6A7B87] mb-1">
-                                            <span>อัตราเสี่ยงความล้า (&gt;36h)</span>
-                                            <span className="font-mono font-bold text-[#0E3A66]">{item.fatigueRate}%</span>
-                                          </div>
-                                          <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
-                                            <div 
-                                              style={{ width: `${Math.min(100, item.fatigueRate)}%` }}
-                                              className={`h-full rounded-full transition-all ${
-                                                item.fatigueRate > 30 ? "bg-[#B3352C]" : (item.fatigueRate > 15 ? "bg-[#D99B14]" : "bg-[#1E9C6E]")
-                                              }`}
-                                            />
-                                          </div>
-                                        </div>
-
-                                        <div>
-                                          <div className="flex justify-between text-[10px] text-[#6A7B87] mb-1">
-                                            <span>ช่องว่างกำลังพล (ขาดแคลน)</span>
-                                            <span className="font-mono font-bold text-[#0E3A66]">{staffingGap} อัตรา</span>
-                                          </div>
-                                          <div className="w-full bg-white h-1.5 rounded-full overflow-hidden border border-[#DCE4EA]">
-                                            <div 
-                                              style={{ width: `${Math.min(100, (staffingGap / 5) * 100)}%` }}
-                                              className="bg-[#17538F] h-full rounded-full transition-all"
-                                            />
-                                          </div>
-                                        </div>
+                                    <div className="grid grid-cols-3 gap-2 text-[10px] pt-1.5 border-t border-[#DCE4EA]/60 text-[#59656D]">
+                                      <div>
+                                        <span>ชั่วโมงจริง: </span>
+                                        <span className="font-mono font-bold text-[#333B41]">{item.actualOtHours} ชม.</span>
                                       </div>
-
-                                      <div className="flex justify-between items-center text-[10px] text-[#6A7B87] mt-2 pt-1 border-t border-[#DCE4EA]/60">
-                                        <span>พนักงานในกลุ่มเสี่ยง: <b className="text-[#333B41] font-mono">{item.fatiguedInDept} คน</b></span>
-                                        <span>กำลังพลปัจจุบัน: <b className="text-[#333B41] font-mono">{item.empCount} / {requiredHeadcount} อัตรา</b></span>
+                                      <div>
+                                        <span>งบเป้าหมาย: </span>
+                                        <span className="font-mono">฿{item.plannedBudgetThb.toLocaleString()}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <span>ส่วนต่าง: </span>
+                                        <span className={`font-mono font-bold ${isOverBudget ? "text-[#B3352C]" : "text-[#1E9C6E]"}`}>
+                                          {item.varianceSpendThb >= 0 ? `+฿${item.varianceSpendThb.toLocaleString()}` : `-฿${Math.abs(item.varianceSpendThb).toLocaleString()}`}
+                                        </span>
                                       </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
-                              <span>การวิเคราะห์ความสัมพันธ์ตามเกณฑ์กฎหมายแรงงานไทย 36 ชม./สัปดาห์</span>
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  setSelectedRoleFilter("ทุกตำแหน่ง");
-                                  setActiveTab("employees");
-                                }}
-                                className="font-bold text-[#17538F] hover:underline cursor-pointer"
-                              >
-                                ตรวจสอบพนักงานกลุ่มเสี่ยง &rarr;
-                              </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        </>
+
+                          <div className="pt-3 border-t border-[#DCE4EA] mt-4 flex items-center justify-between text-[10px] text-[#6A7B87]">
+                            <span>คำนวณจากกะจริงเทียบเป้าหมาย 48 ชม./คน</span>
+                            <span className="font-mono font-bold text-[#0E3A66]">รวม ฿{totalSpent.toLocaleString()} THB</span>
+                          </div>
+                        </div>
                       );
                     })()}
 

@@ -138,7 +138,7 @@ export default function ExecutiveDashboardView({
         <div className="col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-[#DCE4EA] p-5 rounded shadow-maritime-xs flex flex-col justify-between min-h-[145px] hover:border-[#9FCEE8] transition-colors">
           <div className="flex justify-between items-start">
             <h3 className="text-xs font-bold text-[#6A7B87] tracking-wider uppercase">
-              ค่าล่วงเวลาสะสมจริง (MTD)
+              ค่าล่วงเวลาสะสมเดือนปัจจุบัน
             </h3>
             <div className="w-8 h-8 rounded bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] flex items-center justify-center font-bold text-xs font-mono">
               ฿
@@ -229,60 +229,10 @@ export default function ExecutiveDashboardView({
       {/* 4. Advanced Risk & Fatigue Radar Card (R3) */}
       <AdvancedRiskRadarCard summary={riskSummary} />
 
-      {/* 5. Strategic Cost Drivers: Shift-to-Cost Driver Tree (F3.1) & Department Variance (F3.2) */}
+      {/* 5. Strategic Highlights: High-Risk Hotspots Action Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-        {/* Cause-and-Effect Driver Tree */}
-        <div className="lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col justify-between">
-          <div>
-            <span className="eyebrow">โครงสร้างต้นทุนเชิงสาเหตุ</span>
-            <h3 className="text-sm font-bold text-[#0E3A66] tracking-tight mb-2">
-              แผนผังเชื่อมโยงการจัดกะสู่ค่าใช้จ่าย (Shift-to-Cost Driver Tree)
-            </h3>
-            <p className="text-xs text-[#59656D] leading-relaxed mb-3">
-              แสดงการกระจายของประเภทกะทำงาน จำนวนชั่วโมง OT และผลคูณตามกฎหมายที่แปลงเป็นต้นทุนค่าล่วงเวลาสะสม
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="bg-[#F3F6F8] p-2.5 rounded border border-[#DCE4EA]">
-                <div className="text-[10px] text-[#59656D] font-bold uppercase">กะทำงานทั้งหมด</div>
-                <div className="text-base font-bold text-[#0E3A66] font-mono mt-1">
-                  {employees.length * asOfDay} กะ
-                </div>
-              </div>
-              <div className="bg-[#F3F6F8] p-2.5 rounded border border-[#DCE4EA]">
-                <div className="text-[10px] text-[#59656D] font-bold uppercase">ชั่วโมง OT สะสม</div>
-                <div className="text-base font-bold text-[#0E3A66] font-mono mt-1">
-                  {Math.round(totalOtHours)} ชม.
-                </div>
-              </div>
-              <div className="bg-[#F3F6F8] p-2.5 rounded border border-[#DCE4EA]">
-                <div className="text-[10px] text-[#59656D] font-bold uppercase">ตัวคูณถ่วงน้ำหนัก</div>
-                <div className="text-base font-bold text-[#0E3A66] font-mono mt-1">
-                  1.5x - 3.0x
-                </div>
-              </div>
-              <div className="bg-[#F3F6F8] p-2.5 rounded border border-[#DCE4EA]">
-                <div className="text-[10px] text-[#59656D] font-bold uppercase">ค่าใช้จ่ายรวม (THB)</div>
-                <div className="text-base font-bold text-[#0E3A66] font-mono mt-1">
-                  ฿{forecastSummary.totalActualSpendToDateThb.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 pt-2.5 border-t border-[#DCE4EA] flex items-center justify-between text-xs">
-            <span className="text-[#6A7B87]">อัตราส่วน OT ต่อเงินเดือนฐาน</span>
-            <span className="font-bold text-[#0E3A66] font-mono">
-              {totalBaseSalary > 0
-                ? Math.round((forecastSummary.totalActualSpendToDateThb / totalBaseSalary) * 100)
-                : 0}
-              %
-            </span>
-          </div>
-        </div>
-
         {/* High-Risk Hotspots Action Summary */}
-        <div className="lg:col-span-6 bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col justify-between">
+        <div className="lg:col-span-12 bg-white border border-[#DCE4EA] rounded p-4 sm:p-5 shadow-maritime-xs flex flex-col justify-between">
           <div>
             <span className="eyebrow">จุดเฝ้าระวังผู้บริหาร</span>
             <h3 className="text-sm font-bold text-[#0E3A66] tracking-tight mb-2">
