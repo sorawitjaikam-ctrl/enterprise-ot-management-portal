@@ -1,0 +1,16 @@
+{
+  "name": "jvmarine",
+  "main": "worker.js",
+  "compatibility_date": "2026-07-24",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jvmarine-db",
+      "database_id": "7f93a290-2bc3-4e82-b963-cab3e84733cd"
+    }
+  ]
+}

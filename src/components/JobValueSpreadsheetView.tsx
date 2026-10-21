@@ -2219,20 +2219,24 @@ export default function JobValueSpreadsheetView({
           id="compare-container"
           className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col h-full"
         >
-          <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-1.5">
+          <div className="px-5 py-3.5 border-b border-[#E2E8F0] min-h-[76px] flex flex-col justify-center gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 font-bold text-base text-[#0F172A]">
                 <BarChart3 className="w-5 h-5 text-[#0E3A66] shrink-0" />
-                <span>
-                  {selectedPersonRank
-                    ? `เปรียบเทียบกำไร (Yearly Comparison · เทียบในกลุ่ม ${selectedPersonRank.dept})`
-                    : "เปรียบเทียบกำไร (Yearly Comparison)"}
-                </span>
+                <span>เปรียบเทียบกำไร (Yearly Comparison)</span>
               </div>
               {selectedPersonRank && (
-                <span className="px-2.5 py-1 rounded-lg bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] text-xs font-extrabold font-mono">
-                  {selectedPersonRank.name}
-                </span>
+                <div id="person-rank-summary" className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="px-2.5 py-1 rounded-md bg-[#F8FAFC] text-[#0F172A] border border-[#E2E8F0] font-bold">
+                    {selectedPersonRank.name}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-md bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8] font-bold font-mono">
+                    กลุ่ม {selectedPersonRank.dept}: อันดับ {selectedPersonRank.deptRank}/{selectedPersonRank.deptTotal}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-md bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] font-bold font-mono">
+                    หน่วยงาน {selectedPersonRank.group}: อันดับ {selectedPersonRank.groupRank}/{selectedPersonRank.groupTotal}
+                  </span>
+                </div>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
@@ -2244,77 +2248,7 @@ export default function JobValueSpreadsheetView({
                 <span className="w-3 h-3 rounded-xs bg-[#0E3A66] inline-block" />
                 <span>กำไร {selectedYear.slice(-2)}</span>
               </span>
-              {selectedPersonRank && (
-                <span className="text-[#475569] font-medium">
-                  (ไฮไลต์พนักงานที่เลือกเทียบกับเพื่อนร่วมแผนก {selectedPersonRank.dept})
-                </span>
-              )}
             </div>
-
-            {/* Individual Profit Rank Banner when viewing a specific person */}
-            {selectedPersonRank && (
-              <div
-                id="person-rank-summary"
-                className="mt-2 p-3 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] space-y-2"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] font-bold text-[#64748B]">
-                        อันดับกำไรในแผนกเดียวกัน (กลุ่ม {selectedPersonRank.dept})
-                      </div>
-                      <div className="text-sm font-extrabold text-[#0E3A66]">
-                        อันดับที่ {selectedPersonRank.deptRank}{" "}
-                        <span className="text-xs font-bold text-[#475569]">
-                          จาก {selectedPersonRank.deptTotal} คน ของกลุ่ม {selectedPersonRank.dept}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-lg bg-[#0E3A66] text-white font-mono text-xs font-extrabold">
-                      #{selectedPersonRank.deptRank}/{selectedPersonRank.deptTotal}
-                    </span>
-                  </div>
-
-                  <div className="px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] font-bold text-[#64748B]">
-                        อันดับกำไรในหน่วยงาน ({selectedPersonRank.group})
-                      </div>
-                      <div className="text-sm font-extrabold text-[#15803D]">
-                        อันดับที่ {selectedPersonRank.groupRank}{" "}
-                        <span className="text-xs font-bold text-[#475569]">
-                          จาก {selectedPersonRank.groupTotal} คน ของหน่วยงาน {selectedPersonRank.group}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-lg bg-[#EBF7F2] text-[#15803D] border border-[#B7E4CE] font-mono text-xs font-extrabold">
-                      #{selectedPersonRank.groupRank}/{selectedPersonRank.groupTotal}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cross-Department Rank Comparison across every sub-department / unit */}
-                {selectedPersonRank.crossDeptRanks.length > 1 && (
-                  <div className="pt-1.5 border-t border-[#E2E8F0] flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className="font-bold text-[#475569]">
-                      เทียบอันดับกำไรกับแต่ละแผนก/หน่วยงานย่อย:
-                    </span>
-                    {selectedPersonRank.crossDeptRanks.map((cd) => (
-                      <span
-                        key={cd.dept}
-                        className={`px-2 py-0.5 rounded-md font-mono font-bold border ${
-                          cd.isOwnDept
-                            ? "bg-[#E8F3FA] text-[#0E3A66] border-[#9FCEE8]"
-                            : "bg-white text-[#334155] border-[#E2E8F0]"
-                        }`}
-                      >
-                        {cd.dept}: ที่ {cd.rank}/{cd.total}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="p-5 relative flex-1 flex flex-col justify-between">
@@ -2398,14 +2332,13 @@ export default function JobValueSpreadsheetView({
                     {isSelectedPerson && (
                       <rect
                         x={barChartGeometry.padLeft + idx * groupW + 2}
-                        y={barChartGeometry.padTop - 6}
+                        y={barChartGeometry.padTop - 4}
                         width={Math.max(groupW - 4, 16)}
-                        height={barChartGeometry.plotH + 24}
+                        height={barChartGeometry.plotH + 4}
                         rx={6}
                         fill="#E8F3FA"
-                        stroke="#0E3A66"
-                        strokeWidth={1.5}
-                        strokeDasharray="3,2"
+                        stroke="#9FCEE8"
+                        strokeWidth={1}
                       />
                     )}
 

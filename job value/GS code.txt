@@ -1,0 +1,61 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('JVMarine — Executive Operational Dashboard')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getSheetData() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheets()[0];
+    var data = sheet.getDataRange().getValues();
+    var rawData = [];
+    var deptSet = {};
+
+    for (var r = 4; r < data.length; r++) {
+      var row = data[r];
+      if (!row || !row[1] || !row[2]) continue;
+
+      var dept = String(row[3] || '').trim().replace('INETR 3', 'INTER 3');
+      if (dept) deptSet[dept] = true;
+
+      var mRev = [], mProf = [], mCost = [];
+      for (var c = 34; c <= 45; c++) mRev.push(Number(row[c]) || 0);
+      for (var c = 47; c <= 58; c++) mProf.push(Number(row[c]) || 0);
+      for (var i = 0; i < 12; i++) {
+        mCost.push((mRev[i] !== 0 || mProf[i] !== 0) ? (mRev[i] - mProf[i]) : 0);
+      }
+
+      var avgRev = Number(row[46]) || 0;
+      var totalProf = Number(row[59]) || 0;
+      var prof2025 = Number(row[33]) || 0;
+
+      rawData.push({
+        id: String(row[1]).trim(),
+        name: String(row[2]).trim(),
+        department: dept,
+        position: String(row[4] || 'Technician').trim(),
+        avgRevenue: avgRev,
+        avgCost: avgRev - totalProf,
+        totalProfit: totalProf,
+        profit2025: prof2025,
+        monthlyRevenue: mRev,
+        monthlyCost: mCost,
+        monthlyProfit: mProf,
+        status: (totalProf - prof2025) > 0 ? 'กำไรต่อยอด' : 'กำไรไม่ต่อยอด'
+      });
+    }
+
+    return {
+      status: 'success',
+      departments: Object.keys(deptSet).sort(),
+      rawData: rawData
+    };
+  } catch (e) {
+    return {
+      status: 'error',
+      message: e.toString()
+    };
+  }
+}

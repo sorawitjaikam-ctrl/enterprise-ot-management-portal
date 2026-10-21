@@ -268,8 +268,8 @@ describe("JV-Only Access Mode, Realtime 01-08 Tab Visibility & Data Lineage Hub 
     fireEvent.change(empSelect, { target: { value: "48835" } });
     expect(screen.getByText(/เปรียบเทียบกำไร \(Yearly Comparison/i)).toBeDefined();
     expect(screen.getByText(/รายละเอียดผลงานตามกลุ่มตัวอย่าง/i)).toBeDefined();
-    expect(screen.getByText(/อันดับกำไรในแผนกเดียวกัน/i)).toBeDefined();
-    expect(screen.getByText(/อันดับกำไรในหน่วยงาน/i)).toBeDefined();
+    expect(screen.getByText(/กลุ่ม INTER 3: อันดับ/i)).toBeDefined();
+    expect(screen.getByText(/หน่วยงาน .*: อันดับ/i)).toBeDefined();
 
     // Reset filters
     const resetBtn = screen.getByRole("button", { name: /ล้างค่า/i });
