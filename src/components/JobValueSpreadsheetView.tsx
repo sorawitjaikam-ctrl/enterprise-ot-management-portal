@@ -184,6 +184,7 @@ interface SummaryRowItem {
   name: string;
   empId?: string;
   dept: string;
+  group?: string;
   revenue: number;
   cost: number;
   profit: number;
@@ -207,6 +208,7 @@ export default function JobValueSpreadsheetView({
   const [showUploadPanel, setShowUploadPanel] = useState<boolean>(false);
 
   // Executive Operational Dashboard Filters
+  const [groupFilter, setGroupFilter] = useState<string>("ALL");
   const [deptFilter, setDeptFilter] = useState<string>("ALL");
   const [empFilter, setEmpFilter] = useState<string>("ALL");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -354,28 +356,52 @@ export default function JobValueSpreadsheetView({
     return all.length > 0 ? all : [];
   }, [currentYearRecords, compareYearRecords, yearlyStore]);
 
-  // Distinct departments list for #filter-dept
-  const departmentOptions = useMemo(() => {
-    const depts = Array.from(new Set(basePoolRecords.map((r) => r.dept).filter(Boolean)));
-    depts.sort();
-    return depts;
+  // Distinct groups list for #filter-group (ดึงจากคอลัมน์กลุ่มสายงานที่อัปโหลด เช่น สายงาน ITS)
+  const groupOptions = useMemo(() => {
+    const grps = Array.from(
+      new Set(basePoolRecords.map((r) => r.group?.trim()).filter(Boolean))
+    );
+    grps.sort();
+    return grps;
   }, [basePoolRecords]);
 
-  // Employees list for #filter-emp based on deptFilter
-  const employeeOptions = useMemo(() => {
-    if (deptFilter === "ALL") return basePoolRecords;
-    if (deptFilter.startsWith("GROUP:")) {
-      const gName = deptFilter.replace("GROUP:", "");
-      return basePoolRecords.filter((d) => d.group === gName);
+  // Distinct departments list for #filter-dept (กรองตามกลุ่มสายงานที่เลือก ถ้าเลือกกลุ่ม)
+  const departmentOptions = useMemo(() => {
+    let pool = basePoolRecords;
+    if (groupFilter !== "ALL") {
+      pool = pool.filter((r) => r.group === groupFilter);
     }
-    return basePoolRecords.filter((d) => d.dept === deptFilter);
-  }, [basePoolRecords, deptFilter]);
+    const depts = Array.from(new Set(pool.map((r) => r.dept).filter(Boolean)));
+    depts.sort();
+    return depts;
+  }, [basePoolRecords, groupFilter]);
 
-  // Core processData(deptFilter, empFilter) for selectedYear vs compareYear
+  // Employees list for #filter-emp based on groupFilter and deptFilter
+  const employeeOptions = useMemo(() => {
+    let pool = basePoolRecords;
+    if (groupFilter !== "ALL") {
+      pool = pool.filter((d) => d.group === groupFilter);
+    }
+    if (deptFilter !== "ALL") {
+      if (deptFilter.startsWith("GROUP:")) {
+        const gName = deptFilter.replace("GROUP:", "");
+        pool = pool.filter((d) => d.group === gName);
+      } else {
+        pool = pool.filter((d) => d.dept === deptFilter);
+      }
+    }
+    return pool;
+  }, [basePoolRecords, groupFilter, deptFilter]);
+
+  // Core processData(groupFilter, deptFilter, empFilter) for selectedYear vs compareYear
   const processedData = useMemo(() => {
     let filteredCurrent = currentYearRecords;
     let filteredCompare = compareYearRecords;
 
+    if (groupFilter !== "ALL") {
+      filteredCurrent = filteredCurrent.filter((d) => d.group === groupFilter);
+      filteredCompare = filteredCompare.filter((d) => d.group === groupFilter);
+    }
     if (deptFilter !== "ALL") {
       if (deptFilter.startsWith("GROUP:")) {
         const gName = deptFilter.replace("GROUP:", "");
@@ -479,6 +505,7 @@ export default function JobValueSpreadsheetView({
           name: displayName,
           empId: isAllDepts ? undefined : d.empId,
           dept: d.dept,
+          group: d.group,
           revenue: 0,
           cost: 0,
           profit: 0,
@@ -523,6 +550,7 @@ export default function JobValueSpreadsheetView({
           name: displayName,
           empId: isAllDepts ? undefined : d.empId,
           dept: d.dept,
+          group: d.group,
           revenue: 0,
           cost: 0,
           profit: 0,
@@ -580,7 +608,7 @@ export default function JobValueSpreadsheetView({
       summaryData: summaryArray,
       viewMode,
     };
-  }, [currentYearRecords, compareYearRecords, compareYearMap, deptFilter, empFilter]);
+  }, [currentYearRecords, compareYearRecords, compareYearMap, groupFilter, deptFilter, empFilter]);
 
   // Overall status evaluation: ประเมินภาพรวม "ต่อยอด" หากผลงาน (กำไร) สูงกว่าปีก่อนหน้า, "ไม่ต่อยอด" หากต่ำกว่าหรือเท่ากัน
   const statusEvaluation = useMemo(() => {
@@ -616,6 +644,12 @@ export default function JobValueSpreadsheetView({
     return { diff, percent };
   }, [processedData]);
 
+  const handleGroupChange = (nextGroup: string) => {
+    setGroupFilter(nextGroup);
+    setDeptFilter("ALL");
+    setEmpFilter("ALL");
+  };
+
   const handleDeptChange = (nextDept: string) => {
     setDeptFilter(nextDept);
     setEmpFilter("ALL");
@@ -626,6 +660,7 @@ export default function JobValueSpreadsheetView({
   };
 
   const handleResetFilters = () => {
+    setGroupFilter("ALL");
     setDeptFilter("ALL");
     setEmpFilter("ALL");
   };
@@ -735,6 +770,9 @@ export default function JobValueSpreadsheetView({
         : [];
 
     let exportList = rawList;
+    if (groupFilter !== "ALL") {
+      exportList = exportList.filter((d) => d.group === groupFilter);
+    }
     if (deptFilter !== "ALL") {
       if (deptFilter.startsWith("GROUP:")) {
         const gName = deptFilter.replace("GROUP:", "");
@@ -1472,13 +1510,37 @@ export default function JobValueSpreadsheetView({
             </select>
           </div>
 
+          {/* Group / หน่วยงาน Filter */}
+          <div className="lg:col-span-2">
+            <label
+              htmlFor="filter-group"
+              className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1.5"
+            >
+              หน่วยงาน (สายงาน)
+            </label>
+            <select
+              id="filter-group"
+              aria-label="หน่วยงาน (สายงาน)"
+              value={groupFilter}
+              onChange={(e) => handleGroupChange(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0F172A] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
+            >
+              <option value="ALL">ทุกหน่วยงาน</option>
+              {groupOptions.map((grp) => (
+                <option key={grp} value={grp}>
+                  {grp}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Department Filter */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <label
               htmlFor="filter-dept"
               className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1.5"
             >
-              หน่วยงาน / แผนก
+              แผนก
             </label>
             <select
               id="filter-dept"
@@ -1497,7 +1559,7 @@ export default function JobValueSpreadsheetView({
           </div>
 
           {/* Employee Filter */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <label
               htmlFor="filter-emp"
               className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1.5"
@@ -2166,10 +2228,15 @@ export default function JobValueSpreadsheetView({
                         {idx + 1}
                       </td>
                       <td className="py-3.5 px-5 font-bold text-[#0F172A]">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span>{item.name}</span>
+                          {item.group && (
+                            <span className="px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#475569] text-[10px] font-semibold border border-[#E2E8F0]">
+                              {item.group}
+                            </span>
+                          )}
                           {processedData.viewMode === "ALL" && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#F1F5F9] text-[#475569] text-[11px] font-mono">
+                            <span className="px-2 py-0.5 rounded-full bg-[#E2E8F0] text-[#334155] text-[11px] font-mono">
                               {item.count} คน
                             </span>
                           )}
