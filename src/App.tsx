@@ -2649,10 +2649,11 @@ export default function App() {
   const [newAccountUsername, setNewAccountUsername] = useState<string>("");
   const [newAccountPassword, setNewAccountPassword] = useState<string>("");
   const [newAccountName, setNewAccountName] = useState<string>("");
-  const [newAccountRole, setNewAccountRole] = useState<string>("Section Manager");
-  const [newAccountDeptId, setNewAccountDeptId] = useState<string>("inter2");
+  const [newAccountRole, setNewAccountRole] = useState<string>("User");
+  const [newAccountDeptId, setNewAccountDeptId] = useState<string>("all");
   const [newAccountAvatar, setNewAccountAvatar] = useState<string>("");
   const [newAccountCanBackup, setNewAccountCanBackup] = useState<boolean>(false);
+  const [newAccountPreset, setNewAccountPreset] = useState<"default" | "open_all" | "jv_only" | "jv_only_hidden">("default");
 
   const [showEditAccountModal, setShowEditAccountModal] = useState<boolean>(false);
   const [editAccountOriginalUsername, setEditAccountOriginalUsername] = useState<string>("");
@@ -2831,6 +2832,11 @@ export default function App() {
         return [newAcc, ...filtered];
       });
 
+      // If user selected a custom visibility preset, apply immediately
+      if (newAccountPreset !== "default") {
+        handleSetTabPreset(newAccountPreset, newAccountUsername);
+      }
+
       const res = await fetch("/api/add-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2842,8 +2848,9 @@ export default function App() {
         setNewAccountPassword("");
         setNewAccountName("");
         setNewAccountAvatar("");
+        setNewAccountPreset("default");
         await fetchAccounts();
-        alert("เพิ่มบัญชีผู้ใช้งานใหม่ลง D1 Database สำเร็จ!");
+        alert("เพิ่มสิทธิ์และบัญชีผู้ใช้งานใหม่ลง D1 Database สำเร็จ!");
       } else {
         const err = await res.json().catch(() => ({}));
         await fetchAccounts();
@@ -11531,11 +11538,21 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowAddAccountModal(true)}
+                    onClick={() => {
+                      setNewAccountUsername("");
+                      setNewAccountPassword("");
+                      setNewAccountName("");
+                      setNewAccountRole("User");
+                      setNewAccountDeptId("all");
+                      setNewAccountAvatar("");
+                      setNewAccountCanBackup(false);
+                      setNewAccountPreset("default");
+                      setShowAddAccountModal(true);
+                    }}
                     className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer min-h-[40px]"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ เพิ่มสิทธิ์ / เพิ่มผู้ใช้งานใหม่</span>
                   </button>
                 </div>
               </div>
@@ -11559,7 +11576,37 @@ export default function App() {
                 />
               </div>
 
-              <div className="bg-white border border-slate-200 rounded p-4 sm:p-6 shadow-sm space-y-6">
+              <div className="bg-white border border-[#DCE4EA] rounded-2xl p-4 sm:p-6 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#DCE4EA]">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#0E3A66] flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#0E3A66]" />
+                      <span>รายชื่อผู้ใช้งานและบทบาทสิทธิ์ ({accounts.length} บัญชี)</span>
+                    </h4>
+                    <p className="text-xs text-[#64748B] mt-0.5">
+                      กำหนดบทบาท สิทธิ์การเข้าถึง แผนกที่ดูแล หรือตั้งค่าการมองเห็นเมนูรายบุคคล
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewAccountUsername("");
+                      setNewAccountPassword("");
+                      setNewAccountName("");
+                      setNewAccountRole("User");
+                      setNewAccountDeptId("all");
+                      setNewAccountAvatar("");
+                      setNewAccountCanBackup(false);
+                      setNewAccountPreset("default");
+                      setShowAddAccountModal(true);
+                    }}
+                    className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <UserPlus className="w-4 h-4 text-white" />
+                    <span>+ เพิ่มสิทธิ์ / เพิ่มผู้ใช้งานใหม่</span>
+                  </button>
+                </div>
+
                 <div className="overflow-x-auto no-scrollbar touch-pan-x rounded-2xl border border-slate-100 divide-y divide-slate-100 w-full max-w-full min-w-0">
                   <table className="w-full text-left text-xs text-slate-600 min-w-[600px]">
                     <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
@@ -11605,6 +11652,12 @@ export default function App() {
                                     ? "Admin"
                                     : ["Co-admin", "Co-Admin", "co_admin", "ผู้ช่วยดูแลระบบ"].includes(acc.role)
                                     ? "Co-admin"
+                                    : ["Section Manager", "ผจก", "หัวหน้าแผนก"].includes(acc.role)
+                                    ? "Section Manager"
+                                    : ["HR", "HR Section Manager"].includes(acc.role)
+                                    ? "HR"
+                                    : ["Operation Dir", "ผู้อำนวยการ"].includes(acc.role)
+                                    ? "Operation Dir"
                                     : "User"
                                 }
                                 onChange={(e) => {
@@ -11617,6 +11670,9 @@ export default function App() {
                                 <option value="Admin">Admin</option>
                                 <option value="Co-admin">Co-admin</option>
                                 <option value="User">User</option>
+                                <option value="Section Manager">Section Manager</option>
+                                <option value="HR">HR</option>
+                                <option value="Operation Dir">Operation Dir</option>
                               </select>
                             </td>
                             <td className="p-4">
@@ -13394,20 +13450,21 @@ export default function App() {
       )}
 
       {/* ======================================= */}
-      {/* OVERLAY / MODAL: ADD NEW USER ACCOUNT */}
+      {/* OVERLAY / MODAL: ADD NEW USER ACCOUNT / PERMISSIONS */}
       {/* ======================================= */}
       {showAddAccountModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded w-full max-w-md overflow-hidden shadow-lg border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col animate-in fade-in zoom-in-95 duration-150 max-h-[90vh]">
+            <div className="p-5 sm:p-6 border-b border-slate-100 bg-[#F8FAFC] flex justify-between items-center">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
-                  <UserPlus className="w-5 h-5 text-blue-600 inline" />
-                  <span>เพิ่มผู้ใช้งาน / Admin ใหม่</span>
+                <h3 className="text-base font-extrabold text-[#0E3A66] flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-[#0E3A66]" />
+                  <span>เพิ่มสิทธิ์ / เพิ่มผู้ใช้งานใหม่</span>
                 </h3>
-                <p className="text-xs text-slate-500">สร้างบัญชีผู้ใช้ใหม่และกำหนดสิทธิ์เข้าถึงระบบ</p>
+                <p className="text-xs text-[#475569] mt-0.5">กำหนดบทบาท สิทธิ์การเข้าถึงเมนู และแผนกที่รับผิดชอบ</p>
               </div>
               <button 
+                type="button"
                 onClick={() => setShowAddAccountModal(false)}
                 className="p-1.5 hover:bg-slate-200/60 rounded-full text-slate-400 cursor-pointer"
               >
@@ -13415,17 +13472,17 @@ export default function App() {
               </button>
             </div>
 
-            <form onSubmit={handleAddAccountSubmit} className="p-6 space-y-4">
-              <div className="flex items-center justify-between gap-3 bg-blue-50/60 p-3 rounded-2xl border border-blue-100">
+            <form onSubmit={handleAddAccountSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+              <div className="flex items-center justify-between gap-3 bg-[#E8F3FA]/50 p-3 rounded-2xl border border-[#DCE4EA]">
                 <div className="flex items-center gap-3">
                   <EmployeeAvatar empId={newAccountUsername} empName={newAccountName} avatarUrl={newAccountAvatar} className="w-12 h-12 flex-shrink-0" />
                   <div>
-                    <h4 className="text-xs font-bold text-slate-800">{newAccountName || "ชื่อพนักงาน"}</h4>
-                    <p className="text-[10px] text-blue-600 font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
+                    <h4 className="text-xs font-bold text-[#0F172A]">{newAccountName || "ชื่อพนักงาน"}</h4>
+                    <p className="text-[10px] text-[#0E3A66] font-mono">รหัสพนักงาน/Username: {newAccountUsername || "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200 shadow-xs active:scale-95">
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-[#E8F3FA] text-[#0E3A66] rounded-lg text-xs font-bold transition-all border border-[#CBD5E1] shadow-2xs active:scale-95">
                     <Upload className="w-3.5 h-3.5" />
                     <span>อัปโหลดรูป</span>
                     <input 
@@ -13439,7 +13496,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setNewAccountAvatar("")}
-                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-[#BE123C] rounded-lg transition-colors cursor-pointer"
                       title="ลบรูปภาพ / ใช้ป้ายตัวย่อ"
                     >
                       <X className="w-4 h-4" />
@@ -13448,31 +13505,33 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
-                <input 
-                  type="text"
-                  value={newAccountUsername}
-                  onChange={(e) => {
-                    setNewAccountUsername(e.target.value);
-                    handleAutoPullEmployeePhoto(e.target.value, "add");
-                  }}
-                  placeholder="ป้อนรหัสพนักงาน หรือชื่อผู้ใช้ เช่น 1001"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono font-bold"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน / รหัสพนักงาน (Username) <span className="text-red-500">*</span></label>
+                  <input 
+                    type="text"
+                    value={newAccountUsername}
+                    onChange={(e) => {
+                      setNewAccountUsername(e.target.value);
+                      handleAutoPullEmployeePhoto(e.target.value, "add");
+                    }}
+                    placeholder="เช่น 680172 หรือ 560292"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-mono font-bold"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่านสำหรับเข้าสู่ระบบ <span className="text-red-500">*</span></label>
-                <input 
-                  type="password"
-                  value={newAccountPassword}
-                  onChange={(e) => setNewAccountPassword(e.target.value)}
-                  placeholder="กำหนดรหัสผ่าน (เริ่มต้น: 123456)"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-                  required
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่านเริ่มต้น <span className="text-red-500">*</span></label>
+                  <input 
+                    type="password"
+                    value={newAccountPassword}
+                    onChange={(e) => setNewAccountPassword(e.target.value)}
+                    placeholder="เริ่มต้น: 123456"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
@@ -13487,29 +13546,37 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">บทบาท (Role)</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">บทบาทสิทธิ์ (Role)</label>
                   <select 
                     value={newAccountRole}
-                    onChange={(e) => setNewAccountRole(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-medium"
+                    onChange={(e) => {
+                      const r = e.target.value;
+                      setNewAccountRole(r);
+                      if (r === "Admin" || r === "Co-admin") {
+                        setNewAccountCanBackup(true);
+                        if (r === "Admin") setNewAccountDeptId("all");
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#0F172A] font-bold focus:ring-2 focus:ring-blue-500/20"
                   >
-                    <option value="ผู้ดูแลระบบ">ผู้ดูแลระบบสูงสุด (Admin)</option>
-                    <option value="HR">HR</option>
-                    <option value="HR Section Manager">HR Section Manager</option>
-                    <option value="Operation Dir">Operation Dir</option>
-                    <option value="Operation Depart">Operation Depart</option>
-                    <option value="Section Manager">Section Manager</option>
+                    <option value="Admin">Admin (ผู้ดูแลระบบสูงสุด)</option>
+                    <option value="Co-admin">Co-admin (ผู้ช่วยดูแลระบบ / Job Value D1)</option>
+                    <option value="User">User (ผู้ใช้งานทั่วไป)</option>
+                    <option value="Section Manager">Section Manager (หัวหน้าแผนก)</option>
+                    <option value="HR">HR (ฝ่ายทรัพยากรบุคคล)</option>
+                    <option value="Operation Dir">Operation Dir (ฝ่ายบริหาร)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">แผนกที่รับผิดชอบ</label>
                   <select 
+                    disabled={newAccountRole === "Admin"}
                     value={newAccountDeptId}
                     onChange={(e) => setNewAccountDeptId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:bg-slate-100"
                   >
                     <option value="all">ทุกแผนก (All)</option>
                     {state?.departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -13517,20 +13584,71 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 py-1">
-                <input 
-                  type="checkbox"
-                  id="newAccountCanBackup"
-                  checked={newAccountCanBackup}
-                  onChange={(e) => setNewAccountCanBackup(e.target.checked)}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4"
-                />
-                <label htmlFor="newAccountCanBackup" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
-                  อนุญาตสิทธิ์การสำรอง/นำเข้าข้อมูลพนักงาน (Backup/Import/Export)
+              {/* Menu Visibility Preset for this user */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                  สิทธิ์การมองเห็นเมนูเริ่มต้น (Menu Visibility Preset)
                 </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewAccountPreset("default")}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex flex-col gap-0.5 cursor-pointer ${
+                      newAccountPreset === "default"
+                        ? "bg-[#E8F3FA] border-[#0E3A66] text-[#0E3A66]"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>ตามค่าเริ่มต้น</span>
+                    <span className="text-[10px] font-normal opacity-75">ตามระบบส่วนกลาง</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewAccountPreset("open_all")}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex flex-col gap-0.5 cursor-pointer ${
+                      newAccountPreset === "open_all"
+                        ? "bg-[#EBF7F2] border-[#15803D] text-[#15803D]"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>เปิดทุกเมนู</span>
+                    <span className="text-[10px] font-normal opacity-75">01–08 ครบทุกหน้า</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewAccountPreset("jv_only")}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex flex-col gap-0.5 cursor-pointer ${
+                      newAccountPreset === "jv_only"
+                        ? "bg-[#FEF3C7] border-[#B45309] text-[#B45309]"
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>เฉพาะ JV (04)</span>
+                    <span className="text-[10px] font-normal opacity-75">ซ่อนหรือจางหน้าอื่น</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
+              {/* Permissions & Capabilities */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <input 
+                    type="checkbox"
+                    id="newAccountCanBackup"
+                    checked={newAccountCanBackup}
+                    onChange={(e) => setNewAccountCanBackup(e.target.checked)}
+                    className="rounded border-slate-300 text-[#0E3A66] focus:ring-[#0E3A66] cursor-pointer w-4 h-4"
+                  />
+                  <label htmlFor="newAccountCanBackup" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                    อนุญาตสิทธิ์การสำรอง / นำเข้า / ส่งออกข้อมูลพนักงาน (Backup / Import / Export)
+                  </label>
+                </div>
+                <p className="text-[11px] text-[#475569] leading-relaxed">
+                  สิทธิ์บทบาท <b>Admin</b> และ <b>Co-admin</b> จะได้รับสิทธิ์อัปโหลด ลบ และวิเคราะห์ข้อมูล Job Value รายปีใน D1 อัตโนมัติ
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddAccountModal(false)}
@@ -13540,10 +13658,11 @@ export default function App() {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 cursor-pointer flex items-center justify-center gap-1.5"
+                  disabled={addAccountLoading}
+                  className="w-1/2 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>เพิ่มบัญชีผู้ใช้ใหม่</span>
+                  <span>{addAccountLoading ? "กำลังบันทึก..." : "บันทึกและเพิ่มสิทธิ์"}</span>
                 </button>
               </div>
             </form>
@@ -13641,9 +13760,12 @@ export default function App() {
                     onChange={(e) => setEditAccountRole(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-blue-500/20"
                   >
-                    <option value="Admin">Admin</option>
-                    <option value="Co-admin">Co-admin</option>
-                    <option value="User">User</option>
+                    <option value="Admin">Admin (ผู้ดูแลระบบสูงสุด)</option>
+                    <option value="Co-admin">Co-admin (ผู้ช่วยดูแลระบบ / Job Value D1)</option>
+                    <option value="User">User (ผู้ใช้งานทั่วไป)</option>
+                    <option value="Section Manager">Section Manager (หัวหน้าแผนก)</option>
+                    <option value="HR">HR (ฝ่ายทรัพยากรบุคคล)</option>
+                    <option value="Operation Dir">Operation Dir (ฝ่ายบริหาร)</option>
                   </select>
                 </div>
 
