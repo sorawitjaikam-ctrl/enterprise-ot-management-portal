@@ -10,7 +10,7 @@
  *  - API Requests (/api/*): Network-First with offline JSON fallback (ot-portal-v1-data)
  */
 
-const CACHE_VERSION = 'v28';
+const CACHE_VERSION = 'v30';
 const SHELL_CACHE_NAME = `ot-portal-${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE_NAME = `ot-portal-${CACHE_VERSION}-runtime`;
 const FONT_CACHE_NAME = `ot-portal-${CACHE_VERSION}-fonts`;
@@ -30,6 +30,7 @@ const PRECACHE_URLS = [
   '/manifest.webmanifest',
   '/manifest.json',
   '/favicon.ico',
+  '/marine-link-icon.png',
   '/marine-favicon.png',
   '/marine-link-square.png',
   '/marine-link-logo.png',
