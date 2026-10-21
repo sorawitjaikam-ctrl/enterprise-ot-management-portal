@@ -1931,7 +1931,7 @@ export default function JobValueSpreadsheetView({
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#EBF7F2] text-[#15803D] flex items-center justify-center mb-4 border border-[#B7E4CE]">
-              <DollarSign className="w-6 h-6" />
+              <TrendingUp className="w-6 h-6" />
             </div>
             <div className="text-xs font-bold text-[#475569] uppercase tracking-wider mb-1">
               Revenue (Avg)
@@ -2514,13 +2514,13 @@ export default function JobValueSpreadsheetView({
                         : ""}
                     </span>
                     <span>
-                      กำไรปี {compareYear}: {formatInt(activeItem.profitCompare)} บาท
+                      กำไรปี {compareYear}: {formatInt(activeItem.profitCompare)}
                     </span>
                     <span className="font-bold text-[#6EE7B7]">
-                      กำไรปี {selectedYear}: {formatInt(activeItem.profit)} บาท
+                      กำไรปี {selectedYear}: {formatInt(activeItem.profit)}
                     </span>
                     <span className={`font-bold tabular-nums ${diff >= 0 ? "text-[#6EE7B7]" : "text-[#FDA4AF]"}`}>
-                      ผลต่าง: {formatSignedInt(diff)} บาท
+                      ผลต่าง: {formatSignedInt(diff)}
                     </span>
                   </>
                 );
