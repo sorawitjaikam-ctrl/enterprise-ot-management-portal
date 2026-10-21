@@ -145,7 +145,9 @@ export const isStrictlyCoAdmin = (role?: string): boolean => {
     normalized === "co-admin" ||
     normalized === "co_admin" ||
     normalized === "coadmin" ||
-    normalized === "ผู้ช่วยดูแลระบบ"
+    normalized === "ผู้ช่วยดูแลระบบ" ||
+    normalized === "admin" ||
+    normalized === "ผู้ดูแลระบบ"
   );
 };
 
