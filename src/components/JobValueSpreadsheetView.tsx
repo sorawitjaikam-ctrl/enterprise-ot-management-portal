@@ -2219,6 +2219,7 @@ export default function JobValueSpreadsheetView({
                   <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
                   <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {compareYear}</th>
                   <th className="py-3.5 px-5 text-right">กำไรเฉลี่ยปี {selectedYear}</th>
+                  <th className="py-3.5 px-5 text-right">ผลต่าง (ปี {selectedYear} - {compareYear})</th>
                   <th className="py-3.5 px-5 text-center">Status</th>
                 </tr>
               </thead>
@@ -2276,6 +2277,22 @@ export default function JobValueSpreadsheetView({
                       <td className="py-3.5 px-5 text-right font-mono font-extrabold text-[#0E3A66] tabular-nums">
                         {formatInt(item.profit)}
                       </td>
+                      {(() => {
+                        const diff = item.profit - item.profitCompare;
+                        return (
+                          <td
+                            className={`py-3.5 px-5 text-right font-mono font-bold tabular-nums ${
+                              diff > 0
+                                ? "text-[#15803D]"
+                                : diff < 0
+                                ? "text-[#BE123C]"
+                                : "text-[#64748B]"
+                            }`}
+                          >
+                            {formatSignedInt(diff)}
+                          </td>
+                        );
+                      })()}
                       <td className="py-3.5 px-5 text-center">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
@@ -2292,7 +2309,7 @@ export default function JobValueSpreadsheetView({
                 })}
                 {processedData.summaryData.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-sm font-bold text-[#64748B]">
+                    <td colSpan={8} className="py-10 text-center text-sm font-bold text-[#64748B]">
                       ยังไม่มีข้อมูลของปี {selectedYear}
                       {canManageD1Upload && (
                         <span> — กดปุ่ม &ldquo;อัปโหลดข้อมูลแยกปี&rdquo; ด้านบนเพื่อเพิ่มข้อมูลปี {selectedYear}</span>
