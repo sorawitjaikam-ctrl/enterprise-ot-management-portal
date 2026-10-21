@@ -7372,50 +7372,6 @@ export default function App() {
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* ROW 2: FATIGUE & COMPLIANCE TELEMETRY BANNER (lg:col-span-12)             */}
-                    {/* ========================================================================= */}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-12">
-                      {fatiguedEmployees.length > 0 ? (
-                        <div className="p-4 bg-[#FCF3DE] border border-[#F3D98F] rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-maritime-xs">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-[#F3D98F] flex items-center justify-center flex-shrink-0">
-                              <AlertTriangle className="w-5 h-5 text-[#D99B14]" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-[#333B41]">
-                                ตรวจพบพนักงานกลุ่มเสี่ยงความล้าสะสม ({fatiguedEmployees.length} คน)
-                              </h4>
-                              <p className="text-[11px] text-[#59656D] mt-0.5">
-                                มีพนักงานทำงานล่วงเวลาสะสมเกิน 36 ชม. หรือทำงานต่อเนื่องกันเกิน 6 วันโดยไม่มีวันหยุดตามกฎหมายแรงงานไทย
-                              </p>
-                            </div>
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              setSelectedRoleFilter("ทุกตำแหน่ง");
-                              setSearchQuery("");
-                              setActiveTab("employees");
-                            }}
-                            className="px-3.5 py-2 bg-[#D99B14] hover:bg-[#B5800D] text-white rounded text-xs font-bold transition-colors cursor-pointer btn-press shadow-maritime-xs min-h-[36px] whitespace-nowrap self-start md:self-auto"
-                          >
-                            ตรวจสอบรายชื่อพนักงานกลุ่มเสี่ยง
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="p-3 bg-[#E8F6F0] border border-[#A5DCC5] rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-maritime-xs">
-                          <div className="flex items-center gap-2.5">
-                            <CheckCircle2 className="w-4 h-4 text-[#1E9C6E] shrink-0" />
-                            <span className="text-xs font-bold text-[#1E9C6E]">
-                              การกำกับดูแลความปลอดภัย: ไม่พบพนักงานเข้าข่ายเสี่ยงความล้าสะสม (สอดคล้องตามเกณฑ์กฎหมายแรงงาน 100%)
-                            </span>
-                          </div>
-                          <span className="tag t-g self-start sm:self-auto">ความปลอดภัยสมบูรณ์</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ========================================================================= */}
                     {/* ROW 3: FINANCIAL DYNAMICS (col-span-8) + DEPT ALLOCATION (col-span-4)     */}
                     {/* ========================================================================= */}
 
