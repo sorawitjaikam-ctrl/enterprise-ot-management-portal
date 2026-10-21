@@ -1994,16 +1994,16 @@ export default function JobValueSpreadsheetView({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-              <span className="flex items-center gap-1.5 text-[#15803D]">
-                <span className="w-3 h-1 rounded bg-[#15803D] inline-block" />
+              <span className="flex items-center gap-1.5 text-[#0E3A66]">
+                <span className="w-3 h-1 rounded bg-[#0E3A66] inline-block" />
                 <span>รายได้ ({selectedYear.slice(-2)})</span>
               </span>
               <span className="flex items-center gap-1.5 text-[#BE123C]">
                 <span className="w-3 h-0.5 border-b-2 border-dashed border-[#BE123C] inline-block" />
                 <span>ต้นทุน ({selectedYear.slice(-2)})</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[#0E3A66]">
-                <span className="w-3 h-1.5 rounded bg-[#0E3A66] inline-block" />
+              <span className="flex items-center gap-1.5 text-[#15803D]">
+                <span className="w-3 h-1.5 rounded bg-[#15803D] inline-block" />
                 <span>กำไรสุทธิ ({selectedYear.slice(-2)})</span>
               </span>
               {selectedYear !== compareYear && (
@@ -2047,7 +2047,7 @@ export default function JobValueSpreadsheetView({
               {lineChartGeometry.profSeries.area && (
                 <path
                   d={lineChartGeometry.profSeries.area}
-                  fill="rgba(14, 58, 102, 0.10)"
+                  fill="rgba(21, 128, 61, 0.10)"
                 />
               )}
 
@@ -2065,7 +2065,7 @@ export default function JobValueSpreadsheetView({
                 <path
                   d={lineChartGeometry.revSeries.path}
                   fill="none"
-                  stroke="#15803D"
+                  stroke="#0E3A66"
                   strokeWidth={2}
                 />
               )}
@@ -2084,7 +2084,7 @@ export default function JobValueSpreadsheetView({
                 <path
                   d={lineChartGeometry.profSeries.path}
                   fill="none"
-                  stroke="#0E3A66"
+                  stroke="#15803D"
                   strokeWidth={3}
                 />
               )}
@@ -2129,7 +2129,7 @@ export default function JobValueSpreadsheetView({
                         cx={revPt.x}
                         cy={revPt.y}
                         r={isHovered ? 5 : 3}
-                        fill="#15803D"
+                        fill="#0E3A66"
                         stroke="#FFFFFF"
                         strokeWidth={1.5}
                       />
@@ -2149,7 +2149,7 @@ export default function JobValueSpreadsheetView({
                         cx={profPt.x}
                         cy={profPt.y}
                         r={isHovered ? 5.5 : 3.5}
-                        fill="#0E3A66"
+                        fill="#15803D"
                         stroke="#FFFFFF"
                         strokeWidth={1.5}
                       />
