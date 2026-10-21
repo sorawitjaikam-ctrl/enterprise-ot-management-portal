@@ -141,6 +141,29 @@ export function buildDefaultYearlyDatabase(
 
 const LOCAL_STORAGE_JV_KEY = "cloudflare_d1_job_value_years_v1";
 
+const SEED_ROLE_LOOKUP: Map<string, string> = (() => {
+  const m = new Map<string, string>();
+  INITIAL_JOB_VALUE_EXCEL_RECORDS.forEach((emp) => {
+    if (emp.role) {
+      if (emp.empId) m.set(String(emp.empId).trim(), emp.role);
+      if (emp.name) m.set(emp.name.trim(), emp.role);
+    }
+  });
+  return m;
+})();
+
+export function getEmployeePositionLabel(emp: { empId?: string; name?: string; role?: string }): string {
+  const rawRole = (emp.role || "").trim();
+  if (rawRole && rawRole.toLowerCase() !== "operator") {
+    return rawRole;
+  }
+  const fromId = emp.empId ? SEED_ROLE_LOOKUP.get(String(emp.empId).trim()) : undefined;
+  if (fromId) return fromId;
+  const fromName = emp.name ? SEED_ROLE_LOOKUP.get(emp.name.trim()) : undefined;
+  if (fromName) return fromName;
+  return rawRole;
+}
+
 export const isStrictlyCoAdmin = (role?: string): boolean => {
   const normalized = (role || "").trim().toLowerCase();
   return (
@@ -1827,11 +1850,14 @@ export default function JobValueSpreadsheetView({
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-bold text-[#0F172A] cursor-pointer focus:outline-none focus:border-[#0E3A66]"
             >
               <option value="ALL">ทุกคนในกลุ่มที่เลือก</option>
-              {employeeOptions.map((emp) => (
-                <option key={emp.empId} value={emp.empId}>
-                  {emp.name} ({emp.empId} · {emp.dept})
-                </option>
-              ))}
+              {employeeOptions.map((emp) => {
+                const pos = getEmployeePositionLabel(emp);
+                return (
+                  <option key={emp.empId} value={emp.empId}>
+                    {emp.name}{pos ? ` (${pos})` : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
