@@ -495,16 +495,34 @@ export default function JobValueSpreadsheetView({
         mProfit[m] = (mProfit[m] || 0) + profM;
       }
 
-      const isAllDepts = deptFilter === "ALL";
-      const key = isAllDepts ? d.dept : d.empId;
-      const displayName = isAllDepts ? d.dept : d.name;
+      let key = d.empId;
+      let displayName = d.name;
+      let isPerson = true;
+
+      if (deptFilter !== "ALL") {
+        // Specific department selected -> show employees in this department
+        key = d.empId;
+        displayName = d.name;
+        isPerson = true;
+      } else if (groupFilter !== "ALL") {
+        // Specific agency/group selected -> show sub-departments (INTER 2, 3, 5, 7)
+        key = d.dept;
+        displayName = d.dept;
+        isPerson = false;
+      } else {
+        // Top level (all agencies) -> combine into single group/agency (e.g. ITS)
+        const grpName = d.group?.trim() || d.dept;
+        key = grpName;
+        displayName = grpName;
+        isPerson = false;
+      }
 
       if (!summaryMap[key]) {
         summaryMap[key] = {
           key,
           name: displayName,
-          empId: isAllDepts ? undefined : d.empId,
-          dept: d.dept,
+          empId: isPerson ? d.empId : undefined,
+          dept: isPerson ? d.dept : d.dept,
           group: d.group,
           revenue: 0,
           cost: 0,
@@ -524,9 +542,24 @@ export default function JobValueSpreadsheetView({
 
     // Also include entities from compare year if current year has 0 records or entity is absent in current year
     filteredCompare.forEach((d) => {
-      const isAllDepts = deptFilter === "ALL";
-      const key = isAllDepts ? d.dept : d.empId;
-      const displayName = isAllDepts ? d.dept : d.name;
+      let key = d.empId;
+      let displayName = d.name;
+      let isPerson = true;
+
+      if (deptFilter !== "ALL") {
+        key = d.empId;
+        displayName = d.name;
+        isPerson = true;
+      } else if (groupFilter !== "ALL") {
+        key = d.dept;
+        displayName = d.dept;
+        isPerson = false;
+      } else {
+        const grpName = d.group?.trim() || d.dept;
+        key = grpName;
+        displayName = grpName;
+        isPerson = false;
+      }
 
       const cRevArr = d.monthlyRevenue || new Array(12).fill(0);
       const cCostArr = d.monthlyCost || new Array(12).fill(0);
@@ -548,8 +581,8 @@ export default function JobValueSpreadsheetView({
         summaryMap[key] = {
           key,
           name: displayName,
-          empId: isAllDepts ? undefined : d.empId,
-          dept: d.dept,
+          empId: isPerson ? d.empId : undefined,
+          dept: isPerson ? d.dept : d.dept,
           group: d.group,
           revenue: 0,
           cost: 0,
@@ -2038,7 +2071,9 @@ export default function JobValueSpreadsheetView({
                   <g
                     key={item.key}
                     onClick={() => {
-                      if (processedData.viewMode === "ALL") {
+                      if (deptFilter === "ALL" && groupFilter === "ALL") {
+                        handleGroupChange(item.name);
+                      } else if (deptFilter === "ALL") {
                         handleDeptChange(item.name);
                       } else if (item.empId) {
                         if (onOpenEmployeeDetails) {
@@ -2130,9 +2165,11 @@ export default function JobValueSpreadsheetView({
             <p className="text-xs text-[#64748B]">
               {processedData.viewMode === "PERSON"
                 ? `แสดงข้อมูลพนักงานที่เลือก: ${processedData.summaryData[0]?.name || empFilter}`
-                : processedData.viewMode === "DEPT"
+                : deptFilter !== "ALL"
                 ? `แสดงรายชื่อพนักงานในกลุ่มที่เลือก (${processedData.summaryData.length} คน)`
-                : `สรุปภาพรวมแยกตามแผนก (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`}
+                : groupFilter !== "ALL"
+                ? `แสดงสรุปแยกตามแผนกย่อยใน ${groupFilter} (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`
+                : `สรุปภาพรวมแยกตามหน่วยงาน (${processedData.summaryData.length} หน่วยงาน) — คลิกที่แถวหน่วยงานเพื่อดูแผนกย่อย`}
             </p>
           </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -2178,7 +2215,11 @@ export default function JobValueSpreadsheetView({
                 <tr className="bg-[#F8FAFC] border-b-2 border-[#E2E8F0] text-xs font-bold text-[#334155] uppercase tracking-wider">
                   <th className="py-3.5 px-5 text-center w-20">ลำดับ</th>
                   <th className="py-3.5 px-5">
-                    {processedData.viewMode === "DEPT" ? "ชื่อพนักงาน" : "แผนก"}
+                    {deptFilter !== "ALL"
+                      ? "ชื่อพนักงาน"
+                      : groupFilter !== "ALL"
+                      ? "แผนก"
+                      : "หน่วยงาน (สายงาน)"}
                   </th>
                   <th className="py-3.5 px-5 text-right">รายได้ (เฉลี่ย)</th>
                   <th className="py-3.5 px-5 text-right">ต้นทุน (เฉลี่ย)</th>
@@ -2201,7 +2242,9 @@ export default function JobValueSpreadsheetView({
                     <tr
                       key={item.key}
                       onClick={() => {
-                        if (processedData.viewMode === "ALL") {
+                        if (deptFilter === "ALL" && groupFilter === "ALL") {
+                          handleGroupChange(item.name);
+                        } else if (deptFilter === "ALL") {
                           handleDeptChange(item.name);
                         } else if (item.empId) {
                           if (onOpenEmployeeDetails) {
@@ -2219,12 +2262,12 @@ export default function JobValueSpreadsheetView({
                       <td className="py-3.5 px-5 font-bold text-[#0F172A]">
                         <div className="flex flex-wrap items-center gap-2">
                           <span>{item.name}</span>
-                          {item.group && (
+                          {item.group && groupFilter !== "ALL" && (
                             <span className="px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#475569] text-[10px] font-semibold border border-[#E2E8F0]">
                               {item.group}
                             </span>
                           )}
-                          {processedData.viewMode === "ALL" && (
+                          {deptFilter === "ALL" && (
                             <span className="px-2 py-0.5 rounded-full bg-[#E2E8F0] text-[#334155] text-[11px] font-mono">
                               {item.count} คน
                             </span>
