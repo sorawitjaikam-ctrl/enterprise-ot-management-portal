@@ -214,6 +214,7 @@ export default function JobValueSpreadsheetView({
   const [hoveredBarIdx, setHoveredBarIdx] = useState<number | null>(null);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [importStatusMsg, setImportStatusMsg] = useState<string>("");
+  const fileInputDirectRef = React.useRef<HTMLInputElement | null>(null);
   const canManageD1Upload = isCoAdminOrAdmin(currentUser?.role);
 
   // Save to localStorage + Cloudflare D1 (/api/job-value-data)
@@ -2077,14 +2078,41 @@ export default function JobValueSpreadsheetView({
                 : `สรุปภาพรวมแยกตามแผนก (${processedData.summaryData.length} แผนก) — คลิกที่แถวแผนกเพื่อดูรายบุคคล`}
             </p>
           </div>
-            <button
-              type="button"
-              onClick={handleDownloadSummaryCsv}
-              className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export Job Value ปี {selectedYear}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadSummaryCsv}
+                className="px-4 py-2.5 bg-[#0E3A66] hover:bg-[#17538F] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export Job Value ปี {selectedYear}</span>
+              </button>
+
+              {/* Direct Import Button right alongside Export Button */}
+              {canManageD1Upload && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadTargetYear(selectedYear);
+                      fileInputDirectRef.current?.click();
+                    }}
+                    className="px-4 py-2.5 bg-[#15803D] hover:bg-[#166534] text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+                    title={`นำเข้าข้อมูลไฟล์ Excel หรือ CSV เข้าปี ${selectedYear}`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Import Job Value ปี {selectedYear}</span>
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputDirectRef}
+                    accept=".xlsx, .xls, .csv"
+                    onChange={handleFileUploadForYear}
+                    className="hidden"
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
