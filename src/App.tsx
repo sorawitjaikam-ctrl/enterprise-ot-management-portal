@@ -5208,18 +5208,6 @@ export default function App() {
 
     return true;
   }).sort((a, b) => {
-    // Helper to calculate OT multiplier values for sorting (Single Source of Truth)
-    const getOtMetrics = (emp: Employee) => {
-      const b = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
-      return {
-        ot1_5: b.normalOt,
-        ot1_0: b.holidayWorkDays * 8,
-        ot3_0: b.holidayOt,
-        totalOtPay: b.totalOtPay,
-        otPctSalary: Number(b.otPctSalary) || 0
-      };
-    };
-
     let valA: any = "";
     let valB: any = "";
 
@@ -5244,25 +5232,21 @@ export default function App() {
         valA = a.division || a.groupName || "-";
         valB = b.division || b.groupName || "-";
         break;
-      case "ot1_5":
-        valA = getOtMetrics(a).ot1_5;
-        valB = getOtMetrics(b).ot1_5;
+      case "startDate":
+        valA = a.startDate || "";
+        valB = b.startDate || "";
         break;
-      case "ot1_0":
-        valA = getOtMetrics(a).ot1_0;
-        valB = getOtMetrics(b).ot1_0;
+      case "tenure":
+        valA = a.tenure || "";
+        valB = b.tenure || "";
         break;
-      case "ot3_0":
-        valA = getOtMetrics(a).ot3_0;
-        valB = getOtMetrics(b).ot3_0;
+      case "salary":
+        valA = Number(a.salary) || 0;
+        valB = Number(b.salary) || 0;
         break;
-      case "totalOtPay":
-        valA = getOtMetrics(a).totalOtPay;
-        valB = getOtMetrics(b).totalOtPay;
-        break;
-      case "otPctSalary":
-        valA = getOtMetrics(a).otPctSalary;
-        valB = getOtMetrics(b).otPctSalary;
+      case "status":
+        valA = a.employmentStatus || "Active";
+        valB = b.employmentStatus || "Active";
         break;
       default:
         valA = a.id;
@@ -6943,7 +6927,7 @@ export default function App() {
             activeTab === "job_value" ? "Job Value" :
             activeTab === "manpower" ? "การวางแผนโครงสร้างอัตรากำลังและวิเคราะห์กรอบตำแหน่ง (Manpower & OC Analytics)" :
             activeTab === "reports" ? "รายงานวิเคราะห์ข้อมูลและประสิทธิภาพรายแผนก" :
-            activeTab === "employees" ? "ฐานข้อมูลบุคลากรและขีดจำกัดโอที" :
+            activeTab === "employees" ? "ฐานข้อมูลพนักงาน (Master Employee Database)" :
             activeTab === "leave-records" ? "บันทึกและประวัติการลางานพนักงาน" :
             activeTab === "shifts" ? "การวางแผนและจัดตารางกะพนักงาน" :
             activeTab === "ot-records" ? "ประวัติ OT จากกะทำงาน" :
@@ -9136,11 +9120,11 @@ export default function App() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#E8F3FA] text-[#0E3A66] border border-[#9FCEE8]">
-                        Personnel Telemetry Ledger
+                        Employee Master Database
                       </span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-[#333B41]">ฐานข้อมูลและชั่วโมงการทำงานสะสมของพนักงาน</h3>
-                    <p className="text-xs text-[#59656D] mt-0.5">ตรวจสอบ ประเมินความเหนื่อยล้า และบริหารจัดการเป้าหมายชั่วโมงโอทีประจำเดือน</p>
+                    <h3 className="text-base sm:text-lg font-extrabold text-[#333B41]">ฐานข้อมูลพนักงาน (Master Employee Database)</h3>
+                    <p className="text-xs text-[#59656D] mt-0.5">ศูนย์กลางฐานข้อมูลประวัติพนักงาน แผนก ฝ่าย ตำแหน่ง วันที่เริ่มงาน และสถานะการจ้างงาน</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2.5">
                     {(currentUser?.canBackup === 1 || ["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "")) && (
@@ -9282,7 +9266,7 @@ export default function App() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2.5">
-                          <h4 className="text-sm sm:text-base font-black text-[#333B41]">รายชื่อบุคลากรที่อยู่ภายใต้การวิเคราะห์ (Roster List)</h4>
+                          <h4 className="text-sm sm:text-base font-black text-[#333B41]">รายชื่อพนักงานในฐานข้อมูล (Employee Directory)</h4>
                           <span className="px-2.5 py-0.5 rounded-full bg-[#E8F3FA] border border-[#9FCEE8] text-[#0E3A66] text-xs font-bold font-mono tabular-nums">
                             แสดง {filteredEmployees.length} จาก {
                               selectedEmpStatusTab === "All"
@@ -9295,7 +9279,7 @@ export default function App() {
                             } คน
                           </span>
                         </div>
-                        <p className="text-xs text-[#59656D] mt-1">ใช้ตัวกรองด้านล่างเพื่อค้นหา คัดกรองตามแผนก ฝ่าย หรือตำแหน่ง และคลิกที่หัวตารางเพื่อเรียงลำดับ</p>
+                        <p className="text-xs text-[#59656D] mt-1">ตรวจสอบ ค้นหา และจัดการข้อมูลประวัติพนักงาน แผนก ฝ่าย และสถานะการปฏิบัติงาน</p>
                       </div>
 
                       {(empSearchQuery || empDeptFilter !== "ทุกแผนก" || empDivisionFilter !== "ทุกฝ่าย" || empRoleFilter !== "ทุกตำแหน่ง" || searchQuery) && (
@@ -9469,95 +9453,83 @@ export default function App() {
                             )}
                           </div>
                         </th>
+                        {/* 6. วันที่เริ่มงาน */}
                         <th 
-                          onClick={() => handleRosterSort("ot1_5")}
-                          className="px-4 py-3.5 text-right text-blue-700 cursor-pointer hover:bg-slate-100 transition-colors"
-                          title="คลิกเพื่อเรียงตาม OT วันทำงาน"
+                          onClick={() => handleRosterSort("startDate")}
+                          className="px-4 py-3.5 text-center text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[120px]"
+                          title="คลิกเพื่อเรียงตามวันที่เริ่มงาน"
                         >
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>OT วันทำงาน (x1.5)</span>
-                            {empSortField === "ot1_5" ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>วันที่เริ่มงาน</span>
+                            {empSortField === "startDate" ? (
                               empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 7. อายุงาน */}
                         <th 
-                          onClick={() => handleRosterSort("ot1_0")}
-                          className="px-4 py-3.5 text-right text-amber-700 cursor-pointer hover:bg-slate-100 transition-colors"
-                          title="คลิกเพื่อเรียงตาม OT ในวันหยุด x1"
+                          onClick={() => handleRosterSort("tenure")}
+                          className="px-4 py-3.5 text-center text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[100px]"
+                          title="คลิกเพื่อเรียงตามอายุงาน"
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>อายุงาน</span>
+                            {empSortField === "tenure" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
+                            )}
+                          </div>
+                        </th>
+
+                        {/* 8. ฐานเงินเดือน */}
+                        <th 
+                          onClick={() => handleRosterSort("salary")}
+                          className="px-4 py-3.5 text-right text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[130px]"
+                          title="คลิกเพื่อเรียงตามฐานเงินเดือน"
                         >
                           <div className="flex items-center justify-end gap-1.5">
-                            <span>OT ทำงานในวันหยุด (x1)</span>
-                            {empSortField === "ot1_0" ? (
-                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-amber-600" /> : <ArrowDown className="w-3 h-3 text-amber-600" />
+                            <span>ฐานเงินเดือน (บาท)</span>
+                            {empSortField === "salary" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
+
+                        {/* 9. สถานะการทำงาน */}
                         <th 
-                          onClick={() => handleRosterSort("ot3_0")}
-                          className="px-4 py-3.5 text-right text-red-700 cursor-pointer hover:bg-slate-100 transition-colors"
-                          title="คลิกเพื่อเรียงตาม OT ในวันหยุด x3"
+                          onClick={() => handleRosterSort("status")}
+                          className="px-4 py-3.5 text-center text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap min-w-[120px]"
+                          title="คลิกเพื่อเรียงตามสถานะการทำงาน"
                         >
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>OT ในวันหยุด (x3)</span>
-                            {empSortField === "ot3_0" ? (
-                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-red-600" /> : <ArrowDown className="w-3 h-3 text-red-600" />
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span>สถานะการทำงาน</span>
+                            {empSortField === "status" ? (
+                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
                             ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 hover:text-slate-600" />
                             )}
                           </div>
                         </th>
-                        <th 
-                          onClick={() => handleRosterSort("totalOtPay")}
-                          className="px-4 py-3.5 text-right text-slate-900 cursor-pointer hover:bg-slate-100 transition-colors"
-                          title="คลิกเพื่อเรียงตามผลรวมค่าล่วงเวลา"
-                        >
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>ผลรวมค่าล่วงเวลา</span>
-                            {empSortField === "totalOtPay" ? (
-                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-slate-900" /> : <ArrowDown className="w-3 h-3 text-slate-900" />
-                            ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          onClick={() => handleRosterSort("otPctSalary")}
-                          className="px-4 py-3.5 text-right text-purple-700 cursor-pointer hover:bg-slate-100 transition-colors"
-                          title="คลิกเพื่อเรียงตาม % ค่าล่วงเวลา"
-                        >
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>% ค่าล่วงเวลา (เทียบจากฐานเงินเดือน)</span>
-                            {empSortField === "otPctSalary" ? (
-                              empSortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-purple-600" /> : <ArrowDown className="w-3 h-3 text-purple-600" />
-                            ) : (
-                              <ArrowUpDown className="w-3 h-3 text-slate-300 hover:text-slate-500" />
-                            )}
-                          </div>
-                        </th>
-                        <th className="px-4 py-3.5 text-center">การจัดการ</th>
+
+                        {/* 10. การจัดการ */}
+                        <th className="px-4 py-3.5 text-center whitespace-nowrap min-w-[110px]">การจัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#DCE4EA] text-slate-700 text-xs">
                       {(() => { let _lastDept = ''; return filteredEmployees.flatMap((emp) => {
-                        // Calculate exact monthly OT metrics using single source of truth
-                        const breakdown = getEmpMonthlyOtPayBreakdown(emp, state?.shiftConfig?.currentMonth);
-                        const ot1_5 = breakdown.normalOt;
-                        const ot1_0 = breakdown.holidayWorkDays * 8;
-                        const ot3_0 = breakdown.holidayOt;
-                        const totalOtPay = breakdown.totalOtPay;
-                        const otPctSalary = Number(breakdown.otPctSalary) || 0;
                         const _deptLabel = getDeptName(emp.deptId, state.departments);
                         const _rows: React.ReactNode[] = [];
                         if (_deptLabel !== _lastDept) {
                           const _cnt = filteredEmployees.filter(e => getDeptName(e.deptId, state.departments) === _deptLabel).length;
                           _rows.push(
                             <tr key={'grp-' + _deptLabel} className="bg-slate-50 border-t-2 border-slate-200">
-                              <td colSpan={11} className="px-4 py-2">
+                              <td colSpan={10} className="px-4 py-2">
                                 <div className="flex items-center gap-2.5">
                                   <span className="w-2 h-2 rounded-full bg-blue-600 inline-block flex-shrink-0"></span>
                                   <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider">{_deptLabel}</span>
@@ -9597,45 +9569,58 @@ export default function App() {
                             <td className="static lg:sticky lg:left-[550px] z-10 bg-white group-hover:bg-blue-50/70 px-4 py-3.5 text-slate-600 font-medium whitespace-nowrap min-w-[150px] w-[150px] lg:border-r-2 lg:border-slate-300 lg:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.08)]">
                               {emp.division || emp.groupName || "-"}
                             </td>
-                            {/* 6. OT วันทำงาน (x1.5) */}
-                            <td className="px-4 py-3.5 text-right font-extrabold text-blue-700 font-mono">
-                              {ot1_5} ชม.
+
+                            {/* 6. วันที่เริ่มงาน */}
+                            <td className="px-4 py-3.5 text-center text-slate-600 font-mono whitespace-nowrap">
+                              {emp.startDate || "-"}
                             </td>
-                            {/* 7. OT ทำงานในวันหยุด (x1) */}
-                            <td className="px-4 py-3.5 text-right font-bold text-amber-700 font-mono">
-                              {ot1_0} ชม.
+
+                            {/* 7. อายุงาน */}
+                            <td className="px-4 py-3.5 text-center text-slate-700 font-semibold whitespace-nowrap">
+                              {emp.tenure || "-"}
                             </td>
-                            {/* 8. OT ในวันหยุด (x3) */}
-                            <td className="px-4 py-3.5 text-right font-bold text-red-700 font-mono">
-                              {ot3_0} ชม.
+
+                            {/* 8. ฐานเงินเดือน (บาท) */}
+                            <td className="px-4 py-3.5 text-right font-black text-slate-800 font-mono whitespace-nowrap">
+                              {emp.salary ? `฿${Number(emp.salary).toLocaleString()}` : "-"}
                             </td>
-                            {/* 9. ผลรวมค่าล่วงเวลา */}
-                            <td className="px-4 py-3.5 text-right font-black text-slate-900 font-mono">
-                              {totalOtPay.toLocaleString()}
+
+                            {/* 9. สถานะการทำงาน */}
+                            <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                              {(() => {
+                                const st = emp.employmentStatus || "Active";
+                                const isResigned = st === "Resigned" || st === "พ้นสภาพ" || st === "ลาออก" || st === "เกษียณ";
+                                const isOnLeave = st === "Inactive" || st === "ลาพักงาน" || st === "On-Leave";
+                                if (isResigned) {
+                                  return (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                      {st === "Resigned" ? "พ้นสภาพ / ลาออก" : st}
+                                    </span>
+                                  );
+                                }
+                                if (isOnLeave) {
+                                  return (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                      {st === "Inactive" ? "ลาพักงาน" : st}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    {st === "Active" ? "ปฏิบัติงานปกติ" : st}
+                                  </span>
+                                );
+                              })()}
                             </td>
-                            {/* 10. % ค่าล่วงเวลา (เทียบจากฐานเงินเดือน) */}
-                            <td className="px-4 py-3.5 text-right font-black font-mono">
-                              <span className={`px-2 py-1 rounded-lg ${otPctSalary > 30 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
-                                {otPctSalary}%
-                              </span>
-                            </td>
-                            {/* 11. การจัดการ */}
+
+                            {/* 10. การจัดการ */}
                             <td className="px-4 py-3.5 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setCalendarModalEmployee(emp)}
-                                  className="px-2 py-1 bg-[#E8F3FA] hover:bg-[#D5EAF7] text-[#0E3A66] border border-[#9FCEE8] rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                                  title="เปิดปฏิทินตั้งกะรายคน (รายวัน / รายอาทิตย์ / รายเดือน / รายปี)"
-                                >
-                                  <Calendar className="w-3.5 h-3.5 text-[#17538F]" />
-                                  <span>ตั้งกะ</span>
-                                </button>
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => setViewingEmployeeDetails(emp)}
                                   className="p-1.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
-                                  title="ดูรายละเอียดพนักงาน"
+                                  title="ดูรายละเอียดข้อมูลพนักงาน"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -9655,11 +9640,11 @@ export default function App() {
                                   </button>
                                 )}
                                 {["HR", "HR Section Manager", "ผู้ดูแลระบบ"].includes(currentUser?.role || "") && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteEmployee(emp)}
-                                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                                    title="ลบพนักงาน"
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteEmployee(emp)}
+                                    className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                    title="ลบพนักงานออกจากฐานข้อมูล"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -9675,7 +9660,7 @@ export default function App() {
 
                       {filteredEmployees.length === 0 && (
                         <tr>
-                          <td colSpan={11} className="px-6 py-12 text-center text-slate-500">
+                          <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
                             <div className="flex flex-col items-center justify-center space-y-3">
                               <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                                 <Search className="w-6 h-6" />
