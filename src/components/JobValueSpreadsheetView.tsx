@@ -1525,6 +1525,40 @@ export default function JobValueSpreadsheetView({
     };
   }, [processedData, selectedPersonRank]);
 
+  // Index of latest month with available data for default display
+  const latestMonthIdx = useMemo(() => {
+    for (let i = 11; i >= 0; i--) {
+      const rev = processedData.monthlyRevenue[i];
+      const cost = processedData.monthlyCost[i];
+      const prof = processedData.monthlyProfit[i];
+      const comp = processedData.monthlyProfitCompare ? processedData.monthlyProfitCompare[i] : null;
+      if (
+        (rev !== null && rev !== undefined && rev !== 0) ||
+        (cost !== null && cost !== undefined && cost !== 0) ||
+        (prof !== null && prof !== undefined && prof !== 0) ||
+        (comp !== null && comp !== undefined && comp !== 0)
+      ) {
+        return i;
+      }
+    }
+    for (let i = 11; i >= 0; i--) {
+      if (processedData.monthlyRevenue[i] !== null && processedData.monthlyRevenue[i] !== undefined) {
+        return i;
+      }
+    }
+    return 0;
+  }, [processedData.monthlyRevenue, processedData.monthlyCost, processedData.monthlyProfit, processedData.monthlyProfitCompare]);
+
+  // Default item index for Yearly Comparison Bar Chart
+  const defaultBarIdx = useMemo(() => {
+    if (!barChartGeometry.items || barChartGeometry.items.length === 0) return null;
+    if (processedData.viewMode === "PERSON" && empFilter !== "ALL") {
+      const pIdx = barChartGeometry.items.findIndex((it) => it.empId === empFilter);
+      if (pIdx !== -1) return pIdx;
+    }
+    return 0;
+  }, [barChartGeometry.items, processedData.viewMode, empFilter]);
+
   return (
     <div className="w-full max-w-full min-w-0 space-y-6 font-sans text-[#0F172A]">
       {/* ===================================================================== */}
@@ -2218,38 +2252,53 @@ export default function JobValueSpreadsheetView({
             </svg>
 
             <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex items-center justify-between gap-3 font-mono h-11 min-h-[44px]">
-              {hoveredMonthIdx !== null &&
-              (processedData.monthlyRevenue[hoveredMonthIdx] !== null ||
-                (processedData.monthlyProfitCompare &&
-                  processedData.monthlyProfitCompare[hoveredMonthIdx] !== null)) ? (
-                <>
-                  <span className="font-sans font-bold text-[#93C5FD]">
-                    เดือน {SHORT_MONTH_LABELS[hoveredMonthIdx]}
-                  </span>
-                  <span>
-                    รายได้ {selectedYear.slice(-2)}:{" "}
-                    {formatInt(processedData.monthlyRevenue[hoveredMonthIdx])}
-                  </span>
-                  <span>
-                    ต้นทุน {selectedYear.slice(-2)}:{" "}
-                    {formatInt(processedData.monthlyCost[hoveredMonthIdx])}
-                  </span>
-                  <span className="font-bold text-[#6EE7B7]">
-                    กำไร {selectedYear.slice(-2)}:{" "}
-                    {formatInt(processedData.monthlyProfit[hoveredMonthIdx])}
-                  </span>
-                  {selectedYear !== compareYear && (
-                    <span className="text-[#CBD5E1]">
-                      กำไร {compareYear.slice(-2)}:{" "}
-                      {formatInt(processedData.monthlyProfitCompare[hoveredMonthIdx])}
+              {(() => {
+                const activeM = hoveredMonthIdx !== null ? hoveredMonthIdx : latestMonthIdx;
+                const hasData =
+                  activeM !== null &&
+                  (processedData.monthlyRevenue[activeM] !== null ||
+                    (processedData.monthlyProfitCompare &&
+                      processedData.monthlyProfitCompare[activeM] !== null));
+
+                if (!hasData) {
+                  return (
+                    <span className="font-sans text-xs text-[#94A3B8]">
+                      ยังไม่มีข้อมูลรายเดือนของปี {selectedYear}
                     </span>
-                  )}
-                </>
-              ) : (
-                <span className="font-sans text-xs text-[#94A3B8] truncate">
-                  เลื่อนเมาส์บนเส้นกราฟเพื่อดูรายละเอียดเปรียบเทียบรายได้ ต้นทุน และกำไรสุทธิแต่ละเดือน
-                </span>
-              )}
+                  );
+                }
+
+                return (
+                  <>
+                    <span className="font-sans font-bold text-[#93C5FD]">
+                      เดือน {SHORT_MONTH_LABELS[activeM]}
+                      {hoveredMonthIdx === null ? " (ล่าสุด)" : ""}
+                    </span>
+                    <span>
+                      รายได้ {selectedYear.slice(-2)}:{" "}
+                      {formatInt(processedData.monthlyRevenue[activeM])}
+                    </span>
+                    <span>
+                      ต้นทุน {selectedYear.slice(-2)}:{" "}
+                      {formatInt(processedData.monthlyCost[activeM])}
+                    </span>
+                    <span className="font-bold text-[#6EE7B7]">
+                      กำไร {selectedYear.slice(-2)}:{" "}
+                      {formatInt(processedData.monthlyProfit[activeM])}
+                    </span>
+                    {selectedYear !== compareYear && (
+                      <span className="text-[#CBD5E1]">
+                        กำไร {compareYear.slice(-2)}:{" "}
+                        {formatInt(
+                          processedData.monthlyProfitCompare
+                            ? processedData.monthlyProfitCompare[activeM]
+                            : 0
+                        )}
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -2437,28 +2486,45 @@ export default function JobValueSpreadsheetView({
             </svg>
 
             <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs flex items-center justify-between gap-3 font-mono h-11 min-h-[44px]">
-              {hoveredBarIdx !== null && barChartGeometry.items[hoveredBarIdx] ? (
-                <>
-                  <span className="font-sans font-bold text-[#93C5FD]">
-                    {barChartGeometry.items[hoveredBarIdx].deptRank
-                      ? `อันดับ #${barChartGeometry.items[hoveredBarIdx].deptRank} · `
-                      : ""}
-                    {barChartGeometry.items[hoveredBarIdx].name}
-                  </span>
-                  <span>
-                    กำไรปี {compareYear}: {formatInt(barChartGeometry.items[hoveredBarIdx].profitCompare)} บาท
-                  </span>
-                  <span className="font-bold text-[#6EE7B7]">
-                    กำไรปี {selectedYear}: {formatInt(barChartGeometry.items[hoveredBarIdx].profit)} บาท
-                  </span>
-                </>
-              ) : (
-                <span className="font-sans text-xs text-[#94A3B8] truncate">
-                  {selectedPersonRank
-                    ? `พนักงาน ${selectedPersonRank.name}: อันดับที่ ${selectedPersonRank.deptRank}/${selectedPersonRank.deptTotal} ในแผนก ${selectedPersonRank.dept} · อันดับที่ ${selectedPersonRank.groupRank}/${selectedPersonRank.groupTotal} ในหน่วยงาน ${selectedPersonRank.group}`
-                    : "เลื่อนเมาส์บนแท่งกราฟเพื่อดูรายละเอียดเปรียบเทียบกำไรรายปี"}
-                </span>
-              )}
+              {(() => {
+                const activeIdx = hoveredBarIdx !== null ? hoveredBarIdx : defaultBarIdx;
+                const activeItem =
+                  activeIdx !== null && barChartGeometry.items ? barChartGeometry.items[activeIdx] : null;
+
+                if (!activeItem) {
+                  return (
+                    <span className="font-sans text-xs text-[#94A3B8]">
+                      ยังไม่มีข้อมูลเปรียบเทียบกำไรของปี {selectedYear}
+                    </span>
+                  );
+                }
+
+                const diff = activeItem.profit - activeItem.profitCompare;
+                return (
+                  <>
+                    <span className="font-sans font-bold text-[#93C5FD] truncate max-w-[220px]">
+                      {activeItem.deptRank
+                        ? `อันดับ #${activeItem.deptRank} · `
+                        : activeIdx !== null
+                        ? `#${activeIdx + 1} · `
+                        : ""}
+                      {activeItem.name}
+                      {hoveredBarIdx === null && processedData.viewMode === "PERSON"
+                        ? " (เลือก)"
+                        : ""}
+                    </span>
+                    <span>
+                      กำไรปี {compareYear}: {formatInt(activeItem.profitCompare)} บาท
+                    </span>
+                    <span className="font-bold text-[#6EE7B7]">
+                      กำไรปี {selectedYear}: {formatInt(activeItem.profit)} บาท
+                    </span>
+                    <span className={`font-bold tabular-nums ${diff >= 0 ? "text-[#6EE7B7]" : "text-[#FDA4AF]"}`}>
+                      ผลต่าง: {formatSignedInt(diff)} บาท
+                    </span>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
